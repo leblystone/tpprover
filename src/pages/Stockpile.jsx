@@ -35,9 +35,39 @@ export default function Stockpile() {
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', documentation: [] })
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] })
   const [isAmountFocused, setIsAmountFocused] = useState(false)
   const [isQuantityFocused, setIsQuantityFocused] = useState(false)
+  const [isPriceFocused, setIsPriceFocused] = useState(false)
+  const [isAmountUnitDropdownOpen, setIsAmountUnitDropdownOpen] = useState(false)
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false)
+  const [isPriceUnitDropdownOpen, setIsPriceUnitDropdownOpen] = useState(false)
+  const [manageRowDropdowns, setManageRowDropdowns] = useState({}) // { [rowId]: { amountUnit: false, unit: false } }
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    if (!isAmountUnitDropdownOpen && !isUnitDropdownOpen && !isPriceUnitDropdownOpen && Object.values(manageRowDropdowns).every(v => !v.amountUnit && !v.unit)) return;
+
+    const handleClickOutside = (event) => {
+      const isClickInside = event.target.closest('[data-dropdown-container]');
+      if (!isClickInside) {
+        setIsAmountUnitDropdownOpen(false);
+        setIsUnitDropdownOpen(false);
+        setIsPriceUnitDropdownOpen(false);
+        // Close all manage row dropdowns
+        setManageRowDropdowns({});
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isAmountUnitDropdownOpen, isUnitDropdownOpen, isPriceUnitDropdownOpen, manageRowDropdowns]);
   
   // Auto-save functionality for stockpile form
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
@@ -1208,7 +1238,7 @@ export default function Stockpile() {
                 setItems(prev => [itemToAdd, ...prev]); 
                 markAsSubmitted(); // Clear auto-save data
                 setOpenAdd(false); 
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', documentation: [] }) 
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] }) 
               } catch (error) {
                 console.error('❌ Failed to save stockpile item:', error);
                 setSaveError('Failed to save stockpile item. Please try again.');
@@ -1270,7 +1300,7 @@ export default function Stockpile() {
               customTextColor={theme.isDark ? null : "#181A18"}
             />
           {/* Amount & Quantity in two columns */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="relative">
               <div 
                 className="flex items-stretch rounded-lg"
@@ -1286,38 +1316,108 @@ export default function Stockpile() {
                   value={form.mg || ''} 
                   onChange={e => updateFormData({ mg: e.target.value })} 
                   onFocus={() => setIsAmountFocused(true)}
-                  onBlur={() => setIsAmountFocused(false)}
+                  onBlur={(e) => {
+                    setTimeout(() => {
+                      const relatedTarget = e.relatedTarget || document.activeElement
+                      const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                      if (!isClickingDropdown && !isAmountUnitDropdownOpen) {
+                        setIsAmountFocused(false)
+                      }
+                    }, 150)
+                  }}
                   placeholder=" "
-                  className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
+                  className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
                     backgroundColor: 'transparent',
                     color: theme.isDark ? theme.text : '#181A18',
-                    border: 'none'
+                    border: 'none',
+                    paddingLeft: '12px',
+                    paddingRight: '8px'
                   }}
                 />
-                <div 
-                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                <button
+                  type="button"
+                  onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                  className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  data-dropdown-container
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    color: theme.isDark ? theme.text : '#181A18',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  {['mg', 'mL'].map(unit => (
-                    <button 
-                      key={unit} 
-                      type="button" 
-                      onClick={() => updateFormData({ mgUnit: unit })}
-                      className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                        (form.mgUnit || 'mg') === unit 
-                          ? 'text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-200'
-                      }`}
-                      style={(form.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                  <span className="text-sm font-semibold">
+                    {(form.mgUnit || 'mg')}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                {isAmountUnitDropdownOpen && (
+                  <div className="relative" data-dropdown-container>
+                    <div 
+                      className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                      style={{
+                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                        borderColor: theme.border,
+                        minWidth: '100px',
+                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                      }}
                     >
-                      {unit}
-                    </button>
-                  ))}
-                </div>
+                      {[
+                        { value: 'mg', label: 'mg' },
+                        { value: 'mL', label: 'mL' },
+                        { value: 'g', label: 'g' },
+                        { value: 'IU', label: 'IU' }
+                      ].map((option, optIdx) => (
+                        <React.Fragment key={option.value}>
+                          {optIdx > 0 && (
+                            <div 
+                              className="h-px mx-2"
+                              style={{ backgroundColor: theme.border }}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              updateFormData({ mgUnit: option.value });
+                              setIsAmountUnitDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                              e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <label 
                 htmlFor="amount-input"
@@ -1350,7 +1450,15 @@ export default function Stockpile() {
                   value={form.quantity || ''} 
                   onChange={e => updateFormData({ quantity: e.target.value })} 
                   onFocus={() => setIsQuantityFocused(true)}
-                  onBlur={() => setIsQuantityFocused(false)}
+                  onBlur={(e) => {
+                    setTimeout(() => {
+                      const relatedTarget = e.relatedTarget || document.activeElement
+                      const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                      if (!isClickingDropdown && !isUnitDropdownOpen) {
+                        setIsQuantityFocused(false)
+                      }
+                    }, 150)
+                  }}
                   placeholder=" "
                   className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
@@ -1359,29 +1467,102 @@ export default function Stockpile() {
                     border: 'none'
                   }}
                 />
-                <div 
-                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                <button
+                  type="button"
+                  onClick={() => setIsUnitDropdownOpen(prev => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                  className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  data-dropdown-container
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    color: theme.isDark ? theme.text : '#181A18',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  {['vial','kit'].map(k => (
-                    <button 
-                      key={k} 
-                      type="button" 
-                      onClick={() => updateFormData({ unit: k })}
-                      className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                        ((form.unit || 'vial') === k) 
-                          ? 'text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-200'
-                      }`}
-                      style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}
+                  <span className="text-sm font-semibold">
+                    {(() => {
+                      const unit = (form.unit || 'vial').toLowerCase();
+                      const quantity = Number(form.quantity) || 1;
+                      if (unit === 'vial') {
+                        return quantity === 1 ? 'Vial' : 'Vials';
+                      } else if (unit === 'kit') {
+                        return quantity === 1 ? 'Kit' : 'Kits';
+                      } else if (unit === 'bottle') {
+                        return quantity === 1 ? 'Bottle' : 'Bottles';
+                      } else if (unit === 'tablets') {
+                        return 'Tablets';
+                      }
+                      return unit.charAt(0).toUpperCase() + unit.slice(1);
+                    })()}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                {isUnitDropdownOpen && (
+                  <div className="relative" data-dropdown-container>
+                    <div 
+                      className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                      style={{
+                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                        borderColor: theme.border,
+                        minWidth: '120px',
+                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                      }}
                     >
-                      {k.charAt(0).toUpperCase() + k.slice(1)}
-                    </button>
-                  ))}
-                </div>
+                      {[
+                        { value: 'vial', label: 'Vial' },
+                        { value: 'kit', label: 'Kit' },
+                        { value: 'bottle', label: 'Bottle' },
+                        { value: 'tablets', label: 'Tablets' }
+                      ].map((option, optIdx) => (
+                        <React.Fragment key={option.value}>
+                          {optIdx > 0 && (
+                            <div 
+                              className="h-px mx-2"
+                              style={{ backgroundColor: theme.border }}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              updateFormData({ unit: option.value });
+                              setIsUnitDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                              e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = (form.unit || 'vial') === option.value ? theme.primary : theme.text;
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <label 
                 htmlFor="quantity-input"
@@ -1403,6 +1584,150 @@ export default function Stockpile() {
           
           <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Black Crimp/Black Cap" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           
+          <div className="relative">
+            <div 
+              className="flex items-stretch rounded-lg"
+              style={{ 
+                border: `1px solid #f0eee7`,
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+              }}
+            >
+              <input 
+                type="text"
+                id="price-input"
+                value={form.cost || ''} 
+                onChange={e => updateFormData({ cost: e.target.value })} 
+                onFocus={() => setIsPriceFocused(true)}
+                onBlur={(e) => {
+                  setTimeout(() => {
+                    const relatedTarget = e.relatedTarget || document.activeElement
+                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                    if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
+                      setIsPriceFocused(false)
+                    }
+                  }, 150)
+                }}
+                placeholder=" "
+                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: theme.isDark ? theme.text : '#181A18',
+                  border: 'none',
+                  paddingLeft: '12px',
+                  paddingRight: '8px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                data-dropdown-container
+                style={{ 
+                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                  color: theme.isDark ? theme.text : '#181A18',
+                  minWidth: '100px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                }}
+              >
+                <span className="text-sm font-semibold">
+                  {(() => {
+                    const unit = (form.priceUnit || 'vial').toLowerCase();
+                    if (unit === 'vial') return 'Vial';
+                    if (unit === 'mg') return 'mg';
+                    if (unit === 'g') return 'g';
+                    if (unit === 'iu') return 'IU';
+                    if (unit === 'tablet') return 'Tablet';
+                    return unit.charAt(0).toUpperCase() + unit.slice(1);
+                  })()}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              {isPriceUnitDropdownOpen && (
+                <div className="relative" data-dropdown-container>
+                  <div 
+                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                      borderColor: theme.border,
+                      minWidth: '120px',
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {[
+                      { value: 'vial', label: 'Vial' },
+                      { value: 'mg', label: 'mg' },
+                      { value: 'g', label: 'g' },
+                      { value: 'iu', label: 'IU' },
+                      { value: 'tablet', label: 'Tablet' }
+                    ].map((option, optIdx) => (
+                      <React.Fragment key={option.value}>
+                        {optIdx > 0 && (
+                          <div 
+                            className="h-px mx-2"
+                            style={{ backgroundColor: theme.border }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            updateFormData({ priceUnit: option.value });
+                            setIsPriceUnitDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                          style={{
+                            color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                            backgroundColor: 'transparent',
+                            WebkitTapHighlightColor: 'transparent'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                            e.currentTarget.style.color = theme.primary;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <label 
+              htmlFor="price-input"
+              className="absolute pointer-events-none transition-all"
+              style={{
+                fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
+                padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                fontWeight: 500
+              }}
+            >
+              Cost per ($)
+            </label>
+          </div>
+          
           {/* ORDER DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
             <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER DETAILS</h4>
@@ -1417,16 +1742,13 @@ export default function Stockpile() {
             <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           </div>
           
-          {/* Price & Date Acquired in two columns */}
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Price per Vial ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60 per vial" theme={theme} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-            <GlassmorphismDatePicker
-              value={form.date}
-              onChange={(dateString) => updateFormData({ date: dateString })}
-              theme={theme}
-              placeholder="Date Acquired"
-            />
-          </div>
+          {/* Date Acquired */}
+          <GlassmorphismDatePicker
+            value={form.date}
+            onChange={(dateString) => updateFormData({ date: dateString })}
+            theme={theme}
+            placeholder="Date Acquired"
+          />
           </div>
           
           {/* EXTRA DETAILS Section Header */}
@@ -1553,7 +1875,7 @@ export default function Stockpile() {
                   theme={theme}
                 />
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
                     <div
@@ -1568,35 +1890,112 @@ export default function Stockpile() {
                         value={row.mg || ''}
                         onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: e.target.value } : r))}
                         placeholder="10"
-                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                        className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
                         style={{
                           backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                          color: theme.text
+                          color: theme.text,
+                          paddingLeft: '12px',
+                          paddingRight: '8px'
+                        }}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            const relatedTarget = e.relatedTarget || document.activeElement
+                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                            if (!isClickingDropdown && !(manageRowDropdowns[row.id]?.amountUnit)) {
+                              // Input blur handled
+                            }
+                          }, 150)
                         }}
                       />
-                      <div
-                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => setManageRowDropdowns(prev => ({
+                          ...prev,
+                          [row.id]: { ...prev[row.id], amountUnit: !prev[row.id]?.amountUnit }
+                        }))}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        className="flex items-center justify-between gap-3 px-4 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                        data-dropdown-container
                         style={{
                           borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
-                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                          color: theme.isDark ? theme.text : '#181A18',
+                          minWidth: '100px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                         }}
                       >
-                        {['mg', 'mL'].map(unit => (
-                          <button
-                            key={unit}
-                            type="button"
-                            onClick={() => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mgUnit: unit } : r))}
-                            className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                              (row.mgUnit || 'mg') === unit
-                                ? 'text-white shadow-sm'
-                                : 'text-gray-600 hover:bg-gray-200'
-                            }`}
-                            style={(row.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                        <span className="text-sm font-semibold">
+                          {(row.mgUnit || 'mg')}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {manageRowDropdowns[row.id]?.amountUnit && (
+                        <div className="relative" data-dropdown-container>
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '100px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
                           >
-                            {unit}
-                          </button>
-                        ))}
-                      </div>
+                            {[
+                              { value: 'mg', label: 'mg' },
+                              { value: 'mL', label: 'mL' },
+                              { value: 'g', label: 'g' },
+                              { value: 'IU', label: 'IU' }
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onTouchStart={(e) => e.preventDefault()}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mgUnit: option.value } : r));
+                                    setManageRowDropdowns(prev => ({
+                                      ...prev,
+                                      [row.id]: { ...prev[row.id], amountUnit: false }
+                                    }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                  style={{
+                                    color: (row.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = (row.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -1613,54 +2012,143 @@ export default function Stockpile() {
                         value={row.quantity || ''}
                         onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))}
                         placeholder="5"
-                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                        className="flex-1 px-3 py-2 outline-none min-w-0 rounded-l-lg"
                         style={{
                           backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                           color: theme.text
                         }}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            const relatedTarget = e.relatedTarget || document.activeElement
+                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                            if (!isClickingDropdown && !(manageRowDropdowns[row.id]?.unit)) {
+                              // Input blur handled
+                            }
+                          }, 150)
+                        }}
                       />
-                      <div
-                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => setManageRowDropdowns(prev => ({
+                          ...prev,
+                          [row.id]: { ...prev[row.id], unit: !prev[row.id]?.unit }
+                        }))}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        className="flex items-center justify-between gap-3 px-4 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                        data-dropdown-container
                         style={{
                           borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
-                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                          color: theme.isDark ? theme.text : '#181A18',
+                          minWidth: '100px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                         }}
                       >
-                        {['vial','kit'].map(k => (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => {
-                              const oldUnit = row.unit || 'vial';
-                              if (oldUnit === k) return;
-                              setManageRows(prev => prev.map(r => {
-                                if (r.id !== row.id) return r;
-                                const qty = Number(r.quantity) || 0;
-                                let newQty = qty;
-                                if (oldUnit === 'kit' && k === 'vial') {
-                                  newQty = qty * 10;
-                                } else if (oldUnit === 'vial' && k === 'kit') {
-                                  if (qty > 0 && qty % 10 === 0) {
-                                    newQty = qty / 10;
-                                  } else {
-                                    alert("You can only convert to kits if you have a multiple of 10 vials.");
-                                    return r;
-                                  }
-                                }
-                                return { ...r, unit: k, quantity: String(newQty) };
-                              }));
+                        <span className="text-sm font-semibold">
+                          {(() => {
+                            const unit = (row.unit || 'vial').toLowerCase();
+                            const quantity = Number(row.quantity) || 1;
+                            if (unit === 'vial') {
+                              return quantity === 1 ? 'Vial' : 'Vials';
+                            } else if (unit === 'kit') {
+                              return quantity === 1 ? 'Kit' : 'Kits';
+                            } else if (unit === 'bottle') {
+                              return quantity === 1 ? 'Bottle' : 'Bottles';
+                            } else if (unit === 'tablets') {
+                              return 'Tablets';
+                            }
+                            return unit.charAt(0).toUpperCase() + unit.slice(1);
+                          })()}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {manageRowDropdowns[row.id]?.unit && (
+                        <div className="relative" data-dropdown-container>
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '120px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                             }}
-                            className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                              ((row.unit || 'vial') === k)
-                                ? 'text-white shadow-sm'
-                                : 'text-gray-600 hover:bg-gray-200'
-                            }`}
-                            style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}
                           >
-                            {k.charAt(0).toUpperCase() + k.slice(1)}
-                          </button>
-                        ))}
-                      </div>
+                            {[
+                              { value: 'vial', label: 'Vial' },
+                              { value: 'kit', label: 'Kit' },
+                              { value: 'bottle', label: 'Bottle' },
+                              { value: 'tablets', label: 'Tablets' }
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onTouchStart={(e) => e.preventDefault()}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    const oldUnit = row.unit || 'vial';
+                                    const qty = Number(row.quantity) || 0;
+                                    let newQty = qty;
+                                    if (oldUnit === 'kit' && option.value === 'vial') {
+                                      newQty = qty * 10;
+                                    } else if (oldUnit === 'vial' && option.value === 'kit') {
+                                      if (qty > 0 && qty % 10 === 0) {
+                                        newQty = qty / 10;
+                                      } else {
+                                        alert("You can only convert to kits if you have a multiple of 10 vials.");
+                                        setManageRowDropdowns(prev => ({
+                                          ...prev,
+                                          [row.id]: { ...prev[row.id], unit: false }
+                                        }));
+                                        return;
+                                      }
+                                    }
+                                    setManageRows(prev => prev.map(r => {
+                                      if (r.id !== row.id) return r;
+                                      return { ...r, unit: option.value, quantity: String(newQty) };
+                                    }));
+                                    setManageRowDropdowns(prev => ({
+                                      ...prev,
+                                      [row.id]: { ...prev[row.id], unit: false }
+                                    }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                  style={{
+                                    color: (row.unit || 'vial') === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = (row.unit || 'vial') === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
