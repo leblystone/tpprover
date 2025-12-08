@@ -624,18 +624,8 @@ export default function Login() {
         } else if (error.code === 'auth/user-not-found') {
           setError('No account found with this email. Please create a new account.');
         } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          // Check if account exists but password is wrong
-          if (accountStatus && accountStatus.existsInAuth) {
-            if (!accountStatus.hasPassword) {
-              setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set a password.');
-            } else {
-              setError('Incorrect password. Use "Forgot password?" to reset it.');
-            }
-          } else if (accountStatus && !accountStatus.existsInAuth && accountStatus.existsInFirestore) {
-            setError('Account exists in database but authentication setup is incomplete. Please contact support.');
-          } else {
-            setError('Invalid email or password. Please try again or use "Forgot password?" to reset.');
-          }
+          // Wrong password - keep it simple and user-friendly
+          setError('Incorrect password. Use "Forgot password?" to reset it.');
         } else if (error.code === 'auth/invalid-email') {
           setError('Please enter a valid email address.');
         } else if (error.code === 'auth/user-disabled') {

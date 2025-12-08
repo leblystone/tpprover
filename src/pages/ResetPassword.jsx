@@ -72,20 +72,33 @@ export default function ResetPassword() {
     const errors = [];
     const tips = [];
 
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+    if (!password) {
+      return { valid: false, errors: ['Password is required.'], tips: [] };
     }
 
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
+    if (password.length < 6) {
+      errors.push('Password must be at least 6 characters long');
+      tips.push('Use at least 6 characters');
+    }
+
+    if (password.length > 128) {
+      errors.push('Password is too long.');
+      tips.push('Use less than 128 characters');
     }
 
     if (!/[a-z]/.test(password)) {
       errors.push('Password must contain at least one lowercase letter');
+      tips.push('Add lowercase letters (a-z)');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+      tips.push('Add uppercase letters (A-Z)');
     }
 
     if (!/\d/.test(password)) {
       errors.push('Password must contain at least one number');
+      tips.push('Add numbers (0-9)');
     }
 
     if (password.length >= 12) {
