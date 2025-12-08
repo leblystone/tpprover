@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, AlertTriangle, Package } from 'lucide-react';
+import { Package, ChevronsUp, ChevronsDown } from 'lucide-react';
 
 function useLocal(key, fallback) {
   try {
@@ -14,26 +14,56 @@ function useLocal(key, fallback) {
 const InventoryWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
   const stockpile = useLocal('tpprover_stockpile', []);
+  const terracottaColor = '#c87a5c';
 
-  const inventoryData = useMemo(() => {
-    const lowStock = stockpile.filter(s => Number(s.quantity) <= 1);
-    const outOfStock = stockpile.filter(s => Number(s.quantity) === 0);
-    const totalItems = stockpile.length;
-    const wellStocked = stockpile.filter(s => Number(s.quantity) > 3);
-
-    return { 
-      lowStock: lowStock.length, 
-      outOfStock: outOfStock.length,
-      totalItems,
-      wellStocked: wellStocked.length
-    };
+  // Calculate top 3 well stocked (grouped by peptide name, total mg on hand)
+  const topWellStocked = useMemo(() => {
+    if (!stockpile || stockpile.length === 0) return [];
+    
+    // Group by peptide name and calculate total mg
+    const grouped = new Map();
+    stockpile.forEach(item => {
+      const name = item.name || 'Unknown';
+      const mg = Number(item.mg) || 0;
+      const quantity = Number(item.quantity) || 0;
+      const totalMg = mg * quantity;
+      
+      if (!grouped.has(name)) {
+        grouped.set(name, { name, totalMg: 0 });
+      }
+      const group = grouped.get(name);
+      group.totalMg += totalMg;
+    });
+    
+    // Sort by total mg descending and take top 3
+    return Array.from(grouped.values())
+      .sort((a, b) => b.totalMg - a.totalMg)
+      .slice(0, 3);
   }, [stockpile]);
 
-  const getStockColor = (count) => {
-    if (count === 0) return theme.success;
-    if (count <= 2) return theme.warning;
-    return theme.error;
-  };
+  // Calculate lowest 2 items (sorted by quantity, showing individual items)
+  // Exclude out of stock items (quantity = 0) and items with quantity <= 1
+  const lowestItems = useMemo(() => {
+    if (!stockpile || stockpile.length === 0) return [];
+    
+    // Filter to only include items with quantity > 1, then sort by quantity ascending and take lowest 2
+    return [...stockpile]
+      .filter(item => {
+        const quantity = Number(item.quantity) || 0;
+        return quantity > 1;
+      })
+      .sort((a, b) => {
+        const qtyA = Number(a.quantity) || 0;
+        const qtyB = Number(b.quantity) || 0;
+        return qtyA - qtyB;
+      })
+      .slice(0, 2)
+      .map(item => ({
+        name: item.name || 'Unknown',
+        mg: Number(item.mg) || 0,
+        quantity: Number(item.quantity) || 0
+      }));
+  }, [stockpile]);
 
   const handleClick = () => {
     navigate('/app/stockpile');
@@ -54,8 +84,8 @@ const InventoryWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4">
-        {inventoryData.totalItems === 0 ? (
+      <div className="flex-1 p-3 overflow-y-auto">
+        {stockpile.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Package size={24} style={{ color: theme.textLight }} className="mb-2" />
             <p className="text-sm" style={{ color: theme.textLight }}>
@@ -63,44 +93,65 @@ const InventoryWidget = ({ widget, theme }) => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Main metric */}
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Archive size={24} style={{ color: getStockColor(inventoryData.lowStock) }} />
+          <div className="space-y-3">
+            {/* Top 3 Well Stocked */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <ChevronsUp size={15} style={{ color: theme.success }} />
+                <h4 className="text-xs font-semibold" style={{ color: theme.text }}>
+                  Well Stocked
+                </h4>
               </div>
-              
-              <div 
-                className="text-3xl font-bold mb-1" 
-                style={{ color: getStockColor(inventoryData.lowStock) }}
-              >
-                {inventoryData.lowStock}
-              </div>
-              
-              <div className="text-sm" style={{ color: theme.textLight }}>
-                low stock items
-              </div>
+              {topWellStocked.length === 0 ? (
+                <p className="text-xs" style={{ color: theme.textLight }}>No well stocked items</p>
+              ) : (
+                <ul className="space-y-1">
+                  {topWellStocked.map((item, idx) => (
+                    <li 
+                      key={`${item.name}-${idx}`}
+                      className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
+                      style={{ backgroundColor: theme.secondary }}
+                    >
+                      <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
+                        {item.name}
+                      </span>
+                      <span className="font-semibold ml-2 whitespace-nowrap" style={{ color: theme.success }}>
+                        {item.totalMg.toLocaleString()} mg
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            {/* Stock breakdown */}
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="p-2 rounded" style={{ backgroundColor: theme.secondary }}>
-                <div className="text-lg font-semibold" style={{ color: theme.error }}>
-                  {inventoryData.outOfStock}
-                </div>
-                <div className="text-xs" style={{ color: theme.textLight }}>
-                  Out of Stock
-                </div>
+            {/* Lowest 2 Items */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <ChevronsDown size={15} style={{ color: terracottaColor }} />
+                <h4 className="text-xs font-semibold" style={{ color: theme.text }}>
+                  Running Low
+                </h4>
               </div>
-              
-              <div className="p-2 rounded" style={{ backgroundColor: theme.secondary }}>
-                <div className="text-lg font-semibold" style={{ color: theme.success }}>
-                  {inventoryData.wellStocked}
-                </div>
-                <div className="text-xs" style={{ color: theme.textLight }}>
-                  Well Stocked
-                </div>
-              </div>
+              {lowestItems.length === 0 ? (
+                <p className="text-xs" style={{ color: theme.textLight }}>No items found</p>
+              ) : (
+                <ul className="space-y-1">
+                  {lowestItems.map((item, idx) => (
+                    <li 
+                      key={`${item.name}-${item.mg}-${idx}`}
+                      className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
+                      style={{ backgroundColor: theme.secondary }}
+                    >
+                      <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
+                        {item.name}
+                      </span>
+                      <span className="font-semibold ml-2 whitespace-nowrap" style={{ color: terracottaColor }}>
+                        {item.mg} mg
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         )}
