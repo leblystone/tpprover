@@ -136,6 +136,7 @@ export default function Login() {
     const [twoFactorSecret, setTwoFactorSecret] = useState('');
     const [pendingLoginData, setPendingLoginData] = useState(null);
     const [isPending, startTransition] = useTransition();
+    const [showTryLoginButton, setShowTryLoginButton] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -991,10 +992,24 @@ export default function Login() {
             console.log('🔍 Has password:', accountStatus.hasPassword);
             
             // If account doesn't exist in Auth but Firebase says email is in use,
-            // it might be a recently deleted account that hasn't fully propagated
+            // it might be a recently deleted account, disabled account, or propagation delay
             if (!accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
-              setError('This email was recently used. Firebase may need a few minutes to fully delete the account. Please wait 2-3 minutes and try again, or contact support if this persists.');
-              console.warn('⚠️ Account appears deleted but Firebase still reports email in use - likely propagation delay');
+              const errorMsg = `⚠️ Account Creation Blocked\n\n` +
+                `Firebase reports this email is already in use, but the account doesn't appear in our system.\n\n` +
+                `Possible causes:\n` +
+                `• Account was recently deleted (can take 5-15 minutes to fully propagate)\n` +
+                `• Account exists but is disabled in Firebase Console\n` +
+                `• Account exists but has no sign-in methods enabled\n\n` +
+                `Try these solutions:\n` +
+                `1. Click "Try Logging In" below to see if the account works\n` +
+                `2. Wait 10-15 minutes and try creating the account again\n` +
+                `3. Contact support with this email address\n\n` +
+                `💡 Admin: Check Firebase Console → Authentication → Users for this email`;
+              setError(errorMsg);
+              setShowTryLoginButton(true); // Show button to try logging in
+              console.warn('⚠️ Account appears deleted but Firebase still reports email in use');
+              console.warn('   This could be: propagation delay, disabled account, or account with no sign-in methods');
+              console.warn('   Recommendation: Try logging in first, or wait 10-15 minutes');
             } else if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
               setError('Account found but incomplete setup. Switching to login...');
               setTimeout(() => {
@@ -1099,6 +1114,7 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setShowTryLoginButton(false);
 
         if (mode === 'login') {
             setLoading(true);
@@ -1336,7 +1352,35 @@ export default function Login() {
                             )}
 
                             {error && (
-                                <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded-md">{error}</p>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md whitespace-pre-line">{error}</p>
+                                    {showTryLoginButton && mode === 'signup' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMode('login');
+                                                setShowTryLoginButton(false);
+                                                setError('');
+                                                setPassword('');
+                                                setConfirmPassword('');
+                                            }}
+                                            className="w-full px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all"
+                                            style={{
+                                                borderColor: theme.primary,
+                                                color: theme.primary,
+                                                backgroundColor: 'transparent'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.primary + '10';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            🔐 Try Logging In Instead
+                                        </button>
+                                    )}
+                                </div>
                             )}
 
                             
@@ -1352,7 +1396,13 @@ export default function Login() {
                             {mode === 'signup' && (
                                 <div className="flex justify-center">
                                     <button 
-                                        onClick={() => { setMode('login'); setPassword(''); setConfirmPassword(''); setError(''); }}
+                                        onClick={() => { 
+                                            setMode('login'); 
+                                            setPassword(''); 
+                                            setConfirmPassword(''); 
+                                            setError(''); 
+                                            setShowTryLoginButton(false);
+                                        }}
                                         className="text-sm underline hover:no-underline font-medium"
                                         style={{ color: theme.primary }}
                                     >
