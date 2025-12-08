@@ -965,7 +965,7 @@ exports.stripeWebhook = stripeWebhooks.stripeWebhook;
 // Test webhook email simulation (safe testing)
 exports.testWebhookEmails = testWebhookSimulation.testWebhookEmails;
 
-// Custom password reset function
+// Custom password reset function (for authenticated users)
 exports.sendCustomPasswordResetEmail = onCall(
   {
     cors: true,
@@ -1008,6 +1008,67 @@ exports.sendCustomPasswordResetEmail = onCall(
     } catch (error) {
       logger.error('❌ Failed to send custom password reset email:', error);
       throw new Error('Failed to send password reset email');
+    }
+  }
+);
+
+// Password reset for unauthenticated users (forgot password flow)
+// This uses your custom email templates via SendGrid
+exports.requestPasswordReset = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { email } = request.data;
+
+    if (!email) {
+      throw new HttpsError('invalid-argument', 'Email is required');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    logger.info(`🔐 Requesting password reset for: ${normalizedEmail}`);
+
+    try {
+      // Find user by email using Admin SDK (works even if account is disabled)
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+      } catch (authError) {
+        if (authError.code === 'auth/user-not-found') {
+          // Don't reveal if user exists - return success anyway for security
+          logger.info(`ℹ️ User not found for email: ${normalizedEmail} (returning success for security)`);
+          return { success: true, message: 'If an account exists, a password reset email has been sent' };
+        }
+        throw authError;
+      }
+
+      const userId = userRecord.uid;
+      logger.info(`✅ Found user for password reset: ${userId}`);
+
+      // Generate a custom password reset token
+      const resetToken = require('crypto').randomBytes(32).toString('hex');
+      
+      // Store the token in Firestore with expiration (1 hour)
+      const tokenRef = admin.firestore().collection('passwordResetTokens').doc(resetToken);
+      await tokenRef.set({
+        userId,
+        userEmail: normalizedEmail,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        used: false
+      });
+
+      // Send custom password reset email via SendGrid using your email templates
+      await emailService.sendCustomPasswordResetEmail(normalizedEmail, resetToken);
+      
+      logger.info(`✅ Custom password reset email sent to: ${normalizedEmail}`);
+      return { success: true, message: 'Password reset email sent' };
+      
+    } catch (error) {
+      logger.error('❌ Failed to send password reset email:', error);
+      // Don't reveal if user exists - return success anyway for security
+      return { success: true, message: 'If an account exists, a password reset email has been sent' };
     }
   }
 );

@@ -1,13 +1,14 @@
 import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Play, Monitor } from 'lucide-react';
+import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Play, Monitor, CheckCircle } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import SignupAgreementModal from '../components/legal/SignupAgreementModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import TwoFactorModal from '../components/auth/TwoFactorModal';
+import Modal from '../components/common/Modal';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { clearAllUserData, clearAllLocalStorage } from '../utils/clearUserData';
@@ -22,7 +23,6 @@ import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../service
 import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
 import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -137,6 +137,7 @@ export default function Login() {
     const [pendingLoginData, setPendingLoginData] = useState(null);
     const [isPending, startTransition] = useTransition();
     const [showTryLoginButton, setShowTryLoginButton] = useState(false);
+    const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -1165,29 +1166,44 @@ export default function Login() {
                 console.warn('Could not check account status:', statusError);
             }
             
-            // Use Firebase's built-in sendPasswordResetEmail (doesn't require authentication)
-            await sendPasswordResetEmail(auth, email);
+            // Use our custom password reset function with SendGrid email templates
+            const { getFunctions, httpsCallable } = await import('firebase/functions');
+            const functions = getFunctions();
+            const requestPasswordReset = httpsCallable(functions, 'requestPasswordReset');
             
-            console.log('✅ Password reset email sent successfully');
+            const result = await requestPasswordReset({ email });
             
-            setError('');
-            alert(`Password reset email sent to ${email}. Check your inbox (and spam folder) for the reset link.`);
-            setShowForgotPassword(false);
+            if (result.data.success) {
+                console.log('✅ Custom password reset email sent successfully');
+                setError('');
+                setShowForgotPassword(false);
+                setShowPasswordResetModal(true);
+            } else {
+                throw new Error(result.data.message || 'Failed to send password reset email');
+            }
         } catch (error) {
             console.error('Password reset failed:', error);
             console.error('Error code:', error.code);
             console.error('Error message:', error.message);
             
-            if (error.code === 'auth/user-not-found') {
-                setError('No account found with this email address. Please check your email or create a new account.');
-            } else if (error.code === 'auth/invalid-email') {
+            // Handle Firebase Functions errors
+            if (error.code === 'functions/invalid-argument') {
                 setError('Please enter a valid email address.');
-            } else if (error.code === 'auth/too-many-requests') {
+            } else if (error.code === 'functions/not-found' || error.message?.includes('user-not-found')) {
+                // For security, don't reveal if user exists - show success message anyway
+                setError('');
+                setShowForgotPassword(false);
+                setShowPasswordResetModal(true);
+            } else if (error.code === 'functions/too-many-requests') {
                 setError('Too many password reset requests. Please wait a few minutes before trying again.');
-            } else if (error.code === 'auth/network-request-failed') {
+            } else if (error.code === 'functions/unavailable' || error.message?.includes('network')) {
                 setError('Network error. Please check your internet connection and try again.');
             } else {
-                setError(`Failed to send password reset email: ${error.message || 'Unknown error'}. Please try again or contact support.`);
+                // For security, show success even on errors (don't reveal if account exists)
+                console.warn('Password reset error, but showing success for security:', error);
+                setError('');
+                setShowForgotPassword(false);
+                setShowPasswordResetModal(true);
             }
         } finally {
             setLoading(false);
@@ -1632,6 +1648,79 @@ export default function Login() {
                     method={twoFactorMethod}
                 />
             )}
+
+            {/* Password Reset Confirmation Modal */}
+            <Modal
+                open={showPasswordResetModal}
+                onClose={() => setShowPasswordResetModal(false)}
+                title=""
+                theme={theme}
+                variant="modern"
+                maxWidth="max-w-md"
+            >
+                <div className="text-center py-6 px-4">
+                    {/* Success Icon */}
+                    <div className="mx-auto mb-4">
+                        <div 
+                            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                            style={{ 
+                                backgroundColor: theme?.success ? `${theme.success}20` : '#10b98120'
+                            }}
+                        >
+                            <CheckCircle 
+                                size={32} 
+                                style={{ 
+                                    color: theme?.success || '#10b981' 
+                                }} 
+                            />
+                        </div>
+                    </div>
+
+                    {/* Title */}
+                    <h3 
+                        className="text-xl font-bold mb-3"
+                        style={{ color: theme?.text || '#2F3B3A' }}
+                    >
+                        Password Reset Email Sent
+                    </h3>
+
+                    {/* Message */}
+                    <div className="mb-6">
+                        <p 
+                            className="text-base leading-relaxed mb-2"
+                            style={{ color: theme?.text || '#374151' }}
+                        >
+                            We've sent a password reset link to:
+                        </p>
+                        <p 
+                            className="text-base font-medium"
+                            style={{ color: theme?.primary || '#7F9E95' }}
+                        >
+                            {email}
+                        </p>
+                        <p 
+                            className="text-sm mt-3"
+                            style={{ color: theme?.textLight || '#6B7280' }}
+                        >
+                            Please check your inbox and spam folder for the reset link.
+                        </p>
+                    </div>
+
+                    {/* Close Button */}
+                    <button
+                        type="button"
+                        onClick={() => setShowPasswordResetModal(false)}
+                        className="w-full px-6 py-3 rounded-lg font-semibold transition-all duration-200 hover:opacity-90 touch-manipulation"
+                        style={{
+                            backgroundColor: theme?.primary || '#7F9E95',
+                            color: theme?.textOnPrimary || '#FFFFFF',
+                            WebkitTapHighlightColor: 'transparent'
+                        }}
+                    >
+                        Got it
+                    </button>
+                </div>
+            </Modal>
 
             {/* iOS Coming Soon Popup */}
             {showIOSPopup && (
