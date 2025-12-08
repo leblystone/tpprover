@@ -186,23 +186,33 @@ export default function ResetPassword() {
 
   if (!isValidToken && error) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-lg shadow-lg p-8" style={{ backgroundColor: theme.cardBackground }}>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: theme.background }}>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <img 
+              src={logo} 
+              alt="The Pep Planner" 
+              className="h-12 mx-auto mb-4"
+            />
+          </div>
+
+          <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>
             <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
                 <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Invalid Reset Link</h1>
-              <p className="text-gray-600 mb-6" style={{ color: theme.textSecondary }}>
+              <h2 className="text-2xl font-semibold mb-2" style={{ color: theme.primaryDark }}>
+                Invalid Reset Link
+              </h2>
+              <p className="text-sm mt-2 mb-6" style={{ color: theme.textLight }}>
                 {error}
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-                style={{ backgroundColor: theme.primary }}
+                className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200 hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.white }}
               >
                 Back to Login
               </button>
@@ -266,54 +276,81 @@ export default function ResetPassword() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-              
-              {passwordValidation.errors.length > 0 && (
-                <div className="mt-2 space-y-1">
+            
+            {/* Password validation errors */}
+            {password && !passwordValidation.valid && (
+              <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
+                <div className="font-medium mb-2">Password requirements:</div>
+                <ul className="space-y-1">
                   {passwordValidation.errors.map((error, index) => (
-                    <p key={index} className="text-sm text-red-600">• {error}</p>
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="text-red-500">❌</span>
+                      {error}
+                    </li>
                   ))}
-                </div>
-              )}
-              
-              {passwordValidation.tips.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {passwordValidation.tips.map((tip, index) => (
-                    <p key={index} className="text-sm text-green-600">• {tip}</p>
-                  ))}
-                </div>
-              )}
-            </div>
+                </ul>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Confirm Password
-              </label>
+            {/* Password validation tips */}
+            {password && passwordValidation.tips.length > 0 && (
+              <div className="text-xs text-green-600 p-3 rounded border border-green-200 bg-green-50">
+                <ul className="space-y-1">
+                  {passwordValidation.tips.map((tip, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="text-green-500">💡</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Password match validation */}
+            {password && confirmPassword && password !== confirmPassword && (
+              <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
+                <div className="flex items-center gap-2">
+                  <span className="text-red-500">❌</span>
+                  <span className="font-medium">Passwords do not match</span>
+                </div>
+              </div>
+            )}
+
+            <div className="relative">
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                style={{ 
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text
-                }}
-                placeholder="Confirm new password"
+                placeholder="Confirm Password"
                 required
+                className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
+                  confirmPassword && password !== confirmPassword 
+                    ? 'border-red-300 focus:border-red-500' 
+                    : ''
+                }`}
+                style={{ 
+                  borderColor: confirmPassword && password !== confirmPassword 
+                    ? '#FCA5A5' 
+                    : theme.border 
+                }}
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm">{error}</p>
+              <div className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md border border-red-200">
+                {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading || !passwordValidation.valid || password !== confirmPassword}
-              className="w-full px-4 py-3 rounded-lg font-medium text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: theme.primary }}
+            <button 
+              type="submit" 
+              disabled={loading || !passwordValidation.valid || password !== confirmPassword} 
+              className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={{ 
+                backgroundColor: theme.primary, 
+                color: theme.white, 
+                opacity: (loading || !passwordValidation.valid || password !== confirmPassword) ? 0.7 : 1 
+              }}
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -326,11 +363,12 @@ export default function ResetPassword() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          {/* Back to Login */}
+          <div className="mt-4 text-center">
             <button
               onClick={() => navigate('/login')}
-              className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-              style={{ color: theme.textSecondary }}
+              className="text-sm underline hover:no-underline font-medium transition-colors"
+              style={{ color: theme.primary }}
             >
               Back to Login
             </button>
