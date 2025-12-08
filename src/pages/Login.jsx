@@ -23,6 +23,7 @@ import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../service
 import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
 import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -497,6 +498,9 @@ export default function Login() {
         // Clear login flag on error too
         sessionStorage.removeItem('tpp_login_in_progress');
         console.error('Login failed:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Full error object:', error);
         
         // Get account status for better error messages
         let accountStatus = null;
@@ -514,7 +518,11 @@ export default function Login() {
         } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           // Check if account exists but password is wrong
           if (accountStatus && accountStatus.existsInAuth) {
-            setError('Incorrect password. Use "Forgot password?" to reset it.');
+            if (!accountStatus.hasPassword) {
+              setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set a password.');
+            } else {
+              setError('Incorrect password. Use "Forgot password?" to reset it.');
+            }
           } else if (accountStatus && !accountStatus.existsInAuth && accountStatus.existsInFirestore) {
             setError('Account exists in database but authentication setup is incomplete. Please contact support.');
           } else {
@@ -522,8 +530,22 @@ export default function Login() {
           }
         } else if (error.code === 'auth/invalid-email') {
           setError('Please enter a valid email address.');
+        } else if (error.code === 'auth/user-disabled') {
+          setError('Your account has been disabled. Please contact support for assistance.');
+        } else if (error.code === 'auth/operation-not-allowed') {
+          setError('Email/password sign-in is not enabled for your account. Please contact support.');
+        } else if (error.code === 'auth/too-many-requests') {
+          setError('Too many failed login attempts. Please wait a few minutes before trying again, or use "Forgot password?" to reset your password.');
+        } else if (error.code === 'auth/requires-recent-login') {
+          setError('For security, please log out and log back in to continue.');
         } else {
-          setError('Login failed. Please try again.');
+          // Show actual error for debugging
+          console.error('Unhandled login error:', error.code, error.message);
+          if (accountStatus && accountStatus.existsInAuth) {
+            setError(`Authentication failed: ${error.message || 'Unknown error'}. Your account exists but login failed. Error code: ${error.code || 'N/A'}. Please try "Forgot password?" or contact support if this persists.`);
+          } else {
+            setError(`Authentication failed: ${error.message || 'Unknown error'}. Error code: ${error.code || 'N/A'}. Please contact support if this persists.`);
+          }
         }
         return false;
       }
@@ -1013,28 +1035,40 @@ export default function Login() {
 
         try {
             setLoading(true);
-            console.log('🔐 Sending custom password reset email via SendGrid...');
+            console.log('🔐 Sending password reset email to:', email);
             
-            // Call the custom password reset email function
-            const { getFunctions, httpsCallable } = await import('firebase/functions');
-            const functions = getFunctions();
-            const sendCustomPasswordResetEmail = httpsCallable(functions, 'sendCustomPasswordResetEmail');
+            // First check if account exists
+            let accountStatus = null;
+            try {
+                accountStatus = await getAccountStatus(email);
+                console.log('🔍 Account status for password reset:', accountStatus);
+            } catch (statusError) {
+                console.warn('Could not check account status:', statusError);
+            }
             
-            const result = await sendCustomPasswordResetEmail();
+            // Use Firebase's built-in sendPasswordResetEmail (doesn't require authentication)
+            await sendPasswordResetEmail(auth, email);
             
-            console.log('✅ Custom password reset email sent successfully:', result.data);
+            console.log('✅ Password reset email sent successfully');
             
             setError('');
-            alert(`Password reset email sent to ${email}. Check your inbox (not spam folder).`);
+            alert(`Password reset email sent to ${email}. Check your inbox (and spam folder) for the reset link.`);
             setShowForgotPassword(false);
         } catch (error) {
             console.error('Password reset failed:', error);
-            if (error.code === 'functions/too-many-requests') {
-                setError('Too many requests. Please try again later.');
-            } else if (error.message?.includes('SendGrid')) {
-                setError('Email service temporarily unavailable. Please try again later.');
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            
+            if (error.code === 'auth/user-not-found') {
+                setError('No account found with this email address. Please check your email or create a new account.');
+            } else if (error.code === 'auth/invalid-email') {
+                setError('Please enter a valid email address.');
+            } else if (error.code === 'auth/too-many-requests') {
+                setError('Too many password reset requests. Please wait a few minutes before trying again.');
+            } else if (error.code === 'auth/network-request-failed') {
+                setError('Network error. Please check your internet connection and try again.');
             } else {
-                setError('Failed to send password reset email. Please try again.');
+                setError(`Failed to send password reset email: ${error.message || 'Unknown error'}. Please try again or contact support.`);
             }
         } finally {
             setLoading(false);
