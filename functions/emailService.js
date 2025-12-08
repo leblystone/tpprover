@@ -198,6 +198,7 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null, reason = nu
 
 /**
  * Send custom password reset email with Firebase token
+ * Disables click tracking to ensure direct links work properly
  */
 exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
   // Use environment variable for base URL, fallback to production
@@ -207,22 +208,76 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
   
   logger.info(`🔗 Password reset link: ${resetLink}`);
   
-  // Try to load custom template from Firestore, fallback to hardcoded
   try {
-    const customTemplate = await loadEmailTemplate('passwordReset');
-    if (customTemplate) {
-      const subject = customTemplate.subject || 'Reset your password for The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { resetLink });
-      return sendEmail(userEmail, subject, html);
+    // Get SendGrid API key from environment variables
+    let sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+    
+    if (!sendgridApiKey) {
+      logger.warn('⚠️ SendGrid not configured - password reset email not sent');
+      return false;
     }
+    
+    // Validate API key format
+    if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
+      logger.error('❌ Invalid SendGrid API key format');
+      return false;
+    }
+
+    // Dynamic import of SendGrid
+    const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(sendgridApiKey);
+
+    // Try to load custom template from Firestore, fallback to hardcoded
+    let subject, html;
+    try {
+      const customTemplate = await loadEmailTemplate('passwordReset');
+      if (customTemplate) {
+        subject = customTemplate.subject || 'Reset your password for The Pep Planner';
+        html = generateEmailHTML(customTemplate, { resetLink });
+      } else {
+        throw new Error('No custom template found');
+      }
+    } catch (error) {
+      logger.warn('Failed to load custom password reset template, using default:', error);
+      // Fallback to hardcoded template
+      subject = 'Reset your password for The Pep Planner';
+      html = emailTemplates.passwordResetEmail(resetLink, userEmail);
+    }
+
+    // Send email with click tracking DISABLED for password reset links
+    const msg = {
+      to: userEmail,
+      from: {
+        email: 'contact@thepepplanner.com',
+        name: 'The Pep Planner'
+      },
+      subject,
+      html,
+      // Disable click tracking so links go directly to reset page
+      trackingSettings: {
+        clickTracking: {
+          enable: false
+        }
+      }
+    };
+
+    const result = await sgMail.send(msg);
+    const statusCode = result[0]?.statusCode;
+    
+    logger.info('✅ Password reset email sent successfully to:', userEmail);
+    logger.info('📊 SendGrid Response Status:', statusCode);
+    
+    return statusCode === 202;
+    
   } catch (error) {
-    logger.warn('Failed to load custom password reset template, using default:', error);
+    logger.error('❌ Failed to send password reset email:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.body
+    });
+    return false;
   }
-  
-  // Fallback to hardcoded template
-  const subject = 'Reset your password for The Pep Planner';
-  const html = emailTemplates.passwordResetEmail(resetLink, userEmail);
-  return sendEmail(userEmail, subject, html);
 };
 
 /**
