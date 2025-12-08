@@ -428,6 +428,11 @@ export default function Orders() {
 	}, [filteredOrders, activeTab]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
+		if (!newOrder) {
+			console.log('⚠️ handleStockpileUpdate: newOrder is null/undefined, skipping');
+			return;
+		}
+
 		const prevStatus = (previousOrder?.status || '').toLowerCase();
 		const newStatus = (newOrder?.status || '').toLowerCase();
 		
@@ -438,6 +443,9 @@ export default function Orders() {
 		const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
 		const includeShipping = settings.orders?.includeShippingInCosts ?? true;
 		console.log('📦 Stockpile update - includeShipping setting:', includeShipping, 'from settings:', settings.orders);
+		console.log('📦 Stockpile update - previousOrder:', previousOrder?.id, 'status:', prevStatus, 'wasDelivered:', wasDelivered);
+		console.log('📦 Stockpile update - newOrder:', newOrder.id, 'status:', newStatus, 'isDelivered:', isDelivered);
+		console.log('📦 Stockpile update - newOrder.items:', newOrder.items?.length || 0, 'items');
 
 		// If both orders are delivered, we need to update existing stockpile items
 		if (wasDelivered && isDelivered && previousOrder && newOrder) {
@@ -496,6 +504,13 @@ export default function Orders() {
 
 		// Status changed TO Delivered: Add items to stockpile.
 		if (!wasDelivered && isDelivered) {
+			// Ensure we have items to add
+			if (!newOrder.items || newOrder.items.length === 0) {
+				console.log('⚠️ handleStockpileUpdate: Order is delivered but has no items, skipping stockpile update');
+				return;
+			}
+
+			console.log('📦 Adding items to stockpile for delivered order:', newOrder.id);
 			const newStockItems = (newOrder.items || []).map(item => {
 				const quantity = Number(item.quantity) || 1;
 				const isKit = (item.unit || '').toLowerCase() === 'kit';
@@ -566,7 +581,10 @@ export default function Orders() {
 		const updatedOrder = { 
 			...order, 
 			status: nextStatus,
-			updatedAt: now
+			updatedAt: now,
+			// Mark this as a manual status change to prevent tracking sync from overriding
+			statusSource: 'manual',
+			statusManuallySetAt: now
 		};
 		if (nextStatus === 'Shipped' && !order.shipDate) {
 			updatedOrder.shipDate = now.slice(0, 10); // YYYY-MM-DD format
@@ -784,12 +802,22 @@ export default function Orders() {
 					
 					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
 					if (editingOrder) {
+						const now = new Date().toISOString();
+						const previousStatus = (editingOrder.status || 'Order Placed').toLowerCase();
+						const newStatus = (data.status || editingOrder.status || 'Order Placed').toLowerCase();
+						const statusChanged = previousStatus !== newStatus;
+						
 						const updatedOrder = { 
 							...editingOrder, 
 							...data, 
 							vendorId,
 							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
-							updatedAt: new Date().toISOString()
+							updatedAt: now,
+							// Mark as manual if status changed (data already has statusSource from modal if user clicked status button)
+							...(statusChanged && data.statusSource === 'manual' ? {
+								statusSource: 'manual',
+								statusManuallySetAt: data.statusManuallySetAt || now
+							} : {})
 						};
 						console.log('📋 Updating existing order:', updatedOrder);
 						handleStockpileUpdate(editingOrder, updatedOrder);
@@ -810,7 +838,12 @@ export default function Orders() {
 							category, 
 							type: category,
 							createdAt: now,
-							updatedAt: now
+							updatedAt: now,
+							// Mark as manual if status was set (data already has statusSource from modal if user clicked status button)
+							...(data.statusSource === 'manual' ? {
+								statusSource: 'manual',
+								statusManuallySetAt: data.statusManuallySetAt || now
+							} : {})
 						};
 						console.log('📋 Creating new order:', newOrder);
 						handleStockpileUpdate(null, newOrder);

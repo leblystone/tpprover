@@ -17,25 +17,44 @@ export async function syncOrderStatusFromTracking(order) {
   }
 
   try {
+    // Check if status was manually set recently (within 5 minutes)
+    // This prevents immediate override when user just set the status
+    const manualGracePeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const now = Date.now();
+    
+    if (order.statusManuallySetAt) {
+      const manualSetTime = new Date(order.statusManuallySetAt).getTime();
+      const timeSinceManualChange = now - manualSetTime;
+      
+      if (timeSinceManualChange < manualGracePeriod) {
+        console.log(`⏸️ Order ${order.id}: Status was manually set ${Math.round(timeSinceManualChange / 1000)}s ago, skipping tracking sync`);
+        return null; // Don't override recent manual changes
+      }
+    }
+    
+    // Also check statusSource field for backward compatibility
+    if (order.statusSource === 'manual') {
+      // If statusSource is 'manual' but no timestamp, assume it's recent and skip
+      if (!order.statusManuallySetAt) {
+        console.log(`⏸️ Order ${order.id}: Status marked as manual, skipping tracking sync`);
+        return null;
+      }
+    }
+
     const carrier = detectCarrier(order.tracking);
-    const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
     
     const trackingInfo = await getCachedTrackingInfo(order.tracking, carrier, true);
     
-    // Only proceed if we have tracking data (prefer real, but allow mock for testing)
+    // Only proceed if we have valid tracking data (no mock data - use real API only)
     if (!trackingInfo || trackingInfo.hasError) {
       console.log(`❌ Order ${order.id}: No valid tracking info (error: ${trackingInfo?.error || 'unknown'})`);
       return null;
     }
 
-    // Allow mock data for development/testing (when no real API key)
-    // In production with real API key, prefer real data but allow mock if that's what we got
+    // Reject mock data - we should only use real tracking data from the API
     if (trackingInfo.isMockData) {
-      if (!hasRealApiKey) {
-        // Continue with mock data for testing
-      } else {
-        // Still continue - might be a test tracking number
-      }
+      console.log(`⚠️ Order ${order.id}: Received mock tracking data, skipping sync. Please configure Shippo API key in Firebase Functions.`);
+      return null;
     }
 
     const trackingStatus = trackingInfo.status; // 'Order Placed', 'Shipped', or 'Delivered'
@@ -61,40 +80,49 @@ export async function syncOrderStatusFromTracking(order) {
     const currentNormalized = normalizeStatus(currentStatus);
     const trackingNormalized = normalizeStatus(trackingStatusLower);
 
-    // Check if status actually changed (update if tracking shows a more advanced status)
+    // IMPORTANT: We ONLY advance status, NEVER downgrade
+    // If user manually set status to "Order Placed" when tracking says "Delivered",
+    // that's their choice and we respect it permanently
     // Priority: delivered > shipped > placed
-    const statusChanged = 
-      (currentNormalized === 'placed' && trackingNormalized === 'shipped') ||
-      (currentNormalized === 'placed' && trackingNormalized === 'delivered') ||
-      (currentNormalized === 'shipped' && trackingNormalized === 'delivered');
-
-    if (!statusChanged) {
-      // If statuses are the same, no update needed
+    const statusPriority = { 'placed': 0, 'shipped': 1, 'delivered': 2 };
+    const currentPriority = statusPriority[currentNormalized] ?? 0;
+    const trackingPriority = statusPriority[trackingNormalized] ?? 0;
+    
+    // Only update if tracking shows a MORE ADVANCED status
+    // Never downgrade - user's manual choices are permanent
+    if (trackingPriority <= currentPriority) {
+      // Tracking shows same or lower status - don't update
       if (currentNormalized === trackingNormalized) {
-        return null;
+        console.log(`ℹ️ Order ${order.id}: Status matches tracking (${currentNormalized}), no update needed`);
+      } else {
+        console.log(`⏸️ Order ${order.id}: Tracking shows lower status (${trackingNormalized} vs ${currentNormalized}), respecting user's manual choice`);
       }
-      // If tracking shows a less advanced status, don't downgrade
       return null;
     }
+    
+    // Tracking shows more advanced status - allow update
+    console.log(`✅ Order ${order.id}: Tracking shows advancement (${currentNormalized} -> ${trackingNormalized}), updating status`);
 
     // Build updated order
-    const now = new Date().toISOString();
+    const nowISO = new Date().toISOString();
     const updatedOrder = { 
       ...order, 
       status: trackingStatus,
-      updatedAt: now,
+      updatedAt: nowISO,
       // Track that this was auto-updated from tracking
-      statusSource: 'tracking'
+      statusSource: 'tracking',
+      // Clear manual timestamp since this is now from tracking
+      statusManuallySetAt: null
     };
 
     // Set shipDate if status is Shipped and we don't have one
     if (trackingStatusLower.includes('ship') && !order.shipDate) {
-      updatedOrder.shipDate = now.slice(0, 10); // YYYY-MM-DD format
+      updatedOrder.shipDate = nowISO.slice(0, 10); // YYYY-MM-DD format
     }
 
     // Set deliveryDate if status is Delivered and we don't have one
     if (trackingStatusLower.includes('deliver') && !order.deliveryDate) {
-      updatedOrder.deliveryDate = now.slice(0, 10); // YYYY-MM-DD format
+      updatedOrder.deliveryDate = nowISO.slice(0, 10); // YYYY-MM-DD format
     }
 
     return updatedOrder;

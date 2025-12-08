@@ -141,6 +141,40 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       console.log('📝 OrderDetailsModal: Form state updated:', JSON.stringify(form, null, 2));
     }
   }, [form]);
+
+  // Fetch tracking info when tracking number changes
+  useEffect(() => {
+    const fetchTrackingInfo = async () => {
+      if (!form?.tracking || !form.tracking.trim()) {
+        setTrackingInfo(null);
+        return;
+      }
+
+      setIsLoadingTracking(true);
+      try {
+        const carrier = detectCarrier(form.tracking);
+        const info = await getCachedTrackingInfo(form.tracking, carrier, true);
+        
+        if (info && !info.hasError) {
+          setTrackingInfo(info);
+        } else {
+          setTrackingInfo(null);
+        }
+      } catch (error) {
+        console.error('Error fetching tracking info:', error);
+        setTrackingInfo(null);
+      } finally {
+        setIsLoadingTracking(false);
+      }
+    };
+
+    // Debounce tracking number changes
+    const timeoutId = setTimeout(() => {
+      fetchTrackingInfo();
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [form?.tracking]);
   
   const steps = [
     { status: 'received', icon: <Clock size={20} color={theme?.primary} />, label: 'Order Placed' },
@@ -568,11 +602,16 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               ].map(opt => (
                 <button key={opt.value} type="button" onClick={() => {
                   const previousStatus = form.status || originalStatus || 'Order Placed';
+                  const now = new Date().toISOString();
                   const newForm = { 
                     ...form, 
                     status: opt.value, 
                     shipDate: opt.value==='Shipped' ? (form.shipDate || getLocalDateString()) : form.shipDate, 
-                    deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate 
+                    deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate,
+                    // Mark this as a manual status change to prevent tracking sync from overriding
+                    statusSource: 'manual',
+                    statusManuallySetAt: now,
+                    updatedAt: now
                   };
                   setForm(newForm);
                   

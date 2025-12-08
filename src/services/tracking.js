@@ -25,8 +25,10 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
         // Check if Functions are available
         if (!functions) {
             console.error('🚫 Firebase Functions not initialized');
-            // Fall back to mock data if functions aren't available
-            return getMockTrackingInfo(trackingNumber);
+            return { 
+                error: 'Firebase Functions not initialized - tracking service unavailable',
+                hasError: true
+            };
         }
 
         // Call Firebase Cloud Function to proxy Shippo API request
@@ -39,41 +41,46 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
 
         // Check if the function returned an error
         if (result.data.error) {
-            console.error('Shippo API error:', result.data);
-            // Fall back to mock data on error (for development/testing)
-            const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
-            if (!hasRealApiKey) {
-                console.log('🧪 Falling back to mock tracking data (no real API key)');
-                return getMockTrackingInfo(trackingNumber);
-            }
-            return { error: result.data.error || 'Failed to fetch tracking information' };
+            console.error('❌ Tracking API error:', result.data);
+            // Don't fall back to mock data - return the actual error
+            // The Firebase function has the API key, so if it returns an error, it's a real error
+            return { 
+                error: result.data.error || 'Failed to fetch tracking information',
+                hasError: true,
+                details: result.data.details || result.data.message
+            };
         }
 
         // Parse Shippo response into our format
         if (result.data.success && result.data.data) {
             return parseTrackingData(result.data.data);
         } else {
-            // Fall back to mock data if response format is unexpected
-            console.warn('⚠️ Unexpected response format, using mock data');
-            return getMockTrackingInfo(trackingNumber);
+            // Unexpected response format - return error instead of mock data
+            console.error('⚠️ Unexpected response format from tracking API:', result.data);
+            return { 
+                error: 'Unexpected response format from tracking service',
+                hasError: true
+            };
         }
     } catch (error) {
-        console.error('Tracking API error:', error);
+        console.error('❌ Tracking API error:', error);
         
         // Check if this is a "function not deployed" error
         if (error.code === 'functions/not-found' || error.message?.includes('INTERNAL') || error.message?.includes('not-found')) {
-            console.error('🚫 Firebase Functions not deployed, using mock data');
-            return getMockTrackingInfo(trackingNumber);
+            console.error('🚫 Firebase Functions not deployed - tracking service unavailable');
+            return { 
+                error: 'Tracking service not available. Please ensure Firebase Functions are deployed.',
+                hasError: true,
+                code: error.code
+            };
         }
         
-        // For other errors, check if we have a real API key
-        const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
-        if (!hasRealApiKey) {
-            console.log('🧪 Error occurred, falling back to mock tracking data (no real API key)');
-            return getMockTrackingInfo(trackingNumber);
-        }
-        
-        return { error: 'Network error while fetching tracking information' };
+        // Return the actual error instead of mock data
+        return { 
+            error: error.message || 'Network error while fetching tracking information',
+            hasError: true,
+            code: error.code
+        };
     }
 }
 
