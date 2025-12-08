@@ -1089,18 +1089,7 @@ export default function Login() {
             // If account doesn't exist in Auth but Firebase says email is in use,
             // it might be a recently deleted account, disabled account, or propagation delay
             if (!accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
-              const errorMsg = `⚠️ Account Creation Blocked\n\n` +
-                `Firebase reports this email is already in use, but the account doesn't appear in our system.\n\n` +
-                `Possible causes:\n` +
-                `• Account was recently deleted (can take 5-15 minutes to fully propagate)\n` +
-                `• Account exists but is disabled in Firebase Console\n` +
-                `• Account exists but has no sign-in methods enabled\n\n` +
-                `Try these solutions:\n` +
-                `1. Click "Try Logging In" below to see if the account works\n` +
-                `2. Wait 10-15 minutes and try creating the account again\n` +
-                `3. Contact support with this email address\n\n` +
-                `💡 Admin: Check Firebase Console → Authentication → Users for this email`;
-              setError(errorMsg);
+              setError('This email was recently used. Please wait a few minutes and try again, or click "Try Logging In" below if you already have an account.');
               setShowTryLoginButton(true); // Show button to try logging in
               console.warn('⚠️ Account appears deleted but Firebase still reports email in use');
               console.warn('   This could be: propagation delay, disabled account, or account with no sign-in methods');
