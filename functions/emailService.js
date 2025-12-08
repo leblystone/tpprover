@@ -417,18 +417,25 @@ function generateEmailHTML(template, variables = {}) {
   processedTemplate.ctaText = replaceVars(template.ctaText);
   // Replace ctaLink, handling all common variable formats
   let ctaLinkValue = replaceVars(template.ctaLink);
+  // Also replace %RESET_LINK% (with underscore) if it exists
+  if (ctaLinkValue && variables.resetLink) {
+    ctaLinkValue = ctaLinkValue.replace(/%RESET_LINK%/g, variables.resetLink);
+    ctaLinkValue = ctaLinkValue.replace(/%RESETLINK%/g, variables.resetLink);
+  }
   // Also replace %VERIFICATION_LINK% (with underscore) if it exists
   if (ctaLinkValue && variables.verificationLink) {
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATION_LINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATIONLINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%LINK%/g, variables.verificationLink);
   }
-  // If ctaLink is empty or still contains a placeholder, use verificationLink or link from variables
+  // If ctaLink is empty or still contains a placeholder, use resetLink, verificationLink, or link from variables
   if (!ctaLinkValue || ctaLinkValue === '#' || 
       ctaLinkValue.includes('%LINK%') || 
       ctaLinkValue.includes('%VERIFICATIONLINK%') || 
-      ctaLinkValue.includes('%VERIFICATION_LINK%')) {
-    ctaLinkValue = variables.verificationLink || variables.link || '#';
+      ctaLinkValue.includes('%VERIFICATION_LINK%') ||
+      ctaLinkValue.includes('%RESETLINK%') ||
+      ctaLinkValue.includes('%RESET_LINK%')) {
+    ctaLinkValue = variables.resetLink || variables.verificationLink || variables.link || '#';
     logger.info(`🔗 Using fallback ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   } else {
     logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
@@ -457,6 +464,8 @@ function generateEmailHTML(template, variables = {}) {
     // Replace processedTemplate.ctaLink in custom HTML if it exists
     if (processedTemplate.ctaLink && processedTemplate.ctaLink !== '#') {
       // Replace any placeholder or existing href with the actual ctaLink
+      html = html.replace(/href=["']%RESET_LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']%RESETLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%VERIFICATION_LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%VERIFICATIONLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
@@ -472,14 +481,44 @@ function generateEmailHTML(template, variables = {}) {
   // Also replace variables in custom HTML if provided
   Object.entries(variables).forEach(([key, value]) => {
     const replacement = value || '';
-    const regex = new RegExp(`%${key.toUpperCase()}%`, 'g');
+    // Replace both %KEY% and %KEY_WITH_UNDERSCORE% formats
+    const regex1 = new RegExp(`%${key.toUpperCase()}%`, 'g');
+    const regex2 = new RegExp(`%${key.toUpperCase().replace(/([A-Z])/g, '_$1').substring(1)}%`, 'g');
     const beforeReplace = html;
-    html = html.replace(regex, replacement);
+    html = html.replace(regex1, replacement);
+    html = html.replace(regex2, replacement);
+    // Also handle RESET_LINK specifically (common pattern)
+    if (key === 'resetLink') {
+      html = html.replace(/%RESET_LINK%/g, replacement);
+      html = html.replace(/%RESETLINK%/g, replacement);
+    }
     if (beforeReplace !== html) {
       logger.info(`✅ Replaced %${key.toUpperCase()}% in HTML`);
     }
   });
   
+  // Handle common variable name variations for reset links
+  if (variables.resetLink) {
+    const linkValue = variables.resetLink;
+    // Replace %RESET_LINK% (with underscore) - used in email templates
+    const resetPatterns = [
+      { regex: /%RESET_LINK%/g, name: '%RESET_LINK%' },
+      { regex: /%RESETLINK%/g, name: '%RESETLINK%' },
+      { regex: /%RESET[_\s]*LINK%/gi, name: '%RESET_LINK% (variations)' }
+    ];
+    
+    resetPatterns.forEach(({ regex, name }) => {
+      if (html.match(regex)) {
+        const beforeCount = (html.match(regex) || []).length;
+        html = html.replace(regex, linkValue);
+        logger.info(`✅ Replaced ${beforeCount} occurrence(s) of ${name} in HTML`);
+      }
+    });
+    
+    // Replace in href attributes
+    html = html.replace(/href=["']([^"']*%RESET[_\s]*LINK[^"']*|%RESETLINK%|about:blank|#)["']/gi, `href="${linkValue}"`);
+  }
+
   // Handle common variable name variations for verification links
   if (variables.verificationLink) {
     const linkValue = variables.verificationLink;
