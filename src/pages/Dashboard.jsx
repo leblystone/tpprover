@@ -18,7 +18,9 @@ import { calculateRecon } from '../utils/recon'
 import useLocalStorage from '../utils/hooks'
 import { formatMMDDYYYY } from '../utils/date'
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted } from '../utils/taskCompletion'
+import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { debugTaskCompletion } from '../utils/taskPersistence'
+import { toKey } from '../components/calendar/MonthGrid'
 import GoalModal from '../components/research/GoalModal'
 import BodyMetricsModal from '../components/research/BodyMetricsModal'
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal'
@@ -40,6 +42,13 @@ import { useFirebase } from '../context/FirebaseContext'
 
 export default function Dashboard() {
   console.log('🏠 Dashboard component rendered');
+  console.log('🔍 Dashboard render - Current date check:', {
+    newDate: new Date().toLocaleDateString('en-US'),
+    newDateISO: new Date().toISOString(),
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    day: new Date().getDate()
+  });
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -295,14 +304,44 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    console.log('🔄 Dashboard useEffect running - generating tasks');
-    const today = new Date()
-    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-    const getWeekOfMonth = (date) => {
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
-      return Math.ceil((date.getDate() + firstDay) / 7)
-    }
-    const weekId = `${today.getFullYear()}-${today.getMonth() + 1}-week-${getWeekOfMonth(today)}`
+    console.log('🔄 ===== DASHBOARD TASK GENERATION START =====');
+    console.log('🔄 Dashboard useEffect running - generating tasks from Calendar logic');
+    console.log('🔍 ===== DATE DEBUG START =====');
+    console.log('⏰ Current time:', new Date().toLocaleString('en-US'));
+    
+    // CRITICAL: Use the EXACT same method Calendar uses to determine "today"
+    // Calendar uses: toKey(new Date()) which extracts year/month/day from current date
+    const now = new Date();
+    console.log('📅 Raw new Date():', {
+      iso: now.toISOString(),
+      local: now.toLocaleString('en-US'),
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      hours: now.getHours(),
+      timezoneOffset: now.getTimezoneOffset()
+    });
+    
+    // CRITICAL: Use Calendar's EXACT date calculation method to ensure perfect sync
+    // Calendar uses: toKey(new Date()) which extracts year/month/day from current date
+    // We must use the exact same method to guarantee we're showing the same day
+    const calendarRawDate = new Date();
+    const finalToday = new Date(calendarRawDate.getFullYear(), calendarRawDate.getMonth(), calendarRawDate.getDate());
+    finalToday.setHours(0, 0, 0, 0);
+    
+    console.log('📅 Dashboard: Date calculation for task generation', {
+      rawDate: calendarRawDate.toISOString(),
+      rawDateLocal: calendarRawDate.toLocaleString('en-US'),
+      finalTodayISO: finalToday.toISOString(),
+      finalTodayLocal: finalToday.toLocaleString('en-US'),
+      finalTodayDateString: finalToday.toLocaleDateString('en-US'),
+      finalTodayKey: toKey(finalToday),
+      year: finalToday.getFullYear(),
+      month: finalToday.getMonth() + 1,
+      day: finalToday.getDate(),
+      dayName: finalToday.toLocaleDateString('en-US', { weekday: 'long' }),
+      timezoneOffset: calendarRawDate.getTimezoneOffset()
+    });
     
     // Helper to safely parse YYYY-MM-DD strings into local time dates (prevents timezone issues)
     const parseDateString = (dateString) => {
@@ -313,434 +352,90 @@ export default function Dashboard() {
       if (parts.length === 3) {
         const [year, month, day] = parts.map(Number);
         if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-          // Create date in local timezone to avoid UTC conversion issues
           return new Date(year, month - 1, day);
         }
       }
       return new Date(dateString);
     };
-    
-    // Helper to normalize a date to midnight in local time for accurate day difference calculations
-    const normalizeToMidnight = (date) => {
-      if (!date) return null;
-      // If it's a string, parse it first to avoid timezone issues
-      const parsed = date instanceof Date ? date : parseDateString(date);
-      if (!parsed) return null;
-      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-    };
-    
-    // Helper to calculate day difference between two dates (normalized to midnight)
-    const getDayDifference = (date1, date2) => {
-      const normalized1 = normalizeToMidnight(date1);
-      const normalized2 = normalizeToMidnight(date2);
-      if (!normalized1 || !normalized2) return null;
-      return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
-    };
 
-    // Build peptide tasks from active (legacy-compatible) protocols for today
+    // Use Calendar's shared logic to calculate today's scheduled tasks
     let peptideTasks = []
     let reminders = []
     try {
       const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
       const reconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]')
       
-      const normalizePeptides = (p) => {
-        const base = (Array.isArray(p.peptides) && p.peptides.length > 0) ? p.peptides : [{ name: p.name || p.peptide, dosage: p.dosage, frequency: p.frequency }]
-        return base.map(pep => {
-          const f = pep?.frequency || {}
-          // Determine type: if customDays exists but type is missing, infer 'custom'
-          // Otherwise preserve existing type or default to 'daily'
-          let type = f.type
-          if (!type && (f.customDays !== undefined && f.customDays !== null)) {
-            type = 'custom'
-            console.log('🔧 Dashboard: Inferred custom frequency type from customDays', {
-              peptide: pep.name,
-              customDays: f.customDays
-            })
-          }
-          type = type || 'daily'
-          const time = Array.isArray(f?.time) && f.time.length > 0 ? f.time : ['AM']
-          // Preserve all frequency properties (customDays, onDays, offDays, days, etc.)
-          return { ...pep, frequency: { ...f, type, time } }
-        })
-      }
-      const isTodayInRange = (p) => {
-        if (!p?.startDate) return false
-        // Use safe date parsing to avoid timezone issues
-        const s = parseDateString(p.startDate)
-        if (!s) return false
-        const startOnly = normalizeToMidnight(s)
-        const tOnly = normalizeToMidnight(today)
-        if (tOnly < startOnly) return false
-        if (p.endDate) {
-          const e = parseDateString(p.endDate)
-          if (e) {
-            const endOnly = normalizeToMidnight(e)
-            if (tOnly > endOnly) return false
-          }
-        } else if (p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
-          const e = new Date(s)
-          const unit = String(p.duration.unit || 'week').toLowerCase()
-          const count = Number(p.duration.count) || 0
-          if (unit === 'day') e.setDate(e.getDate() + count - 1)
-          else if (unit === 'week') e.setDate(e.getDate() + (count * 7) - 1)
-          else if (unit === 'month') { e.setMonth(e.getMonth() + count); e.setDate(e.getDate() - 1) }
-          const endOnly = normalizeToMidnight(e)
-          if (tOnly > endOnly) return false
+      console.log('📊 Dashboard: About to calculate tasks', {
+        protocolCount: protocols.length,
+        supplementCount: supplements.length,
+        reconItemCount: reconItems.length,
+        todayDate: today.toLocaleDateString('en-US'),
+        todayKey: toKey(today)
+      });
+      
+      // Get today's scheduled tasks using the same logic as Calendar
+      // Use Calendar's exact date calculation to ensure perfect sync
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems)
+      
+      console.log('📊 Dashboard: Received scheduled data', {
+        timeSlots: Object.keys(scheduledData.bySlot || {}),
+        totalPeptides: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.peptides?.length || 0), 0),
+        totalSupplements: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.supplements?.length || 0), 0)
+      });
+      
+      // Convert Calendar's scheduled data format to Dashboard task format
+      // Process peptides from all time slots
+      Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
+        const slot = scheduledData.bySlot[timeSlot];
+        
+        // Process peptides
+        if (slot.peptides && Array.isArray(slot.peptides)) {
+          slot.peptides.forEach(pep => {
+            const task = {
+              id: `${pep.protocolId || 'protocol'}-${pep.name || 'Peptide'}-${timeSlot}`,
+              type: 'peptide',
+              name: pep.name || 'Peptide',
+              dose: pep.dose || '',
+              unit: pep.unit || '',
+              time: timeSlot,
+              completed: false,
+              deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',
+              penColor: pep.penColor,
+              penType: pep.penType,
+              protocolName: pep.name, // For blended protocols, name is the protocol name
+              administrationRoute: pep.administrationRoute
+            };
+            
+            // Generate stable task ID and check completion status
+            const taskId = generateTaskId(task);
+            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            task.completed = wasCompleted;
+            task.stableTaskId = taskId;
+            peptideTasks.push(task);
+          });
         }
-        return p.active !== false
-      }
-      const shortDay = today.toLocaleDateString('en-US', { weekday: 'short' })
-      protocols.forEach(p => {
-        if (!isTodayInRange(p)) return
-
-        const isBlended = p.blendMode === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
         
-        // Find matching recon item to calculate units
-        const reconItem = reconItems.find(r => r.name && r.name.startsWith(p.protocolName));
-        
-        if (isBlended) {
-            const blendName = p.protocolName || 'Blended Protocol';
-            const peptides = normalizePeptides(p);
+        // Process supplements
+        if (slot.supplements && Array.isArray(slot.supplements)) {
+          slot.supplements.forEach(supp => {
+            const task = {
+              id: `${supp.id || 'supplement'}-${timeSlot}`,
+              type: 'supplement',
+              name: supp.name || 'Supplement',
+              dose: supp.dose || '',
+              unit: supp.unit || '',
+              delivery: supp.delivery || supp.deliveryMethod || 'oral',
+              time: timeSlot,
+              completed: false,
+            };
             
-            // For blended protocols, all peptides share the same frequency
-            // Check schedule once using the first peptide's frequency
-            if (peptides.length === 0) return;
-            
-            const freq = peptides[0].frequency || {};
-            let isScheduledToday = false;
-            
-            // Debug logging for frequency type detection
-            if (freq.type === 'custom' || freq.customDays) {
-              console.log('🔍 Dashboard: Blended protocol frequency check', {
-                protocol: p.protocolName,
-                frequencyType: freq.type,
-                customDays: freq.customDays,
-                fullFrequency: freq
-              });
-            }
-            
-            switch (freq.type) {
-                case 'daily': 
-                    isScheduledToday = true; 
-                    break;
-                case 'weekly': 
-                    if (freq.days?.includes(shortDay)) isScheduledToday = true; 
-                    break;
-                case 'cycle':
-                    const on = Number(freq.onDays) || 0;
-                    const off = Number(freq.offDays) || 0;
-                    if (on > 0 && p.startDate) {
-                        const cycleLen = on + off;
-                        const ps = normalizeToMidnight(parseDateString(p.startDate));
-                        const todayNormalized = normalizeToMidnight(today);
-                        const dayDiff = getDayDifference(ps, todayNormalized);
-                        if (dayDiff !== null && dayDiff >= 0 && (dayDiff % cycleLen) < on) {
-                            isScheduledToday = true;
-                        }
-                    }
-                    break;
-                case 'custom':
-                    const customDays = Number(freq.customDays) || 1;
-                    if (customDays > 0 && p.startDate) {
-                        const ps = normalizeToMidnight(parseDateString(p.startDate));
-                        const todayNormalized = normalizeToMidnight(today);
-                        if (!ps || !todayNormalized) {
-                            console.warn('⚠️ Dashboard: Invalid dates for custom frequency', {
-                                protocol: p.protocolName,
-                                peptide: blendName,
-                                startDate: p.startDate,
-                                parsedStart: ps,
-                                today: todayNormalized
-                            });
-                            break;
-                        }
-                        const dayDiff = getDayDifference(ps, todayNormalized);
-                        if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
-                            isScheduledToday = true;
-                            console.log('✅ Dashboard: Custom frequency match', {
-                                protocol: p.protocolName,
-                                peptide: blendName,
-                                customDays,
-                                dayDiff,
-                                startDate: p.startDate,
-                                today: formatMMDDYYYY(today)
-                            });
-                        } else {
-                            console.log('📅 Dashboard: Custom frequency skip', {
-                                protocol: p.protocolName,
-                                peptide: blendName,
-                                customDays,
-                                dayDiff,
-                                dayDiffMod: dayDiff !== null ? dayDiff % customDays : null,
-                                startDate: p.startDate,
-                                today: formatMMDDYYYY(today)
-                            });
-                        }
-                    } else {
-                        console.warn('⚠️ Dashboard: Missing data for custom frequency', {
-                            protocol: p.protocolName,
-                            peptide: blendName,
-                            customDays,
-                            hasStartDate: !!p.startDate
-                        });
-                    }
-                    break;
-            }
-
-            if (isScheduledToday) {
-                // Build dose display from all peptides in the blend
-                const doseParts = peptides.map(pep => 
-                    `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
-                );
-                
-                // Check if any peptide has unitValue
-                const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
-                
-                let doseDisplay = doseParts.join(' + ');
-                if (reconItem) {
-                    const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
-                        const dose = Number(pep.dose) || 0;
-                        return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-                    }, 0);
-                    const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
-                    const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
-                    if (calc.unitsPerDose > 0) {
-                        if (additionalUnits) {
-                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
-                        } else {
-                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} units`;
-                        }
-                    } else if (additionalUnits) {
-                        doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
-                    }
-                } else if (additionalUnits) {
-                    doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
-                }
-
-                // Create one task per scheduled time
-                const times = freq.time || ['AM'];
-                times.forEach(t => {
-                    const timeSlot = t; // Already using AM/PM format
-                    
-                    // For complex dose displays, keep the full string as dose and extract primary unit
-                    let dose = doseDisplay;
-                    let unit = '';
-                    
-                    // Extract the primary unit (mcg takes precedence over mg, units takes precedence over both)
-                    if (doseDisplay.includes('units')) {
-                        unit = 'units';
-                    } else if (doseDisplay.includes('mcg')) {
-                        unit = 'mcg';
-                    } else if (doseDisplay.includes('mg')) {
-                        unit = 'mg';
-                    }
-                    
-                    // Get delivery method from recon item or from first peptide in blend
-                    const firstPeptide = peptides[0];
-                    const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod;
-                    
-                    const task = {
-                        id: `${p.id}-${blendName}-${t}`,
-                        type: 'peptide',
-                        name: blendName,
-                        dose: dose,
-                        unit: unit,
-                        time: timeSlot,
-                        completed: false,
-                        deliveryMethod: deliveryMethod,
-                        penColor: reconItem?.penColor || firstPeptide?.penColor,
-                        protocolName: p.protocolName,
-                        administrationRoute: reconItem?.administrationRoute || firstPeptide?.injectionType
-                    };
-                    // Generate stable task ID and check completion status
-                    const taskId = generateTaskId(task);
-                    const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
-                    task.completed = wasCompleted;
-                    task.stableTaskId = taskId; // Store for debugging
-                    peptideTasks.push(task);
-                });
-            }
-        } else {
-            // Existing logic for separate peptides
-            normalizePeptides(p).forEach((pep, peptideIndex) => {
-              const freq = pep.frequency || {}
-              let isScheduledToday = false
-              
-              // Debug logging for frequency type detection
-              if (freq.type === 'custom' || freq.customDays) {
-                console.log('🔍 Dashboard: Separate peptide frequency check', {
-                  protocol: p.protocolName,
-                  peptide: pep.name,
-                  frequencyType: freq.type,
-                  customDays: freq.customDays,
-                  fullFrequency: freq
-                });
-              }
-              
-              switch (freq.type) {
-                case 'daily':
-                  isScheduledToday = true
-                  break
-                case 'weekly':
-                  if (freq.days?.includes(shortDay)) isScheduledToday = true
-                  break
-                case 'cycle':
-                  const on = Number(freq.onDays) || 0
-                  const off = Number(freq.offDays) || 0
-                  if (on > 0 && p.startDate) {
-                    const cycleLen = on + off
-                    const ps = normalizeToMidnight(parseDateString(p.startDate))
-                    const todayNormalized = normalizeToMidnight(today)
-                    const dayDiff = getDayDifference(ps, todayNormalized)
-                    if (dayDiff !== null && dayDiff >= 0) {
-                      const dayInCycle = dayDiff % cycleLen
-                      if (dayInCycle < on) isScheduledToday = true
-                    }
-                  }
-                  break
-                case 'custom':
-                  const customDays = Number(freq.customDays) || 1
-                  if (customDays > 0 && p.startDate) {
-                    const ps = normalizeToMidnight(parseDateString(p.startDate))
-                    const todayNormalized = normalizeToMidnight(today)
-                    if (!ps || !todayNormalized) {
-                      console.warn('⚠️ Dashboard: Invalid dates for custom frequency', {
-                        protocol: p.protocolName,
-                        peptide: pep.name,
-                        startDate: p.startDate,
-                        parsedStart: ps,
-                        today: todayNormalized
-                      })
-                      break
-                    }
-                    const dayDiff = getDayDifference(ps, todayNormalized)
-                    if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
-                      isScheduledToday = true
-                      console.log('✅ Dashboard: Custom frequency match', {
-                        protocol: p.protocolName,
-                        peptide: pep.name,
-                        customDays,
-                        dayDiff,
-                        startDate: p.startDate,
-                        today: formatMMDDYYYY(today)
-                      })
-                    } else {
-                      console.log('📅 Dashboard: Custom frequency skip', {
-                        protocol: p.protocolName,
-                        peptide: pep.name,
-                        customDays,
-                        dayDiff,
-                        dayDiffMod: dayDiff !== null ? dayDiff % customDays : null,
-                        startDate: p.startDate,
-                        today: formatMMDDYYYY(today)
-                      })
-                    }
-                  } else {
-                    console.warn('⚠️ Dashboard: Missing data for custom frequency', {
-                      protocol: p.protocolName,
-                      peptide: pep.name,
-                      customDays,
-                      hasStartDate: !!p.startDate,
-                      frequency: freq
-                    })
-                  }
-                  break
-                default:
-                  break
-              }
-              if (!isScheduledToday) return
-              
-              let dose = pep.dosage?.amount || '';
-              let unit = pep.dosage?.unit || '';
-              let additionalUnits = pep.unitValue || ''; // Get units value from peptide
-              
-              console.log('🔍 Peptide data:', { 
-                name: pep.name, 
-                dose, 
-                unit, 
-                unitValue: pep.unitValue,
-                hasRecon: !!reconItem,
-                reconItem: reconItem,
-                protocolName: p.protocolName
-              });
-              
-              if (reconItem) {
-                const calc = calculateRecon({ 
-                    mg: reconItem.mg, 
-                    water: reconItem.water, 
-                    dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
-                });
-                 if (calc.unitsPerDose > 0) {
-                    // If unitValue is set, show both calculated units and custom units
-                    if (additionalUnits) {
-                        dose = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
-                        unit = 'units';
-                    } else {
-                        dose = calc.unitsPerDose.toFixed(0);
-                        unit = 'units';
-                    }
-                } else if (additionalUnits) {
-                    // If no recon but has unitValue, append it
-                    dose = `${dose} ${unit} (${additionalUnits} units)`;
-                    unit = 'units';
-                }
-              } else if (additionalUnits) {
-                // No recon but has unitValue
-                dose = `${dose} ${unit} (${additionalUnits} units)`;
-                unit = 'units';
-              }
-
-              // Create a single task entry for this peptide with all its scheduled times
-              const scheduledTimes = pep.frequency.time || [];
-              
-              // Get delivery method from multiple sources
-              // Priority: linkedItems (from manage modal) > recon item (if user used recon calculator) > protocol peptide data (manual entry)
-              const peptideId = pep.id || `peptide-${peptideIndex}`;
-              const linkedItem = p.linkedItems?.[peptideId] || {};
-              const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
-              
-              const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || pep.deliveryMethod;
-              const penColor = linkedDeliveryMethod.penColor || reconItem?.penColor || pep.penColor;
-              const penType = linkedDeliveryMethod.penType || reconItem?.penType || pep.penType;
-              const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || pep.injectionType;
-              
-              const task = {
-                id: `${p.id}-${pep.name || 'Peptide'}`,
-                type: 'peptide',
-                name: pep.name || 'Peptide',
-                dose: dose,
-                unit: unit,
-                time: scheduledTimes.length === 1 ? scheduledTimes[0] : scheduledTimes.join(', '),
-                scheduledTimes: scheduledTimes, // Store all times for completion tracking
-                completed: false,
-                deliveryMethod: deliveryMethod,
-                penColor: penColor,
-                penType: penType,
-                protocolName: p.protocolName,
-                administrationRoute: administrationRoute
-              };
-              
-              console.log('🔍 Peptide task created:', {
-                name: task.name,
-                dose: task.dose,
-                unit: task.unit,
-                time: task.time,
-                scheduledTimes: task.scheduledTimes,
-                deliveryMethod: task.deliveryMethod,
-                penColor: task.penColor,
-                reconItem: reconItem
-              });
-              
-              // Check completion status for all scheduled times
-              const allCompleted = scheduledTimes.every(timeSlot => {
-                const taskId = generateTaskId({ ...task, time: timeSlot });
-                return isTaskCompleted(taskId, undefined, timeSlot);
-              });
-              task.completed = allCompleted;
-              task.stableTaskId = `${p.id}-${pep.name || 'Peptide'}`; // Store for debugging
-              peptideTasks.push(task);
-            })
+            // Generate stable task ID and check completion status
+            const taskId = generateTaskId(task);
+            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            task.completed = wasCompleted;
+            task.stableTaskId = taskId;
+            peptideTasks.push(task);
+          });
         }
       })
       // Inject first-day Wash-Out reminders
@@ -769,7 +464,7 @@ export default function Dashboard() {
         }
 
         if (washStart && washEnd) {
-            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const todayOnly = new Date(finalToday.getFullYear(), finalToday.getMonth(), finalToday.getDate());
             const washStartOnly = new Date(washStart.getFullYear(), washStart.getMonth(), washStart.getDate());
             const washEndOnly = new Date(washEnd.getFullYear(), washEnd.getMonth(), washEnd.getDate());
 
@@ -778,54 +473,13 @@ export default function Dashboard() {
             }
         }
       }
-    } catch {}
+    } catch (error) {
+      console.error('❌ Dashboard: Error generating tasks', error);
+      console.error('Error stack:', error.stack);
+    }
 
-    const todayShortDay = today.toLocaleDateString('en-US', { weekday: 'short' });
-    const supplementTasks = supplements
-      .filter(s => (!s.days || s.days.length === 0 || s.days.includes(todayShortDay)))
-      .flatMap(s => {
-        const tasks = [];
-        const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
-        if (slots.includes('AM')) {
-          const task = {
-            id: `${s.id}-AM`,
-            type: 'supplement',
-            name: s.name,
-            dose: s.dose,
-            unit: s.unit || '',
-            delivery: s.delivery,
-            time: 'AM',
-            completed: false,
-          };
-          // Generate stable task ID and check completion status
-          const taskId = generateTaskId(task);
-          const wasCompleted = isTaskCompleted(taskId, undefined, 'AM');
-          task.completed = wasCompleted;
-          task.stableTaskId = taskId; // Store for debugging
-          tasks.push(task);
-        }
-        if (slots.includes('PM')) {
-          const task = {
-            id: `${s.id}-PM`,
-            type: 'supplement',
-            name: s.name,
-            dose: s.dose,
-            unit: s.unit || '',
-            delivery: s.delivery,
-            time: 'PM',
-            completed: false,
-          };
-          // Generate stable task ID and check completion status
-          const taskId = generateTaskId(task);
-          const wasCompleted = isTaskCompleted(taskId, undefined, 'PM');
-          task.completed = wasCompleted;
-          task.stableTaskId = taskId; // Store for debugging
-          tasks.push(task);
-        }
-        return tasks;
-      });
-
-    var combined = [...peptideTasks, ...supplementTasks];
+    // Supplements are already included in peptideTasks from the Calendar calculation above
+    var combined = peptideTasks;
     combined.sort((a, b) => {
       // First, sort by completion status (unchecked first, then checked)
       if (a.completed !== b.completed) {

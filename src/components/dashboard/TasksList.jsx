@@ -140,9 +140,10 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                     {task.dose}{task.unit ? ` ${task.unit}` : ''}
                                 </div>
                             </div>
-                            {task.deliveryMethod === 'pen' && (
+                            {/* Show pen color and type if penColor is set, regardless of delivery method */}
+                            {/* This matches Calendar behavior where pen color is shown when available */}
+                            {task.penColor && (
                                 <div className="flex items-center gap-1">
-                                    {/* Debug info available via devLog if needed */}
                                     <div 
                                         className="w-3 h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
                                         style={{ 
@@ -220,7 +221,9 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
 const DeliveryIcon = ({ task, theme }) => {
     // Handle peptide delivery methods
     if (task.type === 'peptide') {
-        if (task.deliveryMethod === 'pen') {
+        // If penColor is set, show pen icon (matches Calendar behavior)
+        // This handles cases where deliveryMethod is 'pipette' but penColor is set
+        if (task.penColor || task.deliveryMethod === 'pen') {
             return <PenTool size={14} style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {

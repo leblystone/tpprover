@@ -23,6 +23,7 @@ import {
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
 import { toKey } from '../components/calendar/MonthGrid';
+import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
 import { areAnalyticsEnabled, areGroupBuysEnabled } from '../utils/featureSettings';
 import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings';
 
@@ -355,174 +356,148 @@ export default function CustomizableDashboard() {
   }, []);
 
   // Generate today's tasks from supplements and protocols
+  // CRITICAL: Use Calendar's shared logic to ensure perfect sync
   useEffect(() => {
-
-    const tasks = [];
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayKey = today.toISOString().split('T')[0];
+    console.log('🔄 CustomizableDashboard: Generating today\'s tasks using Calendar logic');
     
-    // Add supplement tasks
-    supplements.forEach(supplement => {
-      const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : [];
-      schedule.forEach(time => {
-        const task = {
-          id: `supplement_${supplement.id}_${time}`,
-          name: supplement.name,
-          dose: supplement.dose,
-          unit: supplement.unit || '',
-          time: time,
-          type: 'supplement',
-          delivery: supplement.delivery,
-          completed: false
-        };
-        
-        // Generate stable task ID and check completion status
-        const taskId = generateTaskId(task);
-        task.stableTaskId = taskId;
-        task.completed = isTaskCompleted(taskId);
-        
-        tasks.push(task);
-      });
-    });
-
-    // Add protocol/peptide tasks
-    protocols.forEach(protocol => {
-      if (!protocol) return;
-      
-      // Normalize active state from various sources/legacy values
-      const lifecycleStatus = String(protocol?.lifecycle?.status || protocol?.status || '').toLowerCase();
-      const activeFlag = protocol?.active;
-      const isActive = activeFlag === true ||
-        activeFlag === 'true' ||
-        activeFlag === 1 ||
-        lifecycleStatus === 'active' ||
-        lifecycleStatus === 'running';
-
-      if (!isActive) return;
-      
-      // Check for autosaved draft data
-      let protocolData = protocol;
-      try {
-        const draftKey = `tpprover_protocol_draft_${protocol.id}`;
-        const draftData = localStorage.getItem(draftKey);
-        if (draftData) {
-          const parsed = JSON.parse(draftData);
-          if (parsed.data && Object.keys(parsed.data).length > 0) {
-
-            protocolData = { ...protocol, ...parsed.data };
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load autosaved data for protocol:', protocol.id);
-      }
-      
-      let startDate = null;
-      if (protocolData.startDate) {
-        const parsed = new Date(`${protocolData.startDate}T00:00:00`);
-        if (!Number.isNaN(parsed.getTime())) {
-          startDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-        }
-      }
-
-      let endDate = null;
-      if (protocolData.endDate) {
-        const parsed = new Date(`${protocolData.endDate}T23:59:59`);
-        if (!Number.isNaN(parsed.getTime())) {
-          endDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-        }
-      }
-      
-      // Check if protocol is active today
-      if (startDate && today < startDate) return;
-      if (endDate && today > endDate) return;
-      
-      const peptides = Array.isArray(protocolData.peptides) ? protocolData.peptides : [];
-      
-      // Find matching recon item for this protocol (optional - for users who use recon calculator)
-      // Try multiple matching strategies
-      const reconItem = reconItems.find(r => {
-        if (!r.name) return false;
-        return r.name === protocolData.protocolName || 
-               r.name.startsWith(protocolData.protocolName) ||
-               protocolData.protocolName.includes(r.name);
-      });
-      
-      peptides.forEach((peptide, peptideIndex) => {
-        const frequency = peptide.frequency || {};
-        const times = Array.isArray(frequency.time) ? frequency.time : ['AM'];
-        
-        times.forEach(time => {
-          // Extract dose and unit properly - handle both simple and complex displays
-          let dose = peptide.dosage?.amount || '';
-          let unit = peptide.dosage?.unit || 'mcg';
-          const unitValue = peptide.unitValue || '';
-          
-          // Build the complete dose display
-          if (dose && unit) {
-            if (unitValue) {
-              // Complex display: "2 mg | 20 units" - store complete string in dose, clear unit
-              dose = `${dose} ${unit} | ${unitValue} units`;
-              unit = ''; // Clear unit since it's included in dose
-            } else {
-              // Simple display: "2 mg" - store complete string in dose, clear unit
-              dose = `${dose} ${unit}`;
-              unit = ''; // Clear unit since it's included in dose
-            }
-          }
-          
-          // Get delivery method and pen color from multiple sources
-          // Priority: linkedItems (from manage modal) > recon item (if user used recon calculator) > protocol peptide data (manual entry)
-          const peptideId = peptide.id || `peptide-${peptideIndex}`;
-          const linkedItem = protocolData.linkedItems?.[peptideId] || {};
-          const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
-          
-          const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || peptide.deliveryMethod;
-          const penColor = linkedDeliveryMethod.penColor || reconItem?.penColor || peptide.penColor;
-          const penType = linkedDeliveryMethod.penType || reconItem?.penType || peptide.penType;
-          const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || peptide.injectionType;
-          
-          const task = {
-            id: `protocol_${protocolData.id}_${peptideIndex}_${time}`,
-            name: peptide.name || 'Unknown Peptide',
-            dose: dose,
-            unit: unit,
-            time: time,
-            type: 'peptide',
-            protocolId: protocolData.id,
-            protocolName: protocolData.protocolName,
-            deliveryMethod: deliveryMethod,
-            penColor: penColor,
-            penType: penType,
-            administrationRoute: administrationRoute,
-            completed: false
-          };
-
-          // Generate stable task ID and check completion status
-          const taskId = generateTaskId(task);
-          task.stableTaskId = taskId;
-          task.completed = isTaskCompleted(taskId);
-          
-          tasks.push(task);
-        });
-      });
-    });
-
-    // Sort tasks: unchecked first, then checked, then by type, then by name
-    tasks.sort((a, b) => {
-      // First, sort by completion status (unchecked first, then checked)
-      if (a.completed !== b.completed) {
-        return a.completed ? 1 : -1;
-      }
-      // Then by type (peptides first)
-      if (a.type === 'peptide' && b.type !== 'peptide') return -1
-      if (a.type !== 'peptide' && b.type === 'peptide') return 1
-      // Finally by name
-      return a.name.localeCompare(b.name)
+    // CRITICAL: Use Calendar's EXACT date calculation method to ensure perfect sync
+    // Calendar uses: toKey(new Date()) which extracts year/month/day from current date
+    const calendarRawDate = new Date();
+    const finalToday = new Date(calendarRawDate.getFullYear(), calendarRawDate.getMonth(), calendarRawDate.getDate());
+    finalToday.setHours(0, 0, 0, 0);
+    
+    console.log('📅 CustomizableDashboard: Date calculation', {
+      rawDate: calendarRawDate.toISOString(),
+      finalTodayISO: finalToday.toISOString(),
+      finalTodayDateString: finalToday.toLocaleDateString('en-US'),
+      finalTodayKey: toKey(finalToday),
+      year: finalToday.getFullYear(),
+      month: finalToday.getMonth() + 1,
+      day: finalToday.getDate()
     });
     
-    setTodaysTasks(tasks);
-  }, [supplements, protocols, calendarBump]);
+    try {
+      // Get today's scheduled tasks using the same logic as Calendar
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems);
+      
+      console.log('📊 CustomizableDashboard: Received scheduled data', {
+        timeSlots: Object.keys(scheduledData.bySlot || {}),
+        totalPeptides: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.peptides?.length || 0), 0),
+        totalSupplements: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.supplements?.length || 0), 0),
+        peptideDetails: Object.values(scheduledData.bySlot || {}).flatMap(slot => 
+          (slot.peptides || []).map(pep => ({
+            name: pep.name,
+            deliveryMethod: pep.deliveryMethod,
+            penColor: pep.penColor,
+            penType: pep.penType
+          }))
+        )
+      });
+      
+      const tasks = [];
+      
+      // Convert Calendar's scheduled data format to Dashboard task format
+      // Process peptides and supplements from all time slots
+      Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
+        const slot = scheduledData.bySlot[timeSlot];
+        
+        // Process peptides
+        if (slot.peptides && Array.isArray(slot.peptides)) {
+          slot.peptides.forEach(pep => {
+            // CRITICAL: Preserve ALL fields exactly as Calendar provides them
+            // Do NOT use fallbacks that might override Calendar's data
+            const task = {
+              id: `${pep.protocolId || 'protocol'}-${pep.name || 'Peptide'}-${timeSlot}`,
+              type: 'peptide',
+              name: pep.name || 'Peptide',
+              dose: pep.dose || '',
+              unit: pep.unit || '',
+              time: timeSlot,
+              completed: false,
+              // CRITICAL: Use EXACTLY what Calendar provides - no fallbacks that might override
+              deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',
+              delivery: pep.delivery || pep.deliveryMethod || 'injection',
+              // CRITICAL: Preserve pen color and type - use undefined if not set (not null)
+              penColor: pep.penColor,
+              penType: pep.penType,
+              protocolName: pep.name, // For blended protocols, name is the protocol name
+              administrationRoute: pep.administrationRoute,
+              protocolId: pep.protocolId
+            };
+            
+            // Enhanced debug logging for ALL peptides to see what Calendar is providing
+            console.log('🔍 Peptide data from Calendar:', {
+              name: pep.name,
+              timeSlot: timeSlot,
+              fromCalendar: {
+                deliveryMethod: pep.deliveryMethod,
+                delivery: pep.delivery,
+                penColor: pep.penColor,
+                penType: pep.penType,
+                protocolId: pep.protocolId
+              },
+              toTask: {
+                deliveryMethod: task.deliveryMethod,
+                delivery: task.delivery,
+                penColor: task.penColor,
+                penType: task.penType
+              }
+            });
+            
+            // Generate stable task ID and check completion status
+            const taskId = generateTaskId(task);
+            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            task.completed = wasCompleted;
+            task.stableTaskId = taskId;
+            tasks.push(task);
+          });
+        }
+        
+        // Process supplements
+        if (slot.supplements && Array.isArray(slot.supplements)) {
+          slot.supplements.forEach(supp => {
+            const task = {
+              id: `${supp.id || 'supplement'}-${timeSlot}`,
+              type: 'supplement',
+              name: supp.name || 'Supplement',
+              dose: supp.dose || '',
+              unit: supp.unit || '',
+              delivery: supp.delivery || supp.deliveryMethod || 'oral',
+              time: timeSlot,
+              completed: false,
+            };
+            
+            // Generate stable task ID and check completion status
+            const taskId = generateTaskId(task);
+            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            task.completed = wasCompleted;
+            task.stableTaskId = taskId;
+            tasks.push(task);
+          });
+        }
+      });
+
+      // Sort tasks: unchecked first, then checked, then by type, then by name
+      tasks.sort((a, b) => {
+        // First, sort by completion status (unchecked first, then checked)
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1;
+        }
+        // Then by type (peptides first)
+        if (a.type === 'peptide' && b.type !== 'peptide') return -1
+        if (a.type !== 'peptide' && b.type === 'peptide') return 1
+        // Finally by name
+        return a.name.localeCompare(b.name)
+      });
+      
+      console.log('✅ CustomizableDashboard: Generated', tasks.length, 'tasks');
+      setTodaysTasks(tasks);
+    } catch (error) {
+      console.error('❌ CustomizableDashboard: Error generating tasks', error);
+      console.error('Error stack:', error.stack);
+      setTodaysTasks([]);
+    }
+  }, [supplements, protocols, reconItems, calendarBump]);
 
   // Save layout when widgets change
   useEffect(() => {
