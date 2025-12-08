@@ -348,8 +348,19 @@ export default function Dashboard() {
         const base = (Array.isArray(p.peptides) && p.peptides.length > 0) ? p.peptides : [{ name: p.name || p.peptide, dosage: p.dosage, frequency: p.frequency }]
         return base.map(pep => {
           const f = pep?.frequency || {}
-          const type = f.type || 'daily'
+          // Determine type: if customDays exists but type is missing, infer 'custom'
+          // Otherwise preserve existing type or default to 'daily'
+          let type = f.type
+          if (!type && (f.customDays !== undefined && f.customDays !== null)) {
+            type = 'custom'
+            console.log('🔧 Dashboard: Inferred custom frequency type from customDays', {
+              peptide: pep.name,
+              customDays: f.customDays
+            })
+          }
+          type = type || 'daily'
           const time = Array.isArray(f?.time) && f.time.length > 0 ? f.time : ['AM']
+          // Preserve all frequency properties (customDays, onDays, offDays, days, etc.)
           return { ...pep, frequency: { ...f, type, time } }
         })
       }
@@ -399,6 +410,16 @@ export default function Dashboard() {
             const freq = peptides[0].frequency || {};
             let isScheduledToday = false;
             
+            // Debug logging for frequency type detection
+            if (freq.type === 'custom' || freq.customDays) {
+              console.log('🔍 Dashboard: Blended protocol frequency check', {
+                protocol: p.protocolName,
+                frequencyType: freq.type,
+                customDays: freq.customDays,
+                fullFrequency: freq
+              });
+            }
+            
             switch (freq.type) {
                 case 'daily': 
                     isScheduledToday = true; 
@@ -424,10 +445,45 @@ export default function Dashboard() {
                     if (customDays > 0 && p.startDate) {
                         const ps = normalizeToMidnight(parseDateString(p.startDate));
                         const todayNormalized = normalizeToMidnight(today);
+                        if (!ps || !todayNormalized) {
+                            console.warn('⚠️ Dashboard: Invalid dates for custom frequency', {
+                                protocol: p.protocolName,
+                                peptide: blendName,
+                                startDate: p.startDate,
+                                parsedStart: ps,
+                                today: todayNormalized
+                            });
+                            break;
+                        }
                         const dayDiff = getDayDifference(ps, todayNormalized);
                         if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                             isScheduledToday = true;
+                            console.log('✅ Dashboard: Custom frequency match', {
+                                protocol: p.protocolName,
+                                peptide: blendName,
+                                customDays,
+                                dayDiff,
+                                startDate: p.startDate,
+                                today: formatMMDDYYYY(today)
+                            });
+                        } else {
+                            console.log('📅 Dashboard: Custom frequency skip', {
+                                protocol: p.protocolName,
+                                peptide: blendName,
+                                customDays,
+                                dayDiff,
+                                dayDiffMod: dayDiff !== null ? dayDiff % customDays : null,
+                                startDate: p.startDate,
+                                today: formatMMDDYYYY(today)
+                            });
                         }
+                    } else {
+                        console.warn('⚠️ Dashboard: Missing data for custom frequency', {
+                            protocol: p.protocolName,
+                            peptide: blendName,
+                            customDays,
+                            hasStartDate: !!p.startDate
+                        });
                     }
                     break;
             }
@@ -510,6 +566,18 @@ export default function Dashboard() {
             normalizePeptides(p).forEach((pep, peptideIndex) => {
               const freq = pep.frequency || {}
               let isScheduledToday = false
+              
+              // Debug logging for frequency type detection
+              if (freq.type === 'custom' || freq.customDays) {
+                console.log('🔍 Dashboard: Separate peptide frequency check', {
+                  protocol: p.protocolName,
+                  peptide: pep.name,
+                  frequencyType: freq.type,
+                  customDays: freq.customDays,
+                  fullFrequency: freq
+                });
+              }
+              
               switch (freq.type) {
                 case 'daily':
                   isScheduledToday = true
@@ -536,10 +604,46 @@ export default function Dashboard() {
                   if (customDays > 0 && p.startDate) {
                     const ps = normalizeToMidnight(parseDateString(p.startDate))
                     const todayNormalized = normalizeToMidnight(today)
+                    if (!ps || !todayNormalized) {
+                      console.warn('⚠️ Dashboard: Invalid dates for custom frequency', {
+                        protocol: p.protocolName,
+                        peptide: pep.name,
+                        startDate: p.startDate,
+                        parsedStart: ps,
+                        today: todayNormalized
+                      })
+                      break
+                    }
                     const dayDiff = getDayDifference(ps, todayNormalized)
                     if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                       isScheduledToday = true
+                      console.log('✅ Dashboard: Custom frequency match', {
+                        protocol: p.protocolName,
+                        peptide: pep.name,
+                        customDays,
+                        dayDiff,
+                        startDate: p.startDate,
+                        today: formatMMDDYYYY(today)
+                      })
+                    } else {
+                      console.log('📅 Dashboard: Custom frequency skip', {
+                        protocol: p.protocolName,
+                        peptide: pep.name,
+                        customDays,
+                        dayDiff,
+                        dayDiffMod: dayDiff !== null ? dayDiff % customDays : null,
+                        startDate: p.startDate,
+                        today: formatMMDDYYYY(today)
+                      })
                     }
+                  } else {
+                    console.warn('⚠️ Dashboard: Missing data for custom frequency', {
+                      protocol: p.protocolName,
+                      peptide: pep.name,
+                      customDays,
+                      hasStartDate: !!p.startDate,
+                      frequency: freq
+                    })
                   }
                   break
                 default:
