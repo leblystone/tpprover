@@ -10,8 +10,8 @@ const SHIPPO_API_BASE = 'https://api.goshippo.com/v1';
  */
 exports.getTrackingInfo = onCall(
   {
-    cors: true, // Firebase Functions v2 handles CORS automatically
-    secrets: ['SHIPPO_API_KEY']
+    cors: true // Firebase Functions v2 handles CORS automatically
+    // Note: SHIPPO_API_KEY secret removed - add it back if Shippo tracking is needed
   },
   async (request) => {
     // Verify user is authenticated
@@ -28,12 +28,17 @@ exports.getTrackingInfo = onCall(
     logger.info(`📦 Fetching tracking info for: ${trackingNumber} (carrier: ${carrier})`);
 
     try {
-      const shippoApiKey = process.env.SHIPPO_API_KEY;
+      // Access the secret from environment (Firebase Functions v2 makes secrets available via process.env)
+      const shippoApiKey = process.env.SHIPPO_API_KEY?.trim().replace(/\r?\n/g, '');
       
       if (!shippoApiKey) {
         logger.error('❌ Shippo API key not configured');
+        logger.error('❌ SHIPPO_API_KEY secret is missing or empty');
+        logger.error('❌ Available env keys:', Object.keys(process.env).filter(k => k.includes('SHIPPO')));
         throw new HttpsError('internal', 'Tracking service not configured');
       }
+      
+      logger.info('✅ Shippo API key found (length: ' + shippoApiKey.length + ')');
 
       // Make request to Shippo API
       const trackingResponse = await fetch(`${SHIPPO_API_BASE}/tracks/`, {
