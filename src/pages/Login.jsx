@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, startTransition } from 'react';
+import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Play, Monitor } from 'lucide-react';
@@ -16,7 +16,6 @@ import {
   loginUser, 
   checkAndAssignFounderStatus,
   getUserFounderStatus,
-  checkUserExists,
   getAccountStatus
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
@@ -136,6 +135,7 @@ export default function Login() {
     const [twoFactorMethod, setTwoFactorMethod] = useState('authenticator');
     const [twoFactorSecret, setTwoFactorSecret] = useState('');
     const [pendingLoginData, setPendingLoginData] = useState(null);
+    const [isPending, startTransition] = useTransition();
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -235,6 +235,13 @@ export default function Login() {
                     'Firestore Doc': status.firestoreDoc
                 });
                 
+                if (!status.existsInAuth && !status.existsInFirestore) {
+                    console.log('✅ Account does NOT exist in Auth or Firestore');
+                    console.log('   If Firebase still says "email already in use", this is likely a propagation delay.');
+                    console.log('   Firebase can take 2-5 minutes to fully delete an account.');
+                    console.log('   Solution: Wait a few minutes and try again, or contact support.');
+                }
+                
                 if (status.existsInAuth && !status.existsInFirestore) {
                     console.warn('⚠️ ORPHANED ACCOUNT: Exists in Firebase Auth but not in Firestore!');
                     console.warn('   This means the account was created but the Firestore document failed to save.');
@@ -251,6 +258,10 @@ export default function Login() {
                 
                 if (status.existsInAuth && !status.hasPassword) {
                     console.warn('⚠️ ACCOUNT HAS NO PASSWORD: User exists but password authentication is not set up.');
+                }
+                
+                if (status.existsInAuth && status.existsInFirestore && status.hasPassword) {
+                    console.log('✅ Account looks healthy - exists in both Auth and Firestore with password auth');
                 }
                 
                 return status;
@@ -725,20 +736,9 @@ export default function Login() {
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
         console.log('🔒 Signup process started - AppContext will not interfere');
         
-        // Check if account already exists before attempting registration
-        console.log('🔍 Checking if account already exists...');
-        const accountExists = await checkUserExists(email);
-        if (accountExists) {
-          console.log('⚠️ Account already exists, switching to login mode');
-          sessionStorage.removeItem('tpp_signup_in_progress');
-          setError('An account with this email already exists. Switching to login...');
-          setTimeout(() => {
-            setIsReturningUser(true);
-            setMode('login');
-            setError('Please enter your password to log in. Use "Forgot password?" if needed.');
-          }, 1500);
-          return false;
-        }
+        // NOTE: We don't pre-check if account exists because fetchSignInMethodsForEmail
+        // can return false negatives (empty array) for accounts that exist but are disabled
+        // or have no sign-in methods. Instead, we try registration and handle auth/email-already-in-use
         
         // Clear previous seeding flags for fresh demo data on new signup
         localStorage.removeItem('tpprover_has_seeded');
@@ -985,25 +985,45 @@ export default function Login() {
           try {
             const accountStatus = await getAccountStatus(email);
             console.log('🔍 Account status on signup failure:', accountStatus);
+            console.log('🔍 Sign-in methods:', accountStatus.signInMethods);
+            console.log('🔍 Exists in Auth:', accountStatus.existsInAuth);
+            console.log('🔍 Exists in Firestore:', accountStatus.existsInFirestore);
+            console.log('🔍 Has password:', accountStatus.hasPassword);
             
-            if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
+            // If account doesn't exist in Auth but Firebase says email is in use,
+            // it might be a recently deleted account that hasn't fully propagated
+            if (!accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
+              setError('This email was recently used. Firebase may need a few minutes to fully delete the account. Please wait 2-3 minutes and try again, or contact support if this persists.');
+              console.warn('⚠️ Account appears deleted but Firebase still reports email in use - likely propagation delay');
+            } else if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
               setError('Account found but incomplete setup. Switching to login...');
-            } else {
+              setTimeout(() => {
+                setIsReturningUser(true);
+                setMode('login');
+                if (accountStatus.hasPassword) {
+                  setError('Please enter your password to log in. Use "Forgot password?" if needed.');
+                } else {
+                  setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set one.');
+                }
+              }, 1500);
+            } else if (accountStatus.existsInAuth) {
               setError('Account found! Switching to login form...');
+              setTimeout(() => {
+                setIsReturningUser(true);
+                setMode('login');
+                if (accountStatus.hasPassword) {
+                  setError('Please enter your password to log in. Use "Forgot password?" if needed.');
+                } else {
+                  setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set one.');
+                }
+              }, 1500);
+            } else {
+              // Account exists in Firestore but not Auth - orphaned account
+              setError('Account data found but authentication is incomplete. Please contact support to resolve this issue.');
             }
-            
-            // Automatically switch to login mode for existing users
-            setTimeout(() => {
-              setIsReturningUser(true);
-              setMode('login');
-              if (accountStatus.hasPassword) {
-                setError('Please enter your password to log in. Use "Forgot password?" if needed.');
-              } else {
-                setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set one.');
-              }
-            }, 1500);
           } catch (statusError) {
             // Fallback error handling
+            console.error('Error checking account status:', statusError);
             setError('Account found! Switching to login form...');
             setTimeout(() => {
               setIsReturningUser(true);
