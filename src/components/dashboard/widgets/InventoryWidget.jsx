@@ -15,6 +15,7 @@ const InventoryWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
   const stockpile = useLocal('tpprover_stockpile', []);
   const terracottaColor = '#c87a5c';
+  const darkerSageColor = '#5A7A5A';
 
   // Calculate top 3 well stocked (grouped by peptide name, total mg on hand)
   const topWellStocked = useMemo(() => {
@@ -97,7 +98,7 @@ const InventoryWidget = ({ widget, theme }) => {
             {/* Top 3 Well Stocked */}
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <ChevronsUp size={15} style={{ color: theme.success }} />
+                <ChevronsUp size={15} style={{ color: darkerSageColor }} />
                 <h4 className="text-xs font-semibold" style={{ color: theme.text }}>
                   Well Stocked
                 </h4>
@@ -115,7 +116,7 @@ const InventoryWidget = ({ widget, theme }) => {
                       <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
                         {item.name}
                       </span>
-                      <span className="font-semibold ml-2 whitespace-nowrap" style={{ color: theme.success }}>
+                      <span className="font-semibold ml-2 whitespace-nowrap" style={{ color: darkerSageColor }}>
                         {item.totalMg.toLocaleString()} mg
                       </span>
                     </li>
