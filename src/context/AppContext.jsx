@@ -335,22 +335,38 @@ export function AppProvider({ children }) {
                 if (cloudAppData && cloudAppData.lastUpdated) {
                     const lastLogin = localStorage.getItem('tpprover_last_login_timestamp');
                     const cloudLastUpdated = new Date(cloudAppData.lastUpdated).getTime();
+                    const lastToastShown = localStorage.getItem('tpprover_update_toast_last_shown');
+                    const now = Date.now();
+                    const THIRTY_MINUTES = 30 * 60 * 1000; // 30 minutes in milliseconds
+                    
+                    let shouldShowToast = false;
                     
                     if (lastLogin) {
+                        // Existing user - check if data is newer than last login
                         const lastLoginTime = parseInt(lastLogin, 10);
-                        // If cloud data is newer than last login, show update notification
                         if (cloudLastUpdated > lastLoginTime) {
-                            // Small delay to ensure UI is ready
-                            setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                    detail: { 
-                                        message: 'Research has been updated since last login.', 
-                                        type: 'success',
-                                        duration: 4000
-                                    } 
-                                }));
-                            }, 1000);
+                            // Data has been updated - check 30-minute cooldown
+                            shouldShowToast = !lastToastShown || 
+                                (now - parseInt(lastToastShown, 10)) >= THIRTY_MINUTES;
                         }
+                    } else {
+                        // New login - always show toast if cloud data exists
+                        shouldShowToast = true;
+                    }
+                    
+                    if (shouldShowToast) {
+                        // Small delay to ensure UI is ready
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { 
+                                    message: 'Research has been updated since last login.', 
+                                    type: 'success',
+                                    duration: 4000
+                                } 
+                            }));
+                            // Update the timestamp when toast is shown
+                            localStorage.setItem('tpprover_update_toast_last_shown', now.toString());
+                        }, 1000);
                     }
                     
                     // Update last login timestamp
