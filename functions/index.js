@@ -1599,6 +1599,192 @@ exports.sendAccountDeletionEmail = onCall(
   }
 );
 
+// Check and clean up blocked account (for admin use)
+// This function can see disabled accounts that client SDK cannot
+exports.checkAndCleanBlockedAccount = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const { email, adminPassword } = request.data;
+      
+      // Simple admin auth
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      if (!email) {
+        throw new Error('Email is required');
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      logger.info(`🔍 Checking blocked account for: ${normalizedEmail}`);
+      
+      let userRecord = null;
+      let userId = null;
+      
+      // Try to find user by email using Admin SDK (can see disabled accounts)
+      try {
+        userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+        userId = userRecord.uid;
+        logger.info(`✅ Found user in Firebase Auth: ${userId}`);
+        logger.info(`   Disabled: ${userRecord.disabled || false}`);
+        logger.info(`   Email verified: ${userRecord.emailVerified || false}`);
+        logger.info(`   Created: ${userRecord.metadata.creationTime}`);
+        logger.info(`   Last sign in: ${userRecord.metadata.lastSignInTime || 'Never'}`);
+      } catch (authError) {
+        if (authError.code === 'auth/user-not-found') {
+          logger.info('ℹ️ User not found in Firebase Auth');
+        } else {
+          logger.error('❌ Error checking Firebase Auth:', authError);
+          throw authError;
+        }
+      }
+      
+      // Check Firestore
+      let firestoreDoc = null;
+      try {
+        const db = admin.firestore();
+        const userQuery = await db.collection('users')
+          .where('email', '==', normalizedEmail)
+          .limit(1)
+          .get();
+        
+        if (!userQuery.empty) {
+          firestoreDoc = userQuery.docs[0];
+          logger.info(`✅ Found user in Firestore: ${firestoreDoc.id}`);
+        } else {
+          logger.info('ℹ️ User not found in Firestore');
+        }
+      } catch (firestoreError) {
+        logger.error('❌ Error checking Firestore:', firestoreError);
+      }
+      
+      const result = {
+        email: normalizedEmail,
+        existsInAuth: !!userRecord,
+        existsInFirestore: !!firestoreDoc,
+        userId: userId,
+        firestoreId: firestoreDoc?.id || null,
+        disabled: userRecord?.disabled || false,
+        emailVerified: userRecord?.emailVerified || false,
+        canDelete: false,
+        message: ''
+      };
+      
+      // Determine if we can delete
+      if (userRecord && !firestoreDoc) {
+        result.canDelete = true;
+        result.message = 'Account exists in Auth but not Firestore - can be safely deleted';
+      } else if (userRecord && firestoreDoc) {
+        result.canDelete = true;
+        result.message = 'Account exists in both Auth and Firestore - can be deleted (will remove both)';
+      } else if (!userRecord && firestoreDoc) {
+        result.canDelete = true;
+        result.message = 'Account exists only in Firestore - can be deleted';
+      } else {
+        result.message = 'Account not found in Auth or Firestore - may be propagation delay';
+      }
+      
+      return result;
+    } catch (error) {
+      logger.error('❌ Error checking blocked account:', error);
+      throw new Error(`Failed to check account: ${error.message}`);
+    }
+  }
+);
+
+// Delete blocked account (for admin use)
+exports.deleteBlockedAccount = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const { email, adminPassword, deleteFirestore = true } = request.data;
+      
+      // Simple admin auth
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      if (!email) {
+        throw new Error('Email is required');
+      }
+      
+      const normalizedEmail = email.toLowerCase().trim();
+      logger.info(`🗑️ Deleting blocked account for: ${normalizedEmail}`);
+      
+      const db = admin.firestore();
+      let deletedAuth = false;
+      let deletedFirestore = false;
+      let userId = null;
+      
+      // Delete from Firebase Auth
+      try {
+        const userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+        userId = userRecord.uid;
+        await admin.auth().deleteUser(userId);
+        deletedAuth = true;
+        logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
+      } catch (authError) {
+        if (authError.code === 'auth/user-not-found') {
+          logger.info('ℹ️ User not found in Firebase Auth (may already be deleted)');
+        } else {
+          logger.error('❌ Error deleting from Firebase Auth:', authError);
+          throw authError;
+        }
+      }
+      
+      // Delete from Firestore
+      if (deleteFirestore) {
+        try {
+          // Try to find by email
+          const userQuery = await db.collection('users')
+            .where('email', '==', normalizedEmail)
+            .limit(1)
+            .get();
+          
+          if (!userQuery.empty) {
+            const firestoreId = userQuery.docs[0].id;
+            await db.collection('users').doc(firestoreId).delete();
+            deletedFirestore = true;
+            logger.info(`✅ Deleted user from Firestore: ${firestoreId}`);
+          } else if (userId) {
+            // Try by UID if we have it
+            try {
+              await db.collection('users').doc(userId).delete();
+              deletedFirestore = true;
+              logger.info(`✅ Deleted user from Firestore by UID: ${userId}`);
+            } catch (e) {
+              logger.info('ℹ️ User not found in Firestore (may already be deleted)');
+            }
+          } else {
+            logger.info('ℹ️ User not found in Firestore');
+          }
+        } catch (firestoreError) {
+          logger.error('❌ Error deleting from Firestore:', firestoreError);
+          // Don't throw - Auth deletion is more important
+        }
+      }
+      
+      return {
+        success: true,
+        email: normalizedEmail,
+        deletedFromAuth: deletedAuth,
+        deletedFromFirestore: deletedFirestore,
+        message: `Account deleted successfully. Auth: ${deletedAuth ? 'Yes' : 'No'}, Firestore: ${deletedFirestore ? 'Yes' : 'No'}`
+      };
+    } catch (error) {
+      logger.error('❌ Error deleting blocked account:', error);
+      throw new Error(`Failed to delete account: ${error.message}`);
+    }
+  }
+);
+
 // Send account deletion request notification to admin
 exports.sendAccountDeletionRequestToAdmin = onCall(
   {

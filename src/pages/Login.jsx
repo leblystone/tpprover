@@ -271,6 +271,101 @@ export default function Login() {
             }
         };
         
+        // Admin function to check blocked account (uses Admin SDK to see disabled accounts)
+        window.checkBlockedAccount = async (emailToCheck, adminPassword) => {
+            const emailAddr = emailToCheck || email;
+            if (!emailAddr) {
+                console.error('❌ Please provide an email address or fill in the email field');
+                return;
+            }
+            if (!adminPassword) {
+                console.error('❌ Admin password required');
+                return;
+            }
+            
+            console.log('🔍 Checking blocked account for:', emailAddr);
+            try {
+                const { getFunctions, httpsCallable } = await import('firebase/functions');
+                const functions = getFunctions();
+                const checkBlockedAccount = httpsCallable(functions, 'checkAndCleanBlockedAccount');
+                
+                const result = await checkBlockedAccount({ email: emailAddr, adminPassword });
+                console.log('📊 Blocked Account Status:', result.data);
+                
+                if (result.data.existsInAuth) {
+                    console.log('✅ Account EXISTS in Firebase Auth');
+                    console.log('   User ID:', result.data.userId);
+                    console.log('   Disabled:', result.data.disabled);
+                    console.log('   Email Verified:', result.data.emailVerified);
+                } else {
+                    console.log('ℹ️ Account NOT found in Firebase Auth');
+                }
+                
+                if (result.data.existsInFirestore) {
+                    console.log('✅ Account EXISTS in Firestore');
+                    console.log('   Document ID:', result.data.firestoreId);
+                } else {
+                    console.log('ℹ️ Account NOT found in Firestore');
+                }
+                
+                console.log('💡', result.data.message);
+                if (result.data.canDelete) {
+                    console.log('🗑️ To delete this account, run:');
+                    console.log(`   window.deleteBlockedAccount('${emailAddr}', '${adminPassword}')`);
+                }
+                
+                return result.data;
+            } catch (error) {
+                console.error('❌ Error checking blocked account:', error);
+                console.error('   Error code:', error.code);
+                console.error('   Error message:', error.message);
+            }
+        };
+        
+        // Admin function to delete blocked account
+        window.deleteBlockedAccount = async (emailToDelete, adminPassword, deleteFirestore = true) => {
+            const emailAddr = emailToDelete || email;
+            if (!emailAddr) {
+                console.error('❌ Please provide an email address or fill in the email field');
+                return;
+            }
+            if (!adminPassword) {
+                console.error('❌ Admin password required');
+                return;
+            }
+            
+            const confirmDelete = confirm(`⚠️ Are you sure you want to delete the account for ${emailAddr}?\n\nThis will delete from Firebase Auth${deleteFirestore ? ' and Firestore' : ''}.\n\nThis action cannot be undone!`);
+            if (!confirmDelete) {
+                console.log('❌ Deletion cancelled');
+                return;
+            }
+            
+            console.log('🗑️ Deleting blocked account for:', emailAddr);
+            try {
+                const { getFunctions, httpsCallable } = await import('firebase/functions');
+                const functions = getFunctions();
+                const deleteBlockedAccount = httpsCallable(functions, 'deleteBlockedAccount');
+                
+                const result = await deleteBlockedAccount({ 
+                    email: emailAddr, 
+                    adminPassword,
+                    deleteFirestore 
+                });
+                
+                console.log('✅ Deletion Result:', result.data);
+                console.log('   Deleted from Auth:', result.data.deletedFromAuth ? 'Yes' : 'No');
+                console.log('   Deleted from Firestore:', result.data.deletedFromFirestore ? 'Yes' : 'No');
+                console.log('💡', result.data.message);
+                console.log('⏰ Wait 1-2 minutes for Firebase to propagate, then try creating the account again');
+                
+                return result.data;
+            } catch (error) {
+                console.error('❌ Error deleting blocked account:', error);
+                console.error('   Error code:', error.code);
+                console.error('   Error message:', error.message);
+            }
+        };
+        
         // Development commands available via window object
     }, [email]);
 

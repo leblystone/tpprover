@@ -10,7 +10,7 @@ const SHIPPO_API_BASE = 'https://api.goshippo.com/v1';
  */
 exports.getTrackingInfo = onCall(
   {
-    cors: true,
+    cors: true, // Firebase Functions v2 handles CORS automatically
     secrets: ['SHIPPO_API_KEY']
   },
   async (request) => {
