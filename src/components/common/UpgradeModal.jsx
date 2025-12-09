@@ -15,9 +15,9 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
   const founderOffer = useFounderOffer();
 
   const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
-  const monthlyPlan = getPlanPricing('monthly', discount);
-  const annualPlan = getPlanPricing('annual', discount);
-  const lifetimePlan = getPlanPricing('lifetime', discount);
+  const monthlyPlan = getPlanPricing('monthly', discount) || { price: 0, founderPrice: 0, savings: 0 };
+  const annualPlan = getPlanPricing('annual', discount) || { price: 0, founderPrice: 0, savings: 0 };
+  const lifetimePlan = getPlanPricing('lifetime', discount) || { price: 0, founderPrice: 0, savings: 0 };
 
   const discountActive = discount > 0;
   const monthlyBase = formatCurrency(monthlyPlan.price);

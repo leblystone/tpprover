@@ -16,16 +16,16 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
   const [showGiftModal, setShowGiftModal] = React.useState(false);
 
   const effectiveDiscount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
-  const monthlyPlan = getPlanPricing('monthly', effectiveDiscount);
-  const annualPlan = getPlanPricing('annual', effectiveDiscount);
-  const lifetimePlan = getPlanPricing('lifetime', effectiveDiscount);
+  const monthlyPlan = getPlanPricing('monthly', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
+  const annualPlan = getPlanPricing('annual', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
+  const lifetimePlan = getPlanPricing('lifetime', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
 
   const founderStatusMessage = React.useMemo(() => {
     if (founderOffer.loading) {
       return 'Checking Founder spot availability…';
     }
     if (founderOffer.isFounder) {
-      return `You’re locked in${founderOffer.founderNumber ? ` as Founder #${founderOffer.founderNumber}` : ''}. Your research rate never increases.`;
+      return `You're locked in${founderOffer.founderNumber ? ` as Founder #${founderOffer.founderNumber}` : ''}. Your research rate never increases.`;
     }
     if (founderOffer.founderActive && (founderOffer.remaining ?? 0) > 0) {
       const spots = Math.max(0, founderOffer.remaining);

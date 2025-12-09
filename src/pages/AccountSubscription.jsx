@@ -44,6 +44,7 @@ export default function AccountSubscription() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCheckoutProcessing, setIsCheckoutProcessing] = useState(false)
   const [error, setError] = useState(null)
+  const [pricingError, setPricingError] = useState(false)
   
   // Prevent crashes if firebaseUser is not available yet
   useEffect(() => {
@@ -55,21 +56,45 @@ export default function AccountSubscription() {
 
   const founderOffer = useFounderOffer()
   const planPricing = useMemo(() => {
-    const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0
-    const buildPlan = (key) => {
-      const info = getPlanPricing(key, discount)
-      return {
-        ...info,
-        base: formatCurrency(info.price),
-        founder: formatCurrency(info.founderPrice),
-        savings: formatCurrency(Math.max(info.savings, 0))
+    try {
+      const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0
+      const buildPlan = (key) => {
+        const info = getPlanPricing(key, discount)
+        // Guard against null return from getPlanPricing
+        if (!info) {
+          console.warn(`⚠️ Failed to get pricing for plan: ${key}`)
+          setPricingError(true)
+          return {
+            key,
+            price: 0,
+            founderPrice: 0,
+            base: formatCurrency(0),
+            founder: formatCurrency(0),
+            savings: formatCurrency(0)
+          }
+        }
+        return {
+          ...info,
+          base: formatCurrency(info.price),
+          founder: formatCurrency(info.founderPrice),
+          savings: formatCurrency(Math.max(info.savings, 0))
+        }
       }
-    }
-    return {
-      discount,
-      monthly: buildPlan('monthly'),
-      annual: buildPlan('annual'),
-      lifetime: buildPlan('lifetime')
+      return {
+        discount,
+        monthly: buildPlan('monthly'),
+        annual: buildPlan('annual'),
+        lifetime: buildPlan('lifetime')
+      }
+    } catch (error) {
+      console.error('❌ Error building pricing:', error)
+      setPricingError(true)
+      return {
+        discount: 0,
+        monthly: { key: 'monthly', price: 0, founderPrice: 0, base: formatCurrency(0), founder: formatCurrency(0), savings: formatCurrency(0) },
+        annual: { key: 'annual', price: 0, founderPrice: 0, base: formatCurrency(0), founder: formatCurrency(0), savings: formatCurrency(0) },
+        lifetime: { key: 'lifetime', price: 0, founderPrice: 0, base: formatCurrency(0), founder: formatCurrency(0), savings: formatCurrency(0) }
+      }
     }
   }, [founderOffer.founderActive, founderOffer.discountPercent])
 
@@ -611,6 +636,22 @@ export default function AccountSubscription() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pricing Error Message */}
+      {pricingError && (
+        <div 
+          className="p-4 rounded-lg border-2"
+          style={{ 
+            backgroundColor: '#FEF2F2', 
+            borderColor: '#FCA5A5',
+            marginBottom: '1rem'
+          }}
+        >
+          <p className="text-sm font-medium" style={{ color: '#991B1B' }}>
+            ⚠️ Pricing information temporarily unavailable. Please refresh the page or try again in a moment.
+          </p>
         </div>
       )}
 

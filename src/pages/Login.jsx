@@ -1263,7 +1263,21 @@ export default function Login() {
 
     return (
         <>
-            <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: theme.background }}>
+            <div 
+                className="min-h-screen flex flex-col items-center justify-center" 
+                style={{ 
+                    backgroundColor: theme.background,
+                    // Top padding: base padding + safe area (for status bar/notch)
+                    paddingTop: 'max(1rem, calc(1rem + var(--safe-area-top, env(safe-area-inset-top, 0px))))',
+                    // Bottom padding: base padding + safe area (for bottom navigation/home indicator)
+                    // Minimum 1rem, but adds extra space when browser UI is present
+                    paddingBottom: 'max(1rem, calc(1rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))',
+                    paddingLeft: '1rem',
+                    paddingRight: '1rem',
+                    // Adjust min-height to account for safe areas so content doesn't get cut off
+                    minHeight: 'calc(100vh - var(--safe-area-top, env(safe-area-inset-top, 0px)) - var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))'
+                }}
+            >
                 <div className="w-full max-w-md">
                     <div className="text-center mb-8">
                         <img 

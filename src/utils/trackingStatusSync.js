@@ -5,6 +5,9 @@
 
 import { getCachedTrackingInfo, detectCarrier } from '../services/tracking';
 
+// Track if we've already warned about tracking service not being configured
+let hasWarnedAboutTrackingService = false;
+
 /**
  * Sync order status from tracking data
  * Only updates if tracking shows a different status (and only uses real tracking data)
@@ -47,7 +50,27 @@ export async function syncOrderStatusFromTracking(order) {
     
     // Only proceed if we have valid tracking data (no mock data - use real API only)
     if (!trackingInfo || trackingInfo.hasError) {
-      console.log(`❌ Order ${order.id}: No valid tracking info (error: ${trackingInfo?.error || 'unknown'})`);
+      // Check if this is a "service not configured" error - only warn once
+      const isServiceNotConfigured = trackingInfo?.error?.includes('Tracking service not configured') || 
+                                     trackingInfo?.error?.includes('not configured');
+      
+      if (isServiceNotConfigured && !hasWarnedAboutTrackingService) {
+        console.warn('⚠️ Tracking service not configured. To enable automatic order status updates:');
+        console.warn('   1. Get a Shippo API key from https://goshippo.com');
+        console.warn('   2. Set it in Firebase Functions: firebase functions:secrets:set SHIPPO_API_KEY');
+        console.warn('   3. Redeploy functions: firebase deploy --only functions');
+        hasWarnedAboutTrackingService = true;
+      }
+      
+      // Silently skip orders when service isn't configured (we already warned once)
+      if (isServiceNotConfigured) {
+        return null;
+      }
+      
+      // For other errors, log them (but less verbosely)
+      if (!isServiceNotConfigured) {
+        console.log(`⚠️ Order ${order.id}: Tracking unavailable (${trackingInfo?.error || 'unknown error'})`);
+      }
       return null;
     }
 

@@ -1,4 +1,5 @@
 /* iOS Safe Area Support for all insets (notch, home indicator, etc.) */
+/* Also handles Android browser UI (status bar, bottom navigation) via visualViewport API */
 :root {
     --sat: env(safe-area-inset-top);
     --sar: env(safe-area-inset-right);
@@ -8,6 +9,8 @@
     --android-safe-area-right: 0px;
     --android-safe-area-bottom: 0px;
     --android-safe-area-left: 0px;
+    /* Use the larger of iOS safe area or Android detected safe area */
+    /* Android safe areas are calculated by safeArea.js using visualViewport API */
     --safe-area-top: max(var(--sat, 0px), var(--android-safe-area-top, 0px));
     --safe-area-right: max(var(--sar, 0px), var(--android-safe-area-right, 0px));
     --safe-area-bottom: max(var(--sab, 0px), var(--android-safe-area-bottom, 0px));
