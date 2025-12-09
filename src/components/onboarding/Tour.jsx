@@ -6,7 +6,7 @@ import { isNative } from '../../utils/platform';
 const TOUR_STEPS = [
     {
         target: 'body',
-        content: "The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around! Happy researching! 🧪\n\nLet's take a quick tour of your research management system. We'll visit each main page to show you what it does.",
+        content: "The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 10 days and take a look around! Happy researching! 🧪\n\nLet's take a quick tour of your research management system. We'll visit each main page to show you what it does.",
         title: 'Welcome!',
         placement: 'center',
         path: '/app/dashboard',

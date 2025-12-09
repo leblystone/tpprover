@@ -135,11 +135,11 @@ management platform, designed to help you
 organize protocols, track progress, and 
 optimize your research journey.
 
-┌─────────────────────────────────────┐
-│ 🎁 Your 7-Day Free Trial is Active! │
-│ Full access to all features.        │
-│ No credit card required.            │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│ 🎁 Your 10-Day Free Trial is Active! │
+│ Full access to all features.         │
+│ No credit card required.             │
+└──────────────────────────────────────┘
 
 What you can do:
 
