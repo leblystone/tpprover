@@ -27,10 +27,34 @@ const SupplementsWidget = ({
       scheduleText = schedule[0];
     }
 
+    // If specific days are selected, show them
     if (days.length > 0 && days.length < 7) {
       return `${scheduleText} (${days.join(', ')})`;
     }
-    return scheduleText;
+    // If no days selected (daily schedule), add "Daily"
+    return `${scheduleText} Daily`;
+  };
+
+  const formatDateRange = (supplement) => {
+    if (!supplement.startDate && !supplement.endDate) return null;
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const start = formatDate(supplement.startDate);
+    const end = formatDate(supplement.endDate);
+
+    if (start && end) {
+      return `${start} - ${end}`;
+    } else if (start) {
+      return start;
+    } else if (end) {
+      return end;
+    }
+    return null;
   };
 
   const getDeliveryIcon = (delivery) => {
@@ -111,28 +135,67 @@ const SupplementsWidget = ({
                 className="p-3 rounded-lg supplement-card-hover" 
                 style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}
                >
-                 <div className="flex items-start justify-between">
-                   <div className="flex items-start gap-3 flex-1">
+                 <div className="flex items-start justify-between gap-3">
+                   <div className="flex items-start gap-3 flex-1 min-w-0">
                      {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}
                     
-                    <div className="flex-1">
-                      <div className="font-medium text-sm" style={{ color: theme.text }}>
+                    <div className="flex-1 min-w-0">
+                      {/* Name */}
+                      <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>
                         {supplement.name}
                       </div>
                       
-                      <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                        {supplement.dose} {supplement.unit}
-                      </div>
-                      
-                      {showSchedule && (
-                        <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                          Schedule: {formatSchedule(supplement)}
+                      {/* Two column layout */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Left column: Dosage and Date */}
+                        <div>
+                          <div className="text-xs" style={{ color: theme.textLight }}>
+                            {supplement.dose} {supplement.unit}
+                          </div>
+                          {formatDateRange(supplement) && (
+                            <div className="text-xs mt-0.5" style={{ color: theme.textLight, opacity: 0.8 }}>
+                              {formatDateRange(supplement)}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Right column: AM/PM chips and schedule */}
+                        {showSchedule && (
+                          <div>
+                            {/* AM/PM chips */}
+                            <div className="flex gap-1 mb-0.5">
+                              {Array.isArray(supplement.schedule) && supplement.schedule.includes('AM') && (
+                                <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
+                                  backgroundColor: theme.primary, 
+                                  color: '#ffffff',
+                                  fontSize: '10px'
+                                }}>
+                                  AM
+                                </div>
+                              )}
+                              {Array.isArray(supplement.schedule) && supplement.schedule.includes('PM') && (
+                                <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
+                                  backgroundColor: theme.primary, 
+                                  color: '#ffffff',
+                                  fontSize: '10px'
+                                }}>
+                                  PM
+                                </div>
+                              )}
+                            </div>
+                            {/* Schedule text (Daily or specific days) */}
+                            <div className="text-xs" style={{ color: theme.textLight, fontSize: '10px' }}>
+                              {supplement.days && supplement.days.length > 0 && supplement.days.length < 7 
+                                ? supplement.days.join(', ')
+                                : 'Daily'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1 ml-2">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <ModernTooltip text="Edit" position="top">
                       <button
                         onClick={() => onEditSupplement?.(supplement)}

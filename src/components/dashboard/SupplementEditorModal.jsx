@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
 import { generateId } from '../../utils/string';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
-    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
+    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
 
     useEffect(() => {
         if (supplement) {
@@ -14,15 +15,26 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 days: [],
                 ...supplement,
                 // Ensure delivery is never undefined
-                delivery: supplement.delivery || 'oral'
+                delivery: supplement.delivery || 'oral',
+                startDate: supplement.startDate || '',
+                endDate: supplement.endDate || ''
             });
         } else {
-            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
+            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
         }
     }, [supplement, open]);
 
     const handleSave = async () => {
+        // Validate that if dates are used, at least one should be filled
+        // If neither is filled, don't include them in the save
         const dataToSave = { ...form, id: supplement?.id || generateId() };
+        
+        // If both dates are empty, remove them from the data
+        if (!form.startDate && !form.endDate) {
+            delete dataToSave.startDate;
+            delete dataToSave.endDate;
+        }
+        
         await onSave(dataToSave);
         // onSave will handle closing the modal
     };
@@ -136,6 +148,28 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
+                </div>
+
+                {/* Start Date and End Date on same line */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5" style={{ color: theme.text }}>Start Date</label>
+                        <GlassmorphismDatePicker
+                            value={form.startDate}
+                            onChange={(dateString) => setForm({ ...form, startDate: dateString })}
+                            theme={theme}
+                            placeholder="Select start date"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5" style={{ color: theme.text }}>End Date</label>
+                        <GlassmorphismDatePicker
+                            value={form.endDate}
+                            onChange={(dateString) => setForm({ ...form, endDate: dateString })}
+                            theme={theme}
+                            placeholder="Select end date"
+                        />
+                    </div>
                 </div>
                 
                 {/* SCHEDULE Section Header */}

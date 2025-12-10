@@ -194,10 +194,12 @@ export default function Dashboard() {
       scheduleText = schedule[0];
     }
 
+    // If specific days are selected, show them
     if (days.length > 0 && days.length < 7) {
       return `${scheduleText} (${days.join(', ')})`;
     }
-    return scheduleText;
+    // If no days selected (daily schedule), add "Daily"
+    return `${scheduleText} Daily`;
   };
 
   const getDeliveryIcon = (delivery) => {
@@ -207,6 +209,28 @@ export default function Dashboard() {
         case 'pill':
         default: return <Pill size={16} className="text-gray-500" />;
     }
+  };
+
+  const formatDateRange = (supplement) => {
+    if (!supplement.startDate && !supplement.endDate) return null;
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const start = formatDate(supplement.startDate);
+    const end = formatDate(supplement.endDate);
+
+    if (start && end) {
+      return `${start} - ${end}`;
+    } else if (start) {
+      return start;
+    } else if (end) {
+      return end;
+    }
+    return null;
   };
 
   const [calendarBump, setCalendarBump] = useState(0);
@@ -667,15 +691,61 @@ export default function Dashboard() {
                   <ul className="space-y-1.5">
                   {supplements.slice(0, 5).map(v => (
                       <li key={v.id} className="flex items-center justify-between p-1.5 rounded" style={{ backgroundColor: theme.secondary }}>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           {getDeliveryIcon(v.delivery)}
-                          <div>
-                            <div className="font-medium text-xs">{v.name}</div>
-                            <div className="text-xs" style={{ color: theme.textLight }}>{v.dose}</div>
+                          <div className="flex-1 min-w-0">
+                            {/* Name */}
+                            <div className="font-medium text-xs mb-1">{v.name}</div>
+                            
+                            {/* Two column layout */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* Left column: Dosage and Date */}
+                              <div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>
+                                  {v.dose}
+                                </div>
+                                {formatDateRange(v) && (
+                                  <div className="text-xs mt-0.5" style={{ color: theme.textLight, opacity: 0.8 }}>
+                                    {formatDateRange(v)}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Right column: AM/PM chips and schedule */}
+                              <div>
+                                {/* AM/PM chips */}
+                                <div className="flex gap-1 mb-0.5">
+                                  {Array.isArray(v.schedule) && v.schedule.includes('AM') && (
+                                    <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
+                                      backgroundColor: theme.primary, 
+                                      color: '#ffffff',
+                                      fontSize: '10px'
+                                    }}>
+                                      AM
+                                    </div>
+                                  )}
+                                  {Array.isArray(v.schedule) && v.schedule.includes('PM') && (
+                                    <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
+                                      backgroundColor: theme.primary, 
+                                      color: '#ffffff',
+                                      fontSize: '10px'
+                                    }}>
+                                      PM
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Schedule text (Daily or specific days) */}
+                                <div className="text-xs" style={{ color: theme.textLight, fontSize: '10px' }}>
+                                  {v.days && v.days.length > 0 && v.days.length < 7 
+                                    ? v.days.join(', ')
+                                    : 'Daily'}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                       </div>
                       <button 
-                        className="p-0.5 rounded hover:opacity-80" 
+                        className="p-0.5 rounded hover:opacity-80 flex-shrink-0" 
                         onClick={() => { 
                           if (isReadOnly) {
                             setShowUpgradeModal(true);
@@ -1313,8 +1383,13 @@ export default function Dashboard() {
                 return;
             }
             
-            // Record deletion in persistent tracking to prevent restoration
-            recordDeletion('scheduledBuys', String(buyId));
+            // Record deletion with item snapshot for restore functionality
+            const buyToDelete = scheduledBuys.find(b => b.id === buyId);
+            if (buyToDelete) {
+                recordDeletion('scheduledBuys', String(buyId), buyToDelete);
+            } else {
+                recordDeletion('scheduledBuys', String(buyId));
+            }
             
             setScheduledBuys(prev => {
                 const updated = prev.filter(b => b.id !== buyId);
