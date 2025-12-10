@@ -1115,6 +1115,10 @@ export default function CustomizableDashboard() {
             const metricToDelete = editingMetric;
             console.log('🗑️ Deleting metric:', metricToDelete.name || 'Unknown');
             
+            // Record deletion with item snapshot for restore functionality
+            const { recordDeletion } = require('../utils/deletionTracking');
+            recordDeletion('metrics', editingMetric.id, metricToDelete);
+            
             // Remove from local state
             const updatedMetrics = metrics.filter(m => m.id !== editingMetric.id);
             setMetrics(updatedMetrics);
@@ -1231,14 +1235,14 @@ export default function CustomizableDashboard() {
         theme={theme}
         buy={null}
         onSave={(buy) => {
-          const timestamp = new Date().toISOString();
+          // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp during sync
           const newBuy = { 
             ...buy, 
             id: buy.id || generateId(),
             name: buy.item, // Map item to name for display
             peptideName: buy.item, // Also set peptideName for backward compatibility
-            createdAt: buy.createdAt || timestamp,
-            updatedAt: timestamp
+            createdAt: buy.createdAt || new Date().toISOString() // Keep createdAt for initial tracking
+            // updatedAt will be set by Firestore serverTimestamp during sync
           };
           
           // Update state
@@ -1246,8 +1250,8 @@ export default function CustomizableDashboard() {
             const isEdit = buy.id && prev.some(b => b.id === buy.id);
             let updated;
             if (isEdit) {
-              // Update existing buy
-              updated = prev.map(b => b.id === buy.id ? { ...b, ...newBuy, updatedAt: new Date().toISOString() } : b);
+              // Update existing buy - no client-side timestamp
+              updated = prev.map(b => b.id === buy.id ? { ...b, ...newBuy } : b);
             } else {
               // Add new buy
               updated = [...prev, newBuy];

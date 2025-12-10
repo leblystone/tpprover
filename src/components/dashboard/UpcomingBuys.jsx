@@ -157,7 +157,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       
       if (itemIndex !== -1) {
         // Update existing item - spread editedData to override old values
-        const updatedTimestamp = new Date().toISOString();
+        // Note: updatedAt will be set by Firestore serverTimestamp during sync
         const oldItem = scheduledBuys[itemIndex];
         
         // Build updated item: old item base + all editedData fields + metadata
@@ -165,7 +165,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
           ...oldItem,           // Start with old item
           ...editedData,        // Override with ALL edited fields
           id: itemId,           // Ensure ID preserved
-          updatedAt: updatedTimestamp,  // Add timestamp
+          // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp
           // Backward compatibility fields (update these too)
           name: editedData.item || oldItem.name || oldItem.item,
           peptideName: editedData.item || oldItem.peptideName || oldItem.item,
@@ -287,7 +287,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
             ...item,
             ...editedData,
             id: item.id,
-            updatedAt: new Date().toISOString(),
+            // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp
             name: editedData.item || item.name || item.item,
             peptideName: editedData.item || item.peptideName || item.item,
             date: editedData.openDate || item.date || item.openDate,
@@ -381,7 +381,13 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       justDeletedIdsRef.current.add(String(itemId));
       
       // CRITICAL: Record deletion in persistent tracking to prevent restoration across refreshes/syncs
-      recordDeletion('scheduledBuys', String(itemId));
+      // Find the item before deletion to save snapshot (use original upcomingBuys before filter)
+      const itemToDelete = upcomingBuys.find(b => String(b.id) === String(itemId));
+      if (itemToDelete) {
+        recordDeletion('scheduledBuys', String(itemId), itemToDelete);
+      } else {
+        recordDeletion('scheduledBuys', String(itemId));
+      }
       console.log('📝 Recorded deletion in persistent tracking for scheduledBuys:', itemId);
       
       const finalVerify = JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]');

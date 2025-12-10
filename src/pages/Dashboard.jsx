@@ -1302,12 +1302,12 @@ export default function Dashboard() {
                 return;
             }
             
-            const timestamp = new Date().toISOString();
+            // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp during sync
             const newBuy = { 
                 ...buy, 
                 id: buy.id || generateId(), 
-                createdAt: buy.createdAt || timestamp, 
-                updatedAt: timestamp,
+                createdAt: buy.createdAt || new Date().toISOString(), // Keep createdAt for initial tracking
+                // updatedAt will be set by Firestore serverTimestamp during sync
                 name: buy.item,
                 peptideName: buy.item
             };

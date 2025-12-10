@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
 
@@ -50,6 +50,7 @@ function deepCleanData(data) {
 
 /**
  * Save user data to cloud storage
+ * Uses Firestore serverTimestamp() for accurate cross-device sync
  */
 export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA) {
   try {
@@ -59,10 +60,11 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
     const cleanData = deepCleanData(data);
     
     // Final validation - ensure no undefined values remain
+    // Use serverTimestamp() for accurate cross-device timestamp
     const finalData = {
       ...cleanData,
       userId,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: serverTimestamp(), // ✅ Server-side timestamp
       version: '1.0'
     };
     
@@ -103,13 +105,16 @@ export async function loadUserData(userId, collection = COLLECTIONS.USER_DATA) {
 
 /**
  * Helper: Add updatedAt timestamp to items if missing
+ * Uses serverTimestamp() for new items to ensure accurate cross-device sync
+ * Existing timestamps are preserved (already synced from server)
  */
 function ensureTimestamps(items) {
   if (!Array.isArray(items)) return items;
-  const now = new Date().toISOString();
   return items.map(item => ({
     ...item,
-    updatedAt: item.updatedAt || now
+    // Keep existing timestamp if present (already synced from server)
+    // New items will get serverTimestamp when saved to Firestore
+    updatedAt: item.updatedAt || serverTimestamp()
   }));
 }
 
@@ -180,14 +185,30 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       itemMap.set(localItem.id, localItem);
     } else {
       // Item exists on both - compare timestamps
-      const localTime = new Date(localItem.updatedAt || 0).getTime();
-      const serverTime = new Date(serverItem.updatedAt || 0).getTime();
+      // Handle both ISO strings (from client) and Firestore Timestamps (from server)
+      const getTimestamp = (item) => {
+        if (!item.updatedAt) return 0;
+        // If it's a Firestore Timestamp object, convert to milliseconds
+        if (item.updatedAt.toMillis) {
+          return item.updatedAt.toMillis();
+        }
+        // If it's an ISO string or Date, convert normally
+        return new Date(item.updatedAt).getTime();
+      };
+      
+      const localTime = getTimestamp(localItem);
+      const serverTime = getTimestamp(serverItem);
       
       if (localTime > serverTime) {
         // Local is newer - use it
         itemMap.set(localItem.id, localItem);
+      } else if (serverTime > localTime) {
+        // Server is newer - use it
+        itemMap.set(localItem.id, serverItem);
+      } else {
+        // Same timestamp or both missing - prefer local (benefit of doubt)
+        itemMap.set(localItem.id, localItem);
       }
-      // Otherwise keep server version (it's newer or same)
     }
   });
   
