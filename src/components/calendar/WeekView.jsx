@@ -134,6 +134,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     const dayNotes = entries[dayKey]
     const dayScheduled = scheduled[dayKey]
     
+    // Get protocol notes for this date
+    const protocolNotes = getNotesForDate(dayKey)
+    
     // Calculate actual task completion status
     let totalTasks = 0;
     let completedTasks = 0;
@@ -358,6 +361,47 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 {typeof dayNotes === 'string' ? dayNotes : 
                  typeof dayNotes === 'object' && dayNotes.text ? dayNotes.text : 
                  String(dayNotes)}
+              </div>
+            )}
+            
+            {/* Protocol Notes Chips */}
+            {protocolNotes && protocolNotes.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {protocolNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="flex items-center gap-1.5 p-1.5 rounded text-xs cursor-pointer hover:opacity-90 transition-all"
+                    style={{
+                      backgroundColor: note.type === 'follow_up' 
+                        ? (theme.isDark ? '#3c4e3a' : '#e6f7f0')
+                        : (theme.isDark ? '#374151' : '#f3f4f6'),
+                      border: `1px solid ${note.type === 'follow_up' ? theme.primary : theme.border}`,
+                      color: theme.text
+                    }}
+                    title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Could open a modal to view full note, or just show in a tooltip
+                      window.dispatchEvent(new CustomEvent('tpp:toast', {
+                        detail: {
+                          message: `${note.protocolName || 'Protocol'}: ${note.content || 'Note'}`,
+                          type: 'info',
+                          duration: 5000
+                        }
+                      }));
+                    }}
+                  >
+                    <FileText size={12} style={{ color: note.type === 'follow_up' ? theme.primary : theme.textLight }} />
+                    <span className="flex-1 truncate font-medium" style={{ color: note.type === 'follow_up' ? theme.primary : theme.text }}>
+                      {note.protocolName ? (note.protocolName.length > 15 ? note.protocolName.substring(0, 15) + '...' : note.protocolName) : 'Protocol'}
+                    </span>
+                    {note.type === 'follow_up' && (
+                      <span className="px-1 rounded text-[10px] font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                        FU
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

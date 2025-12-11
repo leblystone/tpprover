@@ -265,12 +265,13 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 setShowDeleteConfirm(false);
                 // onSave will handle closing the modal
             }}
-            title=""
+            title="Delete Supplement?"
             message=""
             confirmText="Delete"
             cancelText="Cancel"
             type="delete"
             theme={theme}
+            hideIcon={true}
         />
     </>
     );

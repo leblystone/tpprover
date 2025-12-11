@@ -158,12 +158,13 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                 setShowDeleteConfirm(false);
                 onClose();
             }}
-            title=""
+            title="Delete Supplement?"
             message=""
             confirmText="Delete"
             cancelText="Cancel"
             type="delete"
             theme={theme}
+            hideIcon={true}
         />
     </>
     );

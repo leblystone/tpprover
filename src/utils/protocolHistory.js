@@ -233,6 +233,10 @@ export function migrateProtocolHistoryEntries() {
                 migratedEntry.vialsAddedDuring = [];
             }
             
+            if (!Array.isArray(migratedEntry.notes)) {
+                migratedEntry.notes = [];
+            }
+            
             migratedCount++;
             updatedEntries = true;
             

@@ -252,21 +252,23 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                                                                     <Clock size={14} />
                                                                     {entry.startDate} → {entry.endDate}
                                                                 </span>
-                                                                {entry.durationDays > 0 && (
-                                                                    <span>
-                                                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                                                    </span>
-                                                                )}
                                                             </div>
                                                         </div>
                                                         
-                                                        {/* Arrow indicator */}
-                                                        <div className="flex-shrink-0 opacity-50">
-                                                            <ChevronDown 
-                                                                size={20} 
-                                                                className="transform rotate-[-90deg]"
-                                                                style={{ color: theme.textLight }}
-                                                            />
+                                                        {/* Duration and arrow indicator - upper right */}
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            {entry.durationDays > 0 && (
+                                                                <span className="text-sm font-medium" style={{ color: theme.textLight }}>
+                                                                    {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                                                </span>
+                                                            )}
+                                                            <div className="opacity-50">
+                                                                <ChevronDown 
+                                                                    size={20} 
+                                                                    className="transform rotate-[-90deg]"
+                                                                    style={{ color: theme.textLight }}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     

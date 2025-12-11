@@ -99,6 +99,25 @@ html, body {
   .dashboard-grid {
     grid-template-columns: 1fr !important;
   }
+  
+  /* Force all widgets to full width on mobile, regardless of col-span */
+  .dashboard-grid > * {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure widget containers are full width on mobile */
+  .dashboard-widget {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure content cards inside widgets are full width */
+  .dashboard-widget .content-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* Dashboard grid fixes for all screen sizes */

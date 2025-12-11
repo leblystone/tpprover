@@ -11,7 +11,8 @@ export default function ConfirmationModal({
     confirmText = "Confirm", 
     cancelText = "Cancel",
     type = "warning",
-    theme 
+    theme,
+    hideIcon = false
 }) {
     const getIconColor = () => {
         switch (type) {
@@ -61,8 +62,8 @@ export default function ConfirmationModal({
             case 'danger':
             case 'delete':
                 return {
-                    backgroundColor: theme?.error || theme?.warning || '#DC2626',
-                    color: theme?.textOnPrimary || '#FFFFFF'
+                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                    color: '#FFFFFF'
                 };
             case 'warning':
             default:
@@ -77,37 +78,33 @@ export default function ConfirmationModal({
         <Modal 
             open={open} 
             onClose={onClose} 
-            title="" 
+            title={title || ""} 
             theme={theme}
             variant="modern"
             maxWidth="max-w-md"
         >
             <div className="text-center py-6 px-4">
                 {/* Icon */}
-                <div className="mx-auto mb-4">
-                    <div 
-                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                        style={{ backgroundColor: getIconBg() }}
-                    >
-                        {getIcon()}
+                {!hideIcon && (
+                    <div className="mx-auto mb-4">
+                        <div 
+                            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                            style={{ backgroundColor: getIconBg() }}
+                        >
+                            {getIcon()}
+                        </div>
                     </div>
-                </div>
-
-                {/* Title */}
-                <h3 
-                    className="text-xl font-bold mb-3"
-                    style={{ color: theme?.primaryDark || theme?.text || '#344E41' }}
-                >
-                    {title}
-                </h3>
+                )}
 
                 {/* Message */}
-                <p 
-                    className="text-base leading-relaxed mb-6"
-                    style={{ color: theme?.text || theme?.textLight || '#374151' }}
-                >
-                    {message}
-                </p>
+                {message && (
+                    <p 
+                        className="text-base leading-relaxed mb-6"
+                        style={{ color: theme?.text || theme?.textLight || '#374151' }}
+                    >
+                        {message}
+                    </p>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 justify-center">
@@ -151,6 +148,16 @@ export default function ConfirmationModal({
                             e.stopPropagation();
                             onConfirm();
                             onClose();
+                        }}
+                        onMouseEnter={(e) => {
+                            if (type === 'delete' || type === 'danger') {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (type === 'delete' || type === 'danger') {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                            }
                         }}
                         className="px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation"
                         style={{
