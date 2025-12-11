@@ -141,20 +141,11 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'lead_time',
-    type: WIDGET_TYPES.LEAD_TIME,
-    title: 'Average Delivery',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 2, y: 2 },
-    enabled: true,
-    settings: {}
-  },
-  {
     id: 'notes',
     type: WIDGET_TYPES.NOTES,
     title: 'Research Notes',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 2 },
+    position: { x: 2, y: 2 },
     enabled: true,
     settings: {}
   },
@@ -163,21 +154,10 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.WATER_TRACKER,
     title: 'Hydration',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 4, y: 2 },
+    position: { x: 3, y: 2 },
     enabled: true,
     settings: {
       defaultGoal: 8
-    }
-  },
-  {
-    id: 'badges',
-    type: WIDGET_TYPES.BADGES,
-    title: 'Your Badges',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 5, y: 2 },
-    enabled: true,
-    settings: {
-      showProgress: true
     }
   },
   // Row 3
@@ -485,25 +465,30 @@ export const loadDashboardLayout = () => {
       // Merge with defaults for any missing widgets
       const merged = mergeDashboardLayouts(DEFAULT_WIDGETS, cleanedParsed);
       
+      // Remove badges and lead_time widgets (features not implemented yet)
+      const filtered = merged.filter(w => 
+        w.type !== WIDGET_TYPES.BADGES && w.type !== WIDGET_TYPES.LEAD_TIME
+      );
+      
       // Ensure wishlist widget is present (for users upgrading to version 3.4+)
-      const hasWishlist = merged.some(w => w.id === 'wishlist' || w.type === WIDGET_TYPES.WISHLIST);
+      const hasWishlist = filtered.some(w => w.id === 'wishlist' || w.type === WIDGET_TYPES.WISHLIST);
       if (!hasWishlist) {
         const wishlistWidget = DEFAULT_WIDGETS.find(w => w.id === 'wishlist');
         if (wishlistWidget) {
-          merged.push(wishlistWidget);
+          filtered.push(wishlistWidget);
         }
       }
       
       // Ensure active protocols notes widget is present (for users upgrading to version 3.5+)
-      const hasActiveProtocolsNotes = merged.some(w => w.id === 'active_protocols_notes' || w.type === WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES);
+      const hasActiveProtocolsNotes = filtered.some(w => w.id === 'active_protocols_notes' || w.type === WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES);
       if (!hasActiveProtocolsNotes) {
         const activeProtocolsNotesWidget = DEFAULT_WIDGETS.find(w => w.id === 'active_protocols_notes');
         if (activeProtocolsNotesWidget) {
-          merged.push(activeProtocolsNotesWidget);
+          filtered.push(activeProtocolsNotesWidget);
         }
       }
       
-      return compactGrid(merged);
+      return compactGrid(filtered);
     }
   } catch (error) {
     console.warn('Failed to load dashboard layout:', error);

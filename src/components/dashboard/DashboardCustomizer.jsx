@@ -96,6 +96,14 @@ const DashboardCustomizer = ({
                 if (type === WIDGET_TYPES.UPCOMING_BUYS && !groupBuysEnabled) {
                   return false;
                 }
+                // Hide badges widget - feature not implemented yet
+                if (type === WIDGET_TYPES.BADGES) {
+                  return false;
+                }
+                // Hide average delivery widget
+                if (type === WIDGET_TYPES.LEAD_TIME) {
+                  return false;
+                }
                 return true;
               })
               .map(([type, meta]) => {
