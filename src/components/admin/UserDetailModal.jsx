@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren } from 'lucide-react';
 import { createAdminMessage, createSupportTicket } from '../../services/firebase';
 
 export default function UserDetailModal({
@@ -921,9 +921,9 @@ function SyncFromStripeButton({ user, theme }) {
     <div className="p-4 rounded-lg flex flex-col gap-3"
       style={{ backgroundColor: theme.warning + '10', border: `2px solid ${theme.warning}30` }}>
       <div className="flex items-start gap-2">
-        <AlertTriangle size={16} style={{ color: theme.warning }} className="mt-0.5" />
+        <Siren size={16} style={{ color: theme.warning }} className="mt-0.5" />
         <div className="flex-1">
-          <p className="text-sm font-semibold" style={{ color: theme.warning }}>⚠️ EMPTY SUBSCRIPTION DATA</p>
+          <p className="text-sm font-semibold" style={{ color: theme.warning }}>EMPTY SUBSCRIPTION DATA</p>
           <p className="text-xs mt-1" style={{ color: theme.textLight }}>
             This user has no subscription data in Firestore. If they have a paid subscription in Stripe, click below to sync it.
           </p>
@@ -1099,9 +1099,9 @@ function SubscriptionDebugSection({ user, theme }) {
             {subscription.status === 'active' && subscription.interval === 'trial' && (
               <div className="p-3 rounded-lg flex items-start gap-2"
                 style={{ backgroundColor: theme.error + '10', border: `1px solid ${theme.error}30` }}>
-                <AlertTriangle size={14} style={{ color: theme.error }} className="mt-0.5" />
+                <Siren size={14} style={{ color: theme.error }} className="mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold" style={{ color: theme.error }}>⚠️ ISSUE DETECTED</p>
+                  <p className="text-xs font-semibold" style={{ color: theme.error }}>ISSUE DETECTED</p>
                   <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
                     User has status='active' but interval='trial'. This should be status='trialing' for trials or interval='month'/'year' for paid subscriptions.
                   </p>

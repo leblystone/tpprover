@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, Siren
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -2568,8 +2568,9 @@ function Admin() {
                   {/* Warning for users without device info */}
                   {analytics.deviceBreakdown.usersWithoutDeviceInfo > 0 && (
                     <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.warning + '15', borderColor: theme.warning, border: '1px solid' }}>
-                      <p className="text-xs font-semibold mb-1" style={{ color: theme.warning }}>
-                        ⚠️ Limited Device Data
+                      <p className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: theme.warning }}>
+                        <Siren size={14} style={{ color: theme.warning }} />
+                        Limited Device Data
                       </p>
                       <p className="text-xs" style={{ color: theme.text }}>
                         {analytics.deviceBreakdown.usersWithoutDeviceInfo} of {analytics.deviceBreakdown.total} users don't have device info yet (defaulting to desktop). 
@@ -4343,8 +4344,15 @@ function LifetimeAccessAudit({ theme }) {
               <div className="text-xs" style={{ color: theme.textLight }}>Conflicts Found</div>
             </div>
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-              <div className="text-sm font-bold" style={{ color: theme.text }}>
-                {auditResults.summary.consistencyCheck.allThreeCollectionsMatch ? '✓ Synced' : '⚠️ Out of Sync'}
+              <div className="text-sm font-bold flex items-center gap-1" style={{ color: theme.text }}>
+                {auditResults.summary.consistencyCheck.allThreeCollectionsMatch ? (
+                  <>✓ Synced</>
+                ) : (
+                  <>
+                    <Siren size={14} style={{ color: theme.text }} />
+                    Out of Sync
+                  </>
+                )}
               </div>
               <div className="text-xs" style={{ color: theme.textLight }}>Collection Status</div>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
-import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info, History, Clock } from 'lucide-react';
+import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info, History, Clock, Siren } from 'lucide-react';
 
 export default function VersionManager({ theme }) {
   const { firebaseUser } = useFirebase();
@@ -373,8 +373,9 @@ export default function VersionManager({ theme }) {
             <strong>Version {config.latestVersion || '1.0.4'}:</strong> {config.releaseNotes || 'No release notes set'}
           </p>
           {config.minimumVersion && (
-            <p style={{ color: '#ef4444' }}>
-              ⚠️ Users on version {config.minimumVersion} or below will be REQUIRED to update
+            <p className="flex items-center gap-1" style={{ color: '#ef4444' }}>
+              <Siren size={16} style={{ color: '#ef4444' }} />
+              Users on version {config.minimumVersion} or below will be REQUIRED to update
             </p>
           )}
         </div>

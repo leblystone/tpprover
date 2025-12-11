@@ -9,17 +9,15 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
   // Limit items based on settings
   const limitedItems = wishlist ? wishlist.slice(0, maxItems) : [];
 
-  // If no items, show compact version
+  // If no items, show compact version matching PendingVendorsView structure
   if (!limitedItems || limitedItems.length === 0) {
     return (
-      <div className="relative h-full flex flex-col">
-        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-              Wishlist
-            </h3>
+      <div className="h-full">
+        <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+          <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
+            <span>Wishlist</span>
             <div className="flex items-center gap-2">
-              <Heart size={20} style={{ color: theme.primary }} />
+              <Heart size={18} style={{ color: theme.primary }} />
               <ModernTooltip text="Add" position="top">
                 <button
                   onClick={onAdd}
@@ -27,8 +25,8 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
                   style={{ 
                     color: '#ffffff',
                     backgroundColor: theme.primary,
-                    width: '28px',
-                    height: '28px',
+                    width: '24px',
+                    height: '24px',
                     padding: 0,
                     border: 'none',
                     boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
@@ -40,24 +38,16 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
                     e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+                  <Plus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
                 </button>
               </ModernTooltip>
             </div>
+          </h3>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-center" style={{ color: theme.textLight }}>
+              No items in wishlist.
+            </p>
           </div>
-        </div>
-        
-        <div className="flex-1 p-4 flex flex-col items-center justify-center">
-          <p className="text-sm mb-4 text-center" style={{ color: theme.textLight }}>
-            No items in wishlist
-          </p>
-          <button
-            onClick={onAdd}
-            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            <span className="text-hover">Add Item</span>
-          </button>
         </div>
         
         {/* Lockout Overlay */}
@@ -88,7 +78,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
   }
 
   return (
-    <div className="relative h-full">
+    <div className="h-full">
       <Wishlist 
         wishlist={limitedItems} 
         theme={theme} 

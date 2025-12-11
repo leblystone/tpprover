@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, CreditCard, Calendar } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, CreditCard, Calendar, Siren } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
@@ -649,8 +649,9 @@ export default function AccountSubscription() {
             marginBottom: '1rem'
           }}
         >
-          <p className="text-sm font-medium" style={{ color: '#991B1B' }}>
-            ⚠️ Pricing information temporarily unavailable. Please refresh the page or try again in a moment.
+          <p className="text-sm font-medium flex items-center gap-1" style={{ color: '#991B1B' }}>
+            <Siren size={16} style={{ color: '#991B1B' }} />
+            Pricing information temporarily unavailable. Please refresh the page or try again in a moment.
           </p>
         </div>
       )}

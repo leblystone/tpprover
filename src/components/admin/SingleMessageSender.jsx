@@ -103,14 +103,14 @@ export default function SingleMessageSender({ theme }) {
     if (useCustomEmail) {
       if (!customEmail.trim()) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '⚠️ Please enter an email address', type: 'warning' }
+          detail: { message: 'Please enter an email address', type: 'warning' }
         }));
         return;
       }
 
       if (!validateEmail(customEmail.trim())) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '⚠️ Please enter a valid email address', type: 'warning' }
+          detail: { message: 'Please enter a valid email address', type: 'warning' }
         }));
         return;
       }
@@ -120,7 +120,7 @@ export default function SingleMessageSender({ theme }) {
     } else {
       if (!selectedUser) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '⚠️ Please select a user or enter a custom email', type: 'warning' }
+          detail: { message: 'Please select a user or enter a custom email', type: 'warning' }
         }));
         return;
       }
@@ -132,7 +132,7 @@ export default function SingleMessageSender({ theme }) {
     if (messageType !== 'accountDeletion') {
       if (!emailSubject.trim() || !emailBody.trim()) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '⚠️ Please fill in subject and message body', type: 'warning' }
+          detail: { message: 'Please fill in subject and message body', type: 'warning' }
         }));
         return;
       }

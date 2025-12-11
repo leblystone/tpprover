@@ -259,7 +259,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   }
 
   return (
-    <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground || theme.white }}>
+    <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
       <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
         <span>Wishlist</span>
         <div className="flex items-center gap-2">

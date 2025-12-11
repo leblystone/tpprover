@@ -77,7 +77,7 @@ const DEFAULT_TEMPLATES = {
     ctaText: 'Verify Email Address',
     ctaLink: '%VERIFICATION_LINK%',
     highlightTitle: '',
-    highlightMessage: "⚠️ If you didn't create an account with The Pep Planner, you can safely ignore this email.",
+    highlightMessage: "If you didn't create an account with The Pep Planner, you can safely ignore this email.",
     features: [
       'Reset your password if needed',
       'Receive important account notifications',
@@ -128,7 +128,7 @@ const DEFAULT_TEMPLATES = {
     mainMessage: 'Your subscription is at risk of being suspended. Please update your payment method to continue accessing your research data and all features.',
     ctaText: 'Update Payment Method',
     ctaLink: 'https://thepepplanner.app/app/account',
-    highlightTitle: '⚠️ Immediate Action Required',
+    highlightTitle: 'Immediate Action Required',
     highlightMessage: 'Your subscription will be suspended in 3 days if payment is not updated. Don\'t lose access to your research data!',
     features: []
   },
@@ -263,7 +263,7 @@ const DEFAULT_TEMPLATES = {
     mainMessage: 'We wanted to let you know about an important update regarding The Pep Planner.',
     ctaText: 'Learn More',
     ctaLink: 'https://thepepplanner.app',
-    highlightTitle: '⚠️ Action Required',
+    highlightTitle: 'Action Required',
     highlightMessage: 'Please review this information carefully.',
     features: []
   },
@@ -275,7 +275,7 @@ const DEFAULT_TEMPLATES = {
     mainMessage: 'Your account associated with %USEREMAIL% has been permanently deleted. All your research data, protocols, and account information have been removed from our system.',
     ctaText: '',
     ctaLink: '',
-    highlightTitle: '⚠️ Important Information',
+    highlightTitle: 'Important Information',
     highlightMessage: 'This action cannot be undone. If you would like to use The Pep Planner again in the future, you will need to create a new account.',
     features: []
   },

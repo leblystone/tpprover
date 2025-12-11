@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, BookAlert, Siren } from 'lucide-react';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
     const [isNameFocused, setIsNameFocused] = useState(false);
@@ -225,7 +225,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     </label>
                     {hasNameError && (
                         <div className="mt-1 text-xs flex items-center gap-1" style={{ color: '#c87a5c' }}>
-                            <span>⚠️</span>
+                            <Siren size={14} style={{ color: '#c87a5c' }} />
                             <span>Peptide name is required</span>
                         </div>
                     )}
@@ -544,8 +544,8 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         </label>
                         {/* Kit to Vial conversion tooltip */}
                         {String(item.unit || 'vial').toLowerCase() === 'kit' && (
-                            <div className="mt-1 text-xs flex items-center gap-1" style={{ color: theme.textLight || theme.text }}>
-                                <span>💡</span>
+                            <div className="mt-1 text-xs flex items-center justify-center gap-1" style={{ color: theme.textLight || theme.text }}>
+                                <BookAlert size={14} style={{ color: theme.primary }} />
                                 <span>
                                     {(() => {
                                         const kitQuantity = Number(item.quantity) || 1;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
-import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight, FileText, Plus, Edit3, Trash2, Upload, Link } from 'lucide-react';
+import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight, FileText, Plus, Edit3, Trash2, Upload, Link, Siren } from 'lucide-react';
 import { Zap } from '../../icons/lucide-safe';
 import { generateId } from '../../utils/string';
 
@@ -1792,8 +1792,9 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                       )}
                     </div>
                     <div className="mt-3 p-2 rounded bg-yellow-100">
-                      <p className="text-xs text-yellow-800 font-medium">
-                        ⚠️ This information is for research purposes only and is NOT medical advice. 
+                      <p className="text-xs text-yellow-800 font-medium flex items-center gap-1">
+                        <Siren size={14} style={{ color: '#92400e' }} />
+                        This information is for research purposes only and is NOT medical advice. 
                         Always consult with qualified healthcare professionals before considering any compounds.
                       </p>
                     </div>
