@@ -1,18 +1,86 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter } from 'lucide-react';
-import { deleteProtocolHistoryEntry } from '../../utils/protocolHistory';
+import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star } from 'lucide-react';
+import { deleteProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
+import ProtocolFollowUpModal from './ProtocolFollowUpModal';
+import CustomDropdown from '../common/inputs/CustomDropdown';
 
 export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile }) {
-    if (!open || !historyEntry) return null;
+    const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+    const [editingNoteId, setEditingNoteId] = useState(null);
+    const [protocol, setProtocol] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [noteFilter, setNoteFilter] = useState('during'); // 'all' | 'during' | 'follow_up'
+    
+    // Refresh when history is updated
+    React.useEffect(() => {
+        const handleHistoryUpdate = () => {
+            setRefreshKey(prev => prev + 1);
+        };
+        window.addEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+        return () => window.removeEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+    }, []);
+    
+    // Reload history entry when refresh key changes
+    const currentHistoryEntry = React.useMemo(() => {
+        if (!historyEntry?.id) return historyEntry;
+        try {
+            const allHistory = getProtocolHistory();
+            return allHistory.find(e => e.id === historyEntry.id) || historyEntry;
+        } catch {
+            return historyEntry;
+        }
+    }, [historyEntry, refreshKey]);
+    
+    // Get protocol object for follow-up modal
+    React.useEffect(() => {
+        if (currentHistoryEntry?.protocolId) {
+            try {
+                const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+                const foundProtocol = protocols.find(p => p.id === currentHistoryEntry.protocolId);
+                setProtocol(foundProtocol || { id: currentHistoryEntry.protocolId, protocolName: currentHistoryEntry.protocolName || 'Unnamed Protocol' });
+            } catch (e) {
+                setProtocol({ id: currentHistoryEntry.protocolId, protocolName: currentHistoryEntry.protocolName || 'Unnamed Protocol' });
+            }
+        }
+    }, [currentHistoryEntry]);
+    
+    // Get follow-up note
+    const followUpNote = useMemo(() => {
+        if (!currentHistoryEntry || !Array.isArray(currentHistoryEntry.notes)) return null;
+        return currentHistoryEntry.notes.find(n => n.type === 'follow_up');
+    }, [currentHistoryEntry?.notes, refreshKey]);
+    
+    // Filtered notes
+    const filteredNotes = useMemo(() => {
+        if (!currentHistoryEntry || !Array.isArray(currentHistoryEntry.notes)) return [];
+        if (noteFilter === 'all') return currentHistoryEntry.notes;
+        return currentHistoryEntry.notes.filter(note => note.type === noteFilter);
+    }, [currentHistoryEntry?.notes, noteFilter]);
+    
+    if (!open || !currentHistoryEntry) return null;
     
     const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
     const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
     
+    const handleEditFollowUp = () => {
+        if (followUpNote) {
+            setEditingNoteId(followUpNote.id);
+        }
+        setShowFollowUpModal(true);
+    };
+    
+    const handleFollowUpClose = () => {
+        setShowFollowUpModal(false);
+        setEditingNoteId(null);
+        // Refresh the modal to show updated data
+        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+    };
+    
     const handleDelete = () => {
         if (window.confirm('Are you sure you want to delete this history entry? This action cannot be undone.')) {
-            if (deleteProtocolHistoryEntry(historyEntry.id)) {
+            if (deleteProtocolHistoryEntry(currentHistoryEntry.id)) {
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
                     detail: { message: 'History entry deleted successfully.', type: 'success' } 
                 }));
@@ -26,14 +94,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         }
     };
 
-    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring, notes } = historyEntry;
-    const [noteFilter, setNoteFilter] = useState('all'); // 'all' | 'during' | 'follow_up'
-    
-    const filteredNotes = useMemo(() => {
-        if (!Array.isArray(notes)) return [];
-        if (noteFilter === 'all') return notes;
-        return notes.filter(note => note.type === noteFilter);
-    }, [notes, noteFilter]);
+    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring, notes } = currentHistoryEntry;
 
     const getStatusInfo = () => {
         switch (completionStatus) {
@@ -98,7 +159,65 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         >
             <div className="space-y-6">
                 {/* Timeline Info */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Mobile: Combined date card */}
+                <div className="md:hidden">
+                    <div
+                        className="p-4 rounded-lg"
+                        style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            border: `1px solid ${theme.border}`
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={16} style={{ color: theme.primary }} />
+                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                    Date Range
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Clock size={14} style={{ color: theme.primary }} />
+                                <span className="text-xs font-medium" style={{ color: theme.textLight }}>
+                                    Duration:
+                                </span>
+                                <span className="text-sm font-semibold" style={{ color: theme.text }}>
+                                    {getDuration()}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                    {formatMMDDYYYY(startDate)}
+                                </div>
+                                {endDate && (
+                                    <>
+                                        <div className="flex-1 h-px" style={{ backgroundColor: theme.border }}></div>
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                            {formatMMDDYYYY(endDate)}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                        {/* Status Badge */}
+                        <div className="flex items-center justify-center mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+                            <div
+                                className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                                style={{
+                                    backgroundColor: statusInfo.bgColor,
+                                    color: statusInfo.textColor
+                                }}
+                            >
+                                <StatusIcon size={14} />
+                                <span className="font-medium text-xs">{statusInfo.label}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop: Separate cards */}
+                <div className="hidden md:grid grid-cols-3 gap-4">
                     <div
                         className="p-4 rounded-lg"
                         style={{
@@ -168,6 +287,78 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         </div>
                     </div>
                 </div>
+
+                {/* Protocol Summary */}
+                {protocolData && (
+                    <div>
+                        <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                            Protocol Summary
+                        </h3>
+                        <div
+                            className="p-4 rounded-lg"
+                            style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                border: `1px solid ${theme.border}`
+                            }}
+                        >
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    {protocolData.protocolName && (
+                                        <div>
+                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>
+                                                Name
+                                            </div>
+                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                {protocolData.protocolName}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-4">
+                                    {protocolData.duration && !protocolData.duration.noEnd && (
+                                        <div>
+                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>
+                                                Planned Duration
+                                            </div>
+                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                {protocolData.duration.count} {protocolData.duration.unit}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {protocolData.purpose && (
+                                        <div>
+                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>
+                                                Purpose
+                                            </div>
+                                            <div className="text-sm" style={{ color: theme.text }}>
+                                                {protocolData.purpose}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {protocolData.peptides && protocolData.peptides.length > 0 && (
+                                <div className="mt-4">
+                                    <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>
+                                        Peptides ({protocolData.peptides.length})
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {protocolData.peptides.map((pep, idx) => (
+                                            <div key={idx} className="text-sm" style={{ color: theme.text }}>
+                                                • {pep.name || 'Unnamed'}
+                                                {pep.dosage && (
+                                                    <span className="ml-2" style={{ color: theme.textLight }}>
+                                                        ({pep.dosage.amount} {pep.dosage.unit})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Vials Used Section */}
                 {vials && vials.length > 0 && (
@@ -369,6 +560,83 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 )}
 
+                {/* Follow-Up Assessment Section - Prominently Displayed */}
+                {followUpNote && (
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                                <FileText size={16} />
+                                Follow-Up Assessment
+                            </h3>
+                            <button
+                                onClick={handleEditFollowUp}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.textOnPrimary
+                                }}
+                            >
+                                <Edit3 size={14} />
+                                Edit Assessment
+                            </button>
+                        </div>
+                        <div
+                            className="p-4 rounded-lg"
+                            style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                border: `2px solid ${theme.primary}`,
+                                borderLeft: `4px solid ${theme.primary}`
+                            }}
+                        >
+                            {followUpNote.rating && (
+                                <div className="mb-3 flex items-center justify-center gap-2">
+                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Protocol Rating:</span>
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map(n => (
+                                            <Star
+                                                key={n}
+                                                size={18}
+                                                style={{
+                                                    fill: followUpNote.rating >= n ? theme.primary : 'none',
+                                                    color: followUpNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border),
+                                                    strokeWidth: 1.5
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {followUpNote.content && (
+                                <p className="text-sm whitespace-pre-wrap mb-3" style={{ color: theme.text }}>
+                                    {followUpNote.content}
+                                </p>
+                            )}
+                            {followUpNote.tags && followUpNote.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {followUpNote.tags.map(tagId => (
+                                        <span
+                                            key={tagId}
+                                            className="px-2 py-0.5 rounded text-xs font-medium"
+                                            style={{
+                                                backgroundColor: theme.primary + '20',
+                                                color: theme.primary
+                                            }}
+                                        >
+                                            {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {followUpNote.linkedDate && (
+                                <div className="mt-3 text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                                    <Calendar size={12} />
+                                    Linked to calendar: {formatMMDDYYYY(followUpNote.linkedDate)}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Notes Section */}
                 {Array.isArray(notes) && notes.length > 0 && (
                     <div>
@@ -378,21 +646,34 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 Notes ({notes.length})
                             </h3>
                             <div className="flex items-center gap-2">
-                                <Filter size={14} style={{ color: theme.textLight }} />
-                                <select
-                                    value={noteFilter}
-                                    onChange={(e) => setNoteFilter(e.target.value)}
-                                    className="px-2 py-1 rounded text-xs"
-                                    style={{
-                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                        border: `1px solid ${theme.border}`,
-                                        color: theme.text
-                                    }}
-                                >
-                                    <option value="all">All Notes</option>
-                                    <option value="during">During Protocol</option>
-                                    <option value="follow_up">Follow-Up</option>
-                                </select>
+                                {!followUpNote && (
+                                    <button
+                                        onClick={handleEditFollowUp}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 mr-2"
+                                        style={{
+                                            backgroundColor: theme.primary,
+                                            color: theme.textOnPrimary
+                                        }}
+                                    >
+                                        <Edit3 size={14} />
+                                        Add Follow-Up
+                                    </button>
+                                )}
+                                <div className="flex items-center gap-2">
+                                    <Filter size={14} style={{ color: theme.textLight }} />
+                                    <div className="w-40">
+                                        <CustomDropdown
+                                            value={noteFilter}
+                                            onChange={setNoteFilter}
+                                            options={[
+                                                { value: 'all', label: 'All Notes' },
+                                                { value: 'during', label: 'During Protocol' },
+                                                { value: 'follow_up', label: 'Follow-Up' }
+                                            ]}
+                                            theme={theme}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-3">
@@ -471,62 +752,6 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         </div>
                     </div>
                 )}
-
-                {/* Protocol Summary */}
-                {protocolData && (
-                    <div>
-                        <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
-                            Protocol Summary
-                        </h3>
-                        <div
-                            className="p-4 rounded-lg"
-                            style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                border: `1px solid ${theme.border}`
-                            }}
-                        >
-                            {protocolData.protocolName && (
-                                <div className="mb-2">
-                                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
-                                        Name:
-                                    </span>
-                                    <div className="text-sm font-semibold mt-1" style={{ color: theme.text }}>
-                                        {protocolData.protocolName}
-                                    </div>
-                                </div>
-                            )}
-                            {protocolData.duration && !protocolData.duration.noEnd && (
-                                <div className="mb-2">
-                                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
-                                        Planned Duration:
-                                    </span>
-                                    <div className="text-sm mt-1" style={{ color: theme.text }}>
-                                        {protocolData.duration.count} {protocolData.duration.unit}
-                                    </div>
-                                </div>
-                            )}
-                            {protocolData.peptides && protocolData.peptides.length > 0 && (
-                                <div>
-                                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
-                                        Compounds ({protocolData.peptides.length}):
-                                    </span>
-                                    <div className="mt-2 space-y-1">
-                                        {protocolData.peptides.map((pep, idx) => (
-                                            <div key={idx} className="text-sm" style={{ color: theme.text }}>
-                                                • {pep.name || 'Unnamed'}
-                                                {pep.dosage && (
-                                                    <span className="ml-2" style={{ color: theme.textLight }}>
-                                                        ({pep.dosage.amount} {pep.dosage.unit})
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Footer */}
@@ -560,6 +785,22 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     Close
                 </button>
             </div>
+            
+            {/* Follow-Up Modal */}
+            {protocol && (
+                <ProtocolFollowUpModal
+                    open={showFollowUpModal}
+                    onClose={handleFollowUpClose}
+                    protocol={protocol}
+                    historyEntryId={currentHistoryEntry.id}
+                    theme={theme}
+                    onSave={() => {
+                        setRefreshKey(prev => prev + 1);
+                        handleFollowUpClose();
+                    }}
+                    existingNoteId={editingNoteId}
+                />
+            )}
         </Modal>
     );
 }

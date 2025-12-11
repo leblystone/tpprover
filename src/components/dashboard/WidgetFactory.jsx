@@ -21,6 +21,7 @@ import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 import TipsWidget from './widgets/TipsWidget';
 import WishlistWidget from './widgets/WishlistWidget';
+import ActiveProtocolsNotesWidget from './widgets/ActiveProtocolsNotesWidget';
 
 const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
@@ -242,6 +243,18 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           wishlist={props.wishlist}
           onAdd={props.onAddWishlistItem}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
+        />
+      );
+
+    case WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES:
+      return (
+        <ActiveProtocolsNotesWidget 
+          widget={widget} 
+          theme={theme} 
+          protocols={props.protocols}
+          onAddNote={props.onAddProtocolNote}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}
         />

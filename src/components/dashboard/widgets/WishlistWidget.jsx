@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Lock, Plus } from 'lucide-react';
+import { BookHeart, HeartPlus, Lock } from 'lucide-react';
 import Wishlist from '../Wishlist';
 import ModernTooltip from '../../ui/ModernTooltip';
 
@@ -17,7 +17,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
           <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
             <span>Wishlist</span>
             <div className="flex items-center gap-2">
-              <Heart size={18} style={{ color: theme.primary }} />
+              <BookHeart size={18} style={{ color: theme.primary }} />
               <ModernTooltip text="Add" position="top">
                 <button
                   onClick={onAdd}
@@ -38,7 +38,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
                     e.currentTarget.style.opacity = '1';
                   }}
                 >
-                  <Plus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+                  <HeartPlus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
                 </button>
               </ModernTooltip>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { Heart } from 'lucide-react';
+import { BookHeart } from 'lucide-react';
 
 export default function AddWishlistItemModal({ open, onClose, theme, item, onSave }) {
     const [form, setForm] = useState({ 
@@ -11,6 +11,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         notes: ''
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [isPriceFocused, setIsPriceFocused] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -65,7 +66,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             <div className="space-y-6">
                 <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
                     <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>WISHLIST ITEM</h4>
-                    <Heart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                    <BookHeart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
                 <TextInput
@@ -99,26 +100,33 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                 type="text"
                                 value={form.price}
                                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                                placeholder="0.00"
-                                className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none"
+                                placeholder=" "
+                                className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none outlined-input"
                                 style={{
-                                    border: `1px solid #f0eee7`,
+                                    border: `1px solid ${isPriceFocused ? theme.primary : '#f0eee7'}`,
                                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                                     color: theme.isDark ? theme.text : '#181A18',
                                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                 }}
                                 onFocus={(e) => {
+                                    setIsPriceFocused(true);
                                     e.target.style.borderColor = theme.primary;
                                 }}
                                 onBlur={(e) => {
+                                    setIsPriceFocused(false);
                                     e.target.style.borderColor = '#f0eee7';
                                 }}
                             />
                             <label 
-                                className="absolute left-3 -top-2.5 px-1 text-xs font-medium transition-all pointer-events-none"
+                                className={`absolute left-3 transition-all pointer-events-none outlined-input-label ${(isPriceFocused || form.price) ? 'active' : ''}`}
                                 style={{ 
-                                    color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76',
-                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                    top: (isPriceFocused || form.price) ? '-8px' : '14px',
+                                    left: (isPriceFocused || form.price) ? '12px' : '24px',
+                                    fontSize: (isPriceFocused || form.price) ? '0.875rem' : '1rem',
+                                    padding: (isPriceFocused || form.price) ? '0 4px' : '0',
+                                    color: (isPriceFocused || form.price) ? theme.primary : (theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76'),
+                                    backgroundColor: (isPriceFocused || form.price) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    fontWeight: 500
                                 }}
                             >
                                 Price (optional)

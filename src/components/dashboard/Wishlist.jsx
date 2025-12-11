@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Plus, X, DollarSign, Edit, Package } from 'lucide-react'
+import { BookHeart, HeartPlus, X, DollarSign, Edit, Package } from 'lucide-react'
 import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
@@ -13,6 +13,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   const [editingItems, setEditingItems] = useState({});
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
+  const [priceFocused, setPriceFocused] = useState({});
   
   // Ref to track if we just deleted an item (prevent props from restoring it)
   const justDeletedIdsRef = useRef(new Set());
@@ -101,6 +102,11 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
 
   const handleCancelEdit = (itemId) => {
     setEditingItems(prev => {
+      const newState = { ...prev };
+      delete newState[itemId];
+      return newState;
+    });
+    setPriceFocused(prev => {
       const newState = { ...prev };
       delete newState[itemId];
       return newState;
@@ -263,7 +269,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
       <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
         <span>Wishlist</span>
         <div className="flex items-center gap-2">
-          <Heart size={18} style={{ color: theme.primary }} />
+          <BookHeart size={18} style={{ color: theme.primary }} />
           <ModernTooltip text="Add" position="top">
             <button
               type="button"
@@ -296,7 +302,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                 e.currentTarget.style.opacity = '1';
               }}
             >
-              <Plus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+              <HeartPlus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
             </button>
           </ModernTooltip>
         </div>
@@ -359,6 +365,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
           setShowModal(false);
           setSelectedItem(null);
           setEditingItems({});
+          setPriceFocused({});
         }}
         title="Research Wishlist"
         theme={theme}
@@ -369,7 +376,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
           {list.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-                <Heart size={32} style={{ color: theme.primary }} />
+                <BookHeart size={32} style={{ color: theme.primary }} />
               </div>
               <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Wishlist Items</h3>
               <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
@@ -420,7 +427,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                     <div className="space-y-4">
                       <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
                         <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>WISHLIST ITEM</h4>
-                        <Heart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                        <BookHeart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                       </div>
 
                       <div className="flex items-start justify-between">
@@ -467,26 +474,33 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                               type="text"
                               value={editingItems[item.id]?.price || ''}
                               onChange={(e) => handleFieldChange(item.id, 'price', e.target.value)}
-                              placeholder="0.00"
-                              className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none"
+                              placeholder=" "
+                              className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none outlined-input"
                               style={{
-                                border: `1px solid #f0eee7`,
+                                border: `1px solid ${priceFocused[item.id] ? theme.primary : '#f0eee7'}`,
                                 backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                                 color: theme.isDark ? theme.text : '#181A18',
                                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                               }}
                               onFocus={(e) => {
+                                setPriceFocused(prev => ({ ...prev, [item.id]: true }));
                                 e.target.style.borderColor = theme.primary;
                               }}
                               onBlur={(e) => {
+                                setPriceFocused(prev => ({ ...prev, [item.id]: false }));
                                 e.target.style.borderColor = '#f0eee7';
                               }}
                             />
                             <label 
-                              className="absolute left-3 -top-2.5 px-1 text-xs font-medium transition-all pointer-events-none"
+                              className={`absolute transition-all pointer-events-none outlined-input-label ${(priceFocused[item.id] || editingItems[item.id]?.price) ? 'active' : ''}`}
                               style={{ 
-                                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76',
-                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                top: (priceFocused[item.id] || editingItems[item.id]?.price) ? '-8px' : '14px',
+                                left: (priceFocused[item.id] || editingItems[item.id]?.price) ? '12px' : '24px',
+                                fontSize: (priceFocused[item.id] || editingItems[item.id]?.price) ? '0.875rem' : '1rem',
+                                padding: (priceFocused[item.id] || editingItems[item.id]?.price) ? '0 4px' : '0',
+                                color: (priceFocused[item.id] || editingItems[item.id]?.price) ? theme.primary : (theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76'),
+                                backgroundColor: (priceFocused[item.id] || editingItems[item.id]?.price) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                fontWeight: 500
                               }}
                             >
                               Price
@@ -579,7 +593,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                           >
                             <Edit size={14} />
                           </button>
-                          <Heart size={16} style={{ color: theme.primary }} />
+                          <BookHeart size={16} style={{ color: theme.primary }} />
                         </div>
                       </div>
                       

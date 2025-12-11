@@ -19,7 +19,8 @@ export const WIDGET_TYPES = {
   NOTES: 'notes',
   INJECTION_HISTORY: 'injection_history',
   TIPS: 'tips',
-  WISHLIST: 'wishlist'
+  WISHLIST: 'wishlist',
+  ACTIVE_PROTOCOLS_NOTES: 'active_protocols_notes'
 };
 
 export const WIDGET_SIZES = {
@@ -193,20 +194,20 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'tips',
-    type: WIDGET_TYPES.TIPS,
-    title: 'Helpful Tips',
+    id: 'wishlist',
+    type: WIDGET_TYPES.WISHLIST,
+    title: 'Wishlist',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 3 },
     enabled: true,
     settings: {
-      rotationInterval: 20
+      maxItems: 3
     }
   },
   {
-    id: 'wishlist',
-    type: WIDGET_TYPES.WISHLIST,
-    title: 'Wishlist',
+    id: 'active_protocols_notes',
+    type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
+    title: 'Peptide Observations',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 3 },
     enabled: true,
@@ -223,6 +224,18 @@ export const DEFAULT_WIDGETS = [
     position: { x: 0, y: 4 },
     enabled: false, // Hidden by default as it only shows when needed
     settings: {}
+  },
+  // Tips widget - always at the bottom
+  {
+    id: 'tips',
+    type: WIDGET_TYPES.TIPS,
+    title: 'Helpful Tips',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 10 },
+    enabled: true,
+    settings: {
+      rotationInterval: 20
+    }
   }
 ];
 
@@ -410,6 +423,15 @@ export const WIDGET_METADATA = {
     settings: [
       { key: 'maxItems', label: 'Max items to show', type: 'number', default: 3, min: 1, max: 10 }
     ]
+  },
+  [WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES]: {
+    title: 'Peptide Observations',
+    description: 'Add research notes to active protocols during your research',
+    icon: 'FlaskConical',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'maxItems', label: 'Max protocols to show', type: 'number', default: 3, min: 1, max: 10 }
+    ]
   }
 };
 
@@ -443,7 +465,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.4'; // UPDATED LAYOUT: Added Wishlist widget by default
+    const currentVersion = '3.5'; // UPDATED LAYOUT: Added Active Protocols Notes widget
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -469,6 +491,15 @@ export const loadDashboardLayout = () => {
         const wishlistWidget = DEFAULT_WIDGETS.find(w => w.id === 'wishlist');
         if (wishlistWidget) {
           merged.push(wishlistWidget);
+        }
+      }
+      
+      // Ensure active protocols notes widget is present (for users upgrading to version 3.5+)
+      const hasActiveProtocolsNotes = merged.some(w => w.id === 'active_protocols_notes' || w.type === WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES);
+      if (!hasActiveProtocolsNotes) {
+        const activeProtocolsNotesWidget = DEFAULT_WIDGETS.find(w => w.id === 'active_protocols_notes');
+        if (activeProtocolsNotesWidget) {
+          merged.push(activeProtocolsNotesWidget);
         }
       }
       
@@ -546,7 +577,12 @@ export const compactGrid = (widgets) => {
   const disabledWidgets = widgets.filter(w => !w.enabled);
 
   // Sort by current position (y first, then x) to maintain relative order
+  // Tips widget always goes last
   enabledWidgets.sort((a, b) => {
+    // Tips widget always goes last
+    if (a.type === WIDGET_TYPES.TIPS) return 1;
+    if (b.type === WIDGET_TYPES.TIPS) return -1;
+    
     const aY = a.position?.y || 0;
     const bY = b.position?.y || 0;
     if (aY !== bY) return aY - bY;
@@ -595,8 +631,12 @@ export const compactGrid = (widgets) => {
     }
   };
 
-  // Reposition widgets to eliminate gaps
-  const compactedWidgets = enabledWidgets.map(widget => {
+  // Separate Tips widget to always place it at the bottom
+  const tipsWidget = enabledWidgets.find(w => w.type === WIDGET_TYPES.TIPS);
+  const otherWidgets = enabledWidgets.filter(w => w.type !== WIDGET_TYPES.TIPS);
+  
+  // Reposition widgets to eliminate gaps (excluding Tips)
+  const compactedWidgets = otherWidgets.map(widget => {
     const { width, height } = getWidgetDimensions(widget.size);
     
     // Find the first available position starting from top-left
@@ -614,7 +654,21 @@ export const compactGrid = (widgets) => {
     return { ...widget, position: { x: bestX, y: bestY } };
   });
 
-  return [...compactedWidgets, ...disabledWidgets];
+  // Add Tips widget at the bottom (highest y position)
+  const result = [...compactedWidgets];
+  if (tipsWidget) {
+    // Find the highest y position and place Tips below it
+    const maxY = compactedWidgets.length > 0 
+      ? Math.max(...compactedWidgets.map(w => (w.position?.y || 0) + getWidgetDimensions(w.size).height))
+      : 0;
+    const tipsDimensions = getWidgetDimensions(tipsWidget.size);
+    result.push({ 
+      ...tipsWidget, 
+      position: { x: 0, y: maxY } 
+    });
+  }
+
+  return [...result, ...disabledWidgets];
 };
 
 export const resetDashboardLayout = () => {

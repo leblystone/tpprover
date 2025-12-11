@@ -321,6 +321,19 @@ export default function CustomizableDashboard() {
     };
   }, []);
 
+  // Listen for protocol history updates to refresh active protocols notes
+  useEffect(() => {
+    const handleProtocolHistoryUpdate = () => {
+      // Force re-render of widgets that depend on protocol history
+      // The widget will automatically refresh when protocols prop updates
+    };
+
+    window.addEventListener('tpp:protocol-history-updated', handleProtocolHistoryUpdate);
+    return () => {
+      window.removeEventListener('tpp:protocol-history-updated', handleProtocolHistoryUpdate);
+    };
+  }, []);
+
   // Quick Actions event listeners
   useEffect(() => {
     const handleOpenRecon = () => setShowRecon(true);
@@ -764,6 +777,10 @@ export default function CustomizableDashboard() {
   const enabledWidgetsForGrid = (isCustomizing 
     ? widgets.filter(w => w.enabled) 
     : enabledWidgets).sort((a, b) => {
+    // Tips widget always goes last
+    if (a.type === WIDGET_TYPES.TIPS) return 1;
+    if (b.type === WIDGET_TYPES.TIPS) return -1;
+    
     // Sort by position to maintain layout order after compaction
     const aY = a.position?.y || 0;
     const bY = b.position?.y || 0;
@@ -888,6 +905,11 @@ export default function CustomizableDashboard() {
                       onAddBuy={() => setShowAddBuyModal(true)}
                       wishlist={wishlist}
                       onAddWishlistItem={() => setShowAddWishlistModal(true)}
+                      protocols={protocols}
+                      onAddProtocolNote={(protocolId) => {
+                        // Refresh protocol notes if needed
+                        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+                      }}
                       onViewAllVendors={() => navigate('/app/vendors')}
                       onCompleteVendor={(vendor) => {
                         setEditingVendor(vendor);

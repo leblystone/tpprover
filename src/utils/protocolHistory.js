@@ -235,6 +235,18 @@ export function migrateProtocolHistoryEntries() {
             
             if (!Array.isArray(migratedEntry.notes)) {
                 migratedEntry.notes = [];
+            } else {
+                // Ensure all notes have IDs
+                migratedEntry.notes = migratedEntry.notes.map(note => {
+                    if (!note.id) {
+                        updatedEntries = true;
+                        return {
+                            ...note,
+                            id: generateId(12)
+                        };
+                    }
+                    return note;
+                });
             }
             
             migratedCount++;
@@ -604,6 +616,7 @@ export function addNoteToProtocolHistory(historyId, noteData) {
             content: noteData.content || '',
             tags: noteData.tags || [],
             linkedDate: noteData.linkedDate || null,
+            rating: noteData.rating || null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };

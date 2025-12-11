@@ -12,6 +12,7 @@ import { useFirebase } from '../../context/FirebaseContext';
 import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic';
 import { areGroupBuysEnabled } from '../../utils/featureSettings';
 import { getNotesForDate } from '../../utils/protocolHistory';
+import Modal from '../common/Modal';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -61,6 +62,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
+  const [selectedNote, setSelectedNote] = useState(null); // Selected protocol note for modal display
   
   // Check if group buys are enabled
   const groupBuysEnabled = areGroupBuysEnabled();
@@ -381,14 +383,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Could open a modal to view full note, or just show in a tooltip
-                      window.dispatchEvent(new CustomEvent('tpp:toast', {
-                        detail: {
-                          message: `${note.protocolName || 'Protocol'}: ${note.content || 'Note'}`,
-                          type: 'info',
-                          duration: 5000
-                        }
-                      }));
+                      setSelectedNote(note);
                     }}
                   >
                     <FileText size={12} style={{ color: note.type === 'follow_up' ? theme.primary : theme.textLight }} />
@@ -396,8 +391,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       {note.protocolName ? (note.protocolName.length > 15 ? note.protocolName.substring(0, 15) + '...' : note.protocolName) : 'Protocol'}
                     </span>
                     {note.type === 'follow_up' && (
-                      <span className="px-1 rounded text-[10px] font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                        FU
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                        FOLLOW UP
                       </span>
                     )}
                   </div>
@@ -609,10 +604,121 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     )
   }
 
+  const NOTE_TAGS = [
+    { id: 'progress', label: 'Progress Update' },
+    { id: 'side_effects', label: 'Side Effects' },
+    { id: 'adjustment', label: 'Dosage Adjustment' },
+    { id: 'observation', label: 'Observation' },
+    { id: 'question', label: 'Question' }
+  ];
+
   return (
-    <div className="grid grid-cols-1 gap-2">
-      {days.map(renderDay)}
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-2">
+        {days.map(renderDay)}
+      </div>
+      
+      {/* Protocol Note Detail Modal */}
+      <Modal
+        open={!!selectedNote}
+        onClose={() => setSelectedNote(null)}
+        title={
+          <div className="flex items-center gap-2">
+            <FileText size={20} />
+            <span>{selectedNote?.protocolName || 'Protocol Note'}</span>
+            {selectedNote?.type === 'follow_up' && (
+              <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                FOLLOW UP
+              </span>
+            )}
+          </div>
+        }
+        theme={theme}
+        maxWidth="max-w-2xl"
+      >
+        {selectedNote && (
+          <div className="space-y-4">
+            {/* Date Information */}
+            <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
+              {selectedNote.createdAt && (
+                <span>Created: {formatMMDDYYYY(selectedNote.createdAt)}</span>
+              )}
+              {selectedNote.linkedDate && (
+                <span className="flex items-center gap-1">
+                  <Calendar size={14} />
+                  Linked to: {formatMMDDYYYY(selectedNote.linkedDate)}
+                </span>
+              )}
+            </div>
+
+            {/* Note Content */}
+            {selectedNote.content && (
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
+                  {selectedNote.content}
+                </p>
+              </div>
+            )}
+
+            {/* Tags */}
+            {selectedNote.tags && selectedNote.tags.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>Tags</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedNote.tags.map(tagId => {
+                    const tag = NOTE_TAGS.find(t => t.id === tagId);
+                    return tag ? (
+                      <span
+                        key={tagId}
+                        className="px-2 py-1 rounded text-xs font-medium"
+                        style={{
+                          backgroundColor: theme.primary + '20',
+                          color: theme.primary
+                        }}
+                      >
+                        {tag.label}
+                      </span>
+                    ) : (
+                      <span
+                        key={tagId}
+                        className="px-2 py-1 rounded text-xs font-medium"
+                        style={{
+                          backgroundColor: theme.primary + '20',
+                          color: theme.primary
+                        }}
+                      >
+                        {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Rating (for follow-up notes) */}
+            {selectedNote.type === 'follow_up' && selectedNote.rating !== undefined && selectedNote.rating !== null && (
+              <div>
+                <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>Rating</div>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        color: i < selectedNote.rating ? theme.primary : theme.border,
+                        fontSize: '20px'
+                      }}
+                    >
+                      ★
+                    </span>
+                  ))}
+                  <span className="ml-2 text-sm" style={{ color: theme.text }}>{selectedNote.rating}/5</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   )
 }
 
