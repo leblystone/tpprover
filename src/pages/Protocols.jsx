@@ -616,15 +616,15 @@ export default function Protocols() {
                     return {
                       icon: CheckCircle,
                       label: 'Completed',
-                      bgColor: theme.isDark ? '#065f46' : '#d1fae5',
-                      textColor: theme.isDark ? '#6ee7b7' : '#065f46'
+                      bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
+                      textColor: '#dcfce7'
                     };
                   case 'ended_early':
                     return {
                       icon: XCircle,
                       label: 'Ended Early',
-                      bgColor: theme.isDark ? '#7f1d1d' : '#fee2e2',
-                      textColor: theme.isDark ? '#fca5a5' : '#991b1b'
+                      bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
+                      textColor: '#fee2e2'
                     };
                   case 'rescheduled':
                     return {

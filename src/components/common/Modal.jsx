@@ -208,11 +208,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             </button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
+        <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
+          <div className="px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0 border-t" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', borderColor: theme?.border || 'rgba(0,0,0,0.1)' }}>
             {footer}
           </div>
         )}

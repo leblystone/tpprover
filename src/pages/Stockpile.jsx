@@ -25,17 +25,22 @@ import { useFirebase } from '../context/FirebaseContext'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 import { recordDeletion } from '../utils/deletionTracking'
+import OrderDetailsModal from '../components/orders/OrderDetailsModal'
+import { syncOrderDocumentationToStockpile } from '../utils/documentationSync'
+import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
-  const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
+  const { vendors, addVendor, orders, setOrders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('onhand')
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [editingOrder, setEditingOrder] = useState(null)
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] })
   const [isAmountFocused, setIsAmountFocused] = useState(false)
   const [isQuantityFocused, setIsQuantityFocused] = useState(false)
@@ -321,6 +326,138 @@ export default function Stockpile() {
     setManageRows(rows)
   }
   
+  // Handle stockpile updates when orders change (e.g., delivered status)
+  const handleStockpileUpdate = (previousOrder, newOrder) => {
+    if (!newOrder) {
+      console.log('⚠️ handleStockpileUpdate: newOrder is null/undefined, skipping');
+      return;
+    }
+
+    const prevStatus = (previousOrder?.status || '').toLowerCase();
+    const newStatus = (newOrder?.status || '').toLowerCase();
+    
+    const wasDelivered = prevStatus.includes('delivered');
+    const isDelivered = newStatus.includes('delivered');
+
+    // Check if shipping costs should be included
+    const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+    const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+
+    // If both orders are delivered, we need to update existing stockpile items
+    if (wasDelivered && isDelivered && previousOrder && newOrder) {
+      const orderIdPrefix = `orderitem-${newOrder.id}-`;
+      
+      // Remove old stockpile items for this order
+      setItems(prev => prev.filter(stockItem => {
+        const itemId = stockItem?.id;
+        if (!itemId || typeof itemId !== 'string') return true;
+        return !itemId.startsWith(orderIdPrefix);
+      }));
+      
+      // Add updated stockpile items
+      const updatedStockItems = (newOrder.items || []).map(item => {
+        const quantity = Number(item.quantity) || 1;
+        const isKit = (item.unit || '').toLowerCase() === 'kit';
+        const vialsPerItem = isKit ? 10 : 1;
+        const price = Number(item.price) || 0;
+        
+        let costPerVial;
+        if (includeShipping) {
+          const shippingCost = parseFloat(newOrder.shippingCost) || 0;
+          const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
+            const orderItemPrice = parseFloat(orderItem.price) || 0;
+            const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
+            return sum + (orderItemPrice * orderItemQuantity);
+          }, 0) + shippingCost;
+          const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
+          const itemShippingShare = shippingCost * itemCostShare;
+          const totalItemCost = (price * quantity) + itemShippingShare;
+          costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+        } else {
+          costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+        }
+
+        return {
+          id: `orderitem-${newOrder.id}-${item.id}`,
+          name: item.name || '',
+          mg: item.mg || '',
+          mgUnit: item.mgUnit || 'mg',
+          quantity: quantity * vialsPerItem,
+          unit: 'vial',
+          cost: costPerVial,
+          costPerMg: item.costPerMg || '',
+          vendor: newOrder.vendor || '',
+          vendorId: newOrder.vendorId,
+          purchaseDate: newOrder.date,
+          notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
+          orderId: newOrder.id
+        };
+      });
+      setItems(prev => [...prev, ...updatedStockItems]);
+      return;
+    }
+
+    // Status changed TO Delivered: Add items to stockpile.
+    if (!wasDelivered && isDelivered) {
+      if (!newOrder.items || newOrder.items.length === 0) {
+        console.log('⚠️ handleStockpileUpdate: Order is delivered but has no items, skipping stockpile update');
+        return;
+      }
+
+      const newStockItems = (newOrder.items || []).map(item => {
+        const quantity = Number(item.quantity) || 1;
+        const isKit = (item.unit || '').toLowerCase() === 'kit';
+        const vialsPerItem = isKit ? 10 : 1;
+        const price = Number(item.price) || 0;
+        
+        let costPerVial;
+        if (includeShipping) {
+          const shippingCost = parseFloat(newOrder.shippingCost) || 0;
+          const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
+            const orderItemPrice = parseFloat(orderItem.price) || 0;
+            const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
+            return sum + (orderItemPrice * orderItemQuantity);
+          }, 0) + shippingCost;
+          const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
+          const itemShippingShare = shippingCost * itemCostShare;
+          const totalItemCost = (price * quantity) + itemShippingShare;
+          costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+        } else {
+          costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+        }
+
+        return {
+          id: `orderitem-${newOrder.id}-${item.id}`,
+          name: item.name || '',
+          mg: item.mg || '',
+          mgUnit: item.mgUnit || 'mg',
+          quantity: quantity * vialsPerItem,
+          unit: 'vial',
+          cost: costPerVial,
+          costPerMg: item.costPerMg || '',
+          vendor: newOrder.vendor || '',
+          vendorId: newOrder.vendorId,
+          purchaseDate: newOrder.date,
+          notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
+          orderId: newOrder.id
+        };
+      });
+
+      // Sync documentation from order to stockpile items
+      const stockItemsWithDocs = syncOrderDocumentationToStockpile(newOrder, newStockItems);
+      setItems(prev => [...prev, ...stockItemsWithDocs]);
+    } 
+    // Status changed FROM Delivered: Remove items from stockpile.
+    else if (wasDelivered && !isDelivered) {
+      const orderIdPrefix = `orderitem-${previousOrder.id}-`;
+      setItems(prev => prev.filter(stockItem => {
+        const itemId = stockItem?.id;
+        if (!itemId || typeof itemId !== 'string') return true;
+        return !itemId.startsWith(orderIdPrefix);
+      }));
+    }
+  };
+
   const handleEditIncoming = (peptideName) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
@@ -344,17 +481,11 @@ export default function Stockpile() {
       return (o.items || []).some(item => matchesName(item.name, peptideName))
     })
     
-    // Navigate to Orders page
-    if (relevantOrders.length === 1) {
-      // If there's exactly one order, open it for editing
-      navigate('/app/orders', { state: { openOrderId: relevantOrders[0].id } })
-    } else if (relevantOrders.length > 1) {
-      // If there are multiple orders, just navigate to orders page
-      // The user can then edit the relevant orders
-      navigate('/app/orders')
-    } else {
-      // No orders found (shouldn't happen if the item is showing in incoming)
-      navigate('/app/orders')
+    // Open modal with the first order (or show all if multiple)
+    if (relevantOrders.length > 0) {
+      // Open the first order in a modal
+      setEditingOrder(relevantOrders[0]);
+      setShowOrderModal(true);
     }
   }
   const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] }]))
@@ -2594,6 +2725,76 @@ export default function Stockpile() {
         cancelText="Cancel"
         type="warning"
         theme={theme}
+      />
+
+      {/* Order Details Modal for Incoming Orders */}
+      <OrderDetailsModal
+        open={showOrderModal}
+        onClose={() => {
+          setShowOrderModal(false);
+          setEditingOrder(null);
+        }}
+        theme={theme}
+        order={editingOrder}
+        vendors={vendors}
+        onSave={(data) => {
+          const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
+          if (editingOrder) {
+            const now = new Date().toISOString();
+            const updatedOrder = {
+              ...editingOrder,
+              ...data,
+              vendorId,
+              updatedAt: now
+            };
+            handleStockpileUpdate(editingOrder, updatedOrder);
+            setOrders(prev => {
+              const normalizedPrev = ensurePublicOrderNumbers(prev);
+              return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+            });
+          } else {
+            const category = data.category || 'domestic';
+            const nextPublicNumber = getNextPublicOrderNumber(orders);
+            const now = new Date().toISOString();
+            const newOrder = {
+              id: generateId(),
+              publicOrderNumber: nextPublicNumber,
+              ...data,
+              vendorId,
+              category,
+              type: category,
+              createdAt: now,
+              updatedAt: now
+            };
+            handleStockpileUpdate(null, newOrder);
+            setOrders(prev => {
+              const normalizedPrev = ensurePublicOrderNumbers(prev);
+              return [newOrder, ...normalizedPrev];
+            });
+          }
+          setShowOrderModal(false);
+          setEditingOrder(null);
+        }}
+        onDelete={async (id) => {
+          const orderToDelete = orders.find(o => o.id === id);
+          if (orderToDelete) {
+            // Remove from stockpile if delivered
+            const status = (orderToDelete.status || '').toLowerCase();
+            if (status.includes('delivered')) {
+              const orderIdPrefix = `orderitem-${id}-`;
+              setItems(prev => prev.filter(stockItem => {
+                const itemId = stockItem?.id;
+                if (!itemId || typeof itemId !== 'string') return true;
+                return !itemId.startsWith(orderIdPrefix);
+              }));
+            }
+            setOrders(prev => prev.filter(o => o.id !== id));
+          }
+          setShowOrderModal(false);
+          setEditingOrder(null);
+        }}
+        isReadOnly={isReadOnly}
+        onUpgrade={() => setShowUpgradeModal(true)}
       />
     </section>
   )
