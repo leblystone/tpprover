@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import TextInput from '../common/inputs/TextInput';
 import { X } from 'lucide-react';
-import { formatCurrencyWithSymbol } from '../../utils/currencyUtils';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
     const [isNameFocused, setIsNameFocused] = useState(false);
@@ -111,6 +109,16 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
         
         return { value: null, unit: mgUnit, label };
     }, [item.price, item.mg, item.quantity, item.unit, item.mgUnit]);
+
+    // Auto-fill cost per unit when calculation is available and field is empty
+    useEffect(() => {
+        if (calculatedCostPerUnit.value !== null && !item.costPerMg) {
+            // Format the value to a reasonable number of decimal places
+            const formattedValue = calculatedCostPerUnit.value.toFixed(6).replace(/\.?0+$/, '');
+            onChange({ ...item, costPerMg: formattedValue });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [calculatedCostPerUnit.value, calculatedCostPerUnit.unit, item.costPerMg]);
 
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
@@ -568,16 +576,8 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 fontWeight: 500
                             }}
                         >
-                            {calculatedCostPerUnit.label} {item.costPerMg && <span className="text-xs" style={{ color: theme.textLight }}>(override)</span>}
+                            {calculatedCostPerUnit.label}
                         </label>
-                        {calculatedCostPerUnit.value !== null && !item.costPerMg && (
-                            <div className="mt-1 text-xs flex items-center gap-1 flex-wrap" style={{ color: theme.textLight }}>
-                                <span>💡</span>
-                                <span style={{ color: theme.primary, fontWeight: 500 }}>
-                                    {formatCurrencyWithSymbol(calculatedCostPerUnit.value)}/{calculatedCostPerUnit.unit}
-                                </span>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
