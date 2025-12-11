@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Calendar, Clock, ChevronDown, CheckCircle, XCircle, Package, FlaskConical, Target } from 'lucide-react';
+import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getProtocolHistoryEntries } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
@@ -132,14 +132,14 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
         switch (status) {
             case 'completed':
                 return {
-                    icon: CheckCircle,
+                    icon: CalendarCheck,
                     label: 'Completed',
                     bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
                     textColor: '#dcfce7'
                 };
             case 'ended_early':
                 return {
-                    icon: XCircle,
+                    icon: CalendarX,
                     label: 'Ended Early',
                     bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
                     textColor: '#fee2e2'
@@ -230,7 +230,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                                                 {/* Protocol card */}
                                                 <button
                                                     onClick={() => setSelectedHistoryEntry(entry.historyEntry)}
-                                                    className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99]"
+                                                    className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
                                                     style={{ 
                                                         backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
                                                         border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
@@ -245,18 +245,6 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                                                                 <span className="font-semibold text-base" style={{ color: theme.text }}>
                                                                     {entry.historyEntry.protocolName || protocol.protocolName || 'Unnamed Protocol'}
                                                                 </span>
-                                                                {statusBadge && StatusIcon && (
-                                                                    <span 
-                                                                        className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
-                                                                        style={{ 
-                                                                            backgroundColor: statusBadge.bgColor,
-                                                                            color: statusBadge.textColor
-                                                                        }}
-                                                                    >
-                                                                        <StatusIcon size={12} />
-                                                                        {statusBadge.label}
-                                                                    </span>
-                                                                )}
                                                             </div>
                                                             
                                                             <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
@@ -281,6 +269,22 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                                                             />
                                                         </div>
                                                     </div>
+                                                    
+                                                    {/* Status badge - bottom right */}
+                                                    {statusBadge && StatusIcon && (
+                                                        <div className="absolute bottom-2 right-2">
+                                                            <span 
+                                                                className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
+                                                                style={{ 
+                                                                    backgroundColor: statusBadge.bgColor,
+                                                                    color: statusBadge.textColor
+                                                                }}
+                                                            >
+                                                                <StatusIcon size={12} />
+                                                                {statusBadge.label}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </button>
                                             </div>
                                         );

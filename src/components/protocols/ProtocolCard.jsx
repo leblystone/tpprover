@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, StickyNote } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
+import ProtocolNotesModal from './ProtocolNotesModal';
+import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -46,8 +48,37 @@ const formatPenType = (penType) => {
 
 export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
+    const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+    const [notesCount, setNotesCount] = useState(0);
     const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
     const terracottaShadow = theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.12)';
+    
+    // Load notes count for active protocols
+    React.useEffect(() => {
+        if (isActive && p?.id) {
+            const activeEntry = findActiveProtocolHistoryEntry(p.id);
+            if (activeEntry && Array.isArray(activeEntry.notes)) {
+                setNotesCount(activeEntry.notes.length);
+            } else {
+                setNotesCount(0);
+            }
+        }
+    }, [isActive, p?.id]);
+    
+    // Listen for notes updates
+    React.useEffect(() => {
+        const handleNotesUpdate = () => {
+            if (isActive && p?.id) {
+                const activeEntry = findActiveProtocolHistoryEntry(p.id);
+                if (activeEntry && Array.isArray(activeEntry.notes)) {
+                    setNotesCount(activeEntry.notes.length);
+                }
+            }
+        };
+        
+        window.addEventListener('tpp:protocol-history-updated', handleNotesUpdate);
+        return () => window.removeEventListener('tpp:protocol-history-updated', handleNotesUpdate);
+    }, [isActive, p?.id]);
     
     const handleShare = () => {
         setShareModalOpen(true);
@@ -230,6 +261,36 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                 {isActive ? 'Manage' : (hasDraftStart ? 'Drafted Start' : 'Start Protocol')}
                             </span>
                         </button>
+                        {isActive && (
+                            <button 
+                                className="p-2 rounded-md flex-shrink-0 action-button-hover relative" 
+                                aria-label="Notes" 
+                                onClick={() => setIsNotesModalOpen(true)}
+                                style={{ color: theme.textLight }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                    e.currentTarget.style.color = theme.primary;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = theme.textLight;
+                                }}
+                            >
+                                <StickyNote className="h-4 w-4 icon-hover" />
+                                {notesCount > 0 && (
+                                    <span 
+                                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs font-bold flex items-center justify-center"
+                                        style={{ 
+                                            backgroundColor: theme.primary, 
+                                            color: theme.textOnPrimary,
+                                            fontSize: '10px'
+                                        }}
+                                    >
+                                        {notesCount}
+                                    </span>
+                                )}
+                            </button>
+                        )}
                         <button 
                             data-tour="protocol-share" 
                             onClick={handleShare} 
@@ -293,6 +354,15 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                 cardProps={{ item: p, theme, isPublicView: true }}
                 shareData={{ ...p, type: 'protocol' }}
             />
+            
+            {isActive && (
+                <ProtocolNotesModal
+                    open={isNotesModalOpen}
+                    onClose={() => setIsNotesModalOpen(false)}
+                    protocol={p}
+                    theme={theme}
+                />
+            )}
         </>
     );
 }

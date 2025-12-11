@@ -265,8 +265,8 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 setShowDeleteConfirm(false);
                 // onSave will handle closing the modal
             }}
-            title="Delete Supplement?"
-            message={`Are you sure you want to delete "${supplement?.name || 'this supplement'}"? This action cannot be undone, but you can restore it from Recently Deleted within 14 days.`}
+            title=""
+            message=""
             confirmText="Delete"
             cancelText="Cancel"
             type="delete"

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CheckCircle, XCircle, Clock, DollarSign, FlaskConical, Trash2 } from 'lucide-react';
+import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter } from 'lucide-react';
 import { deleteProtocolHistoryEntry } from '../../utils/protocolHistory';
 
 export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile }) {
@@ -26,13 +26,20 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         }
     };
 
-    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring } = historyEntry;
+    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring, notes } = historyEntry;
+    const [noteFilter, setNoteFilter] = useState('all'); // 'all' | 'during' | 'follow_up'
+    
+    const filteredNotes = useMemo(() => {
+        if (!Array.isArray(notes)) return [];
+        if (noteFilter === 'all') return notes;
+        return notes.filter(note => note.type === noteFilter);
+    }, [notes, noteFilter]);
 
     const getStatusInfo = () => {
         switch (completionStatus) {
             case 'completed':
                 return {
-                    icon: CheckCircle,
+                    icon: CalendarCheck,
                     color: '#10b981',
                     label: 'Completed on Time',
                     bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
@@ -40,7 +47,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 };
             case 'ended_early':
                 return {
-                    icon: XCircle,
+                    icon: CalendarX,
                     color: '#ef4444',
                     label: 'Ended Early',
                     bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
@@ -147,7 +154,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                             {getDuration()}
                         </div>
                         {/* Status Badge */}
-                        <div className="flex items-center justify-start mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
+                        <div className="flex items-center justify-end mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
                             <div
                                 className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                                 style={{
@@ -358,6 +365,109 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Notes Section */}
+                {Array.isArray(notes) && notes.length > 0 && (
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                                <FileText size={16} />
+                                Notes ({notes.length})
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <Filter size={14} style={{ color: theme.textLight }} />
+                                <select
+                                    value={noteFilter}
+                                    onChange={(e) => setNoteFilter(e.target.value)}
+                                    className="px-2 py-1 rounded text-xs"
+                                    style={{
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                        border: `1px solid ${theme.border}`,
+                                        color: theme.text
+                                    }}
+                                >
+                                    <option value="all">All Notes</option>
+                                    <option value="during">During Protocol</option>
+                                    <option value="follow_up">Follow-Up</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            {filteredNotes.length === 0 ? (
+                                <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
+                                    No {noteFilter === 'all' ? '' : noteFilter === 'during' ? 'during protocol ' : 'follow-up '}notes found.
+                                </div>
+                            ) : (
+                                filteredNotes.map((note) => (
+                                    <div
+                                        key={note.id}
+                                        className="p-4 rounded-lg"
+                                        style={{
+                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            border: `1px solid ${theme.border}`,
+                                            borderLeft: `4px solid ${note.type === 'follow_up' ? theme.primary : theme.accent}`
+                                        }}
+                                    >
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span 
+                                                        className="px-2 py-0.5 rounded text-xs font-medium"
+                                                        style={{
+                                                            backgroundColor: note.type === 'follow_up' 
+                                                                ? theme.primary + '20' 
+                                                                : theme.accent + '20',
+                                                            color: note.type === 'follow_up' 
+                                                                ? theme.primary 
+                                                                : theme.accent
+                                                        }}
+                                                    >
+                                                        {note.type === 'follow_up' ? 'Follow-Up' : 'During Protocol'}
+                                                    </span>
+                                                    <span className="text-xs" style={{ color: theme.textLight }}>
+                                                        {formatMMDDYYYY(note.createdAt)}
+                                                    </span>
+                                                    {note.linkedDate && (
+                                                        <span className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                                                            <Calendar size={12} />
+                                                            {formatMMDDYYYY(note.linkedDate)}
+                                                        </span>
+                                                    )}
+                                                    {note.rating && (
+                                                        <span className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                                                            {'⭐'.repeat(note.rating)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {note.content && (
+                                                    <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
+                                                        {note.content}
+                                                    </p>
+                                                )}
+                                                {note.tags && note.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                                        {note.tags.map(tagId => (
+                                                            <span
+                                                                key={tagId}
+                                                                className="px-2 py-0.5 rounded text-xs font-medium"
+                                                                style={{
+                                                                    backgroundColor: theme.primary + '20',
+                                                                    color: theme.primary
+                                                                }}
+                                                            >
+                                                                {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 )}

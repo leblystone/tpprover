@@ -11,6 +11,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useFirebase } from '../../context/FirebaseContext';
 import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic';
 import { areGroupBuysEnabled } from '../../utils/featureSettings';
+import { getNotesForDate } from '../../utils/protocolHistory';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method

@@ -59,6 +59,7 @@ export function saveProtocolHistoryEntry(entry) {
             reconstitutionData: entry.reconstitutionData || null,
             skippedReconstitution: entry.skippedReconstitution || null, // Store skipped reconstitution data
             vialsAddedDuring: [],
+            notes: [], // Array to store protocol notes (during and follow-up)
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -569,6 +570,173 @@ export function createTestProtocolHistoryEntry(protocolId = 'test_protocol_001')
     } catch (error) {
         console.error('Error creating test protocol history entry:', error);
         return null;
+    }
+}
+
+/**
+ * Add a note to a protocol history entry
+ * @param {string} historyId - The history entry ID
+ * @param {Object} noteData - Note data: { type: 'during' | 'follow_up', content: string, tags?: string[], linkedDate?: string }
+ * @returns {boolean} Success status
+ */
+export function addNoteToProtocolHistory(historyId, noteData) {
+    try {
+        const allHistory = getProtocolHistory();
+        const entry = allHistory.find(e => e.id === historyId);
+        
+        if (!entry) {
+            console.warn('Protocol history entry not found:', historyId);
+            return false;
+        }
+        
+        // Ensure notes array exists
+        if (!Array.isArray(entry.notes)) {
+            entry.notes = [];
+        }
+        
+        const newNote = {
+            id: generateId(12),
+            type: noteData.type || 'during',
+            content: noteData.content || '',
+            tags: noteData.tags || [],
+            linkedDate: noteData.linkedDate || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        entry.notes.push(newNote);
+        entry.updatedAt = new Date().toISOString();
+        
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return true;
+    } catch (error) {
+        console.error('Error adding note to protocol history:', error);
+        return false;
+    }
+}
+
+/**
+ * Update a note in a protocol history entry
+ * @param {string} historyId - The history entry ID
+ * @param {string} noteId - The note ID
+ * @param {Object} updates - Updated note data
+ * @returns {boolean} Success status
+ */
+export function updateNoteInProtocolHistory(historyId, noteId, updates) {
+    try {
+        const allHistory = getProtocolHistory();
+        const entry = allHistory.find(e => e.id === historyId);
+        
+        if (!entry || !Array.isArray(entry.notes)) {
+            return false;
+        }
+        
+        const noteIndex = entry.notes.findIndex(n => n.id === noteId);
+        if (noteIndex === -1) {
+            return false;
+        }
+        
+        entry.notes[noteIndex] = {
+            ...entry.notes[noteIndex],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        
+        entry.updatedAt = new Date().toISOString();
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return true;
+    } catch (error) {
+        console.error('Error updating note in protocol history:', error);
+        return false;
+    }
+}
+
+/**
+ * Delete a note from a protocol history entry
+ * @param {string} historyId - The history entry ID
+ * @param {string} noteId - The note ID
+ * @returns {boolean} Success status
+ */
+export function deleteNoteFromProtocolHistory(historyId, noteId) {
+    try {
+        const allHistory = getProtocolHistory();
+        const entry = allHistory.find(e => e.id === historyId);
+        
+        if (!entry || !Array.isArray(entry.notes)) {
+            return false;
+        }
+        
+        entry.notes = entry.notes.filter(n => n.id !== noteId);
+        entry.updatedAt = new Date().toISOString();
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return true;
+    } catch (error) {
+        console.error('Error deleting note from protocol history:', error);
+        return false;
+    }
+}
+
+/**
+ * Get all notes for a protocol (across all history entries)
+ * @param {string} protocolId - The protocol ID
+ * @returns {Array} Array of notes with history entry context
+ */
+export function getProtocolNotes(protocolId) {
+    try {
+        const allHistory = getProtocolHistory();
+        const entries = allHistory.filter(e => e.protocolId === protocolId);
+        
+        const notes = [];
+        entries.forEach(entry => {
+            if (Array.isArray(entry.notes)) {
+                entry.notes.forEach(note => {
+                    notes.push({
+                        ...note,
+                        historyEntryId: entry.id,
+                        protocolName: entry.protocolName,
+                        startDate: entry.startDate,
+                        endDate: entry.endDate
+                    });
+                });
+            }
+        });
+        
+        return notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } catch (error) {
+        console.error('Error getting protocol notes:', error);
+        return [];
+    }
+}
+
+/**
+ * Get notes for calendar display (notes with linkedDate)
+ * @param {string} dateKey - Date key in format YYYY-MM-DD
+ * @returns {Array} Array of notes linked to that date
+ */
+export function getNotesForDate(dateKey) {
+    try {
+        const allHistory = getProtocolHistory();
+        const notes = [];
+        
+        allHistory.forEach(entry => {
+            if (Array.isArray(entry.notes)) {
+                entry.notes.forEach(note => {
+                    if (note.linkedDate === dateKey) {
+                        notes.push({
+                            ...note,
+                            historyEntryId: entry.id,
+                            protocolId: entry.protocolId,
+                            protocolName: entry.protocolName
+                        });
+                    }
+                });
+            }
+        });
+        
+        return notes;
+    } catch (error) {
+        console.error('Error getting notes for date:', error);
+        return [];
     }
 }
 

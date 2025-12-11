@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Target, History, XCircle } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -18,6 +18,7 @@ import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import ProtocolsHelpPanel from '../components/protocols/ProtocolsHelpPanel';
 import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
+import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
 import { useAppContext } from '../context/AppContext';
 import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -41,6 +42,8 @@ export default function Protocols() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [followUpProtocol, setFollowUpProtocol] = useState(null);
+  const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -135,9 +138,20 @@ export default function Protocols() {
         protocolData: updatedProtocolData,
         skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
       });
+      
+      // Show follow-up modal
+      setFollowUpProtocol(protocolToEnd);
+      setFollowUpHistoryId(activeHistoryEntry.id);
+    } else {
+      // Protocol ended but no history entry - still show toast
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
     }
-    
-    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
+  };
+  
+  const handleFollowUpClose = () => {
+    setFollowUpProtocol(null);
+    setFollowUpHistoryId(null);
+    window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
   };
 
   // Check and auto-end protocols that have finished organically
@@ -614,14 +628,14 @@ export default function Protocols() {
                 switch (status) {
                   case 'completed':
                     return {
-                      icon: CheckCircle,
+                      icon: CalendarCheck,
                       label: 'Completed',
                       bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
                       textColor: '#dcfce7'
                     };
                   case 'ended_early':
                     return {
-                      icon: XCircle,
+                      icon: CalendarX,
                       label: 'Ended Early',
                       bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
                       textColor: '#fee2e2'
@@ -778,7 +792,7 @@ export default function Protocols() {
                             {/* Protocol card */}
                             <button
                               onClick={() => setHistoryProtocol(protocol || { id: historyEntry.protocolId, protocolName: historyEntry.protocolName })}
-                              className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99]"
+                              className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
                               style={{ 
                                 backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
                                 border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
@@ -796,18 +810,6 @@ export default function Protocols() {
                                     {protocol?.emoji && (
                                       <span className="text-lg">{protocol.emoji}</span>
                                     )}
-                                    {statusBadge && StatusIcon && (
-                                      <span 
-                                        className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
-                                        style={{ 
-                                          backgroundColor: statusBadge.bgColor,
-                                          color: statusBadge.textColor
-                                        }}
-                                      >
-                                        <StatusIcon size={12} />
-                                        {statusBadge.label}
-                                      </span>
-                                    )}
                                   </div>
                                   
                                   <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
@@ -815,23 +817,41 @@ export default function Protocols() {
                                       <Clock size={14} />
                                       {entry.startDate} → {entry.endDate}
                                     </span>
-                                    {entry.durationDays > 0 && (
-                                      <span>
-                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                      </span>
-                                    )}
                                   </div>
                                 </div>
                                 
-                                {/* Arrow indicator */}
-                                <div className="flex-shrink-0 opacity-50">
-                                  <ChevronDown 
-                                    size={20} 
-                                    className="transform rotate-[-90deg]"
-                                    style={{ color: theme.textLight }}
-                                  />
+                                {/* Duration and arrow indicator - upper right */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {entry.durationDays > 0 && (
+                                    <span className="text-sm font-medium" style={{ color: theme.textLight }}>
+                                      {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  <div className="opacity-50">
+                                    <ChevronDown 
+                                      size={20} 
+                                      className="transform rotate-[-90deg]"
+                                      style={{ color: theme.textLight }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
+                              
+                              {/* Status badge - bottom right */}
+                              {statusBadge && StatusIcon && (
+                                <div className="absolute bottom-2 right-2">
+                                  <span 
+                                    className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
+                                    style={{ 
+                                      backgroundColor: statusBadge.bgColor,
+                                      color: statusBadge.textColor
+                                    }}
+                                  >
+                                    <StatusIcon size={12} />
+                                    {statusBadge.label}
+                                  </span>
+                                </div>
+                              )}
                             </button>
                           </div>
                         );
@@ -947,6 +967,15 @@ export default function Protocols() {
         }}
       />
 
+      <ProtocolFollowUpModal
+        open={!!followUpProtocol}
+        onClose={handleFollowUpClose}
+        protocol={followUpProtocol}
+        historyEntryId={followUpHistoryId}
+        theme={theme}
+        onSave={handleFollowUpClose}
+      />
+
       <ProtocolHistoryModal
         open={!!historyProtocol}
         onClose={() => setHistoryProtocol(null)}
@@ -966,6 +995,133 @@ export default function Protocols() {
           theme={theme}
           variant="modern"
           maxWidth="max-w-2xl"
+          footer={
+            <div className="w-full flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                    {manageConfirm?.id && (
+                        <button
+                            type="button"
+                            onClick={() => setDeleteConfirm(manageConfirm)}
+                            className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                            style={{
+                                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                boxShadow: theme.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                            }}
+                        >
+                            Delete
+                        </button>
+                    )}
+                </div>
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                    <button
+                        type="button"
+                        onClick={() => setManageConfirm(null)}
+                        className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                        style={{ 
+                            backgroundColor: theme.cardBackground,
+                            color: theme.text,
+                            border: `1px solid ${theme.border}`
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = theme.isDark ? '0 6px 12px rgba(0, 0, 0, 0.3)' : '0 6px 12px rgba(0, 0, 0, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = theme.isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (manageConfirm) {
+                                updateProtocol(manageConfirm);
+                                
+                                // Update history entry with current linkedItems (for complete data preservation)
+                                try {
+                                    const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                                    if (activeHistoryEntry) {
+                                        // Extract skipped reconstitution data from linkedItems
+                                        const skippedReconstitution = {};
+                                        const linkedItems = manageConfirm.linkedItems || {};
+                                        Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                            if (item.status === 'skipped' && item.deliveryMethod) {
+                                                const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
+                                                skippedReconstitution[peptideId] = {
+                                                    peptideName: peptide?.name || 'Unknown',
+                                                    deliveryMethod: item.deliveryMethod
+                                                };
+                                            }
+                                        });
+                                        
+                                        // Update history entry with complete linkedItems and skipped reconstitution
+                                        const updatedProtocolData = {
+                                            ...(activeHistoryEntry.protocolData || {}),
+                                            linkedItems: linkedItems // Save complete linkedItems for reference
+                                        };
+                                        
+                                        updateProtocolHistoryEntry(activeHistoryEntry.id, {
+                                            protocolData: updatedProtocolData,
+                                            skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to update protocol history with linkedItems:', e);
+                                }
+                                
+                                // Save to protocol draft for real-time sync with tasks/calendar
+                                try {
+                                    const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
+                                    localStorage.setItem(draftKey, JSON.stringify({
+                                        data: manageConfirm,
+                                        timestamp: new Date().toISOString()
+                                    }));
+                                    
+                                    // Emit event so TasksWidget and Calendar pick up the changes immediately
+                                    window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+                                        detail: { storageKey: draftKey, formData: manageConfirm }
+                                    }));
+                                } catch (e) {
+                                    console.warn('Failed to save protocol draft:', e);
+                                }
+                                
+                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                    detail: { message: 'Protocol updated successfully!', type: 'success' } 
+                                }));
+                            }
+                            setManageConfirm(null);
+                            setHistoryProtocol(null); // Ensure history modal is also closed
+                        }}
+                        className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
+                        style={{ 
+                            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                        }}
+                    >
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        }
         >
           <div className="space-y-4">
             {/* PROTOCOL SETTINGS Section Header */}
@@ -1055,133 +1211,6 @@ export default function Protocols() {
                         End Protocol Now
                     </button>
                 </div>
-            </div>
-        </div>
-
-        {/* Footer */}
-        <div className="w-full flex items-center gap-3 pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
-            <div className="flex items-center gap-2 flex-1">
-                {manageConfirm?.id && (
-                    <button
-                        type="button"
-                        onClick={() => setDeleteConfirm(manageConfirm)}
-                        className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                        style={{
-                            background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                            color: '#ffffff',
-                            border: 'none',
-                            boxShadow: theme.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                        }}
-                    >
-                        Delete
-                    </button>
-                )}
-            </div>
-            <div className="flex items-center gap-2 flex-1 justify-end">
-                <button
-                    type="button"
-                    onClick={() => setManageConfirm(null)}
-                    className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                    style={{ 
-                        backgroundColor: theme.cardBackground,
-                        color: theme.text,
-                        border: `1px solid ${theme.border}`
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 6px 12px rgba(0, 0, 0, 0.3)' : '0 6px 12px rgba(0, 0, 0, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
-                    }}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (manageConfirm) {
-                            updateProtocol(manageConfirm);
-                            
-                            // Update history entry with current linkedItems (for complete data preservation)
-                            try {
-                                const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
-                                if (activeHistoryEntry) {
-                                    // Extract skipped reconstitution data from linkedItems
-                                    const skippedReconstitution = {};
-                                    const linkedItems = manageConfirm.linkedItems || {};
-                                    Object.entries(linkedItems).forEach(([peptideId, item]) => {
-                                        if (item.status === 'skipped' && item.deliveryMethod) {
-                                            const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
-                                            skippedReconstitution[peptideId] = {
-                                                peptideName: peptide?.name || 'Unknown',
-                                                deliveryMethod: item.deliveryMethod
-                                            };
-                                        }
-                                    });
-                                    
-                                    // Update history entry with complete linkedItems and skipped reconstitution
-                                    const updatedProtocolData = {
-                                        ...(activeHistoryEntry.protocolData || {}),
-                                        linkedItems: linkedItems // Save complete linkedItems for reference
-                                    };
-                                    
-                                    updateProtocolHistoryEntry(activeHistoryEntry.id, {
-                                        protocolData: updatedProtocolData,
-                                        skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
-                                    });
-                                }
-                            } catch (e) {
-                                console.warn('Failed to update protocol history with linkedItems:', e);
-                            }
-                            
-                            // Save to protocol draft for real-time sync with tasks/calendar
-                            try {
-                                const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
-                                localStorage.setItem(draftKey, JSON.stringify({
-                                    data: manageConfirm,
-                                    timestamp: new Date().toISOString()
-                                }));
-                                
-                                // Emit event so TasksWidget and Calendar pick up the changes immediately
-                                window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
-                                    detail: { storageKey: draftKey, formData: manageConfirm }
-                                }));
-                            } catch (e) {
-                                console.warn('Failed to save protocol draft:', e);
-                            }
-                            
-                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                detail: { message: 'Protocol updated successfully!', type: 'success' } 
-                            }));
-                        }
-                        setManageConfirm(null);
-                        setHistoryProtocol(null); // Ensure history modal is also closed
-                    }}
-                    className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
-                    style={{ 
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                        color: theme.textOnPrimary || '#ffffff',
-                        border: 'none'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                >
-                    Save Changes
-                </button>
             </div>
         </div>
         </Modal>
