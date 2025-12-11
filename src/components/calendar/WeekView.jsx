@@ -123,6 +123,19 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     };
   }, []);
 
+  // Listen for protocol history updates to refresh protocol notes
+  useEffect(() => {
+    const handleProtocolHistoryUpdate = () => {
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:protocol-history-updated', handleProtocolHistoryUpdate);
+    
+    return () => {
+      window.removeEventListener('tpp:protocol-history-updated', handleProtocolHistoryUpdate);
+    };
+  }, []);
+
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(startDate)
     d.setDate(d.getDate() + i)
@@ -138,6 +151,11 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     
     // Get protocol notes for this date
     const protocolNotes = getNotesForDate(dayKey)
+    
+    // Debug: Log notes for today
+    if (isToday && protocolNotes.length > 0) {
+      console.log('📝 WeekView: Found protocol notes for today:', protocolNotes);
+    }
     
     // Calculate actual task completion status
     let totalTasks = 0;

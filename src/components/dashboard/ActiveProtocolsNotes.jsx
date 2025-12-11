@@ -3,7 +3,7 @@ import { FlaskConical, Plus, FileText, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
-import { formatMMDDYYYY } from '../../utils/date';
+import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 
 const NOTE_TAGS = [
     { id: 'progress', label: 'Progress', color: '#10b981' },
@@ -121,7 +121,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
             type: 'during',
             content: noteContent.trim(),
             tags: selectedTags,
-            linkedDate: null
+            linkedDate: getLocalDateString() // Automatically link to today's date so it appears in calendar
         };
 
         if (addNoteToProtocolHistory(activeEntry.id, noteData)) {
