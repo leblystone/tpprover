@@ -38,6 +38,7 @@ import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
+import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
@@ -58,7 +59,8 @@ export default function CustomizableDashboard() {
     orders, 
     setOrders, 
     vendors, 
-    setVendors, 
+    setVendors,
+    addVendor,
     protocols,
     setProtocols, 
     supplements, 
@@ -111,6 +113,14 @@ export default function CustomizableDashboard() {
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   const [vendorNames] = useState(() => {
     try { 
@@ -266,6 +276,50 @@ export default function CustomizableDashboard() {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [setScheduledBuys]);
+
+  // Load and sync wishlist data
+  useEffect(() => {
+    const loadWishlist = () => {
+      try {
+        const raw = localStorage.getItem('tpprover_wishlist');
+        if (raw) {
+          const items = JSON.parse(raw);
+          setWishlist(items);
+        } else {
+          setWishlist([]);
+        }
+      } catch (error) {
+        console.error('Error loading wishlist:', error);
+        setWishlist([]);
+      }
+    };
+
+    loadWishlist();
+
+    // Listen for wishlist update events
+    const handleWishlistUpdated = (e) => {
+      if (e.detail?.wishlist) {
+        setWishlist(e.detail.wishlist);
+      } else {
+        loadWishlist();
+      }
+    };
+
+    window.addEventListener('tpp:wishlist-updated', handleWishlistUpdated);
+
+    // Also listen for localStorage changes (cross-tab sync)
+    const handleStorageChange = (e) => {
+      if (e.key === 'tpprover_wishlist') {
+        loadWishlist();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('tpp:wishlist-updated', handleWishlistUpdated);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // Quick Actions event listeners
   useEffect(() => {
@@ -832,6 +886,8 @@ export default function CustomizableDashboard() {
                       onTaskToggle={handleTaskToggle}
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
+                      wishlist={wishlist}
+                      onAddWishlistItem={() => setShowAddWishlistModal(true)}
                       onViewAllVendors={() => navigate('/app/vendors')}
                       onCompleteVendor={(vendor) => {
                         setEditingVendor(vendor);
@@ -1035,14 +1091,9 @@ export default function CustomizableDashboard() {
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(v) => {
           // When user manually saves (completes profile), remove stub status
-          const savedVendor = { ...v, isStub: false, needsCompletion: false };
-          setVendors(prev => {
-            const existing = prev.find(p => p.id === savedVendor.id);
-            if (existing) {
-              return prev.map(p => p.id === savedVendor.id ? savedVendor : p);
-            }
-            return [...prev, { ...savedVendor, id: generateId() }];
-          });
+          // Use addVendor to ensure proper syncing with Orders page and vendor list
+          const vendorId = v.id || editingVendor?.id || generateId();
+          addVendor({ ...v, id: vendorId, isStub: false, needsCompletion: false });
           setEditingVendor(null);
           setShowNewVendor(false);
         }}
@@ -1304,6 +1355,55 @@ export default function CustomizableDashboard() {
           
           setShowAddBuyModal(false);
           addToast('Scheduled buy deleted', 'success');
+        }}
+      />
+
+      <AddWishlistItemModal
+        open={showAddWishlistModal}
+        onClose={() => setShowAddWishlistModal(false)}
+        theme={theme}
+        item={null}
+        onSave={(item) => {
+          if (isReadOnly) {
+            setShowUpgradeModal(true);
+            return;
+          }
+          
+          const newItem = { 
+            ...item, 
+            id: item.id || generateId(),
+            createdAt: item.createdAt || new Date().toISOString()
+          };
+          
+          setWishlist(prev => {
+            const isEdit = item.id && prev.some(i => i.id === item.id);
+            let updated;
+            if (isEdit) {
+              updated = prev.map(i => i.id === item.id ? { ...i, ...newItem } : i);
+            } else {
+              updated = [...prev, newItem];
+            }
+            
+            // Save to localStorage immediately
+            try {
+              localStorage.setItem('tpprover_wishlist', JSON.stringify(updated));
+              localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+            } catch (e) {
+              console.error('Failed to save wishlist to localStorage:', e);
+            }
+            
+            // Dispatch event to trigger updates
+            window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', {
+              detail: { wishlist: updated }
+            }));
+            
+            return updated;
+          });
+          
+          setShowAddWishlistModal(false);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: item.id ? 'Wishlist item updated' : 'Item added to wishlist', type: 'success' } 
+          }));
         }}
       />
 

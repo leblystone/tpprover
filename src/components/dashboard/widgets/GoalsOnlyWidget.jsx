@@ -104,6 +104,16 @@ const GoalsOnlyWidget = ({
     try {
       const allGoalsStr = localStorage.getItem('tpprover_user_goals');
       let allGoals = allGoalsStr ? JSON.parse(allGoalsStr) : [];
+      const goalToDelete = allGoals.find(goal => goal.id === goalId);
+      
+      // Record deletion with item snapshot for restore functionality
+      const { recordDeletion } = require('../../../utils/deletionTracking');
+      if (goalToDelete) {
+        recordDeletion('goals', goalId, goalToDelete);
+      } else {
+        recordDeletion('goals', goalId);
+      }
+      
       const filteredGoals = allGoals.filter(goal => goal.id !== goalId);
       localStorage.setItem('tpprover_user_goals', JSON.stringify(filteredGoals));
       

@@ -104,12 +104,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           id: 1, 
           name: prefill.peptide || '', 
           mg: prefill.mg || '', 
+          mgUnit: prefill.mgUnit || 'mg', // Include mgUnit to preserve unit context
           // Don't prefill dose - let user enter it
           dose: '', 
           doseUnit: 'mcg',
           stockpileId: prefill.stockpileId || null,
           quantityUsed: prefill.quantityUsed || 1,
-          costPerMg: prefill.costPerMg || '' // Include costPerMg if available
+          costPerMg: prefill.costPerMg || '' // Include costPerMg if available (may be cost per mg/g/ml/iu)
         };
         setForm(prev => ({ 
           ...prev, 
@@ -195,10 +196,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const costPerDose = useMemo(() => {
     // Check if costPerMg is available from prefill or peptides
     const firstPeptide = safeForm.peptides?.[0];
-    const costPerMg = firstPeptide?.costPerMg || prefill?.costPerMg;
+    const costPerUnit = firstPeptide?.costPerMg || prefill?.costPerMg;
+    const mgUnit = firstPeptide?.mgUnit || prefill?.mgUnit || 'mg';
+    const amount = Number(firstPeptide?.mg || prefill?.mg || 0);
     
-    // If costPerMg is provided, use it to calculate cost per dose
-    if (costPerMg && firstPeptide?.dose) {
+    // If costPerUnit is provided, use it to calculate cost per dose
+    if (costPerUnit && firstPeptide?.dose) {
       const doseValue = Number(firstPeptide.dose) || 0;
       const doseUnit = firstPeptide.doseUnit || 'mcg';
       
@@ -219,9 +222,31 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       }
       
       if (doseInMg > 0) {
-        const costPerMgNum = Number(costPerMg);
-        if (!isNaN(costPerMgNum) && costPerMgNum > 0) {
-          return formatCurrency(costPerMgNum * doseInMg);
+        const costPerUnitNum = Number(costPerUnit);
+        if (!isNaN(costPerUnitNum) && costPerUnitNum > 0) {
+          // Convert cost per unit to cost per mg based on the unit type
+          let costPerMg = costPerUnitNum;
+          const unit = (mgUnit || 'mg').toLowerCase();
+          
+          if (unit === 'g') {
+            // Cost per gram -> cost per mg: divide by 1000
+            costPerMg = costPerUnitNum / 1000;
+          } else if (unit === 'ml') {
+            // Cost per ml -> cost per mg: need concentration (mg per ml) to convert properly
+            // Without concentration data, we can't accurately convert
+            // Skip this calculation and fall back to default method
+            costPerMg = 0;
+          } else if (unit === 'iu') {
+            // Cost per IU -> cost per mg: need IU to mg conversion factor
+            // Without conversion factor, we can't accurately convert
+            // Skip this calculation and fall back to default method
+            costPerMg = 0;
+          }
+          // else: unit is 'mg' or default, costPerUnit is already cost per mg
+          
+          if (costPerMg > 0) {
+            return formatCurrency(costPerMg * doseInMg);
+          }
         }
       }
     }
@@ -232,7 +257,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     }
     
     return '';
-  }, [cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg])
+  }, [cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg, prefill?.mgUnit])
 
   const addPeptide = () => {
     const peptides = safeForm.peptides || [];

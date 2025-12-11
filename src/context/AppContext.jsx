@@ -9,7 +9,7 @@ import {
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps
 } from '../services/cloudStorage';
-import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
+import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
@@ -1509,6 +1509,13 @@ export function AppProvider({ children }) {
             console.log('🗑️ Deleting protocol:', protocolToDelete.name || 'Unknown');
         }
         
+        // Record deletion with item snapshot for restore functionality
+        if (protocolToDelete) {
+            recordDeletion('protocols', protocolId, protocolToDelete);
+        } else {
+            recordDeletion('protocols', protocolId);
+        }
+        
         // Remove from local state
         const updatedProtocols = protocols.filter(p => p.id !== protocolId);
         setProtocols(updatedProtocols);
@@ -1663,6 +1670,11 @@ export function AppProvider({ children }) {
 
         if (vendorToDelete) {
             console.log('🗑️ Deleting vendor:', vendorToDelete.name || 'Unknown');
+            // Record deletion with item snapshot for restore functionality
+            const vendorIdToRecord = vendorToDelete.id || vendorId;
+            if (vendorIdToRecord) {
+                recordDeletion('vendors', String(vendorIdToRecord), vendorToDelete);
+            }
         }
 
         setVendors(prev => {
@@ -1874,6 +1886,13 @@ export function AppProvider({ children }) {
                 
                 if (supplementToDelete) {
                     console.log('🗑️ Deleting supplement:', supplementToDelete.name || 'Unknown');
+                }
+                
+                // Record deletion with item snapshot for restore functionality
+                if (supplementToDelete) {
+                    recordDeletion('supplements', supplementId, supplementToDelete);
+                } else {
+                    recordDeletion('supplements', supplementId);
                 }
                 
                 // Remove from state using functional update

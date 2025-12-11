@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
+import ConfirmationModal from '../ui/ConfirmationModal';
 import { Pill, TestTube, Pipette } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -11,6 +12,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
     const [schedule, setSchedule] = useState([]);
     const [delivery, setDelivery] = useState('oral');
     const [days, setDays] = useState([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
     useEffect(() => {
         if (open && supplement) {
@@ -69,10 +71,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                     <div className="flex-1">
                         {supplement?.id && (
                             <button 
-                                onClick={() => {
-                                    onSave({ ...supplement, _delete: true });
-                                    onClose();
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="px-3 py-2 rounded-md border text-red-600 hover:bg-red-50 transition-colors"
                                 style={{ borderColor: '#ef4444' }}
                             >
@@ -150,5 +149,22 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                 </div>
             </div>
         </Modal>
+        
+        <ConfirmationModal
+            open={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={() => {
+                onSave({ ...supplement, _delete: true });
+                setShowDeleteConfirm(false);
+                onClose();
+            }}
+            title="Delete Supplement?"
+            message={`Are you sure you want to delete "${supplement?.name || 'this supplement'}"? This action cannot be undone, but you can restore it from Recently Deleted within 14 days.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+        />
+    </>
     );
 }

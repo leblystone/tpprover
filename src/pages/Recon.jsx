@@ -229,6 +229,14 @@ export default function Recon() {
 			console.log('🗑️ Deleting recon item:', `${itemToDelete.peptide || 'Unknown'} ${itemToDelete.mg || ''}mg`);
 		}
 		
+		// Record deletion with item snapshot for restore functionality
+		const { recordDeletion } = require('../utils/deletionTracking');
+		if (itemToDelete) {
+			recordDeletion('reconItems', id, itemToDelete);
+		} else {
+			recordDeletion('reconItems', id);
+		}
+		
 		// Remove from local state
 		const updatedItems = reconItems.filter(item => item.id !== id);
 		setReconItems(updatedItems);
@@ -646,6 +654,10 @@ export default function Recon() {
 
     const handleDeleteHistory = async (historyItem) => {
         if (!historyItem) return;
+
+        // Record deletion with item snapshot for restore functionality
+        const { recordDeletion } = require('../utils/deletionTracking');
+        recordDeletion('reconHistory', historyItem.id, historyItem);
 
         const updatedHistory = reconHistory.filter(h => h.id !== historyItem.id);
         setReconHistory(updatedHistory);

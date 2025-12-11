@@ -20,6 +20,7 @@ import GlossaryWidget from './widgets/GlossaryWidget';
 import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 import TipsWidget from './widgets/TipsWidget';
+import WishlistWidget from './widgets/WishlistWidget';
 
 const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
@@ -231,6 +232,18 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
         <TipsWidget 
           widget={widget} 
           theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.WISHLIST:
+      return (
+        <WishlistWidget 
+          widget={widget} 
+          theme={theme} 
+          wishlist={props.wishlist}
+          onAdd={props.onAddWishlistItem}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
       

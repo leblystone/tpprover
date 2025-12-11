@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
@@ -9,6 +9,8 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
     const [isCostPerMgFocused, setIsCostPerMgFocused] = useState(false);
     const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
     const [isAmountUnitDropdownOpen, setIsAmountUnitDropdownOpen] = useState(false);
+    const lastCalculatedValueRef = useRef(null);
+    const userHasEditedRef = useRef(false);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -110,19 +112,54 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
         return { value: null, unit: mgUnit, label };
     }, [item.price, item.mg, item.quantity, item.unit, item.mgUnit]);
 
-    // Auto-fill cost per unit when calculation is available and field is empty
+    // Auto-fill cost per unit when calculation is available
+    // Updates when calculation changes, but not if user is currently focused on the input field
     useEffect(() => {
-        if (calculatedCostPerUnit.value !== null && !item.costPerMg) {
-            // Format the value to a reasonable number of decimal places
+        if (calculatedCostPerUnit.value !== null && !isCostPerMgFocused) {
             const formattedValue = calculatedCostPerUnit.value.toFixed(6).replace(/\.?0+$/, '');
-            onChange({ ...item, costPerMg: formattedValue });
+            const currentValue = item.costPerMg ? parseFloat(item.costPerMg) : null;
+            
+            // Check if the current value matches the last calculated value (meaning it was auto-filled)
+            const matchesLastCalculated = lastCalculatedValueRef.current !== null && 
+                                         currentValue !== null &&
+                                         Math.abs(currentValue - lastCalculatedValueRef.current) < 0.000001;
+            
+            // Update if:
+            // 1. Field is empty, OR
+            // 2. Current value matches last calculated (was auto-filled), OR
+            // 3. User hasn't manually edited
+            if (!item.costPerMg || matchesLastCalculated || !userHasEditedRef.current) {
+                // Only update if the value actually changed
+                if (formattedValue !== String(item.costPerMg || '')) {
+                    onChange({ ...item, costPerMg: formattedValue });
+                    lastCalculatedValueRef.current = calculatedCostPerUnit.value;
+                }
+            }
+        } else if (calculatedCostPerUnit.value === null) {
+            // Clear the ref when calculation is invalid
+            lastCalculatedValueRef.current = null;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [calculatedCostPerUnit.value, calculatedCostPerUnit.unit, item.costPerMg]);
+    }, [calculatedCostPerUnit.value, calculatedCostPerUnit.unit, isCostPerMgFocused]);
 
     const handleChange = (field, value) => {
+        if (field === 'costPerMg') {
+            // Mark that user has manually edited the cost per field
+            userHasEditedRef.current = true;
+            // Clear the last calculated value ref since user is overriding
+            lastCalculatedValueRef.current = null;
+        }
         onChange({ ...item, [field]: value });
     };
+    
+    // Reset user edit flag when costPerMg is cleared or when calculation inputs change
+    // This allows auto-update when user changes price, amount, quantity, or unit
+    useEffect(() => {
+        if (!item.costPerMg) {
+            userHasEditedRef.current = false;
+            lastCalculatedValueRef.current = null;
+        }
+    }, [item.costPerMg, item.price, item.mg, item.quantity, item.unit, item.mgUnit]);
 
     return (
         <div className="p-3 rounded-lg relative" style={{ 
@@ -505,6 +542,19 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         >
                             Quantity
                         </label>
+                        {/* Kit to Vial conversion tooltip */}
+                        {String(item.unit || 'vial').toLowerCase() === 'kit' && (
+                            <div className="mt-1 text-xs flex items-center gap-1" style={{ color: theme.textLight || theme.text }}>
+                                <span>💡</span>
+                                <span>
+                                    {(() => {
+                                        const kitQuantity = Number(item.quantity) || 1;
+                                        const totalVials = kitQuantity * 10;
+                                        return `${kitQuantity} ${kitQuantity === 1 ? 'kit' : 'kits'} = ${totalVials} ${totalVials === 1 ? 'vial' : 'vials'}`;
+                                    })()}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
                 

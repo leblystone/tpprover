@@ -52,6 +52,16 @@ const NotesWidget = ({ widget, theme }) => {
 
   const handleDeleteNote = (e, noteId) => {
     e.stopPropagation();
+    const noteToDelete = userNotes.find(note => note.id === noteId);
+    
+    // Record deletion with item snapshot for restore functionality
+    const { recordDeletion } = require('../../../utils/deletionTracking');
+    if (noteToDelete) {
+      recordDeletion('userNotes', noteId, noteToDelete);
+    } else {
+      recordDeletion('userNotes', noteId);
+    }
+    
     const updatedNotes = userNotes.filter(note => note.id !== noteId);
     saveNotes(updatedNotes);
   };

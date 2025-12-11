@@ -20,7 +20,9 @@ export default function TextInput({
   maxLength = null
 }) {
   const [isFocused, setIsFocused] = useState(false);
-  const hasValue = value && value.toString().trim() !== '';
+  // Ensure value is always a string to prevent controlled/uncontrolled warnings
+  const safeValue = value != null ? String(value) : '';
+  const hasValue = safeValue && safeValue.trim() !== '';
   const isLabelActive = isFocused || hasValue;
   return (
     <>
@@ -90,7 +92,7 @@ export default function TextInput({
             <textarea
               name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
-              value={value}
+              value={safeValue}
               rows={rows}
               onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
               onFocus={(e) => {
@@ -120,7 +122,7 @@ export default function TextInput({
               name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               type={type}
-              value={value}
+              value={safeValue}
               onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
               onFocus={(e) => {
                 setIsFocused(true);
@@ -158,7 +160,7 @@ export default function TextInput({
         {multiline ? (
           <textarea
             name={name}
-            value={value}
+            value={safeValue}
             rows={rows}
             onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
             onFocus={onFocus}
@@ -182,7 +184,7 @@ export default function TextInput({
           <input
             name={name}
             type={type}
-            value={value}
+            value={safeValue}
             onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
             onFocus={onFocus}
             onBlur={onBlur}

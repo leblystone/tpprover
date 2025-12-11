@@ -8,6 +8,7 @@ import { useAppContext } from '../context/AppContext'
 import { saveAppData } from '../services/cloudStorage'
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
 import DeleteAccountModal from '../components/common/DeleteAccountModal'
+import RecentlyDeleted from '../components/settings/RecentlyDeleted'
 
 export default function SettingsData() {
   const { theme } = useOutletContext()
@@ -491,6 +492,9 @@ export default function SettingsData() {
             </div>
           </div>
         )}
+
+        {/* Recently Deleted Section */}
+        <RecentlyDeleted theme={theme} />
 
         {/* Recovery Section */}
         <div 

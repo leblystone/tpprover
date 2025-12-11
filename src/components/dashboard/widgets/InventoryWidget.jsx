@@ -111,7 +111,9 @@ const InventoryWidget = ({ widget, theme }) => {
                     <li 
                       key={`${item.name}-${idx}`}
                       className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
-                      style={{ backgroundColor: theme.secondary }}
+                      style={{ 
+                        backgroundColor: idx % 2 === 0 ? theme.secondary : theme.background 
+                      }}
                     >
                       <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
                         {item.name}
@@ -141,7 +143,9 @@ const InventoryWidget = ({ widget, theme }) => {
                     <li 
                       key={`${item.name}-${item.mg}-${idx}`}
                       className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
-                      style={{ backgroundColor: theme.secondary }}
+                      style={{ 
+                        backgroundColor: idx % 2 === 0 ? theme.secondary : theme.background 
+                      }}
                     >
                       <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
                         {item.name}

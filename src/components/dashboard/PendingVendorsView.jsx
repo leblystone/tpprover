@@ -9,9 +9,9 @@ export default function PendingVendorsView({ vendors, theme, onViewAll, onComple
   )
 
   return (
-    <div className="p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-      <h3 className="text-base font-semibold mb-3 border-b pb-2" style={{ color: theme.primaryDark, borderColor: theme.border }}>Pending Vendors</h3>
-      <div className="space-y-2">
+    <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+      <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0" style={{ color: theme.primaryDark, borderColor: theme.border }}>Pending Vendors</h3>
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
         {vendors.map((vendor, index) => (
           <div key={vendor.id || `vendor-${index}`} className="flex items-center justify-between p-2 rounded-lg border" style={{ borderColor: theme.border }}>
             <div className="flex items-center space-x-2">
@@ -26,7 +26,7 @@ export default function PendingVendorsView({ vendors, theme, onViewAll, onComple
             <button 
               onClick={() => onComplete?.(vendor)}
               className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
-              style={{ backgroundColor: theme.primary, color: theme.white }}
+              style={{ backgroundColor: theme.primary, color: '#ffffff' }}
             >
               Complete
             </button>
@@ -35,8 +35,8 @@ export default function PendingVendorsView({ vendors, theme, onViewAll, onComple
       </div>
       <button 
         onClick={onViewAll}
-        className="mt-3 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 w-full btn-hover"
-        style={{ backgroundColor: theme.primary, color: theme.white }}
+        className="mt-3 text-sm text-center hover:underline transition-all duration-200 flex-shrink-0 cursor-pointer"
+        style={{ color: theme.primary }}
       >
         View All Vendors
       </button>

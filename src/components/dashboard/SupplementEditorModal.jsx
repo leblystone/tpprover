@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import ConfirmationModal from '../ui/ConfirmationModal';
 import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
 import { generateId } from '../../utils/string';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
     const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (supplement) {
@@ -60,6 +62,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
     ];
 
     return (
+    <>
         <Modal
             open={open}
             onClose={onClose}
@@ -72,10 +75,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         {supplement?.id && (
                             <button 
                                 type="button"
-                                onClick={async () => {
-                                    await onSave({ ...supplement, _delete: true });
-                                    // onSave will handle closing the modal
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
                                 style={{
                                     background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
@@ -256,6 +256,23 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 </div>
             </div>
         </Modal>
+        
+        <ConfirmationModal
+            open={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={async () => {
+                await onSave({ ...supplement, _delete: true });
+                setShowDeleteConfirm(false);
+                // onSave will handle closing the modal
+            }}
+            title="Delete Supplement?"
+            message={`Are you sure you want to delete "${supplement?.name || 'this supplement'}"? This action cannot be undone, but you can restore it from Recently Deleted within 14 days.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+        />
+    </>
     );
 }
 

@@ -393,7 +393,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             }}
             onTouchStart={(e) => {
               // Prevent blur events on touch devices
-              e.preventDefault();
+              if (e.cancelable) {
+                e.preventDefault();
+              }
             }}
             onClick={(e) => {
               e.preventDefault();

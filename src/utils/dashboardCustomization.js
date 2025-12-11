@@ -18,7 +18,8 @@ export const WIDGET_TYPES = {
   GLOSSARY: 'glossary',
   NOTES: 'notes',
   INJECTION_HISTORY: 'injection_history',
-  TIPS: 'tips'
+  TIPS: 'tips',
+  WISHLIST: 'wishlist'
 };
 
 export const WIDGET_SIZES = {
@@ -200,6 +201,17 @@ export const DEFAULT_WIDGETS = [
     enabled: true,
     settings: {
       rotationInterval: 20
+    }
+  },
+  {
+    id: 'wishlist',
+    type: WIDGET_TYPES.WISHLIST,
+    title: 'Wishlist',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 4, y: 3 },
+    enabled: true,
+    settings: {
+      maxItems: 3
     }
   },
   // Optional widgets (disabled by default but available for customization)
@@ -389,6 +401,15 @@ export const WIDGET_METADATA = {
     settings: [
       { key: 'rotationInterval', label: 'Rotation interval (seconds)', type: 'number', default: 20, min: 10, max: 60 }
     ]
+  },
+  [WIDGET_TYPES.WISHLIST]: {
+    title: 'Wishlist',
+    description: 'Track research items you want to purchase or investigate',
+    icon: 'Heart',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'maxItems', label: 'Max items to show', type: 'number', default: 3, min: 1, max: 10 }
+    ]
   }
 };
 
@@ -422,7 +443,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.3'; // UPDATED LAYOUT: Added Tips & Features widget for user onboarding
+    const currentVersion = '3.4'; // UPDATED LAYOUT: Added Wishlist widget by default
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -440,7 +461,18 @@ export const loadDashboardLayout = () => {
       const cleanedParsed = removeDuplicateWidgets(parsed);
       
       // Merge with defaults for any missing widgets
-      return mergeDashboardLayouts(DEFAULT_WIDGETS, cleanedParsed);
+      const merged = mergeDashboardLayouts(DEFAULT_WIDGETS, cleanedParsed);
+      
+      // Ensure wishlist widget is present (for users upgrading to version 3.4+)
+      const hasWishlist = merged.some(w => w.id === 'wishlist' || w.type === WIDGET_TYPES.WISHLIST);
+      if (!hasWishlist) {
+        const wishlistWidget = DEFAULT_WIDGETS.find(w => w.id === 'wishlist');
+        if (wishlistWidget) {
+          merged.push(wishlistWidget);
+        }
+      }
+      
+      return compactGrid(merged);
     }
   } catch (error) {
     console.warn('Failed to load dashboard layout:', error);
@@ -492,11 +524,17 @@ export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
       const mergedSettings = { ...defaultWidget.settings, ...savedWidget.settings };
       return { ...defaultWidget, ...savedWidget, settings: mergedSettings };
     }
+    // If default widget doesn't exist in saved layout, add it (for new widgets like wishlist)
     return defaultWidget;
   });
 
+  // Also check for any saved widgets that aren't in defaults (user-added custom widgets)
+  // and add them back
+  const defaultIds = new Set(defaultWidgets.map(w => w.id));
+  const additionalWidgets = savedWidgets.filter(w => !defaultIds.has(w.id));
+  
   // Apply grid compaction to remove empty spaces
-  return compactGrid(mergedWidgets);
+  return compactGrid([...mergedWidgets, ...additionalWidgets]);
 };
 
 // Grid compaction function to eliminate empty spaces

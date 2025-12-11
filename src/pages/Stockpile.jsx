@@ -24,6 +24,7 @@ import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
+import { recordDeletion } from '../utils/deletionTracking'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -815,6 +816,9 @@ export default function Stockpile() {
                                                                                 setShowUpgradeModal(true);
                                                                                 return;
                                                                             }
+                                                                            // Record deletion with item snapshot for restore functionality
+                                                                            recordDeletion('stockpile', item.id, item);
+                                                                            
                                                                             // Delete the item directly
                                                                             const updatedItems = items.filter(i => i.id !== item.id);
                                                                             setItems(updatedItems);
@@ -878,10 +882,11 @@ export default function Stockpile() {
                                                                             const payload = { 
                                                                                 peptide: g.name, 
                                                                                 mg: String(item.mg), 
+                                                                                mgUnit: item.mgUnit || 'mg', // Include mgUnit to preserve unit context
                                                                                 vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
                                                                                 vendorId: item.vendorId || null, // Include vendorId for proper vendor linking
                                                                                 cost: item.cost || '',
-                                                                                costPerMg: item.costPerMg || '', // Include costPerMg if available
+                                                                                costPerMg: item.costPerMg || '', // Include costPerMg if available (may be cost per mg/g/ml/iu)
                                                                                 stockpileId: item.id,
                                                                                 quantity: item.quantity,
                                                                                 unit: item.unit,
@@ -1237,12 +1242,28 @@ export default function Stockpile() {
 
                 setItems(prev => [itemToAdd, ...prev]); 
                 markAsSubmitted(); // Clear auto-save data
-                setOpenAdd(false); 
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] }) 
+                
+                // Reset form first
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] });
+                
+                // Show success notification
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                  detail: { 
+                    message: `✅ ${itemToAdd.name} added to stockpile!`, 
+                    type: 'success' 
+                  } 
+                }));
+                
+                // Reset saving state immediately
+                setIsSavingToStockpile(false);
+                
+                // Close modal - use requestAnimationFrame to ensure it happens after React state updates
+                requestAnimationFrame(() => {
+                  setOpenAdd(false);
+                });
               } catch (error) {
                 console.error('❌ Failed to save stockpile item:', error);
                 setSaveError('Failed to save stockpile item. Please try again.');
-              } finally {
                 setIsSavingToStockpile(false);
               }
             }} 
@@ -2157,7 +2178,7 @@ export default function Stockpile() {
               <div>
                 <TextInput
                   label="Crimp / Cap Color"
-                  value={row.capColor}
+                  value={row.capColor || ''}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
                   placeholder="Black Crimp/Black Cap"
                   theme={theme}
@@ -2174,7 +2195,7 @@ export default function Stockpile() {
                 />
                 <TextInput
                   label="Batch #"
-                  value={row.batchNumber}
+                  value={row.batchNumber || ''}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))}
                   placeholder="# XXX"
                   theme={theme}

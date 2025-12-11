@@ -23,6 +23,7 @@ import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, createTestProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory } from '../utils/protocolHistory';
 
 export default function Protocols() {
@@ -39,6 +40,7 @@ export default function Protocols() {
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -1058,6 +1060,29 @@ export default function Protocols() {
 
         {/* Footer */}
         <div className="w-full flex items-center gap-3 pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-2 flex-1">
+                {manageConfirm?.id && (
+                    <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(manageConfirm)}
+                        className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                        style={{
+                            background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            boxShadow: theme.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                        }}
+                    >
+                        Delete
+                    </button>
+                )}
+            </div>
             <div className="flex items-center gap-2 flex-1 justify-end">
                 <button
                     type="button"
@@ -1161,6 +1186,28 @@ export default function Protocols() {
         </div>
         </Modal>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm) {
+            deleteProtocol(deleteConfirm.id);
+            setManageConfirm(null);
+            setDeleteConfirm(null);
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { message: 'Protocol deleted successfully', type: 'success' } 
+            }));
+          }
+        }}
+        title="Delete Protocol?"
+        message={`Are you sure you want to delete "${deleteConfirm?.protocolName || deleteConfirm?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
+        theme={theme}
+      />
 
       <StartProtocolWizard 
         open={!!startConfirm}

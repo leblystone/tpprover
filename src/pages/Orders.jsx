@@ -51,9 +51,13 @@ export default function Orders() {
 		const originalStockpile = [...(stockpile || [])];
 		
 		try {
-			// Step 1: Record deletion BEFORE removing from state
-			// This ensures deletion is tracked even if something goes wrong
-			recordDeletion('orders', id);
+			// Step 1: Record deletion BEFORE removing from state with item snapshot
+			// This ensures deletion is tracked and can be restored if needed
+			if (orderToDelete) {
+				recordDeletion('orders', id, orderToDelete);
+			} else {
+				recordDeletion('orders', id);
+			}
 			
 			// Step 2: Remove stockpile items associated with this order
 			const orderIdPrefix = `orderitem-${id}-`;
@@ -63,14 +67,14 @@ export default function Orders() {
 				if (!itemId || typeof itemId !== 'string') return true;
 				const shouldKeep = !itemId.startsWith(orderIdPrefix);
 				if (!shouldKeep) {
-					stockpileItemsToDelete.push(itemId);
+					stockpileItemsToDelete.push({ itemId, itemData: stockItem });
 				}
 				return shouldKeep;
 			});
 			
-			// Record stockpile item deletions
-			stockpileItemsToDelete.forEach(itemId => {
-				recordDeletion('stockpile', itemId);
+			// Record stockpile item deletions with snapshots
+			stockpileItemsToDelete.forEach(({ itemId, itemData }) => {
+				recordDeletion('stockpile', itemId, itemData);
 			});
 			
 			// Update stockpile state immediately

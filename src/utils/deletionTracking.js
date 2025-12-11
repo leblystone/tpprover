@@ -4,7 +4,7 @@
  */
 
 const DELETION_TRACKING_KEY = 'tpprover_deletion_tracking';
-const DELETION_RETENTION_DAYS = 90; // Keep deletion records for 90 days
+const DELETION_RETENTION_DAYS = 14; // Keep deletion records for 14 days
 
 /**
  * Get deletion tracking data from localStorage
@@ -33,8 +33,9 @@ function saveDeletionTracking(tracking) {
  * Record a deleted item
  * @param {string} dataType - Type of data (e.g., 'orders', 'protocols', 'stockpile')
  * @param {string} itemId - ID of the deleted item
+ * @param {Object} itemData - Optional: Full item data snapshot for restore functionality
  */
-export function recordDeletion(dataType, itemId) {
+export function recordDeletion(dataType, itemId, itemData = null) {
   if (!dataType || !itemId) {
     console.warn('⚠️ Cannot record deletion - missing dataType or itemId');
     return;
@@ -46,14 +47,15 @@ export function recordDeletion(dataType, itemId) {
     tracking[dataType] = {};
   }
 
-  // Record deletion with current timestamp
+  // Record deletion with current timestamp and optional item snapshot
   tracking[dataType][itemId] = {
     deletedAt: new Date().toISOString(),
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    ...(itemData && { itemData }) // Store item snapshot if provided
   };
 
   saveDeletionTracking(tracking);
-  console.log(`🗑️ Recorded deletion: ${dataType}/${itemId}`);
+  console.log(`🗑️ Recorded deletion: ${dataType}/${itemId}${itemData ? ' (with snapshot)' : ''}`);
 }
 
 /**
@@ -136,6 +138,58 @@ export function cleanupOldDeletions() {
 export function getDeletedItems(dataType) {
   const tracking = getDeletionTracking();
   return tracking[dataType] ? Object.keys(tracking[dataType]) : [];
+}
+
+/**
+ * Get all deleted items with their data for display/restore
+ * @param {number} maxAgeMs - Optional: Maximum age in milliseconds (default: 14 days)
+ * @returns {Array} Array of deleted items with { dataType, itemId, itemData, deletedAt, timestamp }
+ */
+export function getDeletedItemsForRestore(maxAgeMs = null) {
+  const tracking = getDeletionTracking();
+  const cutoffTime = maxAgeMs ? Date.now() - maxAgeMs : null;
+  const result = [];
+
+  Object.keys(tracking).forEach(dataType => {
+    const deletions = tracking[dataType];
+    Object.keys(deletions).forEach(itemId => {
+      const deletion = deletions[itemId];
+      const deletionTime = deletion.timestamp || 0;
+
+      // Skip if older than maxAge
+      if (cutoffTime && deletionTime < cutoffTime) {
+        return;
+      }
+
+      // Only include items with data snapshots (can be restored)
+      if (deletion.itemData) {
+        result.push({
+          dataType,
+          itemId,
+          itemData: deletion.itemData,
+          deletedAt: deletion.deletedAt,
+          timestamp: deletionTime
+        });
+      }
+    });
+  });
+
+  // Sort by deletion time (most recent first)
+  return result.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+/**
+ * Get deleted item data for a specific item
+ * @param {string} dataType - Type of data
+ * @param {string} itemId - ID of the item
+ * @returns {Object|null} Item data snapshot or null if not found
+ */
+export function getDeletedItemData(dataType, itemId) {
+  const tracking = getDeletionTracking();
+  if (tracking[dataType] && tracking[dataType][itemId] && tracking[dataType][itemId].itemData) {
+    return tracking[dataType][itemId].itemData;
+  }
+  return null;
 }
 
 /**
