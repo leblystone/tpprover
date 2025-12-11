@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -395,6 +395,11 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         FOLLOW UP
                       </span>
                     )}
+                    {note.type === 'during' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.border, color: theme.text }}>
+                        MID-CYCLE NOTE
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -625,96 +630,85 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
         title={
           <div className="flex items-center gap-2">
             <FileText size={20} />
-            <span>{selectedNote?.protocolName || 'Protocol Note'}</span>
-            {selectedNote?.type === 'follow_up' && (
-              <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                FOLLOW UP
-              </span>
-            )}
+            <span>{selectedNote?.type === 'follow_up' ? 'Protocol Follow-Up' : 'Protocol Note'}</span>
           </div>
         }
         theme={theme}
+        variant="modern"
         maxWidth="max-w-2xl"
       >
         {selectedNote && (
           <div className="space-y-4">
             {/* Date Information */}
-            <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
+            <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
               {selectedNote.createdAt && (
-                <span>Created: {formatMMDDYYYY(selectedNote.createdAt)}</span>
+                <span>Started: {formatMMDDYYYY(selectedNote.createdAt)}</span>
               )}
-              {selectedNote.linkedDate && (
+              {selectedNote.protocolName && (
                 <span className="flex items-center gap-1">
-                  <Calendar size={14} />
-                  Linked to: {formatMMDDYYYY(selectedNote.linkedDate)}
+                  <Calendar size={12} />
+                  For: {selectedNote.protocolName}
                 </span>
               )}
             </div>
 
-            {/* Note Content */}
-            {selectedNote.content && (
-              <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
-                <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
+            {/* Note Content Box - Matching assessment modal style */}
+            <div
+              className="p-4 rounded-lg"
+              style={{
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                border: `2px solid ${theme.primary}`,
+                borderLeft: `4px solid ${theme.primary}`
+              }}
+            >
+              {/* Rating (for follow-up notes) - displayed at top center */}
+              {selectedNote.type === 'follow_up' && selectedNote.rating !== undefined && selectedNote.rating !== null && (
+                <div className="mb-3 flex items-center justify-center gap-2">
+                  <span className="text-sm font-medium" style={{ color: theme.text }}>Protocol Rating:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <Star
+                        key={n}
+                        size={18}
+                        style={{
+                          fill: selectedNote.rating >= n ? theme.primary : 'none',
+                          color: selectedNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border),
+                          strokeWidth: 1.5
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Note Content */}
+              {selectedNote.content && (
+                <p className="text-sm whitespace-pre-wrap mb-3" style={{ color: theme.text }}>
                   {selectedNote.content}
                 </p>
-              </div>
-            )}
+              )}
 
-            {/* Tags */}
-            {selectedNote.tags && selectedNote.tags.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>Tags</div>
+              {/* Tags */}
+              {selectedNote.tags && selectedNote.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {selectedNote.tags.map(tagId => {
                     const tag = NOTE_TAGS.find(t => t.id === tagId);
-                    return tag ? (
+                    return (
                       <span
                         key={tagId}
-                        className="px-2 py-1 rounded text-xs font-medium"
+                        className="px-2 py-0.5 rounded text-xs font-medium"
                         style={{
                           backgroundColor: theme.primary + '20',
                           color: theme.primary
                         }}
                       >
-                        {tag.label}
-                      </span>
-                    ) : (
-                      <span
-                        key={tagId}
-                        className="px-2 py-1 rounded text-xs font-medium"
-                        style={{
-                          backgroundColor: theme.primary + '20',
-                          color: theme.primary
-                        }}
-                      >
-                        {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        {tag ? tag.label : tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {/* Rating (for follow-up notes) */}
-            {selectedNote.type === 'follow_up' && selectedNote.rating !== undefined && selectedNote.rating !== null && (
-              <div>
-                <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>Rating</div>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        color: i < selectedNote.rating ? theme.primary : theme.border,
-                        fontSize: '20px'
-                      }}
-                    >
-                      ★
-                    </span>
-                  ))}
-                  <span className="ml-2 text-sm" style={{ color: theme.text }}>{selectedNote.rating}/5</span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </Modal>
