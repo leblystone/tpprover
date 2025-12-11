@@ -158,7 +158,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                 setShowDeleteConfirm(false);
                 onClose();
             }}
-            title="Delete Supplement?"
+            title="Confirm Deletion"
             message=""
             confirmText="Delete"
             cancelText="Cancel"

@@ -83,7 +83,7 @@ export default function ConfirmationModal({
             variant="modern"
             maxWidth="max-w-md"
         >
-            <div className="text-center py-6 px-4">
+            <div className="py-4 px-6">
                 {/* Icon */}
                 {!hideIcon && (
                     <div className="mx-auto mb-4">
@@ -99,7 +99,7 @@ export default function ConfirmationModal({
                 {/* Message */}
                 {message && (
                     <p 
-                        className="text-base leading-relaxed mb-6"
+                        className="text-base leading-relaxed mb-4 text-center"
                         style={{ color: theme?.text || theme?.textLight || '#374151' }}
                     >
                         {message}
@@ -107,7 +107,7 @@ export default function ConfirmationModal({
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 justify-center">
+                <div className="flex gap-3 mt-6">
                     <button
                         type="button"
                         onMouseDown={(e) => {
@@ -123,7 +123,7 @@ export default function ConfirmationModal({
                             e.stopPropagation();
                             onClose();
                         }}
-                        className="px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
+                        className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
                         style={{ 
                             backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF',
                             color: theme?.text || '#374151',
@@ -159,7 +159,7 @@ export default function ConfirmationModal({
                                 e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                             }
                         }}
-                        className="px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation"
+                        className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation"
                         style={{
                             ...getButtonStyle(),
                             WebkitTapHighlightColor: 'transparent'

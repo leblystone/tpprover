@@ -6,6 +6,7 @@ import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
+import ConfirmationModal from '../ui/ConfirmationModal'
 import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
@@ -880,60 +881,19 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal - z-index must be higher than Modal's z-[10002] */}
-      {deleteConfirmId && createPortal(
-        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"
-            onClick={() => setDeleteConfirmId(null)}
-          />
-          <div 
-            className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
-            style={{ backgroundColor: theme.cardBackground }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <h3 className="text-lg font-bold mb-2" style={{ color: theme.text }}>
-                Delete Group Buy?
-              </h3>
-              <p className="text-sm mb-6" style={{ color: theme.textLight }}>
-                This action cannot be undone. Are you sure you want to delete this group buy?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
-                  style={{ 
-                    borderColor: theme.border,
-                    color: theme.text
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => confirmDelete(deleteConfirmId)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                  style={{ 
-                    background: terracottaGradient,
-                    color: '#ffffff',
-                    border: 'none',
-                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = terracottaHoverGradient;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = terracottaGradient;
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        open={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => confirmDelete(deleteConfirmId)}
+        title="Confirm Deletion"
+        message=""
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
+        theme={theme}
+        hideIcon={true}
+      />
     </div>
   )
 }

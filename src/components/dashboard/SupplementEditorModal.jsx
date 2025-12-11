@@ -265,7 +265,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 setShowDeleteConfirm(false);
                 // onSave will handle closing the modal
             }}
-            title="Delete Supplement?"
+            title="Confirm Deletion"
             message=""
             confirmText="Delete"
             cancelText="Cancel"
