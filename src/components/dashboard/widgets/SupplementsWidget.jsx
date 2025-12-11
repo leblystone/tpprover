@@ -82,7 +82,7 @@ const SupplementsWidget = ({
             Supplements
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.supplements} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.supplements} theme={theme} />
             <Pill size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

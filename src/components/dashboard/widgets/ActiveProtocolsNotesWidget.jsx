@@ -40,7 +40,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isRea
                             <FlaskConical size={18} style={{ color: theme.primary }} />
                             Peptide Observations
                         </h3>
-                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="right" />
+                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} />
                     </div>
                 </div>
                 

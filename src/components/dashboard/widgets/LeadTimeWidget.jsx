@@ -55,7 +55,7 @@ const LeadTimeWidget = ({ widget, theme }) => {
             Average Delivery
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.lead_time} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.lead_time} theme={theme} />
             <Truck size={20} style={{ color: theme.primary }} />
           </div>
         </div>

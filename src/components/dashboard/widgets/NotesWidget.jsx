@@ -88,7 +88,7 @@ const NotesWidget = ({ widget, theme }) => {
             Research Notes
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} />
             <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
           </div>
         </div>

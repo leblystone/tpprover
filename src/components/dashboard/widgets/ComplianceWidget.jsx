@@ -155,7 +155,7 @@ const ComplianceWidget = ({ widget, theme }) => {
             Research Consistency
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.compliance} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.compliance} theme={theme} />
             <CheckCircle size={20} style={{ color: theme.primary }} />
           </div>
         </div>

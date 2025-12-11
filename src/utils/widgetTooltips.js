@@ -1,45 +1,67 @@
 // Tooltip content for each widget type
+// Format: [icon-name] text content
+// Icons match the widget header icons from Lucide React
 export const WIDGET_TOOLTIPS = {
-  tasks: 'View and manage your daily supplement and peptide research tasks. Mark items as complete, track injection sites, and view your research history.',
+  tasks: `[CheckSquare] Check off today's completed peptides
+[CheckSquare] AM/PM separation
+[CheckSquare] Icons to show delivery method
+[CheckSquare] Pen delivery will show pen color and name
+[CheckSquare] Checking off pipette icon will confirm injection site`,
   
-  upcoming_order: 'Track your incoming peptide orders and shipments. Monitor delivery status, tracking information, and expected arrival dates.',
+  upcoming_order: `[Truck] Real time tracking for orders
+[Truck] Edit tracking numbers in the orders page`,
   
-  upcoming_buys: 'View scheduled group buys and planned purchases. Keep track of upcoming research acquisitions and coordinate with other researchers.',
+  upcoming_buys: `[ShoppingCart] Don't miss a buy
+[ShoppingCart] Track upcoming group buys with host and vendor details`,
   
-  pending_vendors: 'Complete vendor information for auto-created vendors. Add missing details like contact information, shipping policies, and payment methods.',
+  pending_vendors: `[BookAlert] Complete new vendors profile that were added during a protocol, order, or stockpile`,
   
-  analytics: 'View comprehensive analytics including research compliance rates, spending trends, and inventory levels. Get insights into your research patterns.',
+  analytics: `[BarChart3] View comprehensive analytics including research compliance rates, spending trends, and inventory levels. Get insights into your research patterns`,
   
-  badges: 'Track your achievement progress and unlock badges as you reach research milestones. Celebrate your consistency and dedication.',
+  badges: `[Award] Track your achievement progress and unlock badges as you reach research milestones. Celebrate your consistency and dedication`,
   
-  goals_only: 'Set and track your research goals. Monitor progress toward specific objectives and maintain focus on your research targets.',
+  goals_only: `[Target] Set goals for your research
+[Target] Monitor progress of set goal`,
   
-  compliance: 'Track your supplement and peptide compliance over the last 30 days. Monitor your consistency streak and overall adherence to your research schedule.',
+  compliance: `[CheckCircle] Compliance based on what is scheduled vs what has been marked as completed
+[CheckCircle] Day streak of how many days full research scheduled is completed`,
   
-  spending: 'Monitor your monthly and total spending on research materials. Track costs across orders and stockpile items to manage your research budget.',
+  spending: `[DollarSign] 30 day spending
+[DollarSign] Last 90 day
+[DollarSign] Overall spent on research peptides`,
   
-  lead_time: 'Track average delivery times and vendor performance. Identify which vendors provide the fastest and most reliable shipping.',
+  lead_time: `[Truck] Track average delivery times and vendor performance. Identify which vendors provide the fastest and most reliable shipping`,
   
-  inventory: 'Monitor your stockpile levels and receive alerts for low inventory. Track well-stocked items and items running low to maintain adequate supplies.',
+  inventory: `[Package] Monitor your the top 3 in your stockpile
+[Package] Monitor your lowest 2 peptides`,
   
-  metrics_only: 'Record and track your body metrics over time. Monitor changes in weight, measurements, and other bio-metrics related to your research.',
+  metrics_only: `[Activity] Record and track body metrics over the last 7 days`,
   
-  supplements: 'Manage your supplement schedule and track daily intake. Organize supplements by time of day and monitor compliance.',
+  supplements: `[Pill] Manage supplements that are not labeled 'peptides'
+[Pill] Oral, Injection, and Powder organization
+[Pill] Syncs with Today's Research and the Calendar`,
   
-  quick_actions: 'Quick access to essential actions: reconstitute peptides, add orders to stockpile, add vendors, and create new protocols. Streamline your workflow.',
+  quick_actions: `[Zap] Essential Research Actions
+[Zap] Reconstitute opens up peptide calculator
+[Zap] Orders opens up a new order
+[Zap] Vendors opens up a new vendor
+[Zap] Protocol opens up a new protocol`,
   
-  water_tracker: 'Track your daily water intake with customizable goals. Stay hydrated and maintain optimal health during your research.',
+  water_tracker: `[Droplets] Track daily water intake with custom goals`,
   
-  glossary: 'Comprehensive peptide research glossary with search functionality. Browse definitions, research notes, and detailed information about peptides.',
+  glossary: `[BookOpen] Quickly look up broad info on a peptide or compound`,
   
-  notes: 'Quick note-taking for research observations and ideas. Capture thoughts, side effects, or important findings during your research.',
+  notes: `[FileText] Quick note-taking for research observations and ideas. Capture thoughts, side effects, or important findings during your research`,
   
-  injection_history: 'Track your injection sites and history for better rotation. Monitor injection locations to prevent site fatigue and ensure proper administration.',
+  injection_history: `[Pipette] Track your injection sites and history for better rotation. Monitor injection locations to prevent site fatigue and ensure proper administration`,
   
-  tips: 'Rotating tips to help you discover app features and functionality. Learn new ways to optimize your research workflow.',
+  tips: `[Lightbulb] Rotating tips to help you discover app features and functionality. Learn new ways to make the app work for your research`,
   
-  wishlist: 'Track research items you want to purchase or investigate. Build a list of peptides, supplements, or equipment for future research.',
+  wishlist: `[Heart] Track research items you want to purchase or investigate
+[Heart] Build a list of peptides, supplements, or equipment for future research`,
   
-  active_protocols_notes: 'Add research notes to active protocols during your research. Document observations, effects, and important findings for each protocol.'
+  active_protocols_notes: `[FlaskConical] Add notes to active protocols quickly while its happening
+[FlaskConical] Document side effects, observations, and important findings
+[FlaskConical] Notes will be added to your protocol automatically`
 };
 

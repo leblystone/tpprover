@@ -19,7 +19,7 @@ const BadgesWidget = ({ widget, theme }) => {
             Badges
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.badges} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.badges} theme={theme} />
             <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
           </div>
         </div>

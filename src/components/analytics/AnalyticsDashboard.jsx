@@ -70,7 +70,7 @@ export default function AnalyticsDashboard({ theme }) {
         <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
           Analytics Dashboard
         </h3>
-        <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} position="right" />
+        <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
       </div>
       {/* Key Metrics */}
       <section>

@@ -15,7 +15,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
               Incoming Orders
             </h3>
             <div className="flex items-center gap-2">
-              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} position="right" />
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} />
               <Truck size={20} style={{ color: theme.primary }} />
             </div>
           </div>

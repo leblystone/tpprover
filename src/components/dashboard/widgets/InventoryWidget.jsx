@@ -84,7 +84,7 @@ const InventoryWidget = ({ widget, theme }) => {
             Stockpile
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.inventory} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.inventory} theme={theme} />
             <Package size={20} style={{ color: theme.primary }} />
           </div>
         </div>

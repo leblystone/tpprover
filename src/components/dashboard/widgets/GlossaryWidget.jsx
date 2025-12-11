@@ -1895,7 +1895,7 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
             Research Glossary
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.glossary} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.glossary} theme={theme} />
             {/* Work in Progress Badge */}
             <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
                  style={{ 

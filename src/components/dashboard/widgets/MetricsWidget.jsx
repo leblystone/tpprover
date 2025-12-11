@@ -366,7 +366,7 @@ const MetricsWidget = ({
             Bio-Metrics
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.metrics_only} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.metrics_only} theme={theme} />
             <Activity size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

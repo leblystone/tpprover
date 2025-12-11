@@ -51,7 +51,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
             Quick Actions
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
             <Zap size={18} style={{ color: theme.primary }} />
           </div>
         </div>

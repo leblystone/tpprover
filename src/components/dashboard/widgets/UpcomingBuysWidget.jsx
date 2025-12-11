@@ -21,7 +21,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
               Upcoming Buys
             </h3>
             <div className="flex items-center gap-2">
-              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} position="right" />
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} />
               <Calendar size={20} style={{ color: theme.primary }} />
               <ModernTooltip text="Add" position="top">
                 <button

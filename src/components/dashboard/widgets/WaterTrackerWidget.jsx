@@ -214,7 +214,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             Hydration
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.water_tracker} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.water_tracker} theme={theme} />
             <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
             <ModernTooltip text="History & Analytics" position="top">
               <button 

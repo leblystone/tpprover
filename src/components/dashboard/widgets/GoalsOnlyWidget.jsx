@@ -156,7 +156,7 @@ const GoalsOnlyWidget = ({
             Goals
           </h3>
           <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} position="right" />
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} />
             <Target size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

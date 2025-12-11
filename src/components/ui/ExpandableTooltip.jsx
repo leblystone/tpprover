@@ -1,5 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { HelpCircle, X } from 'lucide-react';
+import { 
+  HelpCircle, 
+  X, 
+  CheckSquare, 
+  CheckCircle,
+  Zap, 
+  Truck, 
+  ShoppingCart, 
+  BookOpen, 
+  BookAlert,
+  Package, 
+  DollarSign, 
+  Pill, 
+  Droplets, 
+  FlaskConical, 
+  Lightbulb, 
+  Heart, 
+  BarChart3, 
+  Award, 
+  Target, 
+  Activity, 
+  Pipette, 
+  FileText 
+} from 'lucide-react';
+
+// Icon mapping for tooltip bullets - matches widget header icons
+const ICON_MAP = {
+  'CheckSquare': CheckSquare,
+  'CheckCircle': CheckCircle,
+  'Zap': Zap,
+  'Truck': Truck,
+  'ShoppingCart': ShoppingCart,
+  'BookOpen': BookOpen,
+  'BookAlert': BookAlert,
+  'Package': Package,
+  'DollarSign': DollarSign,
+  'Pill': Pill,
+  'Droplets': Droplets,
+  'FlaskConical': FlaskConical,
+  'Lightbulb': Lightbulb,
+  'Heart': Heart,
+  'BarChart3': BarChart3,
+  'Award': Award,
+  'Target': Target,
+  'Activity': Activity,
+  'Pipette': Pipette,
+  'FileText': FileText,
+};
 
 const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -42,18 +89,21 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
 
       {isExpanded && (
         <div
-          className="absolute z-50 mt-2 p-3 rounded-lg shadow-lg"
+          className="absolute z-50 p-2.5 rounded-lg shadow-lg"
           style={{
             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
             border: `1px solid ${theme.isDark ? '#374151' : theme.border}`,
             color: theme.text,
-            right: 0, // Always open to the left (right: 0 means align to right edge of button)
+            right: '100%', // Position to the left of the button
+            top: 0,
+            marginRight: '8px', // Small gap from button
             minWidth: '200px',
-            maxWidth: 'min(280px, calc(100vw - 2rem))', // Responsive: use smaller of 280px or viewport width minus padding
-            transform: 'translateX(0)' // Ensure it doesn't go off screen
+            maxWidth: 'min(280px, calc(100vw - 2rem))',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word'
           }}
         >
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-2">
               <HelpCircle size={14} style={{ color: theme.primary }} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>
@@ -73,10 +123,40 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
             </button>
           </div>
           <div 
-            className="text-xs leading-relaxed"
-            style={{ color: theme.textLight }}
+            className="text-xs leading-tight"
+            style={{ color: theme.textLight, wordWrap: 'break-word', overflowWrap: 'break-word' }}
           >
-            {content}
+            {content.split('\n').map((line, index) => {
+              if (!line.trim()) return null;
+              
+              // Check if line starts with [IconName] format
+              const iconMatch = line.match(/^\[([^\]]+)\]\s*(.+)$/);
+              
+              if (iconMatch) {
+                const [, iconName, text] = iconMatch;
+                const IconComponent = ICON_MAP[iconName];
+                
+                return (
+                  <div key={index} className="flex items-start gap-1.5 mb-1">
+                    {IconComponent && (
+                      <IconComponent 
+                        size={13} 
+                        className="flex-shrink-0 mt-0.5" 
+                        style={{ color: theme.primary }} 
+                      />
+                    )}
+                    <span className="break-words" style={{ wordBreak: 'break-word' }}>{text.trim()}</span>
+                  </div>
+                );
+              }
+              
+              // Regular line without icon
+              return (
+                <div key={index} className="mb-1 break-words" style={{ wordBreak: 'break-word' }}>
+                  {line.trim()}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
