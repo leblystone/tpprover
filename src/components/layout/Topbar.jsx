@@ -223,17 +223,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               if (!visibleTicket) {
                 visibleTicket = t; // Use first visible closed ticket
               }
-            } else {
-              console.log('🚫 Hiding closed ticket:', {
-                id: t.id,
-                status: t.status,
-                closedAt: closedAt?.toISOString() || 'undefined',
-                userReadAt: readAt?.toISOString() || 'undefined',
-                updatedAt: updatedAt?.toISOString() || 'undefined',
-                hoursSinceClosed: hoursSinceClosed?.toFixed(2) || 'N/A',
-                hoursSinceRead: hoursSinceRead?.toFixed(2) || 'N/A',
-                hoursSinceUpdated: hoursSinceUpdated?.toFixed(2) || 'N/A'
-              });
             }
           }
         }
