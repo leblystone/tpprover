@@ -139,7 +139,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             type="button"
                             onClick={handleSave} 
                             disabled={isSaving}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none whitespace-nowrap min-w-fit"
                             style={{ 
                                 background: getSaveBackground(isSaving),
                                 color: saveTextColor,

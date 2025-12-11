@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
-import { useOutletContext, useSearchParams } from 'react-router-dom'
+import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
-import CombinedDosageInput from '../components/common/inputs/CombinedDosageInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconHelpPanel from '../components/recon/ReconHelpPanel'
@@ -24,12 +23,14 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
+import { recordDeletion } from '../utils/deletionTracking'
 
 export default function Recon() {
 	const { theme } = useOutletContext()
     const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile, protocols, orders, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
     const { isReadOnly } = useSubscriptionAccess();
     const { firebaseUser } = useFirebase();
+    const navigate = useNavigate();
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
@@ -49,6 +50,10 @@ export default function Recon() {
 	const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false)
 	const penTypeDropdownRef = useRef(null)
 	const [penColor, setPenColor] = useState('#9ca3af')
+	const [isMgUnitDropdownOpen, setIsMgUnitDropdownOpen] = useState(false)
+	const [isDoseUnitDropdownOpen, setIsDoseUnitDropdownOpen] = useState(false)
+	const [isAmountFocused, setIsAmountFocused] = useState(false)
+	const [isDoseFocused, setIsDoseFocused] = useState(false)
 	const getPrimaryActionGradient = useCallback((saving = false) => {
 		const secondaryColor = theme?.secondary || '#d1d5db';
 		if (saving) {
@@ -140,6 +145,28 @@ export default function Recon() {
 		};
 	}, [isPenTypeDropdownOpen]);
 
+	// Close dropdowns when clicking outside
+	useEffect(() => {
+		if (!isMgUnitDropdownOpen && !isDoseUnitDropdownOpen) return;
+
+		const handleClickOutside = (event) => {
+			const isClickInside = event.target.closest('[data-dropdown-container]');
+			if (!isClickInside) {
+				setIsMgUnitDropdownOpen(false);
+				setIsDoseUnitDropdownOpen(false);
+			}
+		};
+
+		const timeoutId = setTimeout(() => {
+			document.addEventListener('click', handleClickOutside);
+		}, 100);
+
+		return () => {
+			clearTimeout(timeoutId);
+			document.removeEventListener('click', handleClickOutside);
+		};
+	}, [isMgUnitDropdownOpen, isDoseUnitDropdownOpen]);
+
 	// Sync pen color from editingItem
 	useEffect(() => {
 		if (editingItem?.penColor) {
@@ -230,7 +257,6 @@ export default function Recon() {
 		}
 		
 		// Record deletion with item snapshot for restore functionality
-		const { recordDeletion } = require('../utils/deletionTracking');
 		if (itemToDelete) {
 			recordDeletion('reconItems', id, itemToDelete);
 		} else {
@@ -390,6 +416,17 @@ export default function Recon() {
 			}, 0);
 		}
 		return '';
+	};
+
+	const getEditingMgUnit = () => {
+		if (!editingItem) return draft.mgUnit || 'mg';
+		if (editingItem.mgUnit) return editingItem.mgUnit;
+		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
+			// If all peptides use the same unit, return that unit, otherwise default to mg
+			const units = [...new Set(editingItem.peptides.map(p => p.mgUnit || 'mg').filter(Boolean))];
+			return units.length === 1 ? units[0] : 'mg';
+		}
+		return 'mg';
 	};
 
 	const getEditingDoseUnit = () => {
@@ -655,47 +692,55 @@ export default function Recon() {
     const handleDeleteHistory = async (historyItem) => {
         if (!historyItem) return;
 
-        // Record deletion with item snapshot for restore functionality
-        const { recordDeletion } = require('../utils/deletionTracking');
-        recordDeletion('reconHistory', historyItem.id, historyItem);
+        try {
+            // Record deletion with item snapshot for restore functionality
+            recordDeletion('reconHistory', historyItem.id, historyItem);
 
-        const updatedHistory = reconHistory.filter(h => h.id !== historyItem.id);
-        setReconHistory(updatedHistory);
-        setHistoryToDelete(null);
-        if (viewItem?.id === historyItem.id) {
-            setViewItem(null);
-        }
-
-        if (firebaseUser) {
-            try {
-                const userId = firebaseUser.uid;
-                const appData = {
-                    protocols: protocols || [],
-                    reconItems: reconItems || [],
-                    reconHistory: updatedHistory,
-                    supplements: supplements || [],
-                    orders: orders || [],
-                    metrics: metrics || [],
-                    vendors: vendors || [],
-                    calendarNotes: calendarNotes || {},
-                    stockpile: stockpile || [],
-                    scheduledBuys: scheduledBuys || []
-                };
-
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
-                if (syncResult) {
-                    console.log('✅ Deleted recon history item synced to cloud immediately');
-                } else {
-                    console.error('❌ Failed to sync recon history deletion to cloud');
-                }
-            } catch (error) {
-                console.error('❌ Error syncing recon history deletion to cloud:', error);
+            const updatedHistory = reconHistory.filter(h => h.id !== historyItem.id);
+            setReconHistory(updatedHistory);
+            setHistoryToDelete(null);
+            if (viewItem?.id === historyItem.id) {
+                setViewItem(null);
             }
-        }
 
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: 'History entry removed.', type: 'success' }
-        }));
+            if (firebaseUser) {
+                try {
+                    const userId = firebaseUser.uid;
+                    const appData = {
+                        protocols: protocols || [],
+                        reconItems: reconItems || [],
+                        reconHistory: updatedHistory,
+                        supplements: supplements || [],
+                        orders: orders || [],
+                        metrics: metrics || [],
+                        vendors: vendors || [],
+                        calendarNotes: calendarNotes || {},
+                        stockpile: stockpile || [],
+                        scheduledBuys: scheduledBuys || []
+                    };
+
+                    const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                    if (syncResult) {
+                        console.log('✅ Deleted recon history item synced to cloud immediately');
+                    } else {
+                        console.error('❌ Failed to sync recon history deletion to cloud');
+                    }
+                } catch (error) {
+                    console.error('❌ Error syncing recon history deletion to cloud:', error);
+                }
+            }
+
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: { message: 'History entry removed.', type: 'success' }
+            }));
+        } catch (error) {
+            console.error('❌ Error deleting recon history entry:', error);
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: { message: 'Failed to delete history entry.', type: 'error' }
+            }));
+            // Ensure modal closes even on error
+            setHistoryToDelete(null);
+        }
     };
 
 	// Set topbar tabs via custom event
@@ -1235,16 +1280,143 @@ export default function Recon() {
                     />
                     {/* mg and water in one row */}
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput 
-                            label="mg" 
-                            type="number" 
-                            value={getEditingMg()} 
-                            onChange={v => { updateEditingItem({ mg: v }); updateFormData({ mg: v }); }} 
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                        />
+                        {/* MG with Unit Dropdown */}
+                        <div className="relative">
+                            <div 
+                                className="flex items-stretch rounded-lg"
+                                style={{ 
+                                    border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                }}
+                            >
+                                <input
+                                    type="text"
+                                    id="recon-amount-input"
+                                    value={getEditingMg() || ''} 
+                                    onChange={e => { updateEditingItem({ mg: e.target.value }); updateFormData({ mg: e.target.value }); }} 
+                                    onFocus={() => setIsAmountFocused(true)}
+                                    onBlur={(e) => {
+                                        setTimeout(() => {
+                                            const relatedTarget = e.relatedTarget || document.activeElement
+                                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                                            if (!isClickingDropdown && !isMgUnitDropdownOpen) {
+                                                setIsAmountFocused(false)
+                                            }
+                                        }, 150)
+                                    }}
+                                    placeholder=" "
+                                    className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: theme.isDark ? theme.text : '#181A18',
+                                        border: 'none',
+                                        paddingLeft: '12px',
+                                        paddingRight: '8px'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMgUnitDropdownOpen(prev => !prev)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
+                                    className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                    data-dropdown-container
+                                    style={{ 
+                                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                        color: theme.isDark ? theme.text : '#181A18',
+                                        minWidth: '80px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                    }}
+                                >
+                                    <span className="text-sm font-semibold">
+                                        {getEditingMgUnit()}
+                                    </span>
+                                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </button>
+                                {isMgUnitDropdownOpen && (
+                                    <div className="relative" data-dropdown-container>
+                                        <div 
+                                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                            style={{
+                                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                borderColor: theme.border,
+                                                minWidth: '100px',
+                                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                            }}
+                                        >
+                                            {[
+                                                { value: 'mg', label: 'mg' },
+                                                { value: 'mL', label: 'mL' },
+                                                { value: 'g', label: 'g' },
+                                                { value: 'IU', label: 'IU' }
+                                            ].map((option, optIdx) => (
+                                                <React.Fragment key={option.value}>
+                                                    {optIdx > 0 && (
+                                                        <div 
+                                                            className="h-px mx-2"
+                                                            style={{ backgroundColor: theme.border }}
+                                                        />
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onTouchStart={(e) => e.preventDefault()}
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            updateEditingItem({ mgUnit: option.value });
+                                                            updateFormData({ mgUnit: option.value });
+                                                            setIsMgUnitDropdownOpen(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                        style={{
+                                                            color: getEditingMgUnit() === option.value ? theme.primary : theme.text,
+                                                            backgroundColor: 'transparent',
+                                                            WebkitTapHighlightColor: 'transparent'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                            e.currentTarget.style.color = theme.primary;
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                                            e.currentTarget.style.color = getEditingMgUnit() === option.value ? theme.primary : theme.text;
+                                                        }}
+                                                    >
+                                                        {option.label}
+                                                    </button>
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <label 
+                                htmlFor="recon-amount-input"
+                                className="absolute pointer-events-none transition-all"
+                                style={{
+                                    fontSize: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '0.75rem' : '0.9375rem',
+                                    top: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '-8px' : '14px',
+                                    left: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '12px' : '16px',
+                                    right: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '90px' : 'auto',
+                                    padding: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '0 4px' : '0',
+                                    background: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    color: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                    fontWeight: 500
+                                }}
+                            >
+                                Amount
+                            </label>
+                        </div>
                         <TextInput 
                             label="Water (mL)" 
                             type="number" 
@@ -1257,21 +1429,142 @@ export default function Recon() {
                         />
                     </div>
                     
-                    {/* dose on its own row */}
-                    <div>
-                        <CombinedDosageInput
-                            value={{ amount: getEditingDose() || '', unit: getEditingDoseUnit() || 'mcg' }}
-                            onChange={(newValue) => {
-                                updateEditingItem({ dose: newValue.amount, doseUnit: newValue.unit });
-                                updateFormData({ dose: newValue.amount, doseUnit: newValue.unit });
-                                }} 
-                            theme={theme}
-                            placeholder="e.g., 250"
-                            units={['mcg', 'mg', 'mL']}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                        />
+                    {/* Dose with Unit Dropdown */}
+                    <div className="relative">
+                        <div 
+                            className="flex items-stretch rounded-lg"
+                            style={{ 
+                                border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                            }}
+                        >
+                            <input
+                                type="text"
+                                id="recon-dose-input"
+                                value={getEditingDose() || ''} 
+                                onChange={e => { updateEditingItem({ dose: e.target.value }); updateFormData({ dose: e.target.value }); }} 
+                                onFocus={() => setIsDoseFocused(true)}
+                                onBlur={(e) => {
+                                    setTimeout(() => {
+                                        const relatedTarget = e.relatedTarget || document.activeElement
+                                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                                        if (!isClickingDropdown && !isDoseUnitDropdownOpen) {
+                                            setIsDoseFocused(false)
+                                        }
+                                    }, 150)
+                                }}
+                                placeholder=" "
+                                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    border: 'none',
+                                    paddingLeft: '12px',
+                                    paddingRight: '8px'
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setIsDoseUnitDropdownOpen(prev => !prev)}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onTouchStart={(e) => e.preventDefault()}
+                                className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                data-dropdown-container
+                                style={{ 
+                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    minWidth: '80px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                }}
+                            >
+                                <span className="text-sm font-semibold">
+                                    {getEditingDoseUnit()}
+                                </span>
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                            {isDoseUnitDropdownOpen && (
+                                <div className="relative" data-dropdown-container>
+                                    <div 
+                                        className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                            style={{
+                                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                borderColor: theme.border,
+                                                minWidth: '100px',
+                                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                            }}
+                                        >
+                                            {[
+                                                { value: 'mcg', label: 'mcg' },
+                                            { value: 'mg', label: 'mg' },
+                                            { value: 'mL', label: 'mL' },
+                                            ...(editingItem?.deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
+                                        ].map((option, optIdx) => (
+                                            <React.Fragment key={option.value}>
+                                                {optIdx > 0 && (
+                                                    <div 
+                                                        className="h-px mx-2"
+                                                        style={{ backgroundColor: theme.border }}
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onTouchStart={(e) => e.preventDefault()}
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        updateEditingItem({ doseUnit: option.value });
+                                                        updateFormData({ doseUnit: option.value });
+                                                        setIsDoseUnitDropdownOpen(false);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                    style={{
+                                                        color: getEditingDoseUnit() === option.value ? theme.primary : theme.text,
+                                                        backgroundColor: 'transparent',
+                                                        WebkitTapHighlightColor: 'transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                        e.currentTarget.style.color = theme.primary;
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                        e.currentTarget.style.color = getEditingDoseUnit() === option.value ? theme.primary : theme.text;
+                                                    }}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <label 
+                            htmlFor="recon-dose-input"
+                            className="absolute pointer-events-none transition-all"
+                            style={{
+                                fontSize: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0.75rem' : '0.9375rem',
+                                top: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '-8px' : '14px',
+                                left: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '12px' : '16px',
+                                right: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '90px' : 'auto',
+                                padding: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0 4px' : '0',
+                                background: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                color: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                fontWeight: 500
+                            }}
+                        >
+                            Dose
+                        </label>
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
@@ -1579,22 +1872,48 @@ export default function Recon() {
             <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} variant="modern">
 				{viewItem && (() => {
 					const calc = calculateRecon(viewItem)
-                    const usedDate = viewItem.usedDate || viewItem.date;
+                    const reconstitutedDate = viewItem.date; // Date when reconstitution was created
+                    const finishedDate = viewItem.usedDate; // Date when vial was marked as finished
+                    const protocolName = viewItem.protocolName;
+                    const protocolId = viewItem.protocolId;
+                    const linkedProtocol = protocolId ? protocols.find(p => p.id === protocolId) : null;
+                    const displayProtocolName = protocolName || (linkedProtocol?.protocolName || linkedProtocol?.name);
 					const costPerDose = viewItem.cost ? formatCurrency(viewItem.cost / calc.dosesPerVial) : null
 					return (
 						<div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                <div><div className="text-xs" style={{ color: theme.textLight }}>Used On</div><div className="font-medium">{usedDate ? formatMMDDYYYY(usedDate) : '—'}</div></div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Reconstituted</div><div className="font-medium">{reconstitutedDate ? formatMMDDYYYY(reconstitutedDate) : '—'}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Finished</div><div className="font-medium">{finishedDate ? formatMMDDYYYY(finishedDate) : '—'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Vendor</div><div className="font-medium">{viewItem.vendorId ? vendorMap[viewItem.vendorId] : viewItem.vendor}</div></div>
+                                {displayProtocolName ? (
+                                    <div>
+                                        <div className="text-xs" style={{ color: theme.textLight }}>Protocol</div>
+                                        <div 
+                                            className="font-medium cursor-pointer hover:underline" 
+                                            style={{ color: theme.primary }}
+                                            onClick={() => {
+                                                if (protocolId && linkedProtocol) {
+                                                    navigate('/app/protocols', { state: { highlightProtocolId: protocolId } });
+                                                    setViewItem(null);
+                                                } else if (protocolName) {
+                                                    navigate('/app/protocols');
+                                                    setViewItem(null);
+                                                }
+                                            }}
+                                        >
+                                            {displayProtocolName}
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Dose</div><div className="font-medium">{viewItem.dose ? `${viewItem.dose} ${viewItem.doseUnit || 'mcg'}` : '—'}</div></div>
-                                <div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
+                                <div className="col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>
                                 {Array.isArray(viewItem.peptides) && viewItem.peptides.length > 0 ? (
-                                    <div className="sm:col-span-2">
+                                    <div className="col-span-2">
                                         <div className="text-xs" style={{ color: theme.textLight }}>Peptides</div>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             {viewItem.peptides.map((p, idx) => (
@@ -1605,17 +1924,18 @@ export default function Recon() {
                                         </div>
                                     </div>
                                 ) : null}
-                                {viewItem.capColor ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Cap Color</div><div className="font-medium">{viewItem.capColor}</div></div>) : null}
-                                {viewItem.notes ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Notes</div><div className="font-medium">{viewItem.notes}</div></div>) : null}
+                                {viewItem.capColor ? (<div className="col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Cap Color</div><div className="font-medium">{viewItem.capColor}</div></div>) : null}
+                                {viewItem.notes ? (<div className="col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Notes</div><div className="font-medium">{viewItem.notes}</div></div>) : null}
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div className="text-xs" style={{ color: theme.textLight }}>Permanent removal deletes this log from your research history.</div>
+                            <div className="flex justify-end pt-2 border-t" style={{ borderColor: theme.border }}>
                                 <button
                                     className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
-                                    style={{ backgroundColor: theme.isDark ? '#7f1d1d' : '#fca5a5', color: theme.isDark ? '#fff' : '#7f1d1d' }}
+                                    style={{ background: terracottaGradient, color: '#ffffff' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
                                     onClick={() => { setHistoryToDelete(viewItem); setViewItem(null); }}
                                 >
-                                    <Trash2 size={14} /> Delete entry
+                                    <Trash2 size={14} /> Delete
                                 </button>
                             </div>
 						</div>
@@ -1630,27 +1950,23 @@ export default function Recon() {
                 theme={theme}
                 variant="modern"
             >
-                <div className="space-y-3 text-sm" style={{ color: theme.text }}>
-                    <p>This will permanently remove this reconstitution log from your research history. Cloud backups will be updated immediately.</p>
-                    <p className="text-xs" style={{ color: theme.textLight }}>This action cannot be undone.</p>
-                    <div className="flex justify-end gap-2 pt-2">
-                        <button
-                            className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
-                            style={{ backgroundColor: theme.secondary, color: theme.text }}
-                            onClick={() => setHistoryToDelete(null)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
-                            style={{ background: terracottaGradient, color: '#ffffff' }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
-                            onClick={() => historyToDelete && handleDeleteHistory(historyToDelete)}
-                        >
-                            Delete permanently
-                        </button>
-                    </div>
+                <div className="flex justify-end gap-2 pt-2">
+                    <button
+                        className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
+                        style={{ backgroundColor: theme.secondary, color: theme.text }}
+                        onClick={() => setHistoryToDelete(null)}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
+                        style={{ background: terracottaGradient, color: '#ffffff' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
+                        onClick={() => historyToDelete && handleDeleteHistory(historyToDelete)}
+                    >
+                        Delete
+                    </button>
                 </div>
             </Modal>
 

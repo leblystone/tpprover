@@ -33,8 +33,9 @@ export default function StockpileCard({
 
   return (
     <div 
-      className="rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+      className="rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
       style={{ backgroundColor: theme.cardBackground }}
+      onClick={() => onEdit?.(item)}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
@@ -50,9 +51,12 @@ export default function StockpileCard({
         </div>
         
         {showActions && (
-          <div className="flex gap-2">
+          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => onEdit(item)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(item);
+              }}
               className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
               title="Edit item"
             >
@@ -142,10 +146,13 @@ export default function StockpileCard({
 
       {/* Action Buttons */}
       {showActions && (
-        <div className="mt-4 pt-4 border-t flex gap-2" style={{ borderColor: theme.border }}>
+        <div className="mt-4 pt-4 border-t flex gap-2" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
           {(item.currentAmount <= (item.minAmount || 0)) && (
             <button
-              onClick={() => onAddToBuy(item)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToBuy?.(item);
+              }}
               className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
               style={{ 
                 backgroundColor: theme.primary,

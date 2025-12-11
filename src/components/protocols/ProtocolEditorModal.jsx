@@ -447,7 +447,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             type="button"
                             onClick={handleFinalSave}
                             disabled={isSavingToProtocols || isReadOnly}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap min-w-fit"
                             style={{
                                 background: getPrimaryActionGradient(isSavingToProtocols || isReadOnly),
                                 color: (isSavingToProtocols || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),

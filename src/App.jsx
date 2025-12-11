@@ -17,6 +17,7 @@ import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 import NotificationPermissionPrompt from './components/common/NotificationPermissionPrompt';
+import AndroidPermissionPrompt from './components/common/AndroidPermissionPrompt';
 import IOSInstallPrompt from './components/common/IOSInstallPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
@@ -426,6 +427,7 @@ function App() {
         onAccept={() => {}} 
       />
       <NotificationPermissionPrompt theme={theme} />
+      <AndroidPermissionPrompt theme={theme} />
       <IOSInstallPrompt theme={theme} />
       <SubscriptionModal 
         isOpen={showSubscriptionModal}

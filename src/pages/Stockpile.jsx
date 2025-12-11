@@ -320,6 +320,43 @@ export default function Stockpile() {
     if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] })
     setManageRows(rows)
   }
+  
+  const handleEditIncoming = (peptideName) => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    
+    // Find all non-delivered orders that contain items with this peptide name
+    const matchesName = (itemName, targetName) => {
+      const normalizedItemName = itemName || ''
+      if (targetName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === targetName
+    }
+    
+    const relevantOrders = (orders || []).filter(o => {
+      const status = (o.status || '').toLowerCase()
+      if (status.includes('delivered')) return false
+      
+      // Check if any item in this order matches the peptide name
+      return (o.items || []).some(item => matchesName(item.name, peptideName))
+    })
+    
+    // Navigate to Orders page
+    if (relevantOrders.length === 1) {
+      // If there's exactly one order, open it for editing
+      navigate('/app/orders', { state: { openOrderId: relevantOrders[0].id } })
+    } else if (relevantOrders.length > 1) {
+      // If there are multiple orders, just navigate to orders page
+      // The user can then edit the relevant orders
+      navigate('/app/orders')
+    } else {
+      // No orders found (shouldn't happen if the item is showing in incoming)
+      navigate('/app/orders')
+    }
+  }
   const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] }]))
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
   
@@ -756,7 +793,18 @@ export default function Stockpile() {
                     const isUnknownGroup = (g.name === 'Unknown' || !g.name || g.name.trim() === '');
                     
                     return (
-                    <div key={g.name} className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
+                    <div 
+                        key={g.name} 
+                        className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between cursor-pointer" 
+                        style={{ backgroundColor: theme.cardBackground }}
+                        onClick={() => {
+                            if (isReadOnly) {
+                                setShowUpgradeModal(true);
+                                return;
+                            }
+                            openManage(g.name);
+                        }}
+                    >
                         <div>
                                 {/* Unknown Group Alert Banner */}
                                 {isUnknownGroup && (
@@ -788,14 +836,15 @@ export default function Stockpile() {
                                                 <li key={item.id} className="space-y-1">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2 font-medium"><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                                             {isUnknownGroup && (
                                                                 <>
                                                                     <button 
                                                                         title="Merge into another peptide" 
                                                                         className="p-1 rounded-md transition-colors" 
                                                                         style={{ color: theme.primary }} 
-                                                                        onClick={() => {
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             if (isReadOnly) {
                                                                                 setShowUpgradeModal(true);
                                                                                 return;
@@ -811,7 +860,8 @@ export default function Stockpile() {
                                                                         title="Delete this item" 
                                                                         className="p-1 rounded-md transition-colors" 
                                                                         style={{ color: '#c87a5c' }} 
-                                                                        onClick={() => {
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             if (isReadOnly) {
                                                                                 setShowUpgradeModal(true);
                                                                                 return;
@@ -864,7 +914,10 @@ export default function Stockpile() {
                                                                     title="View Source Order" 
                                                                     className="p-1 rounded-md transition-colors" 
                                                                     style={{ color: theme.primary }} 
-                                                                    onClick={() => navigate(`/app/orders`, { state: { openOrderId: item.orderId } })}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigate(`/app/orders`, { state: { openOrderId: item.orderId } });
+                                                                    }}
                                                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
                                                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                                 >
@@ -876,7 +929,8 @@ export default function Stockpile() {
                                                                     title="Send to Recon Calculator" 
                                                                     className="p-1 rounded-md transition-colors" 
                                                                     style={{ color: theme.primary }} 
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
                                                                         try {
                                                                             // Cost is already per vial in stockpile, so use it directly
                                                                             const payload = { 
@@ -982,7 +1036,7 @@ export default function Stockpile() {
                                 ))}
                             </div>
                         </div>
-                        <div className="mt-4 flex items-center justify-end gap-2">
+                        <div className="mt-4 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             {/* For Unknown groups, no merge button (each item has its own); for others, show icon button */}
                             {!isUnknownGroup && (
                                 <>
@@ -993,7 +1047,8 @@ export default function Stockpile() {
                                         opacity: isReadOnly ? 0.6 : 1,
                                         cursor: isReadOnly ? 'not-allowed' : 'pointer'
                                       }} 
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         if (isReadOnly) {
                                           setShowUpgradeModal(true);
                                           return;
@@ -1026,7 +1081,8 @@ export default function Stockpile() {
                                         opacity: isReadOnly ? 0.6 : 1,
                                         cursor: isReadOnly ? 'not-allowed' : 'pointer'
                                       }} 
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         if (isReadOnly) {
                                           setShowUpgradeModal(true);
                                           return;
@@ -1075,14 +1131,43 @@ export default function Stockpile() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
                 {incomingGroups.map(g => (
-                    <div key={`incoming-${g.name}`} className="p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow" style={{ 
-                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                      backgroundColor: theme.cardBackground,
-                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
-                    }}>
+                    <div 
+                        key={`incoming-${g.name}`} 
+                        className="p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow cursor-pointer" 
+                        style={{ 
+                          border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                          backgroundColor: theme.cardBackground,
+                          boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
+                        }}
+                        onClick={() => {
+                            if (isReadOnly) {
+                                setShowUpgradeModal(true);
+                                return;
+                            }
+                            handleEditIncoming(g.name);
+                        }}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
-                        <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text }}>{g.totalMg} {g.unit || 'mg'} en route</div>
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text }}>{g.totalMg} {g.unit || 'mg'} en route</div>
+                          <button 
+                            className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold hover:opacity-90 transition-all" 
+                            style={{ 
+                              backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+                              color: theme.textOnPrimary,
+                              opacity: isReadOnly ? 0.6 : 1,
+                              cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                            }} 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditIncoming(g.name);
+                            }}
+                            title="Edit incoming orders"
+                          >
+                            <Edit size={12} /> Edit
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         {Object.values(g.variants).sort((a,b)=>String(a.mg).localeCompare(String(b.mg))).map(v => (
@@ -1268,7 +1353,7 @@ export default function Stockpile() {
               }
             }} 
             disabled={isSavingToStockpile || isReadOnly || !form.name?.trim() || !form.mg?.trim() || !form.quantity?.trim()}
-            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75" 
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap min-w-fit" 
             style={{ 
               background: getPrimaryActionGradient(isSavingToStockpile || isReadOnly),
               color: (isSavingToStockpile || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),

@@ -97,7 +97,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         <button 
                             type="button"
                             onClick={handleSave} 
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
                             style={{ 
                                 background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
                                 color: theme.textOnPrimary || '#ffffff',

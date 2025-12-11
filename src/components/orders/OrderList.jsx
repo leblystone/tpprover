@@ -27,7 +27,12 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
       {orders.map(o => {
         const nextStatusAction = getNextStatus(o.status);
         return (
-          <div key={o.id} className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card" style={{ backgroundColor: theme.cardBackground }}>
+          <div 
+            key={o.id} 
+            className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card cursor-pointer" 
+            style={{ backgroundColor: theme.cardBackground }}
+            onClick={() => onEdit?.(o)}
+          >
             {/* Top row: Title/Vendor on left, Status/Buttons on right */}
             <div className="flex items-start justify-between gap-2 mb-2">
               {/* Left side: Title and Vendor */}
@@ -39,7 +44,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
               </div>
 
               {/* Right side: Status and Actions - Mobile optimized */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                  <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={statusStyle(o.status, theme)}>
                   {displayStatus(o.status)}
                 </span>
@@ -48,13 +53,24 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
                     aria-label={nextStatusAction.text} 
                     className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-md hover:bg-gray-100 text-xs sm:text-sm flex-shrink-0" 
                     style={{ color: theme.primary }} 
-                    onClick={() => onAdvance?.(o)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAdvance?.(o);
+                    }}
                   >
                     {nextStatusAction.icon}
                     <span className="hidden sm:inline">{nextStatusAction.text}</span>
                   </button>
                 )}
-                <button aria-label="Edit" className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 flex-shrink-0" style={{ color: theme.primary }} onClick={() => onEdit(o)}>
+                <button 
+                  aria-label="Edit" 
+                  className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 flex-shrink-0" 
+                  style={{ color: theme.primary }} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(o);
+                  }}
+                >
                   <Edit className="h-4 w-4" />
                 </button>
               </div>

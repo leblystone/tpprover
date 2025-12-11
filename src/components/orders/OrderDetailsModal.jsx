@@ -403,7 +403,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 type="button"
                 onClick={handleSave}
                 disabled={isSavingToOrders}
-                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap min-w-fit"
                 style={{ 
                   background: isSavingToOrders ? theme.secondary : `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`,
                   color: theme?.textOnPrimary || '#ffffff',
