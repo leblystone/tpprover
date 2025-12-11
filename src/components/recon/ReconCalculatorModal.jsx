@@ -11,8 +11,9 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   const { isReadOnly } = useSubscriptionAccess();
   const hasLoadedRef = useRef(false);
   const [form, setForm] = useState({
-    peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
+    peptides: [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }],
     vendor: '',
+    vendorId: null,
     water: '',
     deliveryMethod: 'pipette',
     administrationRoute: 'subq',
@@ -39,8 +40,9 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   useEffect(() => {
     if (open && prefill && !hasLoadedRef.current) {
       const initialData = {
-        peptides: prefill.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
+        peptides: prefill.peptides || [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }],
         vendor: prefill.vendor || '',
+        vendorId: prefill.vendorId || null,
         water: prefill.water || '',
         deliveryMethod: prefill.deliveryMethod || 'pipette',
         administrationRoute: prefill.administrationRoute || 'subq',
@@ -48,9 +50,15 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         penColor: prefill.penColor || '',
         cost: prefill.cost || ''
       };
-      // Ensure peptides is always an array
+      // Ensure peptides is always an array and has mgUnit
       if (!initialData.peptides || !Array.isArray(initialData.peptides)) {
-        initialData.peptides = [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
+        initialData.peptides = [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }];
+      } else {
+        // Ensure all peptides have mgUnit
+        initialData.peptides = initialData.peptides.map(p => ({
+          ...p,
+          mgUnit: p.mgUnit || 'mg'
+        }));
       }
       setForm(initialData);
       hasLoadedRef.current = true;

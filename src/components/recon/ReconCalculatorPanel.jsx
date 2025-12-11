@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import TextInput from '../common/inputs/TextInput'
-import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
@@ -11,7 +10,7 @@ import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
   // Use controlled form if provided, otherwise use internal state
-  const [internalForm, setInternalForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] });
+  const [internalForm, setInternalForm] = useState({ vendor: '', vendorId: null, water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] });
   const form = formData !== undefined ? formData : internalForm;
   const setForm = setFormData !== undefined ? setFormData : setInternalForm;
   
@@ -29,7 +28,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   // Ensure peptides array always exists
   const safeForm = {
     ...form,
-    peptides: form.peptides && Array.isArray(form.peptides) ? form.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }]
+    peptides: form.peptides && Array.isArray(form.peptides) ? form.peptides.map(p => ({
+      ...p,
+      mgUnit: p.mgUnit || 'mg' // Ensure mgUnit is always set
+    })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
   };
   
   const [deliveryMethod, setDeliveryMethod] = useState('pipette');
@@ -44,6 +46,33 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const [touchEnd, setTouchEnd] = useState(null);
   const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
   const penTypeDropdownRef = useRef(null);
+  const [peptideMgUnitDropdowns, setPeptideMgUnitDropdowns] = useState({}); // { [peptideId]: boolean }
+  const [peptideDoseUnitDropdowns, setPeptideDoseUnitDropdowns] = useState({}); // { [peptideId]: boolean }
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [isDoseFocused, setIsDoseFocused] = useState(false);
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    if (Object.values(peptideMgUnitDropdowns).every(v => !v) && Object.values(peptideDoseUnitDropdowns).every(v => !v)) return;
+
+    const handleClickOutside = (event) => {
+      const isClickInside = event.target.closest('[data-dropdown-container]');
+      if (!isClickInside) {
+        setPeptideMgUnitDropdowns({});
+        setPeptideDoseUnitDropdowns({});
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [peptideMgUnitDropdowns, peptideDoseUnitDropdowns]);
+  
   const getPrimaryActionGradient = useCallback((saving = false) => {
     const secondaryColor = theme?.secondary || '#d1d5db';
     if (saving) {
@@ -80,10 +109,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       if (prefill.peptides && prefill.peptides.length > 0) {
         const vendors = [...new Set(prefill.peptides.map(p => p.vendor).filter(Boolean))].join(', ');
         const totalCost = prefill.peptides.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
+        // Use first peptide's vendorId if available
+        const firstVendorId = prefill.peptides[0]?.vendorId || null;
         
         setForm(prev => ({
           ...prev,
           vendor: vendors,
+          vendorId: firstVendorId,
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 
             id: pep.id || index + 1, 
@@ -108,6 +140,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           // Don't prefill dose - let user enter it
           dose: '', 
           doseUnit: 'mcg',
+          vendor: prefill.vendor || '', // Include vendor on peptide
+          vendorId: prefill.vendorId || null, // Include vendorId on peptide
           stockpileId: prefill.stockpileId || null,
           quantityUsed: prefill.quantityUsed || 1,
           costPerMg: prefill.costPerMg || '' // Include costPerMg if available (may be cost per mg/g/ml/iu)
@@ -263,8 +297,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     const peptides = safeForm.peptides || [];
     const newId = Math.max(0, ...peptides.map(p => p.id || 0)) + 1;
     setForm(prev => {
-      const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
-      return {...prev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', dose: '', doseUnit: 'mcg' }]};
+      const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }];
+      return {...prev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]};
     });
     // Automatically switch to the new peptide
     setCurrentPeptideIndex(peptides.length);
@@ -429,17 +463,153 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                   
                   {/* MG and Water in 2 columns */}
                   <div className="grid grid-cols-2 gap-3">
-                    <TextInput 
-                      label="mg" 
-                      type="number"
-                      value={safeForm.peptides[currentPeptideIndex]?.mg || ''} 
-                      onChange={v => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'mg', v)} 
-                      placeholder="e.g., 10" 
-                      theme={theme}
-                      outlined={true}
-                      customTextColor={theme.isDark ? null : "#181A18"}
-                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                    />
+                    {/* MG with Unit Dropdown */}
+                    <div className="relative">
+                      <div 
+                        className="flex items-stretch rounded-lg"
+                        style={{ 
+                          border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                        }}
+                      >
+                        <input
+                          type="text"
+                          id="amount-input"
+                          value={safeForm.peptides[currentPeptideIndex]?.mg || ''} 
+                          onChange={e => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'mg', e.target.value)} 
+                          onFocus={() => setIsAmountFocused(true)}
+                          onBlur={(e) => {
+                            setTimeout(() => {
+                              const relatedTarget = e.relatedTarget || document.activeElement
+                              const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                              const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                              if (!isClickingDropdown && !peptideMgUnitDropdowns[peptideId]) {
+                                setIsAmountFocused(false)
+                              }
+                            }, 150)
+                          }}
+                          placeholder=" "
+                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                          style={{
+                            backgroundColor: 'transparent',
+                            color: theme.isDark ? theme.text : '#181A18',
+                            border: 'none',
+                            paddingLeft: '12px',
+                            paddingRight: '8px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                            setPeptideMgUnitDropdowns(prev => ({
+                              ...prev,
+                              [peptideId]: !prev[peptideId]
+                            }))
+                          }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                          data-dropdown-container
+                          style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            color: theme.isDark ? theme.text : '#181A18',
+                            minWidth: '80px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                          }}
+                        >
+                          <span className="text-sm font-semibold">
+                            {(safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg')}
+                          </span>
+                          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {peptideMgUnitDropdowns[safeForm.peptides[currentPeptideIndex]?.id] && (
+                          <div className="relative" data-dropdown-container>
+                            <div 
+                              className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                              style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                borderColor: theme.border,
+                                minWidth: '100px',
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {[
+                                { value: 'mg', label: 'mg' },
+                                { value: 'mL', label: 'mL' },
+                                { value: 'g', label: 'g' },
+                                { value: 'IU', label: 'IU' }
+                              ].map((option, optIdx) => (
+                                <React.Fragment key={option.value}>
+                                  {optIdx > 0 && (
+                                    <div 
+                                      className="h-px mx-2"
+                                      style={{ backgroundColor: theme.border }}
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                                      updatePeptide(peptideId, 'mgUnit', option.value);
+                                      setPeptideMgUnitDropdowns(prev => ({
+                                        ...prev,
+                                        [peptideId]: false
+                                      }));
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                    style={{
+                                      color: (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                      backgroundColor: 'transparent',
+                                      WebkitTapHighlightColor: 'transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                      e.currentTarget.style.color = theme.primary;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                    }}
+                                  >
+                                    {option.label}
+                                  </button>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <label 
+                        htmlFor="amount-input"
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                          fontSize: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0.75rem' : '0.9375rem',
+                          top: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '-8px' : '14px',
+                          left: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '12px' : '16px',
+                          right: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '90px' : 'auto',
+                          padding: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0 4px' : '0',
+                          background: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          color: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? theme.primary : (theme.textLight || theme.text),
+                          fontWeight: 500
+                        }}
+                      >
+                        Amount
+                      </label>
+                    </div>
                     <TextInput 
                       label="Water(mL)" 
                       type="number"
@@ -455,21 +625,151 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     />
                   </div>
                   
-                  {/* Dose with integrated unit selector */}
-                  <div>
-                    <CombinedDosageInput
-                      value={{ amount: safeForm.peptides[currentPeptideIndex]?.dose || '', unit: safeForm.peptides[currentPeptideIndex]?.doseUnit || 'mcg' }}
-                      onChange={(newValue) => {
-                        updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'dose', newValue.amount);
-                        updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'doseUnit', newValue.unit);
+                  {/* Dose with Unit Dropdown */}
+                  <div className="relative">
+                    <div 
+                      className="flex items-stretch rounded-lg"
+                      style={{ 
+                        border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                       }}
-                      theme={theme}
-                      placeholder="e.g., 250"
-                      units={['mcg', 'mg', 'mL']}
-                      outlined={true}
-                      customTextColor={theme.isDark ? null : "#181A18"}
-                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                    />
+                    >
+                      <input
+                        type="text"
+                        id="dose-input"
+                        value={safeForm.peptides[currentPeptideIndex]?.dose || ''} 
+                        onChange={e => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'dose', e.target.value)} 
+                        onFocus={() => setIsDoseFocused(true)}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            const relatedTarget = e.relatedTarget || document.activeElement
+                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                            const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                            if (!isClickingDropdown && !peptideDoseUnitDropdowns[peptideId]) {
+                              setIsDoseFocused(false)
+                            }
+                          }, 150)
+                        }}
+                        placeholder=" "
+                        className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: theme.isDark ? theme.text : '#181A18',
+                          border: 'none',
+                          paddingLeft: '12px',
+                          paddingRight: '8px'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                          setPeptideDoseUnitDropdowns(prev => ({
+                            ...prev,
+                            [peptideId]: !prev[peptideId]
+                          }))
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                        data-dropdown-container
+                        style={{ 
+                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                          color: theme.isDark ? theme.text : '#181A18',
+                          minWidth: '80px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                        }}
+                      >
+                        <span className="text-sm font-semibold">
+                          {(safeForm.peptides[currentPeptideIndex]?.doseUnit || 'mcg')}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {peptideDoseUnitDropdowns[safeForm.peptides[currentPeptideIndex]?.id] && (
+                        <div className="relative" data-dropdown-container>
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '100px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {[
+                              { value: 'mcg', label: 'mcg' },
+                              { value: 'mg', label: 'mg' },
+                              { value: 'mL', label: 'mL' },
+                              ...(deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onTouchStart={(e) => e.preventDefault()}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                                    updatePeptide(peptideId, 'doseUnit', option.value);
+                                    setPeptideDoseUnitDropdowns(prev => ({
+                                      ...prev,
+                                      [peptideId]: false
+                                    }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                  style={{
+                                    color: (safeForm.peptides[currentPeptideIndex]?.doseUnit || 'mcg') === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = (safeForm.peptides[currentPeptideIndex]?.doseUnit || 'mcg') === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <label 
+                      htmlFor="dose-input"
+                      className="absolute pointer-events-none transition-all"
+                      style={{
+                        fontSize: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? '0.75rem' : '0.9375rem',
+                        top: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? '-8px' : '14px',
+                        left: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? '12px' : '16px',
+                        padding: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? '0 4px' : '0',
+                        background: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                        color: (isDoseFocused || (safeForm.peptides[currentPeptideIndex]?.dose && String(safeForm.peptides[currentPeptideIndex]?.dose).trim())) ? theme.primary : (theme.textLight || theme.text),
+                        fontWeight: 500
+                      }}
+                    >
+                      Dose
+                    </label>
                   </div>
                 </>
               )}
@@ -479,10 +779,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 label="Vendor" 
                 value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
                 onChange={v => {
+                  // Get vendors list to find vendorId
+                  let vendors = [];
+                  try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+                  const selectedVendor = vendors.find(vendor => vendor.name === v);
+                  const vendorId = selectedVendor ? selectedVendor.id : null;
+                  
                   updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendor', v);
-                  // Also update form vendor if it's the first peptide
+                  updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
+                  // Also update form vendor and vendorId if it's the first peptide
                   if (currentPeptideIndex === 0) {
-                    setForm(prev => ({ ...prev, vendor: v }));
+                    setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
                   }
                 }} 
                 placeholder="e.g., Pharm......" 
@@ -642,7 +949,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     fontWeight: 500
                   }}
                 >
-                  Cost per ($)
+                  Cost ($)
                 </label>
               </div>
             </div>
@@ -1148,29 +1455,313 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 {/* Single column layout for better mobile experience */}
                 <div className="space-y-4">
                   <div>
-                    <TextInput 
-                      label="mg/vial" 
-                      type="number" 
-                      value={p.mg} 
-                      onChange={v => updatePeptide(p.id, 'mg', v)} 
-                      placeholder="10" 
-                      theme={theme} 
-                      disabled={prefill?.peptides?.length > 0} 
-                    />
+                    {/* MG with Unit Dropdown */}
+                    <div className="relative">
+                      <div 
+                        className="flex items-stretch rounded-lg"
+                        style={{ 
+                          border: `1px solid ${(peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                          opacity: prefill?.peptides?.length > 0 ? 0.6 : 1,
+                          pointerEvents: prefill?.peptides?.length > 0 ? 'none' : 'auto'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          id={`amount-input-${p.id}`}
+                          value={p.mg || ''} 
+                          onChange={e => updatePeptide(p.id, 'mg', e.target.value)} 
+                          onFocus={() => {
+                            setPeptideMgUnitDropdowns(prev => ({ ...prev, [p.id]: false }));
+                          }}
+                          onBlur={(e) => {
+                            setTimeout(() => {
+                              const relatedTarget = e.relatedTarget || document.activeElement
+                              const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                              if (!isClickingDropdown && !peptideMgUnitDropdowns[p.id]) {
+                                // Focus lost, dropdown will be handled by click outside
+                              }
+                            }, 150)
+                          }}
+                          placeholder=" "
+                          disabled={prefill?.peptides?.length > 0}
+                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg disabled:opacity-50"
+                          style={{
+                            backgroundColor: 'transparent',
+                            color: theme.isDark ? theme.text : '#181A18',
+                            border: 'none',
+                            paddingLeft: '12px',
+                            paddingRight: '8px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPeptideMgUnitDropdowns(prev => ({
+                              ...prev,
+                              [p.id]: !prev[p.id]
+                            }))
+                          }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          disabled={prefill?.peptides?.length > 0}
+                          className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none disabled:opacity-50"
+                          data-dropdown-container
+                          style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            color: theme.isDark ? theme.text : '#181A18',
+                            minWidth: '80px'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!prefill?.peptides?.length) {
+                              e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                          }}
+                        >
+                          <span className="text-sm font-semibold">
+                            {(p.mgUnit || 'mg')}
+                          </span>
+                          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {peptideMgUnitDropdowns[p.id] && (
+                          <div className="relative" data-dropdown-container>
+                            <div 
+                              className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                              style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                borderColor: theme.border,
+                                minWidth: '100px',
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {[
+                                { value: 'mg', label: 'mg' },
+                                { value: 'mL', label: 'mL' },
+                                { value: 'g', label: 'g' },
+                                { value: 'IU', label: 'IU' }
+                              ].map((option, optIdx) => (
+                                <React.Fragment key={option.value}>
+                                  {optIdx > 0 && (
+                                    <div 
+                                      className="h-px mx-2"
+                                      style={{ backgroundColor: theme.border }}
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      updatePeptide(p.id, 'mgUnit', option.value);
+                                      setPeptideMgUnitDropdowns(prev => ({
+                                        ...prev,
+                                        [p.id]: false
+                                      }));
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                    style={{
+                                      color: (p.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                      backgroundColor: 'transparent',
+                                      WebkitTapHighlightColor: 'transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                      e.currentTarget.style.color = theme.primary;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = (p.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                    }}
+                                  >
+                                    {option.label}
+                                  </button>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <label 
+                        htmlFor={`amount-input-${p.id}`}
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                          fontSize: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? '0.75rem' : '0.9375rem',
+                          top: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? '-8px' : '14px',
+                          left: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? '12px' : '16px',
+                          right: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? '90px' : 'auto',
+                          padding: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? '0 4px' : '0',
+                          background: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          color: (peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? theme.primary : (theme.textLight || theme.text),
+                          fontWeight: 500
+                        }}
+                      >
+                        mg/vial
+                      </label>
+                    </div>
                   </div>
                   
                   <div>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose</div>
-                            <CombinedDosageInput
-                                value={{ amount: p.dose || '', unit: p.doseUnit || 'mcg' }}
-                                onChange={(newValue) => {
-                                    updatePeptide(p.id, 'dose', newValue.amount);
-                                    updatePeptide(p.id, 'doseUnit', newValue.unit);
-                                }}
-                                theme={theme}
-                                placeholder="250"
-                                deliveryMethod={deliveryMethod}
-                            />
+                    {/* Dose with Unit Dropdown */}
+                    <div className="relative">
+                      <div 
+                        className="flex items-stretch rounded-lg"
+                        style={{ 
+                          border: `1px solid ${(peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                          opacity: prefill?.peptides?.length > 0 ? 0.6 : 1,
+                          pointerEvents: prefill?.peptides?.length > 0 ? 'none' : 'auto'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          id={`dose-input-${p.id}`}
+                          value={p.dose || ''} 
+                          onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
+                          onFocus={() => {
+                            setPeptideDoseUnitDropdowns(prev => ({ ...prev, [p.id]: false }));
+                          }}
+                          onBlur={(e) => {
+                            setTimeout(() => {
+                              const relatedTarget = e.relatedTarget || document.activeElement
+                              const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                              if (!isClickingDropdown && !peptideDoseUnitDropdowns[p.id]) {
+                                // Focus lost, dropdown will be handled by click outside
+                              }
+                            }, 150)
+                          }}
+                          placeholder=" "
+                          disabled={prefill?.peptides?.length > 0}
+                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg disabled:opacity-50"
+                          style={{
+                            backgroundColor: 'transparent',
+                            color: theme.isDark ? theme.text : '#181A18',
+                            border: 'none',
+                            paddingLeft: '12px',
+                            paddingRight: '8px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPeptideDoseUnitDropdowns(prev => ({
+                              ...prev,
+                              [p.id]: !prev[p.id]
+                            }))
+                          }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          disabled={prefill?.peptides?.length > 0}
+                          className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none disabled:opacity-50"
+                          data-dropdown-container
+                          style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            color: theme.isDark ? theme.text : '#181A18',
+                            minWidth: '80px'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!prefill?.peptides?.length) {
+                              e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                          }}
+                        >
+                          <span className="text-sm font-semibold">
+                            {(p.doseUnit || 'mcg')}
+                          </span>
+                          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {peptideDoseUnitDropdowns[p.id] && (
+                          <div className="relative" data-dropdown-container>
+                            <div 
+                              className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                              style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                borderColor: theme.border,
+                                minWidth: '100px',
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {[
+                                { value: 'mcg', label: 'mcg' },
+                                { value: 'mg', label: 'mg' },
+                                { value: 'mL', label: 'mL' },
+                                ...(deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
+                              ].map((option, optIdx) => (
+                                <React.Fragment key={option.value}>
+                                  {optIdx > 0 && (
+                                    <div 
+                                      className="h-px mx-2"
+                                      style={{ backgroundColor: theme.border }}
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      updatePeptide(p.id, 'doseUnit', option.value);
+                                      setPeptideDoseUnitDropdowns(prev => ({
+                                        ...prev,
+                                        [p.id]: false
+                                      }));
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                    style={{
+                                      color: (p.doseUnit || 'mcg') === option.value ? theme.primary : theme.text,
+                                      backgroundColor: 'transparent',
+                                      WebkitTapHighlightColor: 'transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                      e.currentTarget.style.color = theme.primary;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = (p.doseUnit || 'mcg') === option.value ? theme.primary : theme.text;
+                                    }}
+                                  >
+                                    {option.label}
+                                  </button>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <label 
+                        htmlFor={`dose-input-${p.id}`}
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                          fontSize: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? '0.75rem' : '0.9375rem',
+                          top: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? '-8px' : '14px',
+                          left: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? '12px' : '16px',
+                          right: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? '90px' : 'auto',
+                          padding: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? '0 4px' : '0',
+                          background: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          color: (peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? theme.primary : (theme.textLight || theme.text),
+                          fontWeight: 500
+                        }}
+                      >
+                        Dose
+                      </label>
+                    </div>
                   </div>
                 </div>
                 
