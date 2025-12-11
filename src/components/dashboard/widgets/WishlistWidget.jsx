@@ -2,6 +2,8 @@ import React from 'react';
 import { BookHeart, HeartPlus, Lock } from 'lucide-react';
 import Wishlist from '../Wishlist';
 import ModernTooltip from '../../ui/ModernTooltip';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, onUpgrade }) => {
   const { maxItems = 3 } = widget.settings;
@@ -17,6 +19,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
           <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
             <span>Wishlist</span>
             <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
               <BookHeart size={18} style={{ color: theme.primary }} />
               <ModernTooltip text="Add" position="top">
                 <button

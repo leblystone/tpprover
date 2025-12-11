@@ -4,6 +4,8 @@ import { Check, Plus, Target, X, Save, Archive, Trash2, History, Edit } from 'lu
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const GoalsOnlyWidget = ({ 
   widget, 
@@ -154,6 +156,7 @@ const GoalsOnlyWidget = ({
             Goals
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} position="right" />
             <Target size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

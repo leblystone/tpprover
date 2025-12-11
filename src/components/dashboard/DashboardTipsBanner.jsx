@@ -25,7 +25,7 @@ const DashboardTipsBanner = ({ theme }) => {
       text: 'Add order tracking & receive dashboard updates!🚚'
     },
     {
-      text: 'Customize your dashoboard experience↗️'
+      text: 'Customize your dashboard experience↗️'
     },
     {
       text: 'Add your protocols to start scheduling📆'
@@ -40,6 +40,21 @@ const DashboardTipsBanner = ({ theme }) => {
     {
       text: "Accidentally entered 2 of the same? Merge em'",
       icon: GitMerge
+    },
+    {
+      text: 'New protocol history timeline🕰️'
+    },
+    {
+      text: 'Orders automatically update status when tracking shows delivered!✅'
+    },
+    {
+      text: 'Use unit conversion widget for quick mg to IU calculations!🧮'
+    },
+    {
+      text: 'mg? g? mcg? IU? tablets? measure correctly 📏'
+    },
+    {
+      text: 'Protocol Notes!📝Add during and final observations!'
     }
   ];
 

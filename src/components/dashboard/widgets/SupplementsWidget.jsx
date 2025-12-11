@@ -1,6 +1,8 @@
 import React from 'react';
 import { Plus, Pill, Beaker, Edit, Lock, Pipette } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const SupplementsWidget = ({ 
   widget, 
@@ -80,6 +82,7 @@ const SupplementsWidget = ({
             Supplements
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.supplements} theme={theme} position="right" />
             <Pill size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

@@ -1,16 +1,24 @@
  import React from 'react'
+import ExpandableTooltip from '../ui/ExpandableTooltip'
+import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 
 export default function PendingVendorsView({ vendors, theme, onViewAll, onComplete }) {
   if (!vendors || vendors.length === 0) return (
     <div className="p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-      <h3 className="text-base font-semibold mb-3 border-b pb-2" style={{ color: theme.primaryDark, borderColor: theme.border }}>Pending Vendors</h3>
+      <h3 className="text-base font-semibold mb-3 border-b pb-2 flex items-center justify-between" style={{ color: theme.primaryDark, borderColor: theme.border }}>
+        <span>Pending Vendors</span>
+        <ExpandableTooltip content={WIDGET_TOOLTIPS.pending_vendors} theme={theme} position="left" />
+      </h3>
       <p className="text-sm">No pending vendors to complete.</p>
     </div>
   )
 
   return (
     <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-      <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0" style={{ color: theme.primaryDark, borderColor: theme.border }}>Pending Vendors</h3>
+      <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark, borderColor: theme.border }}>
+        <span>Pending Vendors</span>
+        <ExpandableTooltip content={WIDGET_TOOLTIPS.pending_vendors} theme={theme} position="left" />
+      </h3>
       <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
         {vendors.map((vendor, index) => (
           <div key={vendor.id || `vendor-${index}`} className="flex items-center justify-between p-2 rounded-lg border" style={{ borderColor: theme.border }}>

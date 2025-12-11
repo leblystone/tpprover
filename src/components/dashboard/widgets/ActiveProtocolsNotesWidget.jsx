@@ -1,6 +1,8 @@
 import React from 'react';
 import { FlaskConical, Lock } from 'lucide-react';
 import ActiveProtocolsNotes from '../ActiveProtocolsNotes';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isReadOnly = false, onUpgrade }) => {
     const { maxItems = 3 } = widget.settings;
@@ -38,6 +40,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isRea
                             <FlaskConical size={18} style={{ color: theme.primary }} />
                             Peptide Observations
                         </h3>
+                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="right" />
                     </div>
                 </div>
                 

@@ -4,6 +4,8 @@ import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
 import { formatMMDDYYYY } from '../../../utils/date';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 // Comprehensive chart component for all metrics visualization
 const ComprehensiveMetricsChart = ({ metrics, theme }) => {
@@ -364,6 +366,7 @@ const MetricsWidget = ({
             Bio-Metrics
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.metrics_only} theme={theme} position="right" />
             <Activity size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

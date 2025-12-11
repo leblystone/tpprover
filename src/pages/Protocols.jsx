@@ -981,6 +981,7 @@ export default function Protocols() {
         onClose={() => setHistoryProtocol(null)}
         protocol={historyProtocol}
         theme={theme}
+        onStartProtocol={handleStartClick}
         key={`${historyProtocol?.id}-${historyRefreshKey}`} // Force re-render when history is updated
       />
 

@@ -4,6 +4,8 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
+import ExpandableTooltip from '../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips';
 
 const NOTE_TAGS = [
     { id: 'progress', label: 'Progress', color: '#10b981' },
@@ -158,8 +160,9 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     if (activeProtocols.length === 0) {
         return (
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
-                    Peptide Observations
+                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
+                    <span>Peptide Observations</span>
+                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-sm text-center" style={{ color: theme.textLight }}>
@@ -173,9 +176,12 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     return (
         <>
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center gap-2" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
-                    <FlaskConical size={18} style={{ color: theme.primary }} />
-                    <span>Peptide Observations</span>
+                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
+                    <div className="flex items-center gap-2">
+                        <FlaskConical size={18} style={{ color: theme.primary }} />
+                        <span>Peptide Observations</span>
+                    </div>
+                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 
                 <div className="flex-1 overflow-y-auto min-h-0 space-y-2">

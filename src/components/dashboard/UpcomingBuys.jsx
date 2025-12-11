@@ -8,6 +8,8 @@ import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import ConfirmationModal from '../ui/ConfirmationModal'
 import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
+import ExpandableTooltip from '../ui/ExpandableTooltip'
+import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -412,6 +414,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
             Upcoming Buys
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} position="right" />
             <ShoppingCart size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button

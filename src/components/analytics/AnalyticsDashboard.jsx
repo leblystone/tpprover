@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { CheckCircle, DollarSign, Truck, Archive, TrendingUp, Users, Package, BarChart, GitBranch, AlertTriangle } from 'lucide-react'
 import Tabs from '../common/Tabs'
 import { formatCurrency } from '../../utils/currencyUtils'
+import ExpandableTooltip from '../ui/ExpandableTooltip'
+import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 
 function useLocal(key, fallback) {
   const [state, setState] = useState(fallback)
@@ -63,6 +65,13 @@ export default function AnalyticsDashboard({ theme }) {
 
   return (
     <div className="space-y-4">
+      {/* Header with Tooltip */}
+      <div className="px-4 py-2 border-b flex items-center justify-between" style={{ borderColor: theme.border }}>
+        <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          Analytics Dashboard
+        </h3>
+        <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} position="right" />
+      </div>
       {/* Key Metrics */}
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

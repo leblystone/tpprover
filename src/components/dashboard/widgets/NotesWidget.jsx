@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
 import { generateId } from '../../../utils/string';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const NotesWidget = ({ widget, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
@@ -85,7 +87,10 @@ const NotesWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Notes
           </h3>
-          <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} position="right" />
+            <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
+          </div>
         </div>
       </div>
       

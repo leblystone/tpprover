@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Droplets, Plus, Minus, RotateCcw, Settings, BarChart3, Calendar, History } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const WaterTrackerWidget = ({ widget, theme }) => {
   const [waterData, setWaterData] = useState(() => {
@@ -212,6 +214,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             Hydration
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.water_tracker} theme={theme} position="right" />
             <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
             <ModernTooltip text="History & Analytics" position="top">
               <button 

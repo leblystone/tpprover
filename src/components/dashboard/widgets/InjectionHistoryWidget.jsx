@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, MapPin, Pipette } from 'lucide-react';
 import { getInjectionHistory, getInjectionStats } from '../../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../../utils/injectionSiteSettings';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 export default function InjectionHistoryWidget({ theme }) {
   const [history, setHistory] = useState([]);
@@ -40,11 +42,14 @@ export default function InjectionHistoryWidget({ theme }) {
   if (!isInjectionSiteTrackingEnabled()) {
     return (
       <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 mb-4">
-          <Pipette size={20} style={{ color: theme.primary }} />
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-            View History
-          </h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Pipette size={20} style={{ color: theme.primary }} />
+            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+              View History
+            </h3>
+          </div>
+          <ExpandableTooltip content={WIDGET_TOOLTIPS.injection_history} theme={theme} position="left" />
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -64,11 +69,14 @@ export default function InjectionHistoryWidget({ theme }) {
   if (!history.length) {
     return (
       <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 mb-4">
-          <Pipette size={20} style={{ color: theme.primary }} />
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-            View History
-          </h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Pipette size={20} style={{ color: theme.primary }} />
+            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+              View History
+            </h3>
+          </div>
+          <ExpandableTooltip content={WIDGET_TOOLTIPS.injection_history} theme={theme} position="left" />
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -94,7 +102,9 @@ export default function InjectionHistoryWidget({ theme }) {
             View History
           </h3>
         </div>
-        {stats && (
+        <div className="flex items-center gap-2">
+          <ExpandableTooltip content={WIDGET_TOOLTIPS.injection_history} theme={theme} position="left" />
+          {stats && (
           <div className="text-right">
             <div className="text-sm font-medium" style={{ color: theme.text }}>
               {stats.global.totalInjections} total
@@ -103,7 +113,8 @@ export default function InjectionHistoryWidget({ theme }) {
               injections recorded
             </div>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div 

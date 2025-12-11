@@ -4,6 +4,8 @@ import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion } from '../../../utils/taskCompletion';
 import { generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../../components/calendar/MonthGrid';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 function useLocal(key, fallback) {
   try {
@@ -152,7 +154,10 @@ const ComplianceWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Consistency
           </h3>
-          <CheckCircle size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.compliance} theme={theme} position="right" />
+            <CheckCircle size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

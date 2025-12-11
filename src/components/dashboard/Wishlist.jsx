@@ -6,6 +6,8 @@ import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
 import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 import { generateId } from '../../utils/string'
+import ExpandableTooltip from '../ui/ExpandableTooltip'
+import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 
 export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -269,6 +271,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
       <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
         <span>Wishlist</span>
         <div className="flex items-center gap-2">
+          <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
           <BookHeart size={18} style={{ color: theme.primary }} />
           <ModernTooltip text="Add" position="top">
             <button

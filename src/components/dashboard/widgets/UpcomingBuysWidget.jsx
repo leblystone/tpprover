@@ -2,6 +2,8 @@ import React from 'react';
 import { Calendar, Lock, Plus } from 'lucide-react';
 import UpcomingBuys from '../UpcomingBuys';
 import ModernTooltip from '../../ui/ModernTooltip';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, onUpgrade }) => {
   const { maxItems = 3 } = widget.settings;
@@ -19,6 +21,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
               Upcoming Buys
             </h3>
             <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} position="right" />
               <Calendar size={20} style={{ color: theme.primary }} />
               <ModernTooltip text="Add" position="top">
                 <button

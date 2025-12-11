@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, Trophy } from 'lucide-react';
 import { useBadgeStats } from '../../../utils/badges';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const BadgesWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
@@ -16,7 +18,10 @@ const BadgesWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Badges
           </h3>
-          <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.badges} theme={theme} position="right" />
+            <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
+          </div>
         </div>
       </div>
       

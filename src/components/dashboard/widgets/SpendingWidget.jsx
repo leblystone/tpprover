@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 function useLocal(key, fallback) {
   try {
@@ -131,7 +133,10 @@ const SpendingWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Spending
           </h3>
-          <DollarSign size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.spending} theme={theme} />
+            <DollarSign size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

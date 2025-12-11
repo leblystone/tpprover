@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, StickyNote } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -276,7 +276,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                     e.currentTarget.style.color = theme.textLight;
                                 }}
                             >
-                                <StickyNote className="h-4 w-4 icon-hover" />
+                                <NotebookPen className="h-4 w-4 icon-hover" />
                                 {notesCount > 0 && (
                                     <span 
                                         className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs font-bold flex items-center justify-center"

@@ -8,6 +8,8 @@ import { getChromeGradient } from '../../../utils/recon';
 import { getInjectionHistory } from '../../../utils/injectionTracking';
 import { debugLog } from '../../../utils/debugMode';
 import { isInjectionSiteTrackingEnabled } from '../../../utils/injectionSiteSettings';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -106,7 +108,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Today's Research
             </h3>
-            <CheckSquare size={20} style={{ color: theme.primary }} />
+            <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
+              <CheckSquare size={20} style={{ color: theme.primary }} />
+            </div>
           </div>
         </div>
         
@@ -123,14 +128,17 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   if (filteredTasks.length <= 3) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
-        <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-              Today's Research
-            </h3>
+      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+            Today's Research
+          </h3>
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
             <CheckSquare size={20} style={{ color: theme.primary }} />
           </div>
         </div>
+      </div>
         
         <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2">
           <div className="space-y-2 overflow-hidden">
@@ -287,7 +295,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             {widget.title}
           </h3>
-          <CheckSquare size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
+            <CheckSquare size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

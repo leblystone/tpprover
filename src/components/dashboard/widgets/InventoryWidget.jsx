@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, ChevronsUp, ChevronsDown } from 'lucide-react';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 function useLocal(key, fallback) {
   try {
@@ -81,7 +83,10 @@ const InventoryWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Stockpile
           </h3>
-          <Package size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.inventory} theme={theme} position="right" />
+            <Package size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

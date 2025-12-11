@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calculator, Package, Users, FlaskConical } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const QuickActionsWidget = ({ widget, theme }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -48,7 +50,10 @@ const QuickActionsWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Quick Actions
           </h3>
-          <Zap size={18} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} position="right" />
+            <Zap size={18} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

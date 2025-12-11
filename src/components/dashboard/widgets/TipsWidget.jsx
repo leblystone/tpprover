@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const TipsWidget = ({ widget, theme }) => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
@@ -230,7 +232,10 @@ const TipsWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Helpful Tips
           </h3>
-          <Lightbulb size={16} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.tips} theme={theme} position="right" />
+            <Lightbulb size={16} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, Star, StarOff, ChevronDown, ChevronRight, Brain, AlertTriangle, Loader, Filter, FileText, Plus, Edit3, Trash2, Heart, Target, Shield, Sparkles, CheckCircle } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 // Levenshtein distance function for fuzzy string matching
 function levenshteinDistance(str1, str2) {
@@ -1893,6 +1895,7 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
             Research Glossary
           </h3>
           <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.glossary} theme={theme} position="right" />
             {/* Work in Progress Badge */}
             <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
                  style={{ 

@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { Truck, Clock } from 'lucide-react';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 function useLocal(key, fallback) {
   try {
@@ -52,7 +54,10 @@ const LeadTimeWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Average Delivery
           </h3>
-          <Truck size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.lead_time} theme={theme} position="right" />
+            <Truck size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       

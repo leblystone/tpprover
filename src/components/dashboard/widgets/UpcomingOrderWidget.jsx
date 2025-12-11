@@ -1,6 +1,8 @@
 import React from 'react';
 import { Truck, Lock } from 'lucide-react';
 import UpcomingOrderCard from '../UpcomingOrderCard';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = false, onUpgrade }) => {
   // If no order, show compact version
@@ -12,7 +14,10 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Incoming Orders
             </h3>
-            <Truck size={20} style={{ color: theme.primary }} />
+            <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} position="right" />
+              <Truck size={20} style={{ color: theme.primary }} />
+            </div>
           </div>
         </div>
         
@@ -68,7 +73,10 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Incoming Orders
           </h3>
-          <Truck size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} position="right" />
+            <Truck size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       
