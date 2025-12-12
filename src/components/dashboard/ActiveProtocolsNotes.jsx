@@ -214,7 +214,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
                 <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
-                        Peptide Observations
+                        Active Protocols
                         <FlaskConical size={18} style={{ color: theme.primary }} />
                     </span>
                     <div className="flex items-center gap-2">
@@ -222,52 +222,116 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     </div>
                 </h3>
                 
-                <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
                     {protocolsWithNotes.map((protocol) => {
                         const protocolName = protocol.name || protocol.protocolName || 'Unnamed Protocol';
+                        const peptides = formatPeptides(protocol);
+                        const duration = formatDuration(protocol);
+                        const daysActive = getDaysActive(protocol);
+                        const startDate = protocol.startDate ? formatMMDDYYYY(new Date(protocol.startDate)) : null;
+                        
                         return (
                             <div 
                                 key={protocol.id} 
-                                className="p-3 rounded-lg border transition-all hover:opacity-80 cursor-pointer"
-                                style={{ borderColor: theme.border }}
-                                onClick={() => handleAddNoteClick(protocol)}
+                                className="p-3 rounded-lg border transition-all hover:opacity-90"
+                                style={{ 
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
+                                }}
                             >
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-semibold text-sm mb-1 truncate" style={{ color: theme.text }}>
-                                            {protocolName}
+                                <div className="space-y-2">
+                                    {/* Protocol Header */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-semibold text-sm mb-1 truncate" style={{ color: theme.text }}>
+                                                {protocolName}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs mb-2" style={{ color: theme.textLight }}>
+                                                <Pipette size={12} />
+                                                <span className="truncate">{peptides}</span>
+                                            </div>
                                         </div>
-                                        {protocol.latestNote && (
-                                            <div className="text-xs mb-2 line-clamp-2" style={{ color: theme.textLight }}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAddNoteClick(protocol);
+                                            }}
+                                            className="p-1.5 rounded-full flex items-center justify-center transition-colors flex-shrink-0 hover:scale-110"
+                                            style={{ 
+                                                backgroundColor: theme.primary,
+                                                color: '#ffffff'
+                                            }}
+                                            title="Add note"
+                                        >
+                                            <Plus size={14} strokeWidth={3} />
+                                        </button>
+                                    </div>
+
+                                    {/* Protocol Details */}
+                                    <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: theme.textLight }}>
+                                        {startDate && (
+                                            <span className="flex items-center gap-1">
+                                                <Calendar size={11} />
+                                                {startDate}
+                                            </span>
+                                        )}
+                                        {daysActive !== null && (
+                                            <span className="flex items-center gap-1">
+                                                <Clock size={11} />
+                                                Day {daysActive}
+                                            </span>
+                                        )}
+                                        <span className="flex items-center gap-1">
+                                            <Clock size={11} />
+                                            {duration}
+                                        </span>
+                                    </div>
+
+                                    {/* Latest Note Preview */}
+                                    {protocol.latestNote && (
+                                        <div 
+                                            className="p-2 rounded border text-xs"
+                                            style={{ 
+                                                borderColor: theme.border,
+                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <FileText size={11} style={{ color: theme.primary }} />
+                                                <span className="font-medium" style={{ color: theme.text }}>
+                                                    Latest Note
+                                                </span>
+                                                <span className="text-xs" style={{ color: theme.textLight }}>
+                                                    {formatMMDDYYYY(protocol.latestNote.createdAt)}
+                                                </span>
+                                            </div>
+                                            <div className="line-clamp-2" style={{ color: theme.textLight }}>
                                                 {protocol.latestNote.content}
                                             </div>
-                                        )}
-                                        <div className="flex items-center gap-3 text-xs" style={{ color: theme.textLight }}>
-                                            {protocol.notesCount > 0 && (
-                                                <span className="flex items-center gap-1">
-                                                    <FileText size={12} />
-                                                    {protocol.notesCount} note{protocol.notesCount !== 1 ? 's' : ''}
-                                                </span>
-                                            )}
-                                            {protocol.latestNote && (
-                                                <span>{formatMMDDYYYY(protocol.latestNote.createdAt)}</span>
+                                            {protocol.notesCount > 1 && (
+                                                <div className="mt-1 text-xs" style={{ color: theme.textLight }}>
+                                                    +{protocol.notesCount - 1} more note{protocol.notesCount - 1 !== 1 ? 's' : ''}
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAddNoteClick(protocol);
-                                        }}
-                                        className="p-1.5 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
-                                        style={{ 
-                                            backgroundColor: theme.primary,
-                                            color: '#ffffff'
-                                        }}
-                                        title="Add note"
-                                    >
-                                        <Plus size={14} strokeWidth={3} />
-                                    </button>
+                                    )}
+
+                                    {/* No Notes State */}
+                                    {!protocol.latestNote && (
+                                        <button
+                                            onClick={() => handleAddNoteClick(protocol)}
+                                            className="w-full p-2 rounded border border-dashed text-xs text-center transition-colors hover:opacity-80"
+                                            style={{ 
+                                                borderColor: theme.border,
+                                                color: theme.textLight
+                                            }}
+                                        >
+                                            <span className="flex items-center justify-center gap-1">
+                                                <Plus size={12} />
+                                                Add note
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
