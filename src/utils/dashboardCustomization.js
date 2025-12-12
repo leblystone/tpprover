@@ -67,7 +67,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'active_protocols_notes',
     type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
-    title: 'Peptide Observations',
+    title: 'Active Protocols',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 0 },
     enabled: true,
@@ -405,8 +405,8 @@ export const WIDGET_METADATA = {
     ]
   },
   [WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES]: {
-    title: 'Peptide Observations',
-    description: 'Add research notes to active protocols during your research',
+    title: 'Active Protocols',
+    description: 'View your active protocols and add research notes during your research',
     icon: 'FlaskConical',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: [
