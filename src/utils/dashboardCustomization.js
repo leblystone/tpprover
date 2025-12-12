@@ -65,18 +65,17 @@ export const DEFAULT_WIDGETS = [
     settings: {}
   },
   {
-    id: 'upcoming_order',
-    type: WIDGET_TYPES.UPCOMING_ORDER,
-    title: 'Incoming Peptides',
+    id: 'active_protocols_notes',
+    type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
+    title: 'Peptide Observations',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 0 },
     enabled: true,
     settings: {
-      showTracking: true,
-      autoRefresh: true
+      maxItems: 3
     }
   },
-  // Row 1
+  // Row 1 - Supplements before Incoming Orders
   {
     id: 'supplements',
     type: WIDGET_TYPES.SUPPLEMENTS,
@@ -89,11 +88,23 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
+    id: 'upcoming_order',
+    type: WIDGET_TYPES.UPCOMING_ORDER,
+    title: 'Incoming Peptides',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 2, y: 1 },
+    enabled: true,
+    settings: {
+      showTracking: true,
+      autoRefresh: true
+    }
+  },
+  {
     id: 'goals_only',
     type: 'goals_only',
     title: 'Goals',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 2, y: 1 },
+    position: { x: 4, y: 1 },
     enabled: true,
     settings: {
       maxItems: 5
@@ -104,22 +115,11 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.SPENDING,
     title: 'Spending',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 1 },
+    position: { x: 5, y: 1 },
     enabled: true,
     settings: {}
   },
-  {
-    id: 'metrics_only',
-    type: 'metrics_only',
-    title: 'Bio-Metrics',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 4, y: 1 },
-    enabled: true,
-    settings: {
-      maxItems: 3
-    }
-  },
-  // Row 2
+  // Row 2 - Wishlist before Upcoming Buys
   {
     id: 'compliance',
     type: WIDGET_TYPES.COMPLIANCE,
@@ -130,11 +130,22 @@ export const DEFAULT_WIDGETS = [
     settings: {}
   },
   {
+    id: 'wishlist',
+    type: WIDGET_TYPES.WISHLIST,
+    title: 'Wishlist',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 1, y: 2 },
+    enabled: true,
+    settings: {
+      maxItems: 3
+    }
+  },
+  {
     id: 'upcoming_buys',
     type: WIDGET_TYPES.UPCOMING_BUYS,
     title: 'Upcoming Buys',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 1, y: 2 },
+    position: { x: 3, y: 2 },
     enabled: true,
     settings: {
       maxItems: 3
@@ -145,7 +156,7 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.NOTES,
     title: 'Research Notes',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 2, y: 2 },
+    position: { x: 4, y: 2 },
     enabled: true,
     settings: {}
   },
@@ -154,10 +165,21 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.WATER_TRACKER,
     title: 'Hydration',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 2 },
+    position: { x: 5, y: 2 },
     enabled: true,
     settings: {
       defaultGoal: 8
+    }
+  },
+  {
+    id: 'metrics_only',
+    type: 'metrics_only',
+    title: 'Bio-Metrics',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 3 },
+    enabled: true,
+    settings: {
+      maxItems: 3
     }
   },
   // Row 3
@@ -166,33 +188,11 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
     size: WIDGET_SIZES.MEDIUM,
-    position: { x: 0, y: 3 },
+    position: { x: 2, y: 3 },
     enabled: true,
     settings: {
       showRecent: true,
       showFavorites: true
-    }
-  },
-  {
-    id: 'wishlist',
-    type: WIDGET_TYPES.WISHLIST,
-    title: 'Wishlist',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 2, y: 3 },
-    enabled: true,
-    settings: {
-      maxItems: 3
-    }
-  },
-  {
-    id: 'active_protocols_notes',
-    type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
-    title: 'Peptide Observations',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 4, y: 3 },
-    enabled: true,
-    settings: {
-      maxItems: 3
     }
   },
   // Optional widgets (disabled by default but available for customization)
@@ -445,7 +445,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.5'; // UPDATED LAYOUT: Added Active Protocols Notes widget
+    const currentVersion = '3.6'; // UPDATED LAYOUT: Reordered widgets - wishlist before upcoming buys, peptide observations before incoming orders, supplements before incoming orders
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     

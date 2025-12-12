@@ -854,12 +854,6 @@ exports.getAdminNotificationStats = onCall(async (request) => {
   }
 
   try {
-    // Get users with push notifications enabled
-    const usersWithPushSnapshot = await admin.firestore()
-      .collection('users')
-      .where('notificationSettings.push', '==', true)
-      .get();
-
     // Get total users
     const totalUsersSnapshot = await admin.firestore()
       .collection('users')
@@ -874,11 +868,34 @@ exports.getAdminNotificationStats = onCall(async (request) => {
       .where('lastLoginAt', '>=', sevenDaysAgo)
       .get();
 
+    // Count users with push notifications enabled by checking multiple fields
+    // Some users have notificationSettings.push, others have notificationSettings.pushEnabled
+    // Also check if fcmToken exists (which means they have notifications enabled)
+    let usersWithPushEnabled = 0;
+    
+    totalUsersSnapshot.docs.forEach(doc => {
+      const userData = doc.data();
+      const notificationSettings = userData.notificationSettings || {};
+      
+      // Check various ways notifications might be enabled
+      const hasPushEnabled = 
+        notificationSettings.push === true ||
+        notificationSettings.pushEnabled === true ||
+        !!userData.fcmToken ||
+        !!userData.pushToken;
+      
+      if (hasPushEnabled) {
+        usersWithPushEnabled++;
+      }
+    });
+
     return {
       totalUsers: totalUsersSnapshot.size,
-      usersWithPushEnabled: usersWithPushSnapshot.size,
+      usersWithPushEnabled: usersWithPushEnabled,
       activeUsers: activeUsersSnapshot.size,
-      pushEnabledPercentage: Math.round((usersWithPushSnapshot.size / totalUsersSnapshot.size) * 100)
+      pushEnabledPercentage: totalUsersSnapshot.size > 0 
+        ? Math.round((usersWithPushEnabled / totalUsersSnapshot.size) * 100)
+        : 0
     };
 
   } catch (error) {
@@ -1539,6 +1556,90 @@ exports.scheduledTrialReminders = onSchedule({
     
   } catch (error) {
     logger.error('❌ Error in scheduled trial reminders:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Scheduled function to send survey emails 3 days after trial expires
+exports.scheduledTrialExpiredSurvey = onSchedule({
+  schedule: '0 * * * *', // Run hourly to check all user timezones
+  timeZone: 'UTC',
+  secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
+}, async (event) => {
+  logger.info('📊 Running scheduled trial expired survey check (hourly check)...');
+  
+  try {
+    const emailService = require('./emailService');
+    const db = admin.firestore();
+    const now = new Date();
+    
+    // Find all users with expired trials (status is 'trialing' but trial ended)
+    const usersSnapshot = await db
+      .collection('users')
+      .where('subscription.status', '==', 'trialing')
+      .get();
+    
+    let eligibleUsers = 0;
+    const promises = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const userId = userDoc.id;
+      const subscription = userData.subscription || {};
+      
+      if (subscription.currentPeriodEnd) {
+        const trialEndDate = new Date(subscription.currentPeriodEnd);
+        
+        // Check if trial expired exactly 3 days ago (within 24-hour window)
+        const daysSinceExpiration = Math.floor((now - trialEndDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceExpiration === 3 && trialEndDate < now) {
+          // Check if we already sent this survey (check emailHistory)
+          const emailHistoryQuery = await db
+            .collection('emailHistory')
+            .where('recipientEmail', '==', userData.email)
+            .where('type', '==', 'trialExpiredSurvey')
+            .get();
+          
+          if (emailHistoryQuery.empty) {
+            eligibleUsers++;
+            promises.push(
+              emailService.sendTrialExpiredSurveyEmail(
+                userData.email,
+                userData.displayName || userData.email?.split('@')[0] || 'there',
+                null // Will use default survey link from template
+              )
+              .then(async (success) => {
+                if (success) {
+                  // Log to email history
+                  await db.collection('emailHistory').add({
+                    type: 'trialExpiredSurvey',
+                    recipientEmail: userData.email,
+                    recipientName: userData.displayName || null,
+                    subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent',
+                    sentBy: 'scheduled',
+                    trialEndDate: trialEndDate,
+                    daysSinceExpiration: 3
+                  });
+                }
+                return success;
+              })
+          );
+          }
+        }
+      }
+    }
+    
+    const results = await Promise.allSettled(promises);
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    
+    logger.info(`✅ Trial expired survey emails sent: ${successful}/${eligibleUsers} eligible users`);
+    return { success: true, sent: successful, eligible: eligibleUsers };
+    
+  } catch (error) {
+    logger.error('❌ Error in scheduled trial expired survey:', error);
     return { success: false, error: error.message };
   }
 });

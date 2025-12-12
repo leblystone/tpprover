@@ -308,6 +308,23 @@ const DEFAULT_TEMPLATES = {
       'Inventory Management – Track orders, stockpile, and vendors',
       'Research Notes – Document findings and observations'
     ]
+  },
+  trialExpiredSurvey: {
+    name: 'Trial Expired Survey',
+    subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+    heading: 'We\'d Love Your Feedback!',
+    greeting: 'Hey there!',
+    mainMessage: 'Your trial period has ended, and we\'d love to hear about your experience with The Pep Planner. Your feedback helps us improve the platform for researchers like you.',
+    ctaText: 'Take Survey',
+    ctaLink: 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header',
+    highlightTitle: '📗As a thank you; 14 day trial extension!',
+    highlightMessage: 'Complete this quick survey (less than 2 minutes) and we\'ll extend your trial by 14 days so you can continue your research!',
+    features: [
+      'Help us improve The Pep Planner',
+      'Share what worked and what didn\'t',
+      'Suggest features you\'d like to see',
+      'Get 14 days of free access upon completion'
+    ]
   }
 };
 

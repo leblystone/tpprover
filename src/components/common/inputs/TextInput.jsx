@@ -107,8 +107,8 @@ export default function TextInput({
               aria-label={label || placeholder}
               className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
               style={{ 
-                border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
-                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+                border: `1px solid ${isFocused ? theme.primary : (theme.isDark ? (theme.border || '#71809650') : '#f0eee7')}`,
+                backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'), 
                 color: customTextColor && !theme.isDark ? customTextColor : theme.text,
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
                 whiteSpace: 'pre-wrap',
@@ -137,8 +137,8 @@ export default function TextInput({
               maxLength={maxLength}
               className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
               style={{ 
-                border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
-                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+                border: `1px solid ${isFocused ? theme.primary : (theme.isDark ? (theme.border || '#71809650') : '#f0eee7')}`,
+                backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'), 
                 color: customTextColor && !theme.isDark ? customTextColor : theme.text,
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
                 textTransform: uppercase ? 'uppercase' : 'none'
@@ -171,7 +171,7 @@ export default function TextInput({
             className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none themed-textarea ${uppercase ? 'themed-textarea-uppercase' : ''} resize-y`}
             style={{
               border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-              backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+              backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'),
               color: theme.text,
               boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
               whiteSpace: 'pre-wrap',
@@ -195,7 +195,7 @@ export default function TextInput({
             className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none themed-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
             style={{ 
               border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-              backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+              backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'), 
               color: theme.text,
               boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
               textTransform: uppercase ? 'uppercase' : 'none'

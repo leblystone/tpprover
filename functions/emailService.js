@@ -1266,3 +1266,32 @@ exports.sendAccountDeletionRequestToAdmin = async (userEmail, userName = null, d
   return sendEmail(adminEmail, subject, html);
 };
 
+/**
+ * Send trial expired survey email
+ */
+exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyLink = null) => {
+  try {
+    logger.info('📧 Attempting to load custom trialExpiredSurvey template...');
+    const customTemplate = await loadEmailTemplate('trialExpiredSurvey');
+    if (customTemplate) {
+      logger.info('✅ Custom trialExpiredSurvey template found in Firestore');
+      const subject = customTemplate.subject || 'Quick Survey: Help Us Improve The Pep Planner 📊';
+      // Use the surveyLink parameter if provided, otherwise use the template's ctaLink or default
+      const finalSurveyLink = surveyLink || customTemplate.ctaLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
+      const html = generateEmailHTML(customTemplate, { 
+        userName: userName || 'there', 
+        userEmail, 
+        surveyLink: finalSurveyLink 
+      });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) {
+    logger.error('❌ Failed to load custom trialExpiredSurvey template:', e);
+  }
+  logger.info('📧 Falling back to hardcoded trialExpiredSurvey template');
+  const subject = 'Quick Survey: Help Us Improve The Pep Planner 📊';
+  const finalSurveyLink = surveyLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
+  const html = emailTemplates.trialExpiredSurveyEmail(userName || 'there', userEmail, finalSurveyLink);
+  return sendEmail(userEmail, subject, html);
+};
+

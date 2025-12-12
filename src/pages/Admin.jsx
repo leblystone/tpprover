@@ -45,6 +45,8 @@ import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import EmailHistory from '../components/admin/EmailHistory';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
+import PushNotificationBroadcast from '../components/admin/PushNotificationBroadcast';
+import ExpiredTrialManager from '../components/admin/ExpiredTrialManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 import UserDetailModal from '../components/admin/UserDetailModal';
@@ -401,6 +403,9 @@ const elegantPalette = {
 
 // Soft Dark Grey Theme - Easy on the Eyes
 const adminTheme = {
+  // Theme mode
+  isDark: true,
+  
   // Dark grey colors
   primary: elegantPalette.dark.charcoal,           // Medium-dark grey
   primaryLight: elegantPalette.dark.soft,          // Medium grey
@@ -416,6 +421,7 @@ const adminTheme = {
   background: elegantPalette.dark.wallpaper,       // Soft dark grey background
   cardBackground: elegantPalette.dark.surface,     // Dark grey cards
   cardBackgroundLighter: elegantPalette.dark.charcoal, // Slightly lighter cards
+  inputBackground: elegantPalette.dark.surface,    // Input background (same as cards)
   
   // Gray colors - for subtle accents
   taupe: elegantPalette.taupe.main,
@@ -3912,6 +3918,7 @@ function Admin() {
 
         {activeTab === 'notifications' && (
           <div className="space-y-6">
+            <PushNotificationBroadcast theme={theme} />
             <TriggeredNotificationManager theme={theme} />
           </div>
         )}
@@ -3920,6 +3927,7 @@ function Admin() {
           <div className="space-y-6">
             <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />
+            <ExpiredTrialManager theme={theme} />
             <EmailHistory theme={theme} />
           </div>
         )}

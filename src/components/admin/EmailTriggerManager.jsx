@@ -141,6 +141,16 @@ const DEFAULT_TRIGGERS = {
     description: 'Sent manually from admin panel',
     event: 'admin.manualSend',
     timing: 'On admin action'
+  },
+  trialExpiredSurvey: {
+    enabled: true,
+    triggerType: 'scheduled',
+    description: 'Sent 3 days after trial expires to gather feedback',
+    schedule: 'Hourly check at 9 AM user timezone',
+    timing: '3 days after trial expiration',
+    timezone: 'America/New_York',
+    daysAfter: 3,
+    sendTime: '09:00'
   }
 };
 
@@ -162,7 +172,8 @@ const TEMPLATE_NAMES = {
   giftRedeemed: 'Gift Redeemed (Recipient)',
   giftRedeemedNotification: 'Gift Redeemed (Giver Notice)',
   giftExpiringSoon: 'Gift Subscription Expiring Soon',
-  customAnnouncement: 'Custom Announcement / Maintenance'
+  customAnnouncement: 'Custom Announcement / Maintenance',
+  trialExpiredSurvey: 'Trial Expired Survey'
 };
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

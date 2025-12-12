@@ -814,6 +814,71 @@ exports.trialEndingEmail = (daysLeft, userEmail, founderState = null) => {
   return emailWrapper(content);
 };
 
+// 📊 Trial Expired Survey
+exports.trialExpiredSurveyEmail = (userName, userEmail, surveyLink = null) => {
+  const surveyUrl = surveyLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
+  
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">We'd Love Your Feedback! 📊</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hey there!
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Your trial period has ended, and we'd love to hear about your experience with The Pep Planner. 
+        Your feedback helps us improve the platform for researchers like you.
+      </p>
+
+      <div class="highlight-box">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📗As a thank you; 14 day trial extension!</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          Complete this quick survey (less than 2 minutes) and we'll extend your trial by 14 days so you can continue your research!
+        </p>
+      </div>
+
+      <center>
+        <a href="${surveyUrl}" class="button">
+          Take Survey
+        </a>
+      </center>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What we'd like to know:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          What features did you find most useful?
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          What could we improve?
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          What features would you like to see?
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Get 14 days of free access upon completion
+        </li>
+      </ul>
+
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        Thank you for trying The Pep Planner! If you'd like to continue your research journey, 
+        <a href="https://thepepplanner.app/app/account" style="color: ${COLORS.primary};">check out our subscription plans</a>.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Happy Researching! ✌🏻,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 // 💳 Subscription Confirmed
 exports.subscriptionConfirmedEmail = (plan, interval, price) => {
   const content = `
