@@ -1703,6 +1703,65 @@ exports.sendCustomAnnouncementEmail = onCall(
   }
 );
 
+// Send trial expired survey email (callable from admin panel)
+exports.sendTrialExpiredSurveyEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName, surveyLink } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📊 Sending trial expired survey email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendTrialExpiredSurveyEmail(userEmail, userName, surveyLink);
+      
+      const db = admin.firestore();
+      
+      if (success) {
+        logger.info(`✅ Trial expired survey email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'trialExpiredSurvey',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
+        return { success: true, message: 'Trial expired survey email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send trial expired survey email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'trialExpiredSurvey',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending trial expired survey email: ${error.message}`);
+      throw new Error('Failed to send trial expired survey email');
+    }
+  }
+);
+
 // Send account deletion email
 exports.sendAccountDeletionEmail = onCall(
   {

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Smartphone } from 'lucide-react';
+import { Smartphone, BellRing } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMobile } from '@fortawesome/free-solid-svg-icons';
 import pwaNotificationService from '../../services/pwaNotifications';
+import { syncNotificationSettingsToFirestore } from '../../utils/settingsHelpers';
 import Modal from './Modal';
 import { Capacitor } from '@capacitor/core';
 
@@ -13,6 +16,7 @@ export default function NotificationPermissionPrompt({ theme }) {
     enabled: false
   });
   const checkIntervalRef = useRef(null);
+  const forceShowRef = useRef(false); // For local testing
 
   // Function to check actual permission status from device
   const checkActualPermissionStatus = async () => {
@@ -37,9 +41,33 @@ export default function NotificationPermissionPrompt({ theme }) {
     }
   };
 
+  // Helper function to check test mode (needs to be defined outside useEffect)
+  const checkTestMode = () => {
+    // Check URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('testNotificationPrompt') === 'true') {
+      return true;
+    }
+    
+    // Check localStorage flag
+    if (localStorage.getItem('tpp_test_notification_prompt') === 'true') {
+      return true;
+    }
+    
+    // Check if test function was called
+    return forceShowRef.current;
+  };
+
   useEffect(() => {
+
     // Check if we should show the prompt
     const shouldShowPrompt = async () => {
+      // TEST MODE: Force show for local testing
+      if (checkTestMode()) {
+        console.log('🧪 TEST MODE: Forcing notification prompt to show');
+        return true;
+      }
+      
       // Don't show if notifications are not supported
       if (!('Notification' in window)) return false;
       
@@ -103,6 +131,9 @@ export default function NotificationPermissionPrompt({ theme }) {
 
     // Update status and check if prompt should show
     const updateStatus = async () => {
+      // Check if we're in test mode - if so, don't auto-close
+      const isTestMode = checkTestMode();
+      
       // First, refresh the PWA notification service status
       const pwaStatus = pwaNotificationService.getStatus();
       
@@ -116,10 +147,19 @@ export default function NotificationPermissionPrompt({ theme }) {
         enabled: actualPermission
       });
       
-      // If permission is actually granted, hide modal immediately
-      if (actualPermission) {
+      // If permission is actually granted, hide modal immediately (unless in test mode)
+      if (actualPermission && !isTestMode) {
         setShowPrompt(false);
         return;
+      }
+      
+      // If in test mode, keep modal open (don't auto-close)
+      if (isTestMode) {
+        // Don't check other conditions, just ensure it stays open
+        if (!showPrompt) {
+          setShowPrompt(true);
+        }
+        return; // Skip normal checks in test mode
       }
       
       // Check if we should show prompt based on all conditions
@@ -161,6 +201,25 @@ export default function NotificationPermissionPrompt({ theme }) {
     window.addEventListener('pwa-notifications-disabled', handleDisabled);
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
+
+    // TEST HELPER: Expose test function to window for local testing
+    // Usage: window.testNotificationPrompt() in browser console
+    window.testNotificationPrompt = () => {
+      console.log('🧪 TEST: Forcing notification permission prompt to show');
+      forceShowRef.current = true;
+      // Clear cooldown and other restrictions for testing
+      localStorage.removeItem('tpprover_notification_prompt_last_shown');
+      localStorage.setItem('tpp_test_notification_prompt', 'true');
+      setShowPrompt(true);
+    };
+
+    // TEST HELPER: Clear test mode
+    window.clearNotificationPromptTest = () => {
+      console.log('🧪 TEST: Clearing notification prompt test mode');
+      forceShowRef.current = false;
+      localStorage.removeItem('tpp_test_notification_prompt');
+      setShowPrompt(false);
+    };
 
     return () => {
       if (checkIntervalRef.current) {
@@ -209,14 +268,57 @@ export default function NotificationPermissionPrompt({ theme }) {
       }
       
       if (permissionGranted) {
-        // Update settings
+        // Update settings in localStorage and sync to Firestore
         try {
           const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
           if (!settings.notifications) settings.notifications = {};
           settings.notifications.push = true;
           localStorage.setItem('tpprover_settings', JSON.stringify(settings));
+          
+          // Sync notification settings to Firestore (enables server-side push notifications)
+          await syncNotificationSettingsToFirestore();
         } catch (e) {
-          // Ignore
+          console.error('Error saving notification settings:', e);
+        }
+        
+        // For native apps, ensure FCM token gets saved when registered
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const { PushNotifications } = await import('@capacitor/push-notifications');
+            // Add listener for when token is received
+            PushNotifications.addListener('registration', async (token) => {
+              try {
+                const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                const { db } = await import('../../config/firebase');
+                const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+                const userId = user.uid || user.email?.toLowerCase();
+                
+                if (userId) {
+                  const userRef = doc(db, 'users', userId);
+                  await setDoc(userRef, {
+                    fcmToken: token.value,
+                    pushToken: token.value, // Backward compatibility
+                    notificationSettings: {
+                      push: true,
+                      pushEnabled: true,
+                      lastUpdated: serverTimestamp()
+                    },
+                    deviceInfo: {
+                      platform: Capacitor.getPlatform(),
+                      isNative: true,
+                      lastUpdated: serverTimestamp()
+                    }
+                  }, { merge: true });
+                  console.log('✅ FCM token saved to Firestore');
+                }
+              } catch (error) {
+                console.error('Failed to save FCM token:', error);
+              }
+            });
+          } catch (e) {
+            // Push notifications not available
+            console.warn('Push notifications listener not available:', e);
+          }
         }
         
         // Update status immediately
@@ -277,53 +379,27 @@ export default function NotificationPermissionPrompt({ theme }) {
     <Modal
       open={showPrompt}
       onClose={handleDismiss}
-      title="Stay Updated"
+      title="Enable Your Notifications"
       theme={theme}
       variant="modern"
       maxWidth="max-w-md"
       titleExtra={
         <div className="flex items-center gap-2">
-          <Bell size={18} />
+          <FontAwesomeIcon icon={faMobile} style={{ fontSize: '18px' }} />
         </div>
       }
     >
       <div className="space-y-4">
-        {/* Friendly Header with Icon */}
-        <div 
-          className="rounded-lg p-5 text-center"
-          style={{
-            background: 'linear-gradient(135deg, #5F7F76 0%, #3d5a52 100%)',
-            color: '#ffffff'
-          }}
-        >
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Bell size={36} />
-          </div>
-          <h2 className="text-xl font-bold mb-1">
-            Enable Notifications 📱
-          </h2>
-          <p className="text-sm opacity-90">
-            Get notified about important updates
-          </p>
-        </div>
-        
         {/* Content */}
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" 
-                 style={{ backgroundColor: `${theme.primary}20` }}>
-              <Smartphone size={20} style={{ color: theme.primary }} />
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 text-base" style={{ color: theme.text }}>
-                Get notified even when the app is closed
-              </h4>
-              <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                Receive important updates about your research protocols, orders, group buys, and new features directly to your device.
-              </p>
-            </div>
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold mb-1" style={{ color: theme.text }}>
+              Stay on Track
+            </h2>
+            <p className="text-sm" style={{ color: theme.textLight }}>
+              Reminders of your research!
+            </p>
           </div>
-
           {/* Benefits List */}
           <div 
             className="rounded-lg p-4 space-y-2"
@@ -338,8 +414,8 @@ export default function NotificationPermissionPrompt({ theme }) {
             <ul className="space-y-1.5 ml-4">
               {[
                 'Research reminders and protocol updates',
-                'Order status changes and shipping updates',
-                'Group buy opportunities and deals',
+                'Order delivery status',
+                'Cycle reminders when a repeated protocol should be started',
                 'Low stock alerts for your peptides',
                 'Important app updates and new features'
               ].map((benefit, idx) => (
@@ -361,7 +437,7 @@ export default function NotificationPermissionPrompt({ theme }) {
                 background: 'linear-gradient(135deg, #5F7F76 0%, #3d5a52 100%)'
               }}
             >
-              <Bell size={18} />
+              <BellRing size={18} />
               {isRequesting ? 'Enabling...' : 'Enable Notifications'}
             </button>
             
@@ -376,14 +452,6 @@ export default function NotificationPermissionPrompt({ theme }) {
               Maybe Later
             </button>
           </div>
-          
-          {/* Reminder Info */}
-          <p 
-            className="text-xs text-center"
-            style={{ color: theme?.textLight || '#9ca3af' }}
-          >
-            We'll remind you again in 15 days if notifications aren't enabled
-          </p>
         </div>
       </div>
     </Modal>

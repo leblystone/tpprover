@@ -428,14 +428,16 @@ function generateEmailHTML(template, variables = {}) {
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATIONLINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%LINK%/g, variables.verificationLink);
   }
-  // If ctaLink is empty or still contains a placeholder, use resetLink, verificationLink, or link from variables
+  // If ctaLink is empty or still contains a placeholder, use surveyLink, resetLink, verificationLink, or link from variables
   if (!ctaLinkValue || ctaLinkValue === '#' || 
       ctaLinkValue.includes('%LINK%') || 
       ctaLinkValue.includes('%VERIFICATIONLINK%') || 
       ctaLinkValue.includes('%VERIFICATION_LINK%') ||
       ctaLinkValue.includes('%RESETLINK%') ||
-      ctaLinkValue.includes('%RESET_LINK%')) {
-    ctaLinkValue = variables.resetLink || variables.verificationLink || variables.link || '#';
+      ctaLinkValue.includes('%RESET_LINK%') ||
+      ctaLinkValue.includes('%SURVEYLINK%') ||
+      ctaLinkValue.includes('%SURVEY_LINK%')) {
+    ctaLinkValue = variables.surveyLink || variables.resetLink || variables.verificationLink || variables.link || '#';
     logger.info(`🔗 Using fallback ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   } else {
     logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
