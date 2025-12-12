@@ -17,6 +17,7 @@ export default function NotificationPermissionPrompt({ theme }) {
   });
   const checkIntervalRef = useRef(null);
   const forceShowRef = useRef(false); // For local testing
+  const dismissedRef = useRef(false); // Track if user explicitly dismissed
 
   // Function to check actual permission status from device
   const checkActualPermissionStatus = async () => {
@@ -65,7 +66,51 @@ export default function NotificationPermissionPrompt({ theme }) {
       // TEST MODE: Force show for local testing
       if (checkTestMode()) {
         console.log('🧪 TEST MODE: Forcing notification prompt to show');
+        dismissedRef.current = false; // Reset dismissal in test mode
         return true;
+      }
+      
+      // Check if user is actively requesting permissions (bypasses cooldown)
+      const userRequestingPermissions = localStorage.getItem('tpprover_user_requesting_permissions') === 'true';
+      if (userRequestingPermissions) {
+        console.log('✅ User actively requesting permissions - bypassing cooldown');
+        dismissedRef.current = false;
+        sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+        // Don't return true here - continue with normal permission checks
+      }
+      
+      // CRITICAL: Check if dismissed during this session FIRST (unless user is requesting)
+      const dismissedThisSession = sessionStorage.getItem('tpprover_notification_dismissed_this_session');
+      if (dismissedThisSession === 'true' && !userRequestingPermissions) {
+        // Dismissed this session - never show (unless user is actively requesting)
+        return false;
+      }
+      
+      // If user explicitly dismissed, check cooldown FIRST before any other checks
+      // This prevents the modal from reappearing immediately after dismissal
+      // UNLESS user is actively requesting permissions
+      const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
+      const lastPromptTime = localStorage.getItem('tpprover_notification_prompt_last_shown');
+      
+      if (lastPromptTime && !userRequestingPermissions) {
+        const timeSinceLastPrompt = Date.now() - parseInt(lastPromptTime, 10);
+        // Only show if 15 days have passed since last dismissal
+        if (timeSinceLastPrompt < FIFTEEN_DAYS) {
+          // If still in cooldown, ensure modal stays hidden
+          dismissedRef.current = true;
+          const daysRemaining = Math.ceil((FIFTEEN_DAYS - timeSinceLastPrompt) / (24 * 60 * 60 * 1000));
+          console.log(`⏸️ Notification prompt cooldown active. Will show again in ${daysRemaining} day(s).`);
+          return false;
+        } else {
+          // Cooldown expired, reset dismissal flags
+          dismissedRef.current = false;
+          sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+        }
+      }
+      
+      // Don't show if user explicitly dismissed and we're still in cooldown
+      if (dismissedRef.current && lastPromptTime) {
+        return false;
       }
       
       // Don't show if notifications are not supported
@@ -75,6 +120,7 @@ export default function NotificationPermissionPrompt({ theme }) {
       const hasPermission = await checkActualPermissionStatus();
       if (hasPermission) {
         // Permission granted - update settings and don't show
+        dismissedRef.current = false; // Reset dismissal if permission granted
         try {
           const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
           if (!settings.notifications) settings.notifications = {};
@@ -98,21 +144,6 @@ export default function NotificationPermissionPrompt({ theme }) {
         // Ignore parse errors
       }
       
-      // Check last prompt time (15 days = 15 * 24 * 60 * 60 * 1000 ms)
-      // This cooldown prevents spamming users who dismiss/close/ignore the modal
-      const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
-      const lastPromptTime = localStorage.getItem('tpprover_notification_prompt_last_shown');
-      
-      if (lastPromptTime) {
-        const timeSinceLastPrompt = Date.now() - parseInt(lastPromptTime, 10);
-        // Only show if 15 days (1,296,000,000 ms) have passed since last dismissal
-        if (timeSinceLastPrompt < FIFTEEN_DAYS) {
-          const daysRemaining = Math.ceil((FIFTEEN_DAYS - timeSinceLastPrompt) / (24 * 60 * 60 * 1000));
-          console.log(`⏸️ Notification prompt cooldown active. Will show again in ${daysRemaining} day(s).`);
-          return false;
-        }
-      }
-      
       // For first-time users, wait at least 2 minutes before showing
       const firstVisit = localStorage.getItem('tpprover_first_visit');
       if (!firstVisit) {
@@ -134,6 +165,60 @@ export default function NotificationPermissionPrompt({ theme }) {
       // Check if we're in test mode - if so, don't auto-close
       const isTestMode = checkTestMode();
       
+      // CRITICAL: Check if dismissed during this session first
+      const dismissedThisSession = sessionStorage.getItem('tpprover_notification_dismissed_this_session');
+      if (dismissedThisSession === 'true' && !isTestMode) {
+        // Dismissed this session - stay hidden and exit early
+        dismissedRef.current = true;
+        setShowPrompt(false);
+        // Still update status for permission tracking, but don't show modal
+        const actualPermission = await checkActualPermissionStatus();
+        const pwaStatus = pwaNotificationService.getStatus();
+        setStatus({
+          ...pwaStatus,
+          permission: actualPermission ? 'granted' : Notification.permission,
+          enabled: actualPermission
+        });
+        return; // Exit early
+      }
+      
+      // Check if user is actively requesting permissions (bypasses cooldown)
+      const userRequestingPermissions = localStorage.getItem('tpprover_user_requesting_permissions') === 'true';
+      
+      // CRITICAL: Check cooldown SECOND before doing anything else
+      // This prevents the modal from reappearing after dismissal
+      // UNLESS user is actively requesting permissions
+      const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
+      const lastPromptTime = localStorage.getItem('tpprover_notification_prompt_last_shown');
+      
+      if (lastPromptTime && !isTestMode && !userRequestingPermissions) {
+        const timeSinceLastPrompt = Date.now() - parseInt(lastPromptTime, 10);
+        if (timeSinceLastPrompt < FIFTEEN_DAYS) {
+          // Still in cooldown - force modal to stay hidden and exit early
+          dismissedRef.current = true;
+          setShowPrompt(false);
+          // Still update status for permission tracking, but don't show modal
+          const actualPermission = await checkActualPermissionStatus();
+          const pwaStatus = pwaNotificationService.getStatus();
+          setStatus({
+            ...pwaStatus,
+            permission: actualPermission ? 'granted' : Notification.permission,
+            enabled: actualPermission
+          });
+          return; // Exit early - don't proceed with showing logic
+        } else {
+          // Cooldown expired, reset dismissal flags
+          dismissedRef.current = false;
+          sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+        }
+      }
+      
+      // If user is requesting permissions, reset dismissal flags
+      if (userRequestingPermissions) {
+        dismissedRef.current = false;
+        sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+      }
+      
       // First, refresh the PWA notification service status
       const pwaStatus = pwaNotificationService.getStatus();
       
@@ -150,6 +235,7 @@ export default function NotificationPermissionPrompt({ theme }) {
       // If permission is actually granted, hide modal immediately (unless in test mode)
       if (actualPermission && !isTestMode) {
         setShowPrompt(false);
+        dismissedRef.current = false; // Reset dismissal since permission was granted
         return;
       }
       
@@ -164,14 +250,33 @@ export default function NotificationPermissionPrompt({ theme }) {
       
       // Check if we should show prompt based on all conditions
       const shouldShow = await shouldShowPrompt();
+      
+      // NEVER show if dismissed (double-check)
+      if (dismissedRef.current) {
+        setShowPrompt(false);
+        return;
+      }
+      
       setShowPrompt(shouldShow);
     };
+
+    // Initialize dismissed state from localStorage
+    const lastPromptTime = localStorage.getItem('tpprover_notification_prompt_last_shown');
+    if (lastPromptTime) {
+      const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
+      const timeSinceLastPrompt = Date.now() - parseInt(lastPromptTime, 10);
+      // If still in cooldown, mark as dismissed
+      if (timeSinceLastPrompt < FIFTEEN_DAYS) {
+        dismissedRef.current = true;
+      }
+    }
 
     // Initial check
     updateStatus();
 
     // Set up periodic checks to sync with device permission changes
     // This is important because users can change permissions in system settings
+    // Check every 5 seconds, but the updateStatus function will respect dismissal cooldown
     checkIntervalRef.current = setInterval(() => {
       updateStatus();
     }, 5000); // Check every 5 seconds
@@ -209,6 +314,7 @@ export default function NotificationPermissionPrompt({ theme }) {
       forceShowRef.current = true;
       // Clear cooldown and other restrictions for testing
       localStorage.removeItem('tpprover_notification_prompt_last_shown');
+      sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
       localStorage.setItem('tpp_test_notification_prompt', 'true');
       setShowPrompt(true);
     };
@@ -218,6 +324,7 @@ export default function NotificationPermissionPrompt({ theme }) {
       console.log('🧪 TEST: Clearing notification prompt test mode');
       forceShowRef.current = false;
       localStorage.removeItem('tpp_test_notification_prompt');
+      sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
       setShowPrompt(false);
     };
 
@@ -324,10 +431,12 @@ export default function NotificationPermissionPrompt({ theme }) {
         // Update status immediately
         setStatus(prev => ({ ...prev, permission: 'granted', enabled: true }));
         setShowPrompt(false);
+        dismissedRef.current = false; // Reset dismissal since permission was granted
         
-        // Record that we showed this prompt now (will show again in 15 days if they dismiss)
-        // But if they enable, we won't show again until disabled
-        localStorage.setItem('tpprover_notification_prompt_last_shown', Date.now().toString());
+        // Clear the dismissal timestamp since permission was granted
+        // We don't want to be in cooldown when permission is granted
+        localStorage.removeItem('tpprover_notification_prompt_last_shown');
+        sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
         
         // Show success message
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -363,14 +472,45 @@ export default function NotificationPermissionPrompt({ theme }) {
   };
 
   const handleDismiss = () => {
-    setShowPrompt(false);
+    dismissedRef.current = true; // Mark as explicitly dismissed FIRST
+    setShowPrompt(false); // Then hide the modal
     // Record current time - will show again in 15 days
     // This prevents spamming users if they dismiss/close/ignore the modal
     const now = Date.now();
     localStorage.setItem('tpprover_notification_prompt_last_shown', now.toString());
+    // Also set in sessionStorage to persist across remounts during this session
+    sessionStorage.setItem('tpprover_notification_dismissed_this_session', 'true');
     console.log('📅 Notification prompt dismissed. Will show again in 15 days.');
   };
 
+  // ========================================================================
+  // FINAL RENDER GUARD - THIS IS THE ULTIMATE GATEKEEPER
+  // Check cooldown BEFORE rendering - this overrides ALL other state
+  // ========================================================================
+  const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
+  const lastPromptTime = localStorage.getItem('tpprover_notification_prompt_last_shown');
+  const dismissedThisSession = sessionStorage.getItem('tpprover_notification_dismissed_this_session');
+  const currentTestMode = checkTestMode();
+  
+  // CRITICAL: If dismissed during this session, NEVER render (unless test mode)
+  // This prevents modal from reappearing if component remounts
+  if (dismissedThisSession === 'true' && !currentTestMode) {
+    return null;
+  }
+  
+  // Check if user is actively requesting permissions (bypasses cooldown)
+  const userRequestingPermissions = localStorage.getItem('tpprover_user_requesting_permissions') === 'true';
+  
+  // CRITICAL: If there's a dismissal timestamp within 15 days, NEVER render (unless test mode or user requesting)
+  if (lastPromptTime && !currentTestMode && !userRequestingPermissions) {
+    const timeSinceLastPrompt = Date.now() - parseInt(lastPromptTime, 10);
+    if (timeSinceLastPrompt < FIFTEEN_DAYS) {
+      // In cooldown - absolutely do not render, regardless of any state
+      return null;
+    }
+  }
+
+  // Also check if not supported or not set to show
   if (!showPrompt || !status.supported) {
     return null;
   }

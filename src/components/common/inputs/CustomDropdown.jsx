@@ -11,7 +11,9 @@ export default function CustomDropdown({
     onChange, 
     options = [], 
     placeholder = "Select...",
-    theme 
+    theme,
+    outlined = false,
+    customShadow = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -59,12 +61,21 @@ export default function CustomDropdown({
                     // Prevent any parent blur events on touch devices
                     e.preventDefault();
                 }}
-                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
+                className={`w-full ${outlined ? 'px-4 py-3' : 'px-3 py-2'} text-sm border ${outlined ? 'rounded-lg' : 'rounded-md'} flex items-center justify-between transition-all touch-manipulation ${outlined ? '' : 'hover:border-gray-400'}`}
                 style={{
                     borderColor: isOpen ? theme.primary : theme.border,
-                    backgroundColor: theme.cardBackground,
-                    color: value ? theme.text : theme.textLight,
-                    WebkitTapHighlightColor: 'transparent'
+                    backgroundColor: outlined ? (theme.isDark ? '#1f2937' : '#ffffff') : theme.cardBackground,
+                    color: value ? (outlined && !theme.isDark ? '#181A18' : theme.text) : theme.textLight,
+                    WebkitTapHighlightColor: 'transparent',
+                    boxShadow: outlined && customShadow 
+                        ? (theme.isDark 
+                            ? '0 2px 8px rgba(0,0,0,0.4)' 
+                            : '0 1px 3px rgba(0,0,0,0.1)')
+                        : (isOpen && outlined
+                            ? (theme.isDark 
+                                ? `0 0 0 2px ${theme.primary}40, 0 2px 8px rgba(0,0,0,0.4)` 
+                                : `0 0 0 2px ${theme.primaryLight}, 0 1px 3px rgba(0,0,0,0.1)`)
+                            : 'none')
                 }}
             >
                 <span>{displayText}</span>

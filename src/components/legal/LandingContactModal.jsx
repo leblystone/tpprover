@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Send } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { executeRecaptcha } from '../../utils/recaptcha';
 
 export default function LandingContactModal({ open, onClose }) {
     const [formData, setFormData] = useState({
@@ -26,6 +27,16 @@ export default function LandingContactModal({ open, onClose }) {
         setSubmitStatus(null);
         
         try {
+            // Execute reCAPTCHA for contact form
+            let recaptchaToken = null;
+            try {
+                recaptchaToken = await executeRecaptcha('contact');
+                console.log('✅ reCAPTCHA token obtained for contact form');
+            } catch (recaptchaError) {
+                console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
+                // Continue without token - server will handle gracefully
+            }
+            
             // Call Firebase Function to send contact form email
             const functions = getFunctions();
             const submitContactForm = httpsCallable(functions, 'submitContactForm');
@@ -34,7 +45,8 @@ export default function LandingContactModal({ open, onClose }) {
                 name: formData.name,
                 email: formData.email,
                 subject: formData.subject,
-                message: formData.message
+                message: formData.message,
+                recaptchaToken
             });
             
             if (result.data.success) {

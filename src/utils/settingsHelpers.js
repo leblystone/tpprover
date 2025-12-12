@@ -122,6 +122,7 @@ export async function syncNotificationSettingsToFirestore() {
         push: settings.notifications.push === true,
         billing: settings.notifications.billing === true,
         researchReminders: settings.notifications.researchReminders === true,
+        researchReminderTime: settings.notifications.researchReminderTime || '08:00', // HH:mm format
         groupBuys: settings.notifications.groupBuys === true,
         lowStockAlerts: settings.notifications.lowStockAlerts === true,
         orderStatusUpdates: settings.notifications.orderStatusUpdates === true,
@@ -153,7 +154,11 @@ export function getDefaultSettings() {
       email: true,
       push: true,
       billing: true,
-      researchReminders: true,
+      researchReminders: true, // Legacy - kept for backward compatibility
+      researchRemindersAM: false,
+      researchReminderTimeAM: '08:00', // Default 8:00 AM in HH:mm format
+      researchRemindersPM: false,
+      researchReminderTimePM: '18:00', // Default 6:00 PM in HH:mm format
       groupBuys: true,
       lowStockAlerts: true,
       orderStatusUpdates: true,

@@ -65,6 +65,21 @@ async function sendEmail(to, subject, html) {
     // SendGrid returns 202 for accepted emails
     if (statusCode === 202) {
       logger.info('✅ Email accepted by SendGrid and queued for delivery');
+      
+      // Track email count for ALL emails sent (including direct sends)
+      try {
+        const emailQueue = require('./emailQueue');
+        const newCount = await emailQueue.incrementEmailCount();
+        logger.info(`📊 Email count incremented. New count: ${newCount}`);
+      } catch (countError) {
+        logger.error('❌ Failed to increment email count:', countError);
+        logger.error('Count error details:', {
+          message: countError.message,
+          stack: countError.stack
+        });
+        // Don't fail the email send if count increment fails, but log it
+      }
+      
       return true;
     } else {
       logger.warn('⚠️ Unexpected SendGrid status code:', statusCode);
@@ -84,6 +99,15 @@ async function sendEmail(to, subject, html) {
 
 // Export the base sendEmail function
 exports.sendEmail = sendEmail;
+
+/**
+ * Send email with automatic queuing if quota exceeded
+ * This is the recommended method for sending emails
+ */
+exports.sendEmailWithQueue = async (to, subject, html, options = {}) => {
+  const emailQueue = require('./emailQueue');
+  return await emailQueue.sendEmailWithQueue(to, subject, html, options);
+};
 
 /**
  * Send welcome email to new user
@@ -1270,8 +1294,11 @@ exports.sendAccountDeletionRequestToAdmin = async (userEmail, userName = null, d
 
 /**
  * Send trial expired survey email
+ * Uses queue system to track email count
  */
 exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyLink = null) => {
+  const emailQueue = require('./emailQueue');
+  
   try {
     logger.info('📧 Attempting to load custom trialExpiredSurvey template...');
     const customTemplate = await loadEmailTemplate('trialExpiredSurvey');
@@ -1285,7 +1312,13 @@ exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyL
         userEmail, 
         surveyLink: finalSurveyLink 
       });
-      return sendEmail(userEmail, subject, html);
+      // Use queue system with low priority for survey emails
+      const result = await emailQueue.sendEmailWithQueue(userEmail, subject, html, {
+        priority: emailQueue.PRIORITY_LOW,
+        type: 'trialExpiredSurvey',
+        metadata: { userName, surveyLink: finalSurveyLink }
+      });
+      return result.sent || result.queued; // Return true if sent or queued
     }
   } catch (e) {
     logger.error('❌ Failed to load custom trialExpiredSurvey template:', e);
@@ -1294,6 +1327,12 @@ exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyL
   const subject = 'Quick Survey: Help Us Improve The Pep Planner 📊';
   const finalSurveyLink = surveyLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
   const html = emailTemplates.trialExpiredSurveyEmail(userName || 'there', userEmail, finalSurveyLink);
-  return sendEmail(userEmail, subject, html);
+  // Use queue system with low priority for survey emails
+  const result = await emailQueue.sendEmailWithQueue(userEmail, subject, html, {
+    priority: emailQueue.PRIORITY_LOW,
+    type: 'trialExpiredSurvey',
+    metadata: { userName, surveyLink: finalSurveyLink }
+  });
+  return result.sent || result.queued; // Return true if sent or queued
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Plus, Target, Edit, Bed, Smile, ShieldAlert, Lock } from 'lucide-react';
+import { Check, Plus, Edit, Bed, Smile, ShieldAlert, Lock } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
 import { formatMMDDYYYY } from '../../../utils/date';
 

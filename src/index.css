@@ -446,3 +446,30 @@ html, body, #root {
 .search-box-wrapper button[type="reset"]:after {
   transform: rotate(-45deg);
 }
+
+/* Hide reCAPTCHA badge - it's invisible anyway, but this removes the ugly logo */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  display: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ensure reCAPTCHA badge is hidden on login/signup pages */
+body .grecaptcha-badge,
+#root .grecaptcha-badge,
+[class*="login"] .grecaptcha-badge,
+[class*="signup"] .grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  display: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}

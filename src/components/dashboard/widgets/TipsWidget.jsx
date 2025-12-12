@@ -229,12 +229,12 @@ const TipsWidget = ({ widget, theme }) => {
         style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Helpful Tips
+            <Lightbulb size={16} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tips} theme={theme} />
-            <Lightbulb size={16} style={{ color: theme.primary }} />
           </div>
         </div>
       </div>

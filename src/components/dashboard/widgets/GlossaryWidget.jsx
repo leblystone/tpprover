@@ -1891,8 +1891,9 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
       {/* Header */}
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Research Glossary
+            <BookOpen size={20} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.glossary} theme={theme} />
@@ -1907,7 +1908,6 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
                    style={{ backgroundColor: theme.isDark ? '#c65368' : theme.warning }}></div>
               Work in Progress
             </div>
-            <BookOpen size={20} style={{ color: theme.primary }} />
           </div>
         </div>
       </div>

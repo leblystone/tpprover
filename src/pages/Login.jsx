@@ -23,6 +23,8 @@ import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../service
 import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
 import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
+import { executeRecaptcha } from '../utils/recaptcha';
+import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -373,6 +375,11 @@ export default function Login() {
     // Real-time validation
     useEffect(() => {
       if (mode === 'signup' && email) {
+        // Use disposable email check for signup
+        const emailResult = validateEmailWithDisposableCheck(email);
+        setEmailValidation(emailResult);
+      } else if (mode === 'login' && email) {
+        // Basic validation for login
         const emailResult = validateEmail(email);
         setEmailValidation(emailResult);
       }
@@ -395,11 +402,16 @@ export default function Login() {
       return true;
     }, [email, password, confirmPassword, mode, passwordValidation.valid, emailValidation.valid]);
 
-    const doLogin = async () => {
+    const doLogin = async (recaptchaToken = null) => {
       try {
         console.log('🔄 Step 1: Initializing login...');
         // Set flag to prevent auth token clearing during login
         sessionStorage.setItem('tpp_login_in_progress', 'true');
+        
+        // Store reCAPTCHA token for server verification (if provided)
+        if (recaptchaToken) {
+          sessionStorage.setItem('tpp_login_recaptcha_token', recaptchaToken);
+        }
         
         console.log('🔄 Step 2: Backing up existing data...');
         // CRITICAL FIX: Backup existing localStorage data before login
@@ -817,11 +829,16 @@ export default function Login() {
       return true; // All validations passed
     };
 
-    const doSignup = async () => {
+    const doSignup = async (recaptchaToken = null) => {
       try {
         // CRITICAL: Set session flag FIRST to prevent AppContext interference
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
         console.log('🔒 Signup process started - AppContext will not interfere');
+        
+        // Store reCAPTCHA token for server verification (if provided)
+        if (recaptchaToken) {
+          sessionStorage.setItem('tpp_signup_recaptcha_token', recaptchaToken);
+        }
         
         // NOTE: We don't pre-check if account exists because fetchSignInMethodsForEmail
         // can return false negatives (empty array) for accounts that exist but are disabled
@@ -1211,8 +1228,18 @@ export default function Login() {
             try {
                 console.log('🔐 Starting login process...');
                 
+                // Execute reCAPTCHA for login
+                let recaptchaToken = null;
+                try {
+                    recaptchaToken = await executeRecaptcha('login');
+                    console.log('✅ reCAPTCHA token obtained for login');
+                } catch (recaptchaError) {
+                    console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
+                    // Continue without token - server will handle gracefully
+                }
+                
                 // Add timeout to prevent infinite loading state
-                const loginPromise = doLogin();
+                const loginPromise = doLogin(recaptchaToken);
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Login timeout - network may be slow or blocked')), 30000)
                 );
@@ -1249,7 +1276,17 @@ export default function Login() {
         setLoading(true);
         setShowAgreementModal(false);
         try {
-            const success = await doSignup();
+            // Execute reCAPTCHA for signup
+            let recaptchaToken = null;
+            try {
+                recaptchaToken = await executeRecaptcha('signup');
+                console.log('✅ reCAPTCHA token obtained for signup');
+            } catch (recaptchaError) {
+                console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
+                // Continue without token - server will handle gracefully
+            }
+            
+            const success = await doSignup(recaptchaToken);
             if (!success) {
                 // Reset loading state if signup failed
                 setLoading(false);
@@ -1263,6 +1300,19 @@ export default function Login() {
 
     return (
         <>
+            <style>{`
+                /* Hide reCAPTCHA badge on login/signup page */
+                .grecaptcha-badge {
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                    display: none !important;
+                    position: absolute !important;
+                    left: -9999px !important;
+                    width: 0 !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
+                }
+            `}</style>
             <div 
                 className="min-h-screen flex flex-col items-center justify-center" 
                 style={{ 

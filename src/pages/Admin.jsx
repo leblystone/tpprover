@@ -46,12 +46,14 @@ import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import EmailHistory from '../components/admin/EmailHistory';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import PushNotificationBroadcast from '../components/admin/PushNotificationBroadcast';
+import EmailQueueManager from '../components/admin/EmailQueueManager';
 import ExpiredTrialManager from '../components/admin/ExpiredTrialManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 import UserDetailModal from '../components/admin/UserDetailModal';
 import VersionManager from '../components/admin/VersionManager';
 import SingleMessageSender from '../components/admin/SingleMessageSender';
+import SecurityManager from '../components/admin/SecurityManager';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -1864,6 +1866,18 @@ function Admin() {
                   { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
                   { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' },
                   { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#8b5cf6' }
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
+              
+              <HorizontalNavGroup
+                id="security"
+                title="Security"
+                icon={Shield}
+                items={[
+                  { id: 'security', label: 'Security', icon: Shield, count: 0, color: '#dc2626' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -3908,6 +3922,10 @@ function Admin() {
           </div>
         )}
 
+        {activeTab === 'security' && (
+          <SecurityManager theme={theme} />
+        )}
+
         {activeTab === 'agreements' && (
           <AgreementTracking theme={theme} />
         )}
@@ -3925,6 +3943,7 @@ function Admin() {
 
         {activeTab === 'emails' && (
           <div className="space-y-6">
+            <EmailQueueManager theme={theme} />
             <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />
             <ExpiredTrialManager theme={theme} />

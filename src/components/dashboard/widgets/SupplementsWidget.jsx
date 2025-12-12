@@ -78,12 +78,12 @@ const SupplementsWidget = ({
     <div className="relative h-full flex flex-col">
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Supplements
+            <Pill size={20} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.supplements} theme={theme} />
-            <Pill size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddSupplement}

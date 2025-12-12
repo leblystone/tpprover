@@ -43,6 +43,12 @@
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        /* Hide reCAPTCHA badge */
+        .grecaptcha-badge {
+          visibility: hidden !important;
+          opacity: 0 !important;
+          display: none !important;
+        }
       </style>
     </div>
     <script type="module" src="/src/main.jsx"></script>

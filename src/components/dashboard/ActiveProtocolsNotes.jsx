@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlaskConical, Plus, FileText, X } from 'lucide-react';
+import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette } from 'lucide-react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
@@ -157,16 +157,52 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
         }
     };
 
+    // Format protocol duration
+    const formatDuration = (protocol) => {
+        if (protocol.duration?.noEnd) return 'Ongoing';
+        if (protocol.duration?.count && protocol.duration?.unit) {
+            const count = protocol.duration.count;
+            const unit = protocol.duration.unit;
+            return `${count} ${unit}${count > 1 ? 's' : ''}`;
+        }
+        return 'Duration not set';
+    };
+
+    // Format peptide names
+    const formatPeptides = (protocol) => {
+        if (!protocol.peptides || protocol.peptides.length === 0) return 'No peptides';
+        if (protocol.peptides.length === 1) {
+            return protocol.peptides[0].name || 'Unnamed peptide';
+        }
+        if (protocol.peptides.length <= 3) {
+            return protocol.peptides.map(p => p.name || 'Unnamed').join(', ');
+        }
+        return `${protocol.peptides.slice(0, 2).map(p => p.name || 'Unnamed').join(', ')} +${protocol.peptides.length - 2} more`;
+    };
+
+    // Calculate days active
+    const getDaysActive = (protocol) => {
+        if (!protocol.startDate) return null;
+        const start = new Date(protocol.startDate);
+        const today = new Date();
+        const diffTime = Math.abs(today - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    };
+
     if (activeProtocols.length === 0) {
         return (
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
-                    <span>Peptide Observations</span>
+                <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                    <span className="flex items-center gap-2">
+                        Active Protocols
+                        <FlaskConical size={18} style={{ color: theme.primary }} />
+                    </span>
                     <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-sm text-center" style={{ color: theme.textLight }}>
-                        No active protocols. Start a protocol to add observations.
+                        No active protocols. Start a protocol to begin tracking.
                     </p>
                 </div>
             </div>
@@ -176,12 +212,14 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     return (
         <>
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-base font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.primaryDark || theme.text, borderColor: theme.border }}>
-                    <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                    <span className="flex items-center gap-2">
+                        Peptide Observations
                         <FlaskConical size={18} style={{ color: theme.primary }} />
-                        <span>Peptide Observations</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                     </div>
-                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 
                 <div className="flex-1 overflow-y-auto min-h-0 space-y-2">

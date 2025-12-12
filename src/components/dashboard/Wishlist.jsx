@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { BookHeart, HeartPlus, X, DollarSign, Edit, Package } from 'lucide-react'
+import { BookHeart, Plus, X, DollarSign, Edit, Package } from 'lucide-react'
 import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
@@ -269,10 +269,12 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   return (
     <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
       <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
-        <span>Wishlist</span>
+        <span className="flex items-center gap-2">
+          Wishlist
+          <BookHeart size={18} style={{ color: theme.primary }} />
+        </span>
         <div className="flex items-center gap-2">
           <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
-          <BookHeart size={18} style={{ color: theme.primary }} />
           <ModernTooltip text="Add" position="top">
             <button
               type="button"
@@ -291,8 +293,8 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
               style={{ 
                 color: '#ffffff',
                 backgroundColor: theme.primary,
-                width: '24px',
-                height: '24px',
+                width: '28px',
+                height: '28px',
                 padding: 0,
                 border: 'none',
                 boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
@@ -305,7 +307,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                 e.currentTarget.style.opacity = '1';
               }}
             >
-              <HeartPlus size={12} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+              <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
             </button>
           </ModernTooltip>
         </div>

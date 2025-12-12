@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -26,12 +26,16 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, createTestProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory } from '../utils/protocolHistory';
+import CustomDropdown from '../components/common/inputs/CustomDropdown';
+import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
+import pwaNotificationService from '../services/pwaNotifications';
+import { Capacitor } from '@capacitor/core';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
   const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol, stockpile, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
-  const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history'
+  const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
@@ -44,6 +48,8 @@ export default function Protocols() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
+  const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
+  const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -439,10 +445,270 @@ export default function Protocols() {
     deleteProtocol(protocol.id);
   };
 
+  // Load reminder settings
+  const [reminderSettings, setReminderSettings] = useState(() => {
+    const settings = loadSettings();
+    const defaults = getDefaultSettings();
+    return {
+      amEnabled: settings?.notifications?.researchRemindersAM ?? defaults.notifications.researchRemindersAM ?? false,
+      amTime: settings?.notifications?.researchReminderTimeAM ?? defaults.notifications.researchReminderTimeAM ?? '08:00',
+      pmEnabled: settings?.notifications?.researchRemindersPM ?? defaults.notifications.researchRemindersPM ?? false,
+      pmTime: settings?.notifications?.researchReminderTimePM ?? defaults.notifications.researchReminderTimePM ?? '18:00'
+    };
+  });
+
+  // Push notification status
+  const [pushNotificationStatus, setPushNotificationStatus] = useState({
+    supported: false,
+    enabled: false,
+    loading: false
+  });
+
+  // Check push notification status on mount and when settings change
+  useEffect(() => {
+    const updatePushStatus = () => {
+      const status = pwaNotificationService.getStatus();
+      const isNative = Capacitor.isNativePlatform();
+      const settings = loadSettings();
+      
+      const pushEnabled = status.enabled || settings?.notifications?.push === true;
+      
+      setPushNotificationStatus({
+        supported: status.supported || isNative,
+        enabled: pushEnabled,
+        loading: false
+      });
+    };
+
+    updatePushStatus();
+
+    const handleEnabled = () => updatePushStatus();
+    const handleDisabled = () => updatePushStatus();
+    
+    // Listen for settings changes (when user toggles push in settings page)
+    const handleSettingsChange = () => {
+      updatePushStatus();
+    };
+    window.addEventListener('storage', handleSettingsChange);
+
+    window.addEventListener('pwa-notifications-enabled', handleEnabled);
+    window.addEventListener('pwa-notifications-disabled', handleDisabled);
+
+    // Also check periodically for changes
+    const interval = setInterval(updatePushStatus, 2000);
+
+    return () => {
+      window.removeEventListener('pwa-notifications-enabled', handleEnabled);
+      window.removeEventListener('pwa-notifications-disabled', handleDisabled);
+      window.removeEventListener('storage', handleSettingsChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Sync reminder enabled state with push notification status
+  useEffect(() => {
+    if (!pushNotificationStatus.enabled && reminderSettings.enabled) {
+      // If push is disabled but reminders are enabled, disable reminders
+      setReminderSettings(prev => ({ ...prev, enabled: false }));
+      const settings = loadSettings();
+      const defaults = getDefaultSettings();
+      const updatedSettings = {
+        ...defaults,
+        ...settings,
+        notifications: {
+          ...defaults.notifications,
+          ...(settings?.notifications || {}),
+          researchReminders: false
+        }
+      };
+      saveSettings(updatedSettings);
+      syncNotificationSettingsToFirestore();
+    }
+  }, [pushNotificationStatus.enabled]);
+
+  // Update reminder settings
+  const updateReminderSetting = async (key, value) => {
+    // If enabling research reminders (AM or PM), check if push notifications are enabled
+    if ((key === 'amEnabled' || key === 'pmEnabled') && value === true && !pushNotificationStatus.enabled) {
+      // Clear cooldown period to allow permission request
+      // User is actively trying to enable notifications, so override the 15-day cooldown
+      localStorage.removeItem('tpprover_notification_prompt_last_shown');
+      sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+      
+      // Set flag to bypass cooldown in NotificationPermissionPrompt
+      localStorage.setItem('tpprover_user_requesting_permissions', 'true');
+      
+      // Request push notification permissions
+      setPushNotificationStatus(prev => ({ ...prev, loading: true }));
+      
+      try {
+        let permissionGranted = false;
+        
+        if (Capacitor.isNativePlatform()) {
+          // Native app - use Capacitor
+          try {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            const result = await LocalNotifications.requestPermissions();
+            permissionGranted = result.display === 'granted';
+            
+            // Also request push notification permissions if available
+            try {
+              const { PushNotifications } = await import('@capacitor/push-notifications');
+              const pushResult = await PushNotifications.requestPermissions();
+              if (pushResult.receive === 'granted') {
+                await PushNotifications.register();
+                
+                // Add listener for when token is received
+                PushNotifications.addListener('registration', async (token) => {
+                  try {
+                    const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                    const { db } = await import('../config/firebase');
+                    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+                    const userId = user.uid || user.email?.toLowerCase();
+                    
+                    if (userId) {
+                      const userRef = doc(db, 'users', userId);
+                      await setDoc(userRef, {
+                        fcmToken: token.value,
+                        pushToken: token.value, // Backward compatibility
+                        notificationSettings: {
+                          push: true,
+                          pushEnabled: true,
+                          researchRemindersAM: reminderSettings.amEnabled,
+                          researchReminderTimeAM: reminderSettings.amTime,
+                          researchRemindersPM: reminderSettings.pmEnabled,
+                          researchReminderTimePM: reminderSettings.pmTime,
+                          lastUpdated: serverTimestamp()
+                        },
+                        deviceInfo: {
+                          platform: Capacitor.getPlatform(),
+                          isNative: true,
+                          lastUpdated: serverTimestamp()
+                        }
+                      }, { merge: true });
+                      console.log('✅ FCM token saved to Firestore');
+                    }
+                  } catch (error) {
+                    console.error('Failed to save FCM token:', error);
+                  }
+                });
+              }
+            } catch (e) {
+              console.warn('Push notifications not available:', e);
+            }
+          } catch (error) {
+            throw new Error('Failed to request native notification permissions');
+          }
+        } else {
+          // PWA - use browser API
+          await pwaNotificationService.enable();
+          permissionGranted = Notification.permission === 'granted';
+        }
+        
+        if (permissionGranted) {
+          // Clear the bypass flag since permission was granted
+          localStorage.removeItem('tpprover_user_requesting_permissions');
+          
+          // Enable push notifications in settings
+          const currentSettings = loadSettings();
+          const defaults = getDefaultSettings();
+          const updatedSettings = {
+            ...defaults,
+            ...currentSettings,
+            notifications: {
+              ...defaults.notifications,
+              ...(currentSettings?.notifications || {}),
+              push: true,
+              [key]: true, // Enable the specific reminder (amEnabled or pmEnabled)
+              [`researchReminderTime${key === 'amEnabled' ? 'AM' : 'PM'}`]: reminderSettings[key === 'amEnabled' ? 'amTime' : 'pmTime']
+            }
+          };
+          saveSettings(updatedSettings);
+          
+          // Update push status
+          setPushNotificationStatus(prev => ({ ...prev, enabled: true, loading: false }));
+          
+          // Update reminder settings
+          const newSettings = { ...reminderSettings, [key]: true };
+          setReminderSettings(newSettings);
+          
+          // Sync to Firestore
+          await syncNotificationSettingsToFirestore();
+          
+          // Show success message
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { 
+              message: '🎉 Push notifications enabled! Research reminders are now active.', 
+              type: 'success' 
+            } 
+          }));
+        } else {
+          // Clear the bypass flag if permission was denied
+          localStorage.removeItem('tpprover_user_requesting_permissions');
+          throw new Error('Permission was not granted');
+        }
+      } catch (error) {
+        console.error('Failed to enable push notifications:', error);
+        // Clear the bypass flag on error
+        localStorage.removeItem('tpprover_user_requesting_permissions');
+        setPushNotificationStatus(prev => ({ ...prev, loading: false }));
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Failed to enable notifications. Please enable them in your device settings.', 
+            type: 'error' 
+          } 
+        }));
+        
+        // Don't enable reminders if push failed
+        return;
+      }
+    } else {
+      // Normal update (not enabling reminders, or push is already enabled)
+      const newSettings = { ...reminderSettings, [key]: value };
+      setReminderSettings(newSettings);
+      
+      // Update localStorage
+      const currentSettings = loadSettings();
+      const defaults = getDefaultSettings();
+      
+      // Map reminder settings to notification settings
+      const notificationUpdates = {};
+      if (key === 'amEnabled') {
+        notificationUpdates.researchRemindersAM = value;
+      } else if (key === 'pmEnabled') {
+        notificationUpdates.researchRemindersPM = value;
+      } else if (key === 'amTime') {
+        notificationUpdates.researchReminderTimeAM = value;
+      } else if (key === 'pmTime') {
+        notificationUpdates.researchReminderTimePM = value;
+      }
+      
+      const updatedSettings = {
+        ...defaults,
+        ...currentSettings,
+        notifications: {
+          ...defaults.notifications,
+          ...(currentSettings?.notifications || {}),
+          ...notificationUpdates,
+          researchRemindersAM: newSettings.amEnabled,
+          researchReminderTimeAM: newSettings.amTime,
+          researchRemindersPM: newSettings.pmEnabled,
+          researchReminderTimePM: newSettings.pmTime
+        }
+      };
+      saveSettings(updatedSettings);
+      
+      // Sync to Firestore
+      await syncNotificationSettingsToFirestore();
+    }
+  };
+
   // Set topbar tabs via custom event
   useEffect(() => {
     const tabs = [
       { value: 'protocols', label: 'Protocols' },
+      { value: 'reminders', label: 'Reminders' },
       { value: 'history', label: 'History' }
     ];
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
@@ -863,7 +1129,369 @@ export default function Protocols() {
             })()}
           </div>
         )}
+
+        {activeTab === 'reminders' && (
+          <div className="space-y-4">
+            <div 
+              className="p-6 rounded-lg space-y-6"
+              style={{ backgroundColor: theme.cardBackground }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div 
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: `${theme.primary}20` }}
+                >
+                  <Bell size={24} style={{ color: theme.primary }} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold" style={{ color: theme.text }}>
+                    Research Reminders
+                  </h2>
+                  <p className="text-sm" style={{ color: theme.textLight }}>
+                    Set the time you want to receive reminders of your active protocols.
+                  </p>
+                </div>
+              </div>
+
+              {/* Push Notification Status Indicator */}
+              {!pushNotificationStatus.enabled && (
+                <div 
+                  className="p-3 rounded-lg text-xs mb-4"
+                  style={{ 
+                    backgroundColor: theme.secondary,
+                    color: theme.textLight,
+                    border: `1px solid ${theme.border}`
+                  }}
+                >
+                  <span className="font-medium" style={{ color: theme.text }}>⚠️ </span>
+                  Push notifications are disabled. Enabling reminders below will request notification permissions.
+                </div>
+              )}
+
+              {/* Reminders Cards Container - Two columns on desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* AM Reminders Section */}
+                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.secondary, border: `1px solid ${theme.border}` }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
+                        Morning Reminders (AM)
+                      </div>
+                      <div className="text-xs" style={{ color: theme.textLight }}>
+                        Receive a notification in the morning if you have research tasks scheduled
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                      <input 
+                        type="checkbox" 
+                        checked={reminderSettings.amEnabled && pushNotificationStatus.enabled} 
+                        onChange={e => updateReminderSetting('amEnabled', e.target.checked)} 
+                        disabled={pushNotificationStatus.loading || !pushNotificationStatus.supported}
+                        className="sr-only peer" 
+                      />
+                      <div 
+                        className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+                        style={{ 
+                          backgroundColor: (reminderSettings.amEnabled && pushNotificationStatus.enabled) ? theme.primary : '#d1d5db',
+                          opacity: (pushNotificationStatus.loading || !pushNotificationStatus.supported) ? 0.5 : 1
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {reminderSettings.amEnabled && pushNotificationStatus.enabled ? (
+                    <div className="space-y-2 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-center">
+                        <div>
+                          <div className="text-xs mb-1" style={{ color: theme.textLight }}>
+                            Reminder Time
+                          </div>
+                          <div className="text-lg font-semibold" style={{ color: theme.text }}>
+                            {(() => {
+                              const [hour24, minute] = reminderSettings.amTime.split(':').map(Number);
+                              const hour12 = hour24 === 0 ? 12 : hour24;
+                              return `${hour12}:${String(minute).padStart(2, '0')} AM`;
+                            })()}
+                          </div>
+                        </div>
+                        <div className="flex md:justify-end">
+                          <button
+                            onClick={() => {
+                              setCustomTimeInput(prev => ({ ...prev, am: reminderSettings.amTime }));
+                              setTimeModalOpen(prev => ({ ...prev, am: true }));
+                            }}
+                            className="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:opacity-80"
+                            style={{
+                              borderColor: theme.border,
+                              backgroundColor: theme.cardBackground,
+                              color: theme.primary
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="mt-4 p-3 rounded-lg text-sm text-center"
+                      style={{ 
+                        backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                        color: theme.textLight,
+                        border: `1px solid ${theme.border}`
+                      }}
+                    >
+                      <span style={{ color: theme.textLight }}>No reminders set!</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* PM Reminders Section */}
+                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.secondary, border: `1px solid ${theme.border}` }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
+                      Evening Reminders (PM)
+                    </div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>
+                      Receive a notification in the evening if you have research tasks scheduled
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input 
+                      type="checkbox" 
+                      checked={reminderSettings.pmEnabled && pushNotificationStatus.enabled} 
+                      onChange={e => updateReminderSetting('pmEnabled', e.target.checked)} 
+                      disabled={pushNotificationStatus.loading || !pushNotificationStatus.supported}
+                      className="sr-only peer" 
+                    />
+                    <div 
+                      className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+                      style={{ 
+                        backgroundColor: (reminderSettings.pmEnabled && pushNotificationStatus.enabled) ? theme.primary : '#d1d5db',
+                        opacity: (pushNotificationStatus.loading || !pushNotificationStatus.supported) ? 0.5 : 1
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {reminderSettings.pmEnabled && pushNotificationStatus.enabled ? (
+                  <div className="space-y-2 mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-center">
+                      <div>
+                        <div className="text-xs mb-1" style={{ color: theme.textLight }}>
+                          Reminder Time
+                        </div>
+                        <div className="text-lg font-semibold" style={{ color: theme.text }}>
+                          {(() => {
+                            const [hour24, minute] = reminderSettings.pmTime.split(':').map(Number);
+                            const hour12 = hour24 === 12 ? 12 : hour24 - 12;
+                            return `${hour12}:${String(minute).padStart(2, '0')} PM`;
+                          })()}
+                        </div>
+                      </div>
+                      <div className="flex md:justify-end">
+                        <button
+                          onClick={() => {
+                            setCustomTimeInput(prev => ({ ...prev, pm: reminderSettings.pmTime }));
+                            setTimeModalOpen(prev => ({ ...prev, pm: true }));
+                          }}
+                          className="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:opacity-80"
+                          style={{
+                            borderColor: theme.border,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.primary
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="mt-4 p-3 rounded-lg text-sm text-center"
+                    style={{ 
+                      backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                      color: theme.textLight,
+                      border: `1px solid ${theme.border}`
+                    }}
+                  >
+                    <span style={{ color: theme.textLight }}>No reminders set!</span>
+                  </div>
+                )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Time Selection Modal for AM */}
+      <Modal
+        open={timeModalOpen.am}
+        onClose={() => setTimeModalOpen(prev => ({ ...prev, am: false }))}
+        title="Schedule Reminder (AM)"
+        theme={theme}
+        variant="modern"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          {/* Suggested Times */}
+          <div className="space-y-2">
+            {[
+              { icon: SunDim, time: '07:00', label: '7:00 AM' },
+              { icon: SunMedium, time: '09:30', label: '9:30 AM' },
+              { icon: Sun, time: '11:00', label: '11:00 AM' }
+            ].map((option) => {
+              const Icon = option.icon;
+              const isSelected = reminderSettings.amTime === option.time;
+              return (
+                <button
+                  key={option.time}
+                  onClick={() => {
+                    updateReminderSetting('amTime', option.time);
+                    setTimeModalOpen(prev => ({ ...prev, am: false }));
+                  }}
+                  className="w-full px-4 py-3 rounded-lg text-left border transition-all flex items-center gap-3"
+                  style={{
+                    borderColor: isSelected ? theme.primary : theme.border,
+                    backgroundColor: isSelected ? `${theme.primary}10` : theme.cardBackground,
+                    color: theme.text
+                  }}
+                >
+                  <Icon size={20} style={{ color: isSelected ? theme.primary : theme.textLight }} />
+                  <span className="flex-1 font-medium">{option.label}</span>
+                  {isSelected && (
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Page Break */}
+          <div className="border-t my-4" style={{ borderColor: theme.border }} />
+
+          {/* Custom Time Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
+              <ClockPlus size={16} />
+              Pick your own time
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={customTimeInput.am || reminderSettings.amTime}
+                onChange={(e) => {
+                  setCustomTimeInput(prev => ({ ...prev, am: e.target.value }));
+                }}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.cardBackground,
+                  color: theme.text
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (customTimeInput.am) {
+                    updateReminderSetting('amTime', customTimeInput.am);
+                    setTimeModalOpen(prev => ({ ...prev, am: false }));
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ backgroundColor: theme.primary }}
+              >
+                Set
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Time Selection Modal for PM */}
+      <Modal
+        open={timeModalOpen.pm}
+        onClose={() => setTimeModalOpen(prev => ({ ...prev, pm: false }))}
+        title="Schedule Reminder (PM)"
+        theme={theme}
+        variant="modern"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          {/* Suggested Times */}
+          <div className="space-y-2">
+            {[
+              { icon: Sun, time: '13:00', label: '1:00 PM' },
+              { icon: Sunset, time: '17:30', label: '5:30 PM' },
+              { icon: MoonStar, time: '20:00', label: '8:00 PM' }
+            ].map((option) => {
+              const Icon = option.icon;
+              const isSelected = reminderSettings.pmTime === option.time;
+              return (
+                <button
+                  key={option.time}
+                  onClick={() => {
+                    updateReminderSetting('pmTime', option.time);
+                    setTimeModalOpen(prev => ({ ...prev, pm: false }));
+                  }}
+                  className="w-full px-4 py-3 rounded-lg text-left border transition-all flex items-center gap-3"
+                  style={{
+                    borderColor: isSelected ? theme.primary : theme.border,
+                    backgroundColor: isSelected ? `${theme.primary}10` : theme.cardBackground,
+                    color: theme.text
+                  }}
+                >
+                  <Icon size={20} style={{ color: isSelected ? theme.primary : theme.textLight }} />
+                  <span className="flex-1 font-medium">{option.label}</span>
+                  {isSelected && (
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Page Break */}
+          <div className="border-t my-4" style={{ borderColor: theme.border }} />
+
+          {/* Custom Time Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
+              <ClockPlus size={16} />
+              Pick your own time
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={customTimeInput.pm || reminderSettings.pmTime}
+                onChange={(e) => {
+                  setCustomTimeInput(prev => ({ ...prev, pm: e.target.value }));
+                }}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.cardBackground,
+                  color: theme.text
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (customTimeInput.pm) {
+                    updateReminderSetting('pmTime', customTimeInput.pm);
+                    setTimeModalOpen(prev => ({ ...prev, pm: false }));
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ backgroundColor: theme.primary }}
+              >
+                Set
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       <ProtocolEditorModal
         open={openAdd}

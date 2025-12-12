@@ -410,12 +410,12 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     <div className="rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
       <div className="px-3 py-2 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Upcoming Buys
+            <ShoppingCart size={20} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} />
-            <ShoppingCart size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button
                 type="button"

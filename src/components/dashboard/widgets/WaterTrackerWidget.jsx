@@ -210,12 +210,12 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Hydration
+            <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.water_tracker} theme={theme} />
-            <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
             <ModernTooltip text="History & Analytics" position="top">
               <button 
                 onClick={() => setShowHistoryModal(true)}

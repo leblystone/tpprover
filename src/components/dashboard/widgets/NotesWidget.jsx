@@ -84,12 +84,12 @@ const NotesWidget = ({ widget, theme }) => {
     <div className="h-full flex flex-col widget-card-hover">
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Research Notes
+            <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} />
-            <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
           </div>
         </div>
       </div>

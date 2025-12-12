@@ -17,6 +17,8 @@ const recoverLifetimePurchases = require('./recoverLifetimePurchases');
 const shippo = require('./shippo');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
+const emailQueue = require('./emailQueue');
+const recaptcha = require('./recaptcha');
 
 admin.initializeApp();
 
@@ -32,6 +34,37 @@ exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
 
 // Shippo Tracking Functions
 exports.getTrackingInfo = shippo.getTrackingInfo;
+
+// Email Queue Admin Functions
+exports.getEmailQueueStats = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const stats = await emailQueue.getQueueStats();
+      return { success: true, stats };
+    } catch (error) {
+      logger.error('Error getting email queue stats:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+exports.processEmailQueueManually = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const result = await emailQueue.processEmailQueue();
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error('Error manually processing email queue:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
 
 // Admin Functions - Use Admin SDK to bypass client-side security rules
 exports.adminGrantLifetimeAccess = onCall(
@@ -343,10 +376,11 @@ exports.scheduledResearchReminders = onSchedule({
     const now = new Date();
     const currentHourUTC = now.getUTCHours();
     
-    // Get all users who have notifications enabled
+    // Get all users who have push notifications enabled
+    // We'll filter for AM/PM reminders in the loop since Firestore doesn't support OR queries
     const usersSnapshot = await admin.firestore()
       .collection('users')
-      .where('notificationSettings.researchReminders', '==', true)
+      .where('notificationSettings.push', '==', true)
       .get();
 
     const promises = [];
@@ -359,19 +393,44 @@ exports.scheduledResearchReminders = onSchedule({
       const userSettings = userData.settings || {};
       const userTimezone = userSettings.region?.timeZone || 'America/New_York';
       
-      // Check if it's 8 AM in the user's timezone
-      const userTime = new Date().toLocaleString("en-US", {
+      // Get user's custom reminder times (AM and/or PM)
+      const reminderTimeAM = userData.notificationSettings?.researchReminderTimeAM || '08:00';
+      const reminderTimePM = userData.notificationSettings?.researchReminderTimePM || '18:00';
+      const remindersAMEnabled = userData.notificationSettings?.researchRemindersAM === true;
+      const remindersPMEnabled = userData.notificationSettings?.researchRemindersPM === true;
+      
+      // Skip if neither AM nor PM reminders are enabled
+      if (!remindersAMEnabled && !remindersPMEnabled) {
+        continue;
+      }
+      
+      // Get current time in user's timezone
+      const now = new Date();
+      const userTimeString = now.toLocaleString("en-US", {
         timeZone: userTimezone,
         hour12: false,
-        hour: '2-digit'
+        hour: '2-digit',
+        minute: '2-digit'
       });
+      const [currentHour, currentMinute] = userTimeString.split(':').map(Number);
       
-      // Only send reminders if it's 8 AM in user's timezone (allow 8-9 AM window)
-      if (userTime !== '08') {
+      // Check if current time matches AM reminder time
+      const [amHour] = reminderTimeAM.split(':').map(Number);
+      const matchesAM = remindersAMEnabled && currentHour === amHour;
+      
+      // Check if current time matches PM reminder time
+      const [pmHour] = reminderTimePM.split(':').map(Number);
+      const matchesPM = remindersPMEnabled && currentHour === pmHour;
+      
+      // Only send reminders if it matches one of the user's reminder times (within the same hour)
+      // This allows for a 1-hour window (e.g., if set to 8:30, sends between 8:00-8:59)
+      if (!matchesAM && !matchesPM) {
         continue; // Skip this user, not their reminder time yet
       }
       
-      logger.info(`⏰ Sending reminder for user ${userId} in timezone ${userTimezone}`);
+      const reminderType = matchesAM && matchesPM ? 'AM & PM' : (matchesAM ? 'AM' : 'PM');
+      const reminderTime = matchesAM ? reminderTimeAM : reminderTimePM;
+      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone}`);
       
       // Get user's protocols and check for scheduled tasks today
       const protocolsSnapshot = await admin.firestore()
@@ -2242,10 +2301,30 @@ exports.submitContactForm = onCall(
     secrets: ['SENDGRID_API_KEY']
   },
   async (request) => {
-    const { name, email, subject, message } = request.data;
+    const { name, email, subject, message, recaptchaToken } = request.data;
 
     if (!name || !email || !subject || !message) {
       throw new Error('All fields are required');
+    }
+
+    // Verify reCAPTCHA if token is provided
+    if (recaptchaToken) {
+      const recaptchaResult = await recaptcha.verifyRecaptchaWithEnforcement(
+        recaptchaToken,
+        0.5, // Minimum score threshold
+        'contact', // Expected action
+        request.rawRequest?.ip || null
+      );
+
+      if (!recaptchaResult.success) {
+        logger.warn(`❌ reCAPTCHA verification failed for contact form: ${recaptchaResult.error}`);
+        // In production, you might want to reject the request
+        // For now, we'll log and continue (graceful degradation)
+      } else {
+        logger.info(`✅ reCAPTCHA verified for contact form (score: ${recaptchaResult.score})`);
+      }
+    } else {
+      logger.warn('⚠️ Contact form submitted without reCAPTCHA token');
     }
 
     logger.info(`📧 Contact form submission from: ${email} (${name})`);
@@ -2927,7 +3006,398 @@ exports.getGiftAnalytics = onCall(
   }
 );
 
+// ===== SECURITY MANAGEMENT FUNCTIONS =====
+
+// Get security data (unverified and suspicious accounts)
+exports.getSecurityData = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    // Admin check
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    try {
+      const db = admin.firestore();
+      const auth = admin.auth();
+      
+      // Get all users from Firestore
+      const usersSnapshot = await db.collection('users').get();
+      const allUsers = [];
+      
+      for (const doc of usersSnapshot.docs) {
+        const userData = doc.data();
+        try {
+          const authUser = await auth.getUser(doc.id);
+          allUsers.push({
+            uid: doc.id,
+            email: authUser.email,
+            emailVerified: authUser.emailVerified,
+            disabled: authUser.disabled,
+            createdAt: userData.createdAt,
+            lastActive: userData.lastActive,
+            displayName: userData.displayName || authUser.displayName,
+            subscription: userData.subscription
+          });
+        } catch (error) {
+          // User might not exist in Auth
+          allUsers.push({
+            uid: doc.id,
+            email: userData.email,
+            emailVerified: false,
+            disabled: false,
+            createdAt: userData.createdAt,
+            lastActive: userData.lastActive,
+            displayName: userData.displayName,
+            subscription: userData.subscription
+          });
+        }
+      }
+
+      // Filter unverified accounts
+      const unverifiedAccounts = allUsers.filter(user => !user.emailVerified && !user.disabled);
+      
+      // Filter suspicious accounts - ONLY truly suspicious patterns
+      const suspiciousAccounts = allUsers.filter(user => {
+        if (user.disabled) return false;
+        if (user.emailVerified) return false; // Skip verified users
+        
+        // Check for disposable email (HIGH PRIORITY - definitely suspicious)
+        const disposableDomains = [
+          'passmail.net', '10minutemail.com', 'guerrillamail.com', 'mailinator.com', 
+          'tempmail.com', 'throwaway.email', 'temp-mail.org', 'getnada.com', 
+          'mohmal.com', 'yopmail.com', 'maildrop.cc', 'sharklasers.com',
+          'grr.la', 'guerrillamailblock.com', 'pokemail.net', 'spam4.me',
+          'bccto.me', 'chitthi.in', 'dispostable.com', 'meltmail.com',
+          'mintemail.com', 'mytemp.email', 'tempail.com', 'tempr.email',
+          'tmpmail.org', 'trashmail.com', 'trashmailer.com', 'emailondeck.com',
+          'fakeinbox.com', 'getairmail.com', 'inboxkitten.com', 'mailcatch.com',
+          'mailsac.com', 'mytrashmail.com', 'throwawaymail.com', 'tmpmail.net',
+          'mailnesia.com', 'melt.li', 'nada.email', 'spamgourmet.com',
+          'tempmailo.com', 'zoho.com'
+        ];
+        const domain = user.email?.split('@')[1]?.toLowerCase();
+        if (domain && disposableDomains.includes(domain)) return true;
+        
+        // Check for bot-like email patterns (contains app name + random numbers)
+        const emailLower = user.email?.toLowerCase() || '';
+        if (emailLower.includes('thepepplanner') || emailLower.includes('pepplanner')) {
+          // If email contains app name with random numbers, it's suspicious
+          if (/\d{3,}/.test(emailLower)) return true;
+        }
+        
+        // Only flag as suspicious if:
+        // 1. Never logged in AND created more than 14 days ago
+        // 2. OR inactive for more than 60 days (not just 7)
+        const now = new Date();
+        let daysSinceCreation = 0;
+        let daysSinceActive = 0;
+        
+        if (user.createdAt) {
+          const created = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+          daysSinceCreation = (now - created) / (1000 * 60 * 60 * 24);
+        }
+        
+        if (user.lastActive) {
+          const lastActive = user.lastActive.toDate ? user.lastActive.toDate() : new Date(user.lastActive);
+          daysSinceActive = (now - lastActive) / (1000 * 60 * 60 * 24);
+        } else {
+          // Never active - use creation date
+          daysSinceActive = daysSinceCreation;
+        }
+        
+        // Suspicious if: never used AND old (14+ days) OR inactive for 60+ days
+        if (!user.lastActive && daysSinceCreation > 14) return true;
+        if (daysSinceActive > 60) return true;
+        
+        return false;
+      });
+
+      // Get blocked accounts
+      const blockedAccounts = allUsers.filter(user => user.disabled);
+
+      logger.info(`📊 Security data: ${unverifiedAccounts.length} unverified, ${suspiciousAccounts.length} suspicious, ${blockedAccounts.length} blocked`);
+
+      return {
+        success: true,
+        unverifiedAccounts,
+        suspiciousAccounts,
+        blockedAccounts
+      };
+    } catch (error) {
+      logger.error(`❌ Error getting security data: ${error.message}`);
+      throw new HttpsError('internal', `Failed to get security data: ${error.message}`);
+    }
+  }
+);
+
+// Block a user (disable their account)
+exports.blockUser = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    const { userId, email } = request.data;
+    
+    if (!userId || !email) {
+      throw new HttpsError('invalid-argument', 'User ID and email are required');
+    }
+
+    try {
+      const auth = admin.auth();
+      
+      // Disable the user in Firebase Auth
+      await auth.updateUser(userId, { disabled: true });
+      
+      logger.info(`🚫 User blocked: ${email} (${userId})`);
+      
+      return {
+        success: true,
+        message: 'User blocked successfully'
+      };
+    } catch (error) {
+      logger.error(`❌ Error blocking user: ${error.message}`);
+      throw new HttpsError('internal', `Failed to block user: ${error.message}`);
+    }
+  }
+);
+
+// Terminate a user (permanently delete account)
+exports.terminateUser = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    const { userId, email } = request.data;
+    
+    if (!userId || !email) {
+      throw new HttpsError('invalid-argument', 'User ID and email are required');
+    }
+
+    try {
+      const auth = admin.auth();
+      const db = admin.firestore();
+      
+      // Delete from Firebase Auth
+      await auth.deleteUser(userId);
+      
+      // Delete from Firestore
+      await db.collection('users').doc(userId).delete();
+      await db.collection('userdata').doc(userId).delete();
+      
+      logger.info(`🗑️ User terminated: ${email} (${userId})`);
+      
+      return {
+        success: true,
+        message: 'User account terminated successfully'
+      };
+    } catch (error) {
+      logger.error(`❌ Error terminating user: ${error.message}`);
+      throw new HttpsError('internal', `Failed to terminate user: ${error.message}`);
+    }
+  }
+);
+
+// Get auto-cleanup settings
+exports.getAutoCleanupSettings = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    try {
+      const db = admin.firestore();
+      const settingsDoc = await db.collection('config').doc('autoCleanup').get();
+      
+      if (settingsDoc.exists) {
+        const data = settingsDoc.data();
+        return {
+          success: true,
+          enabled: data.enabled || false,
+          days: data.days || 30
+        };
+      }
+      
+      return {
+        success: true,
+        enabled: false,
+        days: 30
+      };
+    } catch (error) {
+      logger.error(`❌ Error getting auto-cleanup settings: ${error.message}`);
+      throw new HttpsError('internal', `Failed to get settings: ${error.message}`);
+    }
+  }
+);
+
+// Update auto-cleanup settings
+exports.updateAutoCleanupSettings = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    const { enabled, days } = request.data;
+    
+    try {
+      const db = admin.firestore();
+      await db.collection('config').doc('autoCleanup').set({
+        enabled: enabled || false,
+        days: days || 30,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      logger.info(`⚙️ Auto-cleanup settings updated: enabled=${enabled}, days=${days}`);
+      
+      return {
+        success: true,
+        message: 'Settings updated successfully'
+      };
+    } catch (error) {
+      logger.error(`❌ Error updating auto-cleanup settings: ${error.message}`);
+      throw new HttpsError('internal', `Failed to update settings: ${error.message}`);
+    }
+  }
+);
+
+// Run auto-cleanup manually
+exports.runAutoCleanup = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+    const userEmail = request.auth?.token?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    const { days = 30 } = request.data;
+    
+    try {
+      const db = admin.firestore();
+      const auth = admin.auth();
+      
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      
+      // Get all users
+      const usersSnapshot = await db.collection('users').get();
+      let deletedCount = 0;
+      
+      for (const doc of usersSnapshot.docs) {
+        const userData = doc.data();
+        
+        // Skip if has lifetime access
+        if (userData.subscription?.hasLifetimeAccess) continue;
+        
+        // Skip if email is verified
+        try {
+          const authUser = await auth.getUser(doc.id);
+          if (authUser.emailVerified) continue;
+        } catch (error) {
+          // User might not exist in Auth
+        }
+        
+        // Check last active date
+        let shouldDelete = false;
+        if (userData.lastActive) {
+          const lastActive = userData.lastActive.toDate ? userData.lastActive.toDate() : new Date(userData.lastActive);
+          if (lastActive < cutoffDate) {
+            shouldDelete = true;
+          }
+        } else if (userData.createdAt) {
+          // If never active, use creation date
+          const created = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+          if (created < cutoffDate) {
+            shouldDelete = true;
+          }
+        }
+        
+        if (shouldDelete) {
+          try {
+            // Delete from Auth (if exists)
+            try {
+              await auth.deleteUser(doc.id);
+            } catch (error) {
+              // User might not exist in Auth, that's okay
+            }
+            
+            // Delete from Firestore
+            await db.collection('users').doc(doc.id).delete();
+            await db.collection('userdata').doc(doc.id).delete();
+            
+            deletedCount++;
+            logger.info(`🧹 Deleted inactive unverified account: ${userData.email || doc.id}`);
+          } catch (error) {
+            logger.error(`❌ Error deleting user ${doc.id}: ${error.message}`);
+          }
+        }
+      }
+      
+      logger.info(`✅ Auto-cleanup complete: ${deletedCount} accounts deleted`);
+      
+      return {
+        success: true,
+        deletedCount,
+        message: `Deleted ${deletedCount} inactive unverified accounts`
+      };
+    } catch (error) {
+      logger.error(`❌ Error running auto-cleanup: ${error.message}`);
+      throw new HttpsError('internal', `Failed to run cleanup: ${error.message}`);
+    }
+  }
+);
+
 // Cleanup expired gifts (scheduled function)
+// Process email queue every hour
+exports.processEmailQueue = onSchedule({
+  schedule: '0 * * * *', // Every hour
+  timeZone: 'UTC',
+}, async (event) => {
+  logger.info('📧 Processing email queue...');
+  try {
+    const result = await emailQueue.processEmailQueue();
+    logger.info(`✅ Email queue processed: ${result.processed} sent, ${result.failed} failed, ${result.remaining} quota remaining`);
+    return result;
+  } catch (error) {
+    logger.error('❌ Error processing email queue:', error);
+    throw error;
+  }
+});
+
 exports.cleanupExpiredGifts = onSchedule({
   schedule: '0 2 * * *', // Run daily at 2 AM UTC
   timeZone: 'UTC'

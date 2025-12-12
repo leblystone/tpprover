@@ -37,10 +37,12 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isRea
                 <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                            <FlaskConical size={18} style={{ color: theme.primary }} />
                             Peptide Observations
+                            <FlaskConical size={18} style={{ color: theme.primary }} />
                         </h3>
-                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} />
+                        <div className="flex items-center gap-2">
+                            <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} />
+                        </div>
                     </div>
                 </div>
                 

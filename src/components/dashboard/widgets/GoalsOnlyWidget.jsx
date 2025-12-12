@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Plus, Target, X, Save, Archive, Trash2, History, Edit } from 'lucide-react';
+import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
@@ -152,12 +152,12 @@ const GoalsOnlyWidget = ({
     <div className="h-full flex flex-col">
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             Goals
+            <Flag size={20} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} />
-            <Target size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={() => setShowAddForm(true)}
@@ -247,7 +247,7 @@ const GoalsOnlyWidget = ({
           <div className="h-full flex flex-col">
             {displayGoals.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <Target size={32} className="mb-3 opacity-50" style={{ color: theme.textLight }} />
+                <Flag size={32} className="mb-3 opacity-50" style={{ color: theme.textLight }} />
                 <p className="text-sm" style={{ color: theme.textLight }}>
                   No goals set yet
                 </p>
