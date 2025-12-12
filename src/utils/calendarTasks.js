@@ -101,23 +101,6 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
     // Use normalized date for all calculations to ensure consistency
     const dayKey = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
     const dateKey = toKey(dateNormalized);
-    
-    // Debug logging to help diagnose date issues
-    console.log('📅 calculateScheduledTasksForDate: Date calculation', {
-        inputDate: date?.toISOString?.() || date,
-        inputDateLocal: date?.toLocaleString?.('en-US') || 'N/A',
-        normalizedDate: dateNormalized.toISOString(),
-        normalizedDateLocal: dateNormalized.toLocaleString('en-US'),
-        localDate: dateNormalized.toLocaleDateString('en-US'),
-        dayKey: dayKey,
-        dateKey: dateKey,
-        dayName: dateNormalized.toLocaleDateString('en-US', { weekday: 'long' }),
-        year: dateNormalized.getFullYear(),
-        month: dateNormalized.getMonth() + 1,
-        day: dateNormalized.getDate(),
-        hours: dateNormalized.getHours(),
-        minutes: dateNormalized.getMinutes()
-    });
 
     // Add supplements
     const daySupps = supplements.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey));
@@ -147,23 +130,6 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         const peOnly = pe ? normalizeToMidnight(pe) : null;
         const inRange = (!psOnly || psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
-
-        // Debug logging for date range checks
-        if (p.protocolName) {
-            console.log('📋 Protocol date range check', {
-                protocol: p.protocolName,
-                startDate: p.startDate,
-                parsedStart: ps?.toISOString(),
-                normalizedStart: psOnly?.toISOString(),
-                endDate: p.endDate,
-                parsedEnd: pe?.toISOString(),
-                normalizedEnd: peOnly?.toISOString(),
-                todayNormalized: dateNormalized.toISOString(),
-                inRange: inRange,
-                active: active,
-                willProcess: inRange && active
-            });
-        }
 
         if (!inRange || !active) continue;
 
@@ -279,27 +245,6 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'injection';
                 const penColor = reconItem?.penColor || firstPeptide?.penColor;
                 const penType = reconItem?.penType || firstPeptide?.penType;
-                
-                // Debug logging for blended protocols
-                if (p.protocolName && (deliveryMethod === 'pen' || penColor)) {
-                    console.log('🎨 Blended protocol pen/delivery:', {
-                        protocolName: p.protocolName,
-                        deliveryMethod: deliveryMethod,
-                        penColor: penColor,
-                        penType: penType,
-                        fromReconItem: {
-                            deliveryMethod: reconItem?.deliveryMethod,
-                            penColor: reconItem?.penColor,
-                            penType: reconItem?.penType
-                        },
-                        fromFirstPeptide: {
-                            deliveryMethod: firstPeptide?.deliveryMethod,
-                            delivery: firstPeptide?.delivery,
-                            penColor: firstPeptide?.penColor,
-                            penType: firstPeptide?.penType
-                        }
-                    });
-                }
 
                 times.forEach(t => {
                     if (!result.bySlot[t]) {
