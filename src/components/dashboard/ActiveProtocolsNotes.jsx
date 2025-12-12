@@ -347,7 +347,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     setNoteContent('');
                     setSelectedTags([]);
                 }}
-                title={`Add Observation: ${selectedProtocol?.name || selectedProtocol?.protocolName || 'Protocol'}`}
+                title={`Add Note: ${selectedProtocol?.name || selectedProtocol?.protocolName || 'Protocol'}`}
                 theme={theme}
                 maxWidth="max-w-2xl"
                 variant="modern"
