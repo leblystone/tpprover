@@ -106,7 +106,7 @@ export default function Landing() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5F5F0' }}>
       {/* Header */}
       <header className="pt-3 pb-3 md:pt-4 md:pb-3" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #DDE6DE' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
           {/* Mobile Layout */}
           <div className="flex lg:hidden items-center justify-between">
             <h1 className="text-[8px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.15em' }}>Organize Your Research</h1>
@@ -172,7 +172,7 @@ export default function Landing() {
 
        {/* Hero Section */}
        <section className="py-12 md:py-20" style={{ backgroundColor: '#EFF2EE' }}>
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+         <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
            {/* Mobile Title Section - Single Column */}
            <div className="text-center mb-8 md:hidden">
              <h1 className="text-4xl font-bold leading-tight" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
@@ -300,7 +300,7 @@ export default function Landing() {
 
       {/* Download Section */}
       <section className="py-6" style={{ backgroundColor: '#FFFFFF' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               Download the App
@@ -369,7 +369,7 @@ export default function Landing() {
 
       {/* Features Section */}
       <section className="py-6" style={{ backgroundColor: '#F5F5F0' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               <span className="block sm:inline">It's just like your Research Planner,</span> <span className="block sm:inline">just <em>smarter</em>.</span>
@@ -413,7 +413,7 @@ export default function Landing() {
 
       {/* CTA Section */}
       <section className="py-12" style={{ backgroundColor: '#6b8b78' }}>
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full text-center px-2 md:max-w-4xl md:mx-auto md:px-8">
           <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
             Ready to Organize Your Research?
           </h2>
@@ -432,14 +432,14 @@ export default function Landing() {
 
       {/* Additional Features Section */}
       <section className="py-8" style={{ backgroundColor: '#F5F5F0' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               Plus So Much More
             </h2>
           </div>
           
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 md:max-w-4xl md:mx-auto">
             <div className="flex items-start gap-2 sm:gap-4">
               <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#7F9E95' }}>
                 <Calculator className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
@@ -517,7 +517,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="py-12" style={{ backgroundColor: '#2F3B3A', borderTop: `1px solid #DDE6DE` }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
           <div className="grid grid-cols-4 md:grid-cols-4 gap-4 md:gap-8">
             <div className="col-span-2 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">

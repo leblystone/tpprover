@@ -219,7 +219,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     return (
         <>
-            <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+            <div className="h-full flex flex-col p-4 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: theme.white }}>
                 <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
@@ -265,17 +265,17 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                     </div>
 
                                     {/* Protocol Details */}
-                                    <div className="flex items-center justify-between gap-3 text-xs" style={{ color: theme.textLight }}>
-                                        <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center justify-between gap-2 text-xs" style={{ color: theme.textLight }}>
+                                        <div className="flex flex-wrap items-center gap-2 min-w-0 overflow-hidden">
                                             {startDate && (
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar size={11} />
+                                                <span className="flex items-center gap-1 whitespace-nowrap">
+                                                    <Calendar size={11} className="flex-shrink-0" />
                                                     {startDate}
                                                 </span>
                                             )}
                                             {duration && (
-                                                <span className="flex items-center gap-1">
-                                                    <Clock size={11} />
+                                                <span className="flex items-center gap-1 whitespace-nowrap">
+                                                    <Clock size={11} className="flex-shrink-0" />
                                                     {duration}
                                                 </span>
                                             )}
@@ -285,7 +285,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 e.stopPropagation();
                                                 handleAddNoteClick(protocol);
                                             }}
-                                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 flex-shrink-0 hover:opacity-90"
+                                            className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 flex-shrink-0 hover:opacity-90 whitespace-nowrap"
                                             style={{ 
                                                 backgroundColor: theme.primary,
                                                 color: '#ffffff'
