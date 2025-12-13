@@ -1037,6 +1037,7 @@ export default function Dashboard() {
                 setShowAddBuyModal(true);
               }} 
             />
+            {/* Pending Vendors Widget - Hidden, will be replaced with different implementation
             {pendingVendors.length > 0 && (
                 <PendingVendorsView 
                     vendors={pendingVendors} 
@@ -1052,6 +1053,7 @@ export default function Dashboard() {
                     }}
                 />
             )}
+            */}
         </div>
       </div>
 

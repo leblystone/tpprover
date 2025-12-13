@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   HelpCircle, 
   X, 
@@ -50,12 +51,94 @@ const ICON_MAP = {
 
 const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const buttonRef = useRef(null);
   const tooltipRef = useRef(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+
+  // Update position when expanded or window resizes
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    // Calculate tooltip position based on button position
+    const updateTooltipPosition = () => {
+      if (!buttonRef.current || !tooltipRef.current) return;
+
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight
+      };
+
+      let top = 0;
+      let left = 0;
+
+      // Position to the left of button by default
+      if (position === 'left') {
+        left = buttonRect.left - tooltipRect.width - 8;
+        top = buttonRect.top;
+        
+        // If tooltip would go off left edge, position to the right
+        if (left < 8) {
+          left = buttonRect.right + 8;
+        }
+        
+        // Adjust vertically if tooltip would go off screen
+        if (top + tooltipRect.height > viewport.height - 8) {
+          top = viewport.height - tooltipRect.height - 8;
+        }
+        if (top < 8) {
+          top = 8;
+        }
+      } else {
+        // Position to the right of button
+        left = buttonRect.right + 8;
+        top = buttonRect.top;
+        
+        // If tooltip would go off right edge, position to the left
+        if (left + tooltipRect.width > viewport.width - 8) {
+          left = buttonRect.left - tooltipRect.width - 8;
+        }
+        
+        // Adjust vertically if tooltip would go off screen
+        if (top + tooltipRect.height > viewport.height - 8) {
+          top = viewport.height - tooltipRect.height - 8;
+        }
+        if (top < 8) {
+          top = 8;
+        }
+      }
+
+      setTooltipPosition({ top, left });
+    };
+
+    // Use requestAnimationFrame to ensure tooltip is rendered before calculating position
+    const rafId = requestAnimationFrame(() => {
+      updateTooltipPosition();
+    });
+
+    const handleResize = () => updateTooltipPosition();
+    const handleScroll = () => updateTooltipPosition();
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isExpanded, position]);
 
   // Close tooltip when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
+      if (
+        buttonRef.current && 
+        !buttonRef.current.contains(event.target) &&
+        tooltipRef.current &&
+        !tooltipRef.current.contains(event.target)
+      ) {
         setIsExpanded(false);
       }
     };
@@ -71,8 +154,9 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
   if (!content) return null;
 
   return (
-    <div className="relative" ref={tooltipRef}>
+    <>
       <button
+        ref={buttonRef}
         onClick={(e) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
@@ -87,20 +171,21 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
         <HelpCircle size={16} />
       </button>
 
-      {isExpanded && (
+      {isExpanded && createPortal(
         <div
-          className="absolute z-50 p-2.5 rounded-lg shadow-lg"
+          ref={tooltipRef}
+          className="fixed z-[2147483647] p-2.5 rounded-lg shadow-lg"
           style={{
             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
             border: `1px solid ${theme.isDark ? '#374151' : theme.border}`,
             color: theme.text,
-            right: '100%', // Position to the left of the button
-            top: 0,
-            marginRight: '8px', // Small gap from button
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`,
             minWidth: '200px',
             maxWidth: 'min(280px, calc(100vw - 2rem))',
             wordWrap: 'break-word',
-            overflowWrap: 'break-word'
+            overflowWrap: 'break-word',
+            pointerEvents: 'auto'
           }}
         >
           <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -158,9 +243,10 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 

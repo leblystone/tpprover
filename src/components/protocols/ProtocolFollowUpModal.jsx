@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from '../common/Modal';
-import { FileText, Star, X, Save, Calendar, CheckCircle, XCircle, Clock, Lightbulb } from 'lucide-react';
+import { FileText, Star, X, Save, Calendar, CheckCircle, XCircle, Clock, Lightbulb, Target, Tag, StickyNote, AlertCircle, RotateCcw, TrendingUp, Award, DollarSign, ThumbsDown, ThumbsUp, Users, Ban, Timer } from 'lucide-react';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 
 // Helper function for MM/DD/YY format
@@ -20,21 +20,21 @@ import { addNoteToProtocolHistory, updateNoteInProtocolHistory, getProtocolHisto
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
 const QUICK_TAGS = [
-    { id: 'met_goals', label: 'Met Goals' },
-    { id: 'side_effects', label: 'Side Effects' },
-    { id: 'will_repeat', label: 'Will Repeat' },
-    { id: 'adjustments_needed', label: 'Adjustments Needed' },
-    { id: 'positive_results', label: 'Positive Results' },
-    { id: 'no_results', label: 'No Results' },
-    { id: 'exceeded_expectations', label: 'Exceeded Expectations' },
-    { id: 'adherence_issues', label: 'Adherence Issues' },
-    { id: 'cost_effective', label: 'Cost Effective' },
-    { id: 'not_cost_effective', label: 'Not Cost Effective' },
-    { id: 'easy_to_follow', label: 'Easy to Follow' },
-    { id: 'complex_schedule', label: 'Complex Schedule' },
-    { id: 'recommend_to_others', label: 'Recommend to Others' },
-    { id: 'would_not_repeat', label: 'Would Not Repeat' },
-    { id: 'needs_more_time', label: 'Needs More Time' }
+    { id: 'met_goals', label: 'Met Goals', icon: Target },
+    { id: 'side_effects', label: 'Side Effects', icon: AlertCircle },
+    { id: 'will_repeat', label: 'Will Repeat', icon: RotateCcw },
+    { id: 'adjustments_needed', label: 'Adjustments Needed', icon: TrendingUp },
+    { id: 'positive_results', label: 'Positive Results', icon: TrendingUp },
+    { id: 'no_results', label: 'No Results', icon: XCircle },
+    { id: 'exceeded_expectations', label: 'Exceeded Expectations', icon: Award },
+    { id: 'adherence_issues', label: 'Adherence Issues', icon: AlertCircle },
+    { id: 'cost_effective', label: 'Cost Effective', icon: DollarSign },
+    { id: 'not_cost_effective', label: 'Not Cost Effective', icon: ThumbsDown },
+    { id: 'easy_to_follow', label: 'Easy to Follow', icon: ThumbsUp },
+    { id: 'complex_schedule', label: 'Complex Schedule', icon: Calendar },
+    { id: 'recommend_to_others', label: 'Recommend to Others', icon: Users },
+    { id: 'would_not_repeat', label: 'Would Not Repeat', icon: Ban },
+    { id: 'needs_more_time', label: 'Needs More Time', icon: Timer }
 ];
 
 export default function ProtocolFollowUpModal({ open, onClose, protocol, historyEntryId, theme, onSave, existingNoteId = null }) {
@@ -266,10 +266,36 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
         <Modal
             open={open}
             onClose={handleClose}
+            onBack={handleClose}
             title={existingNoteId ? "Edit Protocol Follow-Up" : "Protocol Follow-Up"}
             theme={theme}
             variant="modern"
             maxWidth="max-w-2xl"
+            footer={
+                <div className="flex justify-end gap-3 w-full">
+                    <button
+                        onClick={handleClose}
+                        className="px-4 py-2 rounded-lg font-medium transition-all"
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                            color: theme.text
+                        }}
+                    >
+                        Skip for Now
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+                        style={{ 
+                            backgroundColor: theme.primary, 
+                            color: theme.textOnPrimary 
+                        }}
+                    >
+                        <Save size={16} />
+                        Save Follow-Up
+                    </button>
+                </div>
+            }
         >
             <div className="space-y-6">
                 {/* Protocol Info Box - 2x2 Grid */}
@@ -286,8 +312,13 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                 </div>
                             </div>
                             
-                            {/* Top Right: Empty or could add something later */}
-                            <div className="col-span-1"></div>
+                            {/* Top Right: Duration */}
+                            <div className="col-span-1 flex items-center gap-2">
+                                <Clock size={14} style={{ color: theme.textLight }} />
+                                <span className="text-xs font-medium" style={{ color: theme.text }}>
+                                    {protocolInfo.duration}
+                                </span>
+                            </div>
                             
                             {/* Bottom Left: Date Range */}
                             {protocolInfo.startDate && protocolInfo.endDate && (
@@ -299,17 +330,11 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                 </div>
                             )}
                             
-                            {/* Bottom Right: Duration (4:1 ratio with status chip) */}
-                            <div className="col-span-1 flex items-center gap-2">
-                                <Clock size={14} style={{ color: theme.textLight }} />
-                                <span className="text-xs font-medium flex-1" style={{ color: theme.text }}>
-                                    {protocolInfo.duration}
-                                </span>
-                                
-                                {/* Status Badge - Takes 1/5 of the space (4:1 ratio) */}
-                                {protocolInfo.statusInfo && (() => {
-                                    const StatusIcon = protocolInfo.statusInfo.icon;
-                                    return (
+                            {/* Bottom Right: Status Badge */}
+                            {protocolInfo.statusInfo && (() => {
+                                const StatusIcon = protocolInfo.statusInfo.icon;
+                                return (
+                                    <div className="col-span-1 flex items-center justify-start">
                                         <div
                                             className="px-2 py-1 rounded-lg flex items-center justify-center gap-1 flex-shrink-0"
                                             style={{
@@ -321,16 +346,17 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                             <StatusIcon size={12} />
                                             <span className="font-medium text-[10px] leading-tight whitespace-nowrap">{protocolInfo.statusInfo.label}</span>
                                         </div>
-                                    );
-                                })()}
-                            </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
 
                 {/* Rating Section */}
                 <div className="flex flex-col items-center">
-                    <label className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                    <label className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <Target size={16} style={{ color: theme.primary }} />
                         Overall Research Assessment
                     </label>
                     <div className="flex items-center gap-2 mb-3">
@@ -346,10 +372,10 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                             >
                                 <Star 
                                     size={24} 
-                                    fill={rating >= num ? (theme.isDark ? '#F5F5F5' : '#FFFFFF') : 'none'}
+                                    fill={rating >= num ? (theme.isDark ? '#D1D5DB' : (theme.primaryDark || '#5F7F76')) : 'none'}
                                     style={{ 
                                         color: rating >= num 
-                                            ? (theme.isDark ? '#F5F5F5' : '#FFFFFF')
+                                            ? (theme.isDark ? '#D1D5DB' : (theme.primaryDark || '#5F7F76'))
                                             : (theme.isDark ? '#9CA3AF' : '#D1D5DB')
                                     }}
                                 />
@@ -365,18 +391,20 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
 
                 {/* Quick Tags */}
                 <div>
-                    <label className="block text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                    <label className="block text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <Tag size={16} style={{ color: theme.primary }} />
                         Quick Tags
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {QUICK_TAGS.map(tag => {
                             const isSelected = selectedTags.includes(tag.id);
+                            const TagIcon = tag.icon || Tag;
                             return (
                                 <button
                                     key={tag.id}
                                     type="button"
                                     onClick={() => handleTagToggle(tag.id)}
-                                    className="flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left"
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left"
                                     style={{
                                         backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
                                         border: `1px solid ${isSelected ? theme.primary : theme.border}`,
@@ -397,6 +425,10 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                         }
                                     }}
                                 >
+                                    <TagIcon size={14} style={{ 
+                                        color: isSelected ? '#ffffff' : theme.primary,
+                                        flexShrink: 0
+                                    }} />
                                     <span className="text-xs font-medium leading-tight" style={{ position: 'relative', zIndex: 1 }}>
                                         {tag.label}
                                     </span>
@@ -408,7 +440,8 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
 
                 {/* Notes Content */}
                 <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
+                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
+                        <StickyNote size={16} style={{ color: theme.primary }} />
                         Notes & Observations
                     </label>
                     
@@ -460,7 +493,7 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                             className="rounded"
                             style={{ accentColor: theme.primary }}
                         />
-                        <Calendar size={16} />
+                        <Calendar size={16} style={{ color: theme.primary }} />
                         <span>Show this note in calendar</span>
                     </label>
                     {showLinkedDate && (
@@ -473,33 +506,6 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-3 pt-4 mt-6" style={{
-                borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
-            }}>
-                <button
-                    onClick={handleClose}
-                    className="px-4 py-2 rounded-lg font-medium transition-all"
-                    style={{ 
-                        backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                        color: theme.text
-                    }}
-                >
-                    Skip for Now
-                </button>
-                <button
-                    onClick={handleSave}
-                    className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
-                    style={{ 
-                        backgroundColor: theme.primary, 
-                        color: theme.textOnPrimary 
-                    }}
-                >
-                    <Save size={16} />
-                    Save Follow-Up
-                </button>
             </div>
         </Modal>
     );

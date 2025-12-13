@@ -74,18 +74,8 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
       );
       
     case WIDGET_TYPES.PENDING_VENDORS:
-      if (!props.pendingVendors || props.pendingVendors.length === 0) {
-        return null; // Don't render empty pending vendors widget
-      }
-      return (
-        <PendingVendorsWidget 
-          widget={widget} 
-          theme={theme} 
-          vendors={props.pendingVendors}
-          onViewAll={props.onViewAllVendors}
-          onComplete={props.onCompleteVendor}
-        />
-      );
+      // Hidden - will be replaced with different implementation
+      return null;
       
     case WIDGET_TYPES.ANALYTICS:
       return (

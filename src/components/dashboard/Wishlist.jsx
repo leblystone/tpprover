@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { BookHeart, Plus, X, DollarSign, Edit, Package } from 'lucide-react'
 import Modal from '../common/Modal'
@@ -16,6 +16,8 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
   const [priceFocused, setPriceFocused] = useState({});
+  const [mgFocused, setMgFocused] = useState({});
+  const [mgUnitDropdowns, setMgUnitDropdowns] = useState({});
   
   // Ref to track if we just deleted an item (prevent props from restoring it)
   const justDeletedIdsRef = useRef(new Set());
@@ -76,6 +78,21 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
   // Terracotta gradient for delete button
   const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
   const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('[data-dropdown-container]')) {
+        setMgUnitDropdowns({});
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
   
   const handleViewAll = () => {
     setShowModal(true);
@@ -97,7 +114,9 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
         vendor: item.vendor || '',
         price: item.price || '',
         notes: item.notes || item.description || '',
-        priority: item.priority || 'medium'
+        priority: item.priority || 'medium',
+        mgAmount: item.mgAmount || '',
+        mgUnit: item.mgUnit || 'mg'
       }
     }));
   }
@@ -109,6 +128,16 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
       return newState;
     });
     setPriceFocused(prev => {
+      const newState = { ...prev };
+      delete newState[itemId];
+      return newState;
+    });
+    setMgFocused(prev => {
+      const newState = { ...prev };
+      delete newState[itemId];
+      return newState;
+    });
+    setMgUnitDropdowns(prev => {
       const newState = { ...prev };
       delete newState[itemId];
       return newState;
@@ -371,6 +400,8 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
           setSelectedItem(null);
           setEditingItems({});
           setPriceFocused({});
+          setMgFocused({});
+          setMgUnitDropdowns({});
         }}
         title="Research Wishlist"
         theme={theme}
@@ -514,6 +545,141 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                         </div>
                       </div>
                       
+                      <div className="relative">
+                        <div className="flex items-stretch rounded-lg" style={{ 
+                          border: `1px solid ${mgFocused[item.id] ? theme.primary : '#f0eee7'}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                        }}>
+                          <input
+                            type="text"
+                            value={editingItems[item.id]?.mgAmount || ''}
+                            onChange={(e) => handleFieldChange(item.id, 'mgAmount', e.target.value)}
+                            placeholder=" "
+                            className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
+                            style={{
+                              backgroundColor: 'transparent',
+                              color: theme.isDark ? theme.text : '#181A18',
+                              border: 'none'
+                            }}
+                            onFocus={() => {
+                              setMgFocused(prev => ({ ...prev, [item.id]: true }));
+                            }}
+                            onBlur={() => {
+                              setMgFocused(prev => ({ ...prev, [item.id]: false }));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMgUnitDropdowns(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                            data-dropdown-container
+                            style={{ 
+                              borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                              backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                              color: theme.isDark ? theme.text : '#181A18',
+                              minWidth: '100px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                            }}
+                          >
+                            <span className="text-sm font-semibold">
+                              {(() => {
+                                const unit = (editingItems[item.id]?.mgUnit || 'mg').toLowerCase();
+                                if (unit === 'mg') return 'mg';
+                                if (unit === 'g') return 'g';
+                                if (unit === 'mcg') return 'mcg';
+                                if (unit === 'tab') return 'Tab';
+                                if (unit === 'bottle') return 'Bottle';
+                                if (unit === 'ui') return 'UI';
+                                return unit.charAt(0).toUpperCase() + unit.slice(1);
+                              })()}
+                            </span>
+                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          {mgUnitDropdowns[item.id] && (
+                            <div className="relative" data-dropdown-container>
+                              <div 
+                                className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                style={{
+                                  backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                  borderColor: theme.border,
+                                  minWidth: '100px',
+                                  boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                }}
+                              >
+                                {[
+                                  { value: 'mg', label: 'mg' },
+                                  { value: 'g', label: 'g' },
+                                  { value: 'mcg', label: 'mcg' },
+                                  { value: 'tab', label: 'Tab' },
+                                  { value: 'bottle', label: 'Bottle' },
+                                  { value: 'ui', label: 'UI' }
+                                ].map((option, optIdx) => (
+                                  <React.Fragment key={option.value}>
+                                    {optIdx > 0 && (
+                                      <div 
+                                        className="h-px mx-2"
+                                        style={{ backgroundColor: theme.border }}
+                                      />
+                                    )}
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onTouchStart={(e) => e.preventDefault()}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleFieldChange(item.id, 'mgUnit', option.value);
+                                        setMgUnitDropdowns(prev => ({ ...prev, [item.id]: false }));
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                      style={{
+                                        color: (editingItems[item.id]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                        backgroundColor: 'transparent',
+                                        WebkitTapHighlightColor: 'transparent'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                        e.currentTarget.style.color = theme.primary;
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                        e.currentTarget.style.color = (editingItems[item.id]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                      }}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <label 
+                          className={`absolute left-3 transition-all pointer-events-none outlined-input-label ${(mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? 'active' : ''}`}
+                          style={{ 
+                            top: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? '-8px' : '14px',
+                            left: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? '12px' : '16px',
+                            fontSize: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? '0.75rem' : '0.9375rem',
+                            padding: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? '0 4px' : '0',
+                            background: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                            color: (mgFocused[item.id] || editingItems[item.id]?.mgAmount) ? theme.primary : (theme.textLight || theme.text),
+                            fontWeight: 500
+                          }}
+                        >
+                          Amount
+                        </label>
+                      </div>
+                      
                       <TextInput
                         label="Notes"
                         value={editingItems[item.id]?.notes || ''}
@@ -616,6 +782,25 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd }) {
                             <div className="flex items-center gap-1" style={{ color: theme.textLight }}>
                               <DollarSign size={12} />
                               <span>${item.price}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {item.mgAmount && (
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Amount:</span>
+                            <div className="flex items-center gap-1" style={{ color: theme.textLight }}>
+                              <Package size={12} />
+                              <span>{item.mgAmount} {(() => {
+                                const unit = (item.mgUnit || 'mg').toLowerCase();
+                                if (unit === 'mg') return 'mg';
+                                if (unit === 'g') return 'g';
+                                if (unit === 'mcg') return 'mcg';
+                                if (unit === 'tab') return 'Tab';
+                                if (unit === 'bottle') return 'Bottle';
+                                if (unit === 'ui') return 'UI';
+                                return unit;
+                              })()}</span>
                             </div>
                           </div>
                         )}
