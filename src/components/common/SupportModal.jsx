@@ -21,14 +21,21 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [internalOpen, setInternalOpen] = useState(open);
     const wasOpenBeforeBackground = useRef(false);
     const visibilityChangeTimeoutRef = useRef(null);
+    const isInBackgroundState = useRef(false);
+    const explicitCloseRequested = useRef(false);
+    const previousOpenProp = useRef(open);
 
-    // Monitor document visibility to prevent modal from closing when app is minimized
+    // Monitor document visibility AND Capacitor App state to prevent modal from closing when app is minimized
     useEffect(() => {
+        let capacitorAppListener = null;
+
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 // App is going to background - remember if modal was open
                 if (internalOpen) {
                     wasOpenBeforeBackground.current = true;
+                    isInBackgroundState.current = true;
+                    console.log('📱 App minimized - preserving SupportModal state');
                 }
             } else {
                 // App is coming back to foreground
@@ -37,33 +44,99 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 }
                 
                 visibilityChangeTimeoutRef.current = setTimeout(() => {
-                    // If modal was open before going to background, keep it open
-                    if (wasOpenBeforeBackground.current && !open) {
-                        console.log('🔄 Restoring SupportModal state after app returned to foreground');
+                    // If modal was open before going to background, restore it
+                    if (wasOpenBeforeBackground.current) {
+                        console.log('🔄 App returned to foreground - restoring SupportModal state');
                         setInternalOpen(true);
-                        wasOpenBeforeBackground.current = false;
+                        setTimeout(() => {
+                            isInBackgroundState.current = false;
+                            wasOpenBeforeBackground.current = false;
+                        }, 500);
+                    } else {
+                        isInBackgroundState.current = false;
                     }
                 }, 200);
             }
         };
 
+        // Add Capacitor App state listener for better Android support
+        const setupCapacitorListeners = async () => {
+            try {
+                const { Capacitor } = await import('@capacitor/core');
+                if (Capacitor.isNativePlatform()) {
+                    const { App } = await import('@capacitor/app');
+                    
+                    capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
+                        if (!isActive) {
+                            // App going to background
+                            if (internalOpen) {
+                                wasOpenBeforeBackground.current = true;
+                                isInBackgroundState.current = true;
+                                console.log('📱 App state changed to background (Capacitor) - preserving SupportModal state');
+                            }
+                        } else {
+                            // App coming to foreground
+                            if (visibilityChangeTimeoutRef.current) {
+                                clearTimeout(visibilityChangeTimeoutRef.current);
+                            }
+                            
+                            visibilityChangeTimeoutRef.current = setTimeout(() => {
+                                if (wasOpenBeforeBackground.current) {
+                                    console.log('🔄 App state changed to foreground (Capacitor) - restoring SupportModal state');
+                                    setInternalOpen(true);
+                                    setTimeout(() => {
+                                        isInBackgroundState.current = false;
+                                        wasOpenBeforeBackground.current = false;
+                                    }, 500);
+                                } else {
+                                    isInBackgroundState.current = false;
+                                }
+                            }, 200);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Capacitor App not available, using visibility API only');
+            }
+        };
+
+        setupCapacitorListeners();
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (visibilityChangeTimeoutRef.current) {
                 clearTimeout(visibilityChangeTimeoutRef.current);
             }
+            if (capacitorAppListener) {
+                capacitorAppListener.remove();
+            }
         };
-    }, [open, internalOpen]);
+    }, [internalOpen]);
 
-    // Sync internal state with prop
+    // Sync internal state with prop, but be smart about it
     useEffect(() => {
+        // Track if this is a user-initiated close (prop changed from true to false)
+        const propChangedToFalse = previousOpenProp.current === true && open === false;
+        previousOpenProp.current = open;
+
+        // Only update internal state if:
+        // 1. The prop changed to true (always allow opening)
+        // 2. The prop changed to false AND we're not in a background state recovery period
         if (open) {
             setInternalOpen(true);
             wasOpenBeforeBackground.current = false;
-        } else if (!wasOpenBeforeBackground.current) {
+            isInBackgroundState.current = false;
+            explicitCloseRequested.current = false;
+        } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
+            // Only close if explicitly changed from true to false and we're stable
+            explicitCloseRequested.current = true;
+            setInternalOpen(false);
+        } else if (!open && !isInBackgroundState.current && !wasOpenBeforeBackground.current && explicitCloseRequested.current) {
+            // Allow closing if explicitly requested and we're stable
             setInternalOpen(false);
         }
+        // Otherwise, ignore prop changes during background state transitions
     }, [open]);
 
     // Auto-fill email from logged in user
@@ -103,8 +176,11 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
 
     // Handle close with internal state management
     const handleClose = () => {
-        setInternalOpen(false);
+        // User explicitly closed the modal
+        explicitCloseRequested.current = true;
         wasOpenBeforeBackground.current = false;
+        isInBackgroundState.current = false;
+        setInternalOpen(false);
         onClose();
     };
 

@@ -7,14 +7,21 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   const [internalOpen, setInternalOpen] = useState(open);
   const wasOpenBeforeBackground = useRef(false);
   const visibilityChangeTimeoutRef = useRef(null);
+  const isInBackgroundState = useRef(false);
+  const explicitCloseRequested = useRef(false);
+  const previousOpenProp = useRef(open);
 
-  // Monitor document visibility to prevent modal from closing when app is minimized
+  // Monitor document visibility AND Capacitor App state to prevent modal from closing when app is minimized
   useEffect(() => {
+    let capacitorAppListener = null;
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // App is going to background - remember if modal was open
         if (internalOpen) {
           wasOpenBeforeBackground.current = true;
+          isInBackgroundState.current = true;
+          console.log('📱 App minimized - preserving modal state');
         }
       } else {
         // App is coming back to foreground
@@ -25,39 +32,107 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         
         // Small delay to allow React to finish re-rendering
         visibilityChangeTimeoutRef.current = setTimeout(() => {
-          // If modal was open before going to background, keep it open
+          // If modal was open before going to background, restore it
           // even if the parent's open prop was temporarily reset
-          if (wasOpenBeforeBackground.current && !open) {
-            console.log('🔄 Restoring modal state after app returned to foreground');
+          if (wasOpenBeforeBackground.current) {
+            console.log('🔄 App returned to foreground - restoring modal state');
             setInternalOpen(true);
-            // Reset the flag after restoring
-            wasOpenBeforeBackground.current = false;
+            // Keep flag for a bit longer to prevent premature closing
+            setTimeout(() => {
+              isInBackgroundState.current = false;
+              wasOpenBeforeBackground.current = false;
+            }, 500);
+          } else {
+            isInBackgroundState.current = false;
           }
         }, 200);
       }
     };
 
+    // Add Capacitor App state listener for better Android support
+    const setupCapacitorListeners = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { App } = await import('@capacitor/app');
+          
+          capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
+            if (!isActive) {
+              // App going to background
+              if (internalOpen) {
+                wasOpenBeforeBackground.current = true;
+                isInBackgroundState.current = true;
+                console.log('📱 App state changed to background (Capacitor) - preserving modal state');
+              }
+            } else {
+              // App coming to foreground
+              if (visibilityChangeTimeoutRef.current) {
+                clearTimeout(visibilityChangeTimeoutRef.current);
+              }
+              
+              visibilityChangeTimeoutRef.current = setTimeout(() => {
+                if (wasOpenBeforeBackground.current) {
+                  console.log('🔄 App state changed to foreground (Capacitor) - restoring modal state');
+                  setInternalOpen(true);
+                  setTimeout(() => {
+                    isInBackgroundState.current = false;
+                    wasOpenBeforeBackground.current = false;
+                  }, 500);
+                } else {
+                  isInBackgroundState.current = false;
+                }
+              }, 200);
+            }
+          });
+        }
+      } catch (error) {
+        console.log('Capacitor App not available, using visibility API only');
+      }
+    };
+
+    setupCapacitorListeners();
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (visibilityChangeTimeoutRef.current) {
         clearTimeout(visibilityChangeTimeoutRef.current);
       }
+      if (capacitorAppListener) {
+        capacitorAppListener.remove();
+      }
     };
-  }, [open, internalOpen]);
+  }, [internalOpen]);
 
   // Sync internal state with prop, but be smart about it
   useEffect(() => {
+    // Track if this is a user-initiated close (prop changed from true to false)
+    const propChangedToFalse = previousOpenProp.current === true && open === false;
+    previousOpenProp.current = open;
+
     // Only update internal state if:
     // 1. The prop changed to true (always allow opening)
-    // 2. The prop changed to false AND we're not in a visibility change recovery period
+    // 2. The prop changed to false AND:
+    //    - We're not in a background state recovery period
+    //    - AND this isn't happening during app lifecycle changes
+    //    - AND it wasn't already explicitly closed
     if (open) {
       setInternalOpen(true);
       wasOpenBeforeBackground.current = false; // Reset when explicitly opened
-    } else if (!wasOpenBeforeBackground.current) {
-      // Only close if we weren't tracking a background state
+      isInBackgroundState.current = false;
+      explicitCloseRequested.current = false;
+    } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
+      // Only close if:
+      // - Prop explicitly changed from true to false (user action)
+      // - We're not in background recovery state
+      // - Modal wasn't open before background
+      explicitCloseRequested.current = true;
+      setInternalOpen(false);
+    } else if (!open && !isInBackgroundState.current && !wasOpenBeforeBackground.current && explicitCloseRequested.current) {
+      // Allow closing if explicitly requested and we're stable
       setInternalOpen(false);
     }
+    // Otherwise, ignore prop changes during background state transitions
   }, [open]);
 
   // Add keyboard shortcuts and prevent body scroll on mobile
@@ -69,8 +144,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        setInternalOpen(false);
+        // User explicitly closed via Escape key
+        explicitCloseRequested.current = true;
         wasOpenBeforeBackground.current = false;
+        isInBackgroundState.current = false;
+        setInternalOpen(false);
         onClose();
       }
     };
@@ -92,8 +170,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
 
   // Handle backdrop click
   const handleBackdropClick = () => {
-    setInternalOpen(false);
+    // User explicitly closed via backdrop click
+    explicitCloseRequested.current = true;
     wasOpenBeforeBackground.current = false;
+    isInBackgroundState.current = false;
+    setInternalOpen(false);
     onClose();
   };
   
