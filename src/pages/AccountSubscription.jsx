@@ -30,8 +30,6 @@ async function loadSubscription(firebaseUser) {
 }
 
 export default function AccountSubscription() {
-  console.log('🟢 AccountSubscription component rendering');
-  
   // Research Subscription Page - Updated Layout
   const { theme } = useOutletContext()
   const navigate = useNavigate()

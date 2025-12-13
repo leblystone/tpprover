@@ -42,14 +42,6 @@ import { recordDeletion } from '../utils/deletionTracking'
 import { useFirebase } from '../context/FirebaseContext'
 
 export default function Dashboard() {
-  console.log('🏠 Dashboard component rendered');
-  console.log('🔍 Dashboard render - Current date check:', {
-    newDate: new Date().toLocaleDateString('en-US'),
-    newDateISO: new Date().toISOString(),
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    day: new Date().getDate()
-  });
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -612,8 +604,6 @@ export default function Dashboard() {
   }, [])
 
 
-  console.log('🎨 Dashboard rendering with subscription:', subscription);
-  
   return (
     <div className="space-y-0.5 md:space-y-4" data-tour="dashboard-welcome">
       <ViewContainer theme={theme} transparent noMinHeight>

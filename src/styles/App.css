@@ -106,18 +106,6 @@ html, body {
     width: 100% !important;
     max-width: 100% !important;
   }
-  
-  /* Ensure widget containers are full width on mobile */
-  .dashboard-widget {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-  
-  /* Ensure content cards inside widgets are full width */
-  .dashboard-widget .content-card {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
 }
 
 /* Dashboard grid fixes for all screen sizes */
@@ -193,7 +181,7 @@ html, body {
 }
 
 /* Fix for horizontal scrolling issues */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   * {
     max-width: 100%;
   }
@@ -213,31 +201,37 @@ html, body {
   .dashboard-grid {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 0.25rem !important;
-    gap: 0.5rem !important;
+    padding: 0.5rem !important;
+    gap: 0.75rem !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     margin: 0 !important;
   }
   
   /* Force widgets and their children to fit with shadow breathing room */
-  .dashboard-widget {
-    max-width: 97% !important;
-    min-width: 0 !important;
-    box-sizing: border-box !important;
-    /* Center widgets with auto margins for even spacing */
-    padding: 0 !important;
-    margin: 0.25rem auto !important;
-    /* Reduce shadow on mobile to prevent visual overflow */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  .dashboard-widget > *,
-  .dashboard-widget .content-card,
-  .dashboard-widget button {
+  .dashboard-widget,
+  div[class*="dashboard-widget"] {
+    width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
+    /* Reduce shadow on mobile to prevent visual overflow */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    /* Ensure content doesn't overflow on right */
+    overflow: hidden !important;
+  }
+  
+  /* Ensure all widget children respect boundaries */
+  .dashboard-widget > *,
+  .dashboard-widget .content-card,
+  .dashboard-widget button,
+  .dashboard-widget h3,
+  .dashboard-widget div {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
   }
   
   /* Prevent padding from causing overflow */
@@ -246,31 +240,18 @@ html, body {
     padding-right: 0.75rem !important;
   }
   
-  /* Aggressive viewport constraint - use 100% not 100vw to avoid scrollbar issues */
-  .space-y-2 {
+  /* Constrain containers with light, even padding on mobile */
+  .space-y-2,
+  .main-content,
+  .min-h-screen,
+  .dashboard-grid {
     width: 100% !important;
     max-width: 100% !important;
-    padding-left: 0.125rem !important;
-    padding-right: 0.125rem !important;
+    margin: 0 auto !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
     box-sizing: border-box !important;
-  }
-  
-  /* Reduce main content padding on mobile - minimal to maximize space */
-  .main-content {
-    padding: 0.0625rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* Make ViewContainer and all containers properly constrained */
-  .min-h-screen {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
     overflow-x: hidden !important;
-    box-sizing: border-box !important;
   }
   
   /* Ensure body and root containers are constrained */

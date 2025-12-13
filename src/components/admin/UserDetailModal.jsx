@@ -17,8 +17,6 @@ export default function UserDetailModal({
     return null;
   }
 
-  console.log('✅ UserDetailModal rendering with user:', user);
-
   // Scroll to top when modal opens
   React.useEffect(() => {
     document.body.style.overflow = 'hidden';
