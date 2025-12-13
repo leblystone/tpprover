@@ -185,6 +185,29 @@ export default function RedeemLifetime() {
       };
       localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
       
+      // CRITICAL: Trigger subscription refresh in AppContext and useSubscriptionAccess
+      // Dispatch event to refresh subscription
+      window.dispatchEvent(new CustomEvent('subscription:updated', { 
+        detail: { subscription: lifetimeSubscription } 
+      }));
+      
+      // Also trigger a direct refresh by dispatching a custom event that AppContext listens to
+      // Wait a moment for Firestore to update, then refresh
+      setTimeout(async () => {
+        try {
+          const { loadUserSubscription } = await import('../services/cloudStorage');
+          const refreshedSubscription = await loadUserSubscription(currentUser.uid);
+          if (refreshedSubscription) {
+            window.dispatchEvent(new CustomEvent('subscription:updated', { 
+              detail: { subscription: refreshedSubscription } 
+            }));
+            console.log('✅ Subscription refreshed from cloud after lifetime grant');
+          }
+        } catch (err) {
+          console.error('⚠️ Failed to refresh subscription from cloud:', err);
+        }
+      }, 1000);
+      
       setSuccess(true);
       
       // Redirect to dashboard after short delay

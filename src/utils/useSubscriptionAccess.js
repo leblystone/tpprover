@@ -190,9 +190,34 @@ export function useSubscriptionAccess() {
 
         // CRITICAL FIX: Check for lifetime access FIRST, before any trial checks
         // This prevents lifetime users from being locked out even if they have trial status
-        const hasLifetimeAccess = effectiveSubscription.hasLifetimeAccess || 
+        // Also check lifetimeAccess collection directly if subscription doesn't have lifetime flags
+        let hasLifetimeAccess = effectiveSubscription.hasLifetimeAccess || 
                                   effectiveSubscription.interval === 'lifetime' || 
                                   effectiveSubscription.plan === 'lifetime';
+        
+        // If subscription doesn't show lifetime but user might have it, check directly
+        if (!hasLifetimeAccess && firebaseUser) {
+          try {
+            const { checkLifetimeAccessFirestore } = await import('../services/firebase');
+            const lifetimeCheck = await checkLifetimeAccessFirestore(firebaseUser.uid);
+            if (lifetimeCheck?.hasAccess) {
+              console.log('✅ Found lifetime access via direct check:', lifetimeCheck);
+              hasLifetimeAccess = true;
+              // Update effectiveSubscription with lifetime data
+              effectiveSubscription = {
+                ...effectiveSubscription,
+                hasLifetimeAccess: true,
+                interval: 'lifetime',
+                plan: 'lifetime',
+                status: 'active',
+                lifetimeReason: lifetimeCheck.reason || 'Admin grant',
+                currentPeriodEnd: null
+              };
+            }
+          } catch (lifetimeError) {
+            console.warn('⚠️ Error checking lifetime access directly:', lifetimeError);
+          }
+        }
         
         if (hasLifetimeAccess) {
           // Check if this is a granted lifetime access (not purchased)
@@ -300,7 +325,7 @@ export function useSubscriptionAccess() {
       window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
       clearInterval(interval);
     };
-  }, [subscription, isLoading]); // Re-check when subscription changes from cloud
+  }, [subscription, isLoading, firebaseUser]); // Re-check when subscription changes from cloud or firebaseUser changes
 
   return { ...accessInfo, isLoading };
 }

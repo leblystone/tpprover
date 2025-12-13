@@ -648,6 +648,27 @@ export default function Login() {
             };
             localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
             console.log('💾 Lifetime subscription saved to localStorage');
+            
+            // CRITICAL: Trigger subscription refresh
+            window.dispatchEvent(new CustomEvent('subscription:updated', { 
+              detail: { subscription: lifetimeSubscription } 
+            }));
+            
+            // Refresh from cloud after a moment
+            setTimeout(async () => {
+              try {
+                const { loadUserSubscription } = await import('../services/cloudStorage');
+                const refreshedSubscription = await loadUserSubscription(firebaseUser.uid);
+                if (refreshedSubscription) {
+                  window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                    detail: { subscription: refreshedSubscription } 
+                  }));
+                  console.log('✅ Subscription refreshed from cloud after lifetime grant');
+                }
+              } catch (err) {
+                console.error('⚠️ Failed to refresh subscription from cloud:', err);
+              }
+            }, 1000);
           } catch (lifetimeError) {
             console.error('❌ Failed to apply lifetime during login:', lifetimeError);
             // Continue with login even if lifetime fails - user can contact support
@@ -1109,6 +1130,27 @@ export default function Login() {
             };
             try {
               localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
+              
+              // CRITICAL: Trigger subscription refresh
+              window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                detail: { subscription: lifetimeSubscription } 
+              }));
+              
+              // Refresh from cloud after a moment
+              setTimeout(async () => {
+                try {
+                  const { loadUserSubscription } = await import('../services/cloudStorage');
+                  const refreshedSubscription = await loadUserSubscription(firebaseUser.uid);
+                  if (refreshedSubscription) {
+                    window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                      detail: { subscription: refreshedSubscription } 
+                    }));
+                    console.log('✅ Subscription refreshed from cloud after lifetime grant');
+                  }
+                } catch (err) {
+                  console.error('⚠️ Failed to refresh subscription from cloud:', err);
+                }
+              }, 1000);
               console.log('💾 Lifetime subscription saved to localStorage');
             } catch (e) {
               console.error('❌ Failed to save lifetime to localStorage:', e);

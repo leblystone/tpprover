@@ -37,15 +37,20 @@ export default function ResearchStatusWidget({ theme, subscription }) {
   }, [subscription?.currentPeriodEnd]);
 
   // CRITICAL: Check for lifetime access - should hide widget completely
+  // This check must happen FIRST before any trial/expired logic
   const hasLifetimeAccess = subscription?.hasLifetimeAccess || 
                             subscription?.interval === 'lifetime' || 
                             subscription?.plan === 'lifetime';
   
-  const isTrial = subscription?.status === 'trialing' && !hasLifetimeAccess;
-  const isActive = subscription?.status === 'active';
-  const isCanceled = subscription?.status === 'canceled';
+  // If user has lifetime access, never show as trial or expired
+  const isTrial = !hasLifetimeAccess && subscription?.status === 'trialing';
+  const isActive = subscription?.status === 'active' || hasLifetimeAccess;
+  const isCanceled = subscription?.status === 'canceled' && !hasLifetimeAccess;
+  
   // Consider trial expired only when actual time has passed (not just daysLeft==0)
+  // CRITICAL: Never mark as expired if user has lifetime access
   const isExpired = (() => {
+    if (hasLifetimeAccess) return false; // Lifetime users never expire
     if (!isTrial || !subscription?.currentPeriodEnd) return false;
     const now = new Date();
     const end = new Date(subscription.currentPeriodEnd);
