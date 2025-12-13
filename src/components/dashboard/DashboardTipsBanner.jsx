@@ -45,7 +45,7 @@ const DashboardTipsBanner = ({ theme }) => {
       text: 'New protocol history timeline🕰️'
     },
     {
-      text: 'Orders automatically update status when tracking shows delivered!✅'
+      text: 'Orders auto update status when tracking shows delivered!✅'
     },
     {
       text: 'Use unit conversion widget for quick mg to IU calculations!🧮'
@@ -80,11 +80,14 @@ const DashboardTipsBanner = ({ theme }) => {
 
   return (
     <div 
-      className="w-full px-3 lg:px-6 py-2 border-b flex items-center justify-between gap-3 transition-all"
+      className="w-full px-3 sm:px-4 lg:px-6 py-2 border-b flex items-center justify-between gap-2 sm:gap-3 transition-all"
       style={{ 
         backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
         borderColor: theme.border,
-        borderTop: 'none'
+        borderTop: 'none',
+        maxWidth: '97%',
+        margin: '0.25rem auto 0 auto',
+        boxSizing: 'border-box'
       }}
     >
       {/* Left side - Lightbulb icon */}
@@ -95,11 +98,11 @@ const DashboardTipsBanner = ({ theme }) => {
       {/* Center - Tip content */}
       <div className="flex items-center justify-center flex-1 min-w-0">
         <div 
-          className="flex items-center gap-2 transition-opacity duration-200"
+          className="flex items-center justify-center gap-2 transition-opacity duration-200"
           style={{ opacity: fadeIn ? 1 : 0 }}
         >
           <span 
-            className="text-xs lg:text-sm"
+            className="text-xs lg:text-sm text-center"
             style={{ color: theme.textLight }}
           >
             {currentTip.text}
