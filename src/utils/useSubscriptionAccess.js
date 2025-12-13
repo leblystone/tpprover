@@ -107,7 +107,7 @@ export function useSubscriptionAccess() {
   }, [subscription, firebaseUser, hasCheckedLifetime]);
 
   useEffect(() => {
-    const checkSubscriptionAccess = () => {
+    const checkSubscriptionAccess = async () => {
       try {
         // CRITICAL: Don't show trial expired during signup flow
         const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');

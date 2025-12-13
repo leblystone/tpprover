@@ -335,103 +335,102 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// Soft Dark Grey Palette - Easy on the Eyes
+// Sage Theme Palette - Matches main app theme
 const elegantPalette = {
-  // Dark Grey Backgrounds - Softer than black
+  // Sage Backgrounds - Light and calming
   dark: {
-    wallpaper: '#2D3748',      // Soft dark grey background
-    deep: '#1A202C',           // Darker grey
-    charcoal: '#4A5568',       // Medium-dark grey
-    soft: '#718096',           // Medium grey
-    piano: '#2D3748',          // Same as wallpaper
-    surface: '#374151',        // Dark grey for cards (softer than black)
+    wallpaper: '#EFF2EE',      // Light sage background
+    deep: '#DDE6DE',           // Slightly darker sage
+    charcoal: '#A0B9B3',       // Medium sage
+    soft: '#B8C9C4',           // Soft sage
+    piano: '#E8ECE7',          // Light sage
+    surface: '#FFFFFF',        // White for cards
   },
   
-  // Grey Scale
+  // Sage Scale
   taupe: {
-    dark: '#4B5563',           // Medium-dark grey
-    darker: '#374151',         // Dark grey
-    main: '#6B7280',           // Main grey
-    muted: '#9CA3AF',          // Muted grey
-    light: '#D1D5DB',          // Light grey
+    dark: '#5F7F76',           // Dark sage
+    darker: '#4A6A62',         // Darker sage
+    main: '#7F9E95',           // Main sage
+    muted: '#A0B9B3',          // Muted sage
+    light: '#DDE6DE',          // Light sage
   },
   
-  // Text Colors - Light on dark
+  // Text Colors - Dark on light
   black: {
     pure: '#000000',           // Pure black
-    deep: '#F9FAFB',           // Very light text
-    text: '#F3F4F6',           // Light text on dark
-    textMuted: '#D1D5DB',      // Muted light text
+    deep: '#2F3B3A',           // Dark text
+    text: '#2F3B3A',           // Primary text
+    textMuted: '#6B7D7A',      // Muted text
   },
   
-  // Soft Accent - Gentle Blue/Teal instead of purple
+  // Sage Accent Colors
   gold: {
-    // Soft blue-teal gradient
-    bronze: '#4FD1C7',         // Soft teal
-    metallic: '#5B9BD5',       // Soft blue (main accent - easy on eyes)
-    bright: '#7DD3FC',         // Light blue
-    dark: '#0891B2',           // Darker blue
-    light: '#A5D8FF',          // Very light blue
-    warm: '#0EA5E9',           // Warm blue
-    // Soft gradient colors
-    gradientStart: '#5B9BD5',  // Soft blue start
-    gradientMid: '#4FD1C7',    // Teal mid
-    gradientEnd: '#0891B2',    // Deeper blue end
-    gradientDark: '#0EA5E9',   // Dark blue for depth
+    bronze: '#5FAF8B',         // Success green
+    metallic: '#7F9E95',       // Main sage (accent)
+    bright: '#A0B9B3',         // Light sage
+    dark: '#5F7F76',           // Dark sage
+    light: '#DDE6DE',          // Very light sage
+    warm: '#7CB8B2',           // Info teal
+    // Sage gradient colors
+    gradientStart: '#7F9E95',  // Sage start
+    gradientMid: '#6B8E85',    // Mid sage
+    gradientEnd: '#5F7F76',    // Darker sage end
+    gradientDark: '#4A6A62',   // Dark sage for depth
   },
   
-  // Soft Accent Colors
+  // Functional Accent Colors
   accents: {
-    lampAmber: '#F59E0B',      // Amber
-    lampGreen: '#10B981',      // Green
-    rosewood: '#EC4899',       // Pink
+    lampAmber: '#F2C879',      // Warning amber
+    lampGreen: '#5FAF8B',      // Success green
+    rosewood: '#E58A7A',       // Error/pink
   },
   
-  // Supporting colors (dark theme friendly)
+  // Supporting colors (light theme friendly)
   neutral: {
     white: '#FFFFFF',
-    offWhite: '#F9FAFB',       // Very light grey
-    lightGray: '#E5E7EB',      // Light grey
-    darkGray: '#4B5563',       // Medium-dark grey
+    offWhite: '#F8FAF8',       // Very light sage-white
+    lightGray: '#E8ECE7',      // Light grey-sage
+    darkGray: '#6B7D7A',       // Medium-dark grey
   },
   
-  // Soft Functional colors
+  // Functional colors
   functional: {
-    success: '#10B981',        // Green
-    warning: '#F59E0B',        // Amber
-    error: '#EF4444',          // Red
-    info: '#5B9BD5'            // Soft blue
+    success: '#5FAF8B',        // Success green
+    warning: '#F2C879',        // Warning amber
+    error: '#E58A7A',          // Error red
+    info: '#7CB8B2'            // Info teal
   }
 };
 
-// Soft Dark Grey Theme - Easy on the Eyes
+// Sage Light Theme - Matches main app
 const adminTheme = {
   // Theme mode
-  isDark: true,
+  isDark: false,
   
-  // Dark grey colors
-  primary: elegantPalette.dark.charcoal,           // Medium-dark grey
-  primaryLight: elegantPalette.dark.soft,          // Medium grey
-  primaryLighter: elegantPalette.dark.surface,     // Dark grey surface
-  primaryDark: elegantPalette.black.deep,         // Light text
-  primaryDarker: elegantPalette.dark.deep,       // Darker grey
+  // Sage colors
+  primary: elegantPalette.taupe.main,              // Main sage green
+  primaryLight: elegantPalette.taupe.muted,        // Light sage
+  primaryLighter: elegantPalette.taupe.light,      // Very light sage
+  primaryDark: elegantPalette.taupe.dark,          // Dark sage
+  primaryDarker: elegantPalette.taupe.darker,      // Darker sage
   
   // Black colors
   black: elegantPalette.black.deep,
-  blackSoft: elegantPalette.taupe.dark,
+  blackSoft: elegantPalette.black.textMuted,
   
-  // Backgrounds - Soft Dark Grey
-  background: elegantPalette.dark.wallpaper,       // Soft dark grey background
-  cardBackground: elegantPalette.dark.surface,     // Dark grey cards
-  cardBackgroundLighter: elegantPalette.dark.charcoal, // Slightly lighter cards
-  inputBackground: elegantPalette.dark.surface,    // Input background (same as cards)
+  // Backgrounds - Light sage
+  background: elegantPalette.dark.wallpaper,       // Light sage background
+  cardBackground: elegantPalette.dark.surface,     // White cards
+  cardBackgroundLighter: elegantPalette.neutral.offWhite, // Slightly off-white
+  inputBackground: elegantPalette.neutral.white,   // White input background
   
-  // Gray colors - for subtle accents
+  // Sage colors - for subtle accents
   taupe: elegantPalette.taupe.main,
   taupeLight: elegantPalette.taupe.light,
   taupeDark: elegantPalette.taupe.dark,
   
-  // Soft Blue Accent - Easy on the Eyes!
+  // Sage Accent
   accent: elegantPalette.gold.metallic,
   gold: elegantPalette.gold.metallic,
   goldBright: elegantPalette.gold.bright,
@@ -439,23 +438,23 @@ const adminTheme = {
   goldLight: elegantPalette.gold.light,
   goldBronze: elegantPalette.gold.bronze,
   
-  // Soft Functional colors
+  // Functional colors
   success: elegantPalette.functional.success,
   warning: elegantPalette.functional.warning,
   error: elegantPalette.functional.error,
   info: elegantPalette.functional.info,
   
-  // Text - Light on dark backgrounds
-  text: elegantPalette.black.text,                 // Light text on dark
-  textLight: elegantPalette.black.textMuted,       // Muted light text
-  textDark: elegantPalette.black.deep,             // Light text for contrast
+  // Text - Dark on light backgrounds
+  text: elegantPalette.black.text,                 // Dark text
+  textLight: elegantPalette.black.textMuted,       // Muted text
+  textDark: elegantPalette.black.deep,             // Dark text for contrast
   
-  // Borders & accents - subtle on dark
-  border: elegantPalette.dark.soft + '50',          // Subtle borders
-  borderGold: elegantPalette.gold.metallic + '40', // Soft blue borders
+  // Borders & accents - subtle on light
+  border: elegantPalette.taupe.light,              // Sage borders
+  borderGold: elegantPalette.gold.metallic + '40', // Sage accent borders
   
-  textOnPrimary: elegantPalette.black.text,        // Light text on dark
-  textOnGold: '#FFFFFF',                           // White text on blue
+  textOnPrimary: '#FFFFFF',                        // White text on sage
+  textOnGold: '#FFFFFF',                           // White text on accent
   successBg: elegantPalette.functional.success + '20',
   accentText: '#FFFFFF',                           // White text on accent
   white: elegantPalette.neutral.white
@@ -1654,36 +1653,27 @@ function Admin() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
-        backgroundColor: elegantPalette.dark.wallpaper,
-        backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
+        backgroundColor: elegantPalette.dark.wallpaper
       }}>
-        {/* Decorative elements - subtle soft accents */}
-        <div className="absolute top-10 right-10 opacity-5">
-          <Book size={120} style={{ color: elegantPalette.dark.soft }} />
+        {/* Decorative elements */}
+        <div className="absolute top-10 right-10 opacity-[0.04]">
+          <Book size={120} style={{ color: elegantPalette.taupe.main }} />
         </div>
-        <div className="absolute bottom-10 left-10 opacity-6">
-          <LayoutDashboard size={100} style={{ 
-            color: elegantPalette.gold.metallic
-          }} />
-        </div>
-        <div className="absolute top-1/2 right-1/4 opacity-5">
-          <Star size={80} style={{ 
-            color: elegantPalette.gold.bright
-          }} />
+        <div className="absolute bottom-10 left-10 opacity-[0.04]">
+          <LayoutDashboard size={100} style={{ color: elegantPalette.taupe.muted }} />
         </div>
         
-        <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10 backdrop-blur-sm" style={{ 
-          borderColor: elegantPalette.gold.metallic + '30', 
-          backgroundColor: elegantPalette.dark.surface,
-          boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
+        <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10" style={{ 
+          borderColor: elegantPalette.taupe.light, 
+          backgroundColor: elegantPalette.neutral.white,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
         }}>
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ 
-              background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-              boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-              border: `2px solid ${elegantPalette.gold.light}`
+              background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
+              border: `1px solid ${elegantPalette.taupe.light}`
             }}>
-              <Book size={32} style={{ color: elegantPalette.black.deep }} />
+              <Book size={32} style={{ color: '#FFFFFF' }} />
             </div>
             <h1 className="text-2xl font-bold mb-2" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
             <p className="text-sm" style={{ color: theme.textLight }}>Welcome back</p>
@@ -1697,11 +1687,11 @@ function Admin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Admin email"
-                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02] mb-3"
+                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01] mb-3"
                 style={{ 
                   borderColor: loginError && !email.trim() ? theme.error : theme.border, 
-                  backgroundColor: theme.background,
-                  focusRingColor: theme.primary
+                  backgroundColor: elegantPalette.neutral.white,
+                  color: elegantPalette.black.text
                 }}
                 required
                 disabled={isLoggingIn}
@@ -1712,11 +1702,11 @@ function Admin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Your Firebase account password"
-                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
+                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01]"
                 style={{ 
                   borderColor: loginError && email.trim() ? theme.error : theme.border, 
-                  backgroundColor: theme.background,
-                  focusRingColor: theme.primary
+                  backgroundColor: elegantPalette.neutral.white,
+                  color: elegantPalette.black.text
                 }}
                 required
                 disabled={isLoggingIn}
@@ -1724,19 +1714,22 @@ function Admin() {
               />
             </div>
             {loginError && (
-              <div className="px-4 py-3 rounded-lg text-sm bg-red-100 text-red-800 border border-red-200">
+              <div className="px-4 py-3 rounded-lg text-sm" style={{
+                backgroundColor: elegantPalette.functional.error + '15',
+                color: elegantPalette.functional.error,
+                border: `1px solid ${elegantPalette.functional.error}30`
+              }}>
                 {loginError}
               </div>
             )}
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ 
-                background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                color: elegantPalette.black.deep,
-                boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-                border: `2px solid ${elegantPalette.gold.light}`
+                background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                color: '#FFFFFF',
+                border: `1px solid ${elegantPalette.taupe.light}`
               }}
             >
               {isLoggingIn ? (
@@ -1765,40 +1758,19 @@ function Admin() {
       />
       
       <div className="min-h-screen w-screen flex flex-col" style={{ 
-        backgroundColor: elegantPalette.dark.wallpaper,
-        backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
+        backgroundColor: elegantPalette.dark.wallpaper
       }}>
-        {/* Soft Decorative Elements - Subtle & Easy on Eyes */}
+        {/* Subtle Decorative Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          {/* Subtle grey accents */}
-          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.03]" style={{ color: elegantPalette.taupe.dark }} />
-          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted }} />
-          <BookOpen size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark }} />
-          <LayoutDashboard size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.02]" style={{ color: elegantPalette.dark.soft }} />
-          
-          {/* Subtle depth elements */}
-          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano }} />
-          <Settings size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.charcoal }} />
-          
-          {/* Soft Blue accents - Easy on the Eyes! */}
-          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.05]" style={{ 
-            color: elegantPalette.gold.metallic
-          }} />
-          <Award size={120} className="absolute top-1/2 left-1/3 rotate-12 opacity-[0.04]" style={{ 
-            color: elegantPalette.gold.bright
-          }} />
-          {/* Soft teal accent */}
-          <Award size={100} className="absolute top-1/4 right-1/4 -rotate-12 opacity-[0.03]" style={{ 
-            color: elegantPalette.gold.bronze
-          }} />
+          <Book size={300} className="absolute top-12 right-12 rotate-12 opacity-[0.03]" style={{ color: elegantPalette.taupe.main }} />
+          <LayoutDashboard size={200} className="absolute bottom-20 left-16 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted }} />
         </div>
         
       {/* Top Navigation Bar */}
       <div className="border-b relative z-10 flex-shrink-0" style={{ 
-        borderColor: elegantPalette.gold.metallic + '30',
-        backgroundColor: elegantPalette.dark.surface + 'E0',
-        backdropFilter: 'blur(10px)',
-        boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
+        borderColor: elegantPalette.taupe.light,
+        backgroundColor: elegantPalette.neutral.white,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
         <div className="px-4 lg:px-6 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -1806,10 +1778,9 @@ function Admin() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ 
                 background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-                border: `1px solid ${elegantPalette.gold.light}`
+                border: `1px solid ${elegantPalette.taupe.light}`
               }}>
-                <Book size={20} style={{ color: elegantPalette.black.deep }} />
+                <Book size={20} style={{ color: '#FFFFFF' }} />
               </div>
               <div>
                 <h1 className="text-lg font-bold" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
@@ -1821,10 +1792,10 @@ function Admin() {
             <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-4xl">
               <HorizontalNavGroup
                 id="overview"
-                title="Overview"
+                title="Dashboard"
                 icon={LayoutDashboard}
                 items={[
-                  { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#3b82f6' }
+                  { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#5F7F76' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1836,9 +1807,9 @@ function Admin() {
                 title="Users"
                 icon={Users}
                 items={[
-                  { id: 'subscriptions', label: 'Users', icon: Users, count: subscriptions.total || 0, color: '#10b981' },
-                  { id: 'lifetime', label: 'Lifetime', icon: Crown, count: lifetimeUsers.length || 0, color: '#f59e0b' },
-                  { id: 'gifts', label: 'Gifts', icon: Gift, count: giftAnalytics.total || 0, color: '#ec4899' }
+                  { id: 'subscriptions', label: 'All Users', icon: Users, count: subscriptions.total || 0, color: '#5FAF8B' },
+                  { id: 'lifetime', label: 'Lifetime', icon: Crown, count: lifetimeUsers.length || 0, color: '#7F9E95' },
+                  { id: 'gifts', label: 'Gifts', icon: Gift, count: giftAnalytics.total || 0, color: '#7CB8B2' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1850,9 +1821,9 @@ function Admin() {
                 title="Content"
                 icon={Layers}
                 items={[
-                  { id: 'content', label: 'Content', icon: Layers, count: 0, color: '#8b5cf6' },
-                  { id: 'feedback', label: 'Feedback', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#8b5cf6' },
-                  { id: 'improvements', label: 'Ideas', icon: Lightbulb, count: 0, color: '#8b5cf6' }
+                  { id: 'content', label: 'Manage', icon: Layers, count: 0, color: '#7F9E95' },
+                  { id: 'feedback', label: 'Feedback', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#5FAF8B' },
+                  { id: 'improvements', label: 'Ideas', icon: Lightbulb, count: 0, color: '#7CB8B2' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1864,21 +1835,9 @@ function Admin() {
                 title="Comms"
                 icon={MailOpen}
                 items={[
-                  { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
-                  { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' },
-                  { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#8b5cf6' }
-                ]}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                theme={theme}
-              />
-              
-              <HorizontalNavGroup
-                id="security"
-                title="Security"
-                icon={Shield}
-                items={[
-                  { id: 'security', label: 'Security', icon: Shield, count: 0, color: '#dc2626' }
+                  { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#5FAF8B' },
+                  { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#7CB8B2' },
+                  { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#7F9E95' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1890,8 +1849,9 @@ function Admin() {
                 title="Settings"
                 icon={Sliders}
                 items={[
-                  { id: 'version', label: 'App Version', icon: Smartphone, count: 0, color: '#8b5cf6' },
-                  { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#ef4444' }
+                  { id: 'security', label: 'Security', icon: Shield, count: 0, color: '#E58A7A' },
+                  { id: 'version', label: 'App Version', icon: Smartphone, count: 0, color: '#7F9E95' },
+                  { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#6B7D7A' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1915,10 +1875,9 @@ function Admin() {
                   disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
                   className="p-2 rounded-lg flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ 
-                    backgroundColor: elegantPalette.taupe.light + '30',
-                    border: `1px solid ${elegantPalette.taupe.main}50`,
-                    color: elegantPalette.taupe.dark,
-                    boxShadow: `0 2px 8px ${elegantPalette.taupe.main}25`
+                    backgroundColor: elegantPalette.taupe.light + '40',
+                    border: `1px solid ${elegantPalette.taupe.light}`,
+                    color: elegantPalette.taupe.dark
                   }}
                   title="Refresh Data"
                 >
@@ -1953,9 +1912,9 @@ function Admin() {
                 }}
                 className="p-2 rounded-lg flex items-center justify-center hover:scale-105 transition-all"
                 style={{ 
-                  backgroundColor: '#ef444420',
-                  border: '1px solid #ef444440',
-                  color: '#ef4444'
+                  backgroundColor: elegantPalette.functional.error + '15',
+                  border: `1px solid ${elegantPalette.functional.error}30`,
+                  color: elegantPalette.functional.error
                 }}
                 title="Sign Out"
               >
@@ -1970,17 +1929,19 @@ function Admin() {
           {/* Mobile Tab Navigation - Modern Compact */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {[
-              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6', short: 'Stats' },
-              { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981', short: 'Users' },
-              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b', short: 'Beta' },
-              { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6', short: 'Content' },
-              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6', short: 'Feedback' },
-              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444', short: 'Legal' },
-              { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899', short: 'Gifts' },
-              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981', short: 'Notify' },
-              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4', short: 'Email' },
-              { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, color: '#8b5cf6', short: 'Triggers' },
-              { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6', short: 'Ideas' }
+              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#5F7F76', short: 'Stats' },
+              { id: 'subscriptions', label: 'Users', icon: Users, color: '#5FAF8B', short: 'Users' },
+              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#7F9E95', short: 'Lifetime' },
+              { id: 'gifts', label: 'Gifts', icon: Star, color: '#7CB8B2', short: 'Gifts' },
+              { id: 'content', label: 'Content', icon: BookOpen, color: '#7F9E95', short: 'Content' },
+              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#5FAF8B', short: 'Feedback' },
+              { id: 'improvements', label: 'Ideas', icon: Target, color: '#7CB8B2', short: 'Ideas' },
+              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#5FAF8B', short: 'Notify' },
+              { id: 'emails', label: 'Emails', icon: Mail, color: '#7CB8B2', short: 'Email' },
+              { id: 'emailTriggers', label: 'Triggers', icon: Clock, color: '#7F9E95', short: 'Triggers' },
+              { id: 'security', label: 'Security', icon: Shield, color: '#E58A7A', short: 'Security' },
+              { id: 'version', label: 'Version', icon: Smartphone, color: '#7F9E95', short: 'Version' },
+              { id: 'agreements', label: 'Legal', icon: FileCheck, color: '#6B7D7A', short: 'Legal' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -2043,11 +2004,10 @@ function Admin() {
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Page Title Bar */}
         <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
-          backgroundColor: elegantPalette.dark.surface + 'E0',
+          backgroundColor: elegantPalette.neutral.white + 'F5',
           backdropFilter: 'blur(12px)',
-          borderBottom: `2px solid ${elegantPalette.gold.metallic}30`,
-          zIndex: 20,
-          boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
+          borderBottom: `1px solid ${elegantPalette.taupe.light}`,
+          zIndex: 20
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -2061,51 +2021,41 @@ function Admin() {
 
         {activeTab === 'analytics' && (
           <div className="space-y-5">
-            {/* Dark Welcome Banner - Gold accents pop! */}
-            <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
-              background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 50%, ${elegantPalette.dark.piano} 100%)`,
-              borderColor: elegantPalette.gold.metallic + '60',
-              boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
+            {/* Welcome Banner - Clean Sage */}
+            <div className="rounded-xl p-5 relative overflow-hidden border" style={{
+              background: `linear-gradient(135deg, ${elegantPalette.neutral.white} 0%, ${elegantPalette.dark.wallpaper} 100%)`,
+              borderColor: elegantPalette.taupe.light
             }}>
               <div className="flex items-center gap-4 relative z-10">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{
-                  background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                  boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-                  border: `2px solid ${elegantPalette.gold.light}`
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{
+                  background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                  border: `1px solid ${elegantPalette.taupe.light}`
                 }}>
-                  <LayoutDashboard size={32} style={{ color: elegantPalette.black.deep }} />
+                  <LayoutDashboard size={28} style={{ color: '#FFFFFF' }} />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-xl mb-1" style={{ color: elegantPalette.black.text }}>
                     Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}!
                   </h3>
-                  <p className="text-sm font-medium" style={{ color: elegantPalette.black.textMuted }}>
+                  <p className="text-sm" style={{ color: elegantPalette.black.textMuted }}>
                     Welcome to The Pep Planner Admin Panel
                   </p>
                 </div>
-                <div className="hidden md:flex items-center gap-3">
-                  <Book size={36} style={{ color: elegantPalette.taupe.dark }} className="opacity-50" />
-                  <Star size={32} style={{ 
-                    color: elegantPalette.gold.metallic
-                  }} className="opacity-90" />
+                <div className="hidden md:flex items-center gap-2">
+                  <Book size={28} style={{ color: elegantPalette.taupe.muted }} className="opacity-60" />
                 </div>
-              </div>
-              {/* Decorative elements */}
-              <div className="absolute -right-4 -bottom-4 opacity-8">
-                <Settings size={120} style={{ color: elegantPalette.dark.soft }} className="rotate-12" />
               </div>
             </div>
 
-            {/* Feedback & Tickets Section - Front and Center */}
-            <div className="rounded-xl border-2 p-6 content-card" style={{ 
-              borderColor: elegantPalette.gold.metallic + '40',
-              backgroundColor: elegantPalette.dark.surface,
-              boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
+            {/* Feedback & Tickets Section */}
+            <div className="rounded-xl border p-6" style={{ 
+              borderColor: elegantPalette.taupe.light,
+              backgroundColor: elegantPalette.neutral.white
             }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
-                    <MessagesSquare size={20} style={{ color: elegantPalette.gold.metallic }} />
+                    <MessagesSquare size={20} style={{ color: elegantPalette.taupe.main }} />
                     Support & Feedback
                   </h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -2176,10 +2126,9 @@ function Admin() {
                     }}
                     className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
                     style={{ 
-                      background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                      color: elegantPalette.black.deep,
-                      boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-                      border: `1px solid ${elegantPalette.gold.light}`
+                      background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                      color: '#FFFFFF',
+                      border: `1px solid ${elegantPalette.taupe.light}`
                     }}
                   >
                     View All
@@ -2190,29 +2139,29 @@ function Admin() {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: elegantPalette.dark.soft + '50',
-                  backgroundColor: elegantPalette.dark.charcoal
+                  borderColor: elegantPalette.taupe.light,
+                  backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{feedback.length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.dark }}>{feedback.length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Feedback</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: elegantPalette.dark.soft + '50',
-                  backgroundColor: elegantPalette.dark.charcoal
+                  borderColor: elegantPalette.taupe.light,
+                  backgroundColor: elegantPalette.dark.wallpaper
                 }}>
                   <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Feedback</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: elegantPalette.dark.soft + '50',
-                  backgroundColor: elegantPalette.dark.charcoal
+                  borderColor: elegantPalette.taupe.light,
+                  backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{tickets.length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.dark }}>{tickets.length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Requests</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: elegantPalette.dark.soft + '50',
-                  backgroundColor: elegantPalette.dark.charcoal
+                  borderColor: elegantPalette.taupe.light,
+                  backgroundColor: elegantPalette.dark.wallpaper
                 }}>
                   <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Requests</div>
