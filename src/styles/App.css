@@ -182,65 +182,15 @@ html, body {
 
 /* Fix for horizontal scrolling issues */
 @media (max-width: 768px) {
-  * {
-    max-width: 100%;
-  }
-  
-  /* Allow specific elements to be wider if needed */
-  .allow-overflow {
-    max-width: none;
-  }
-  
-  /* Aggressive fix for dashboard and widget containers */
-  body, #root, .space-y-2, .overflow-x-hidden {
-    overflow-x: hidden !important;
-    max-width: 100% !important;
-  }
-  
-  /* Force all dashboard grid items to respect viewport */
-  .dashboard-grid {
+  /* Keep body/root constrained */
+  body, #root {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 0.5rem !important;
-    gap: 0.75rem !important;
-    box-sizing: border-box !important;
     overflow-x: hidden !important;
-    margin: 0 !important;
-  }
-  
-  /* Force widgets and their children to fit with shadow breathing room */
-  .dashboard-widget,
-  div[class*="dashboard-widget"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
     box-sizing: border-box !important;
-    /* Reduce shadow on mobile to prevent visual overflow */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    /* Ensure content doesn't overflow on right */
-    overflow: hidden !important;
   }
-  
-  /* Ensure all widget children respect boundaries */
-  .dashboard-widget > *,
-  .dashboard-widget .content-card,
-  .dashboard-widget button,
-  .dashboard-widget h3,
-  .dashboard-widget div {
-    max-width: 100% !important;
-    min-width: 0 !important;
-    box-sizing: border-box !important;
-    overflow-wrap: break-word !important;
-    word-break: break-word !important;
-  }
-  
-  /* Prevent padding from causing overflow */
-  .p-4, .p-3, .px-4, .px-3 {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-  }
-  
-  /* Constrain containers with light, even padding on mobile */
+
+  /* Light, even padding on main containers */
   .space-y-2,
   .main-content,
   .min-h-screen,
@@ -248,17 +198,24 @@ html, body {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
-    padding-left: 0.25rem !important;
-    padding-right: 0.25rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
   }
-  
-  /* Ensure body and root containers are constrained */
-  body, #root {
+
+  /* Dashboard grid spacing */
+  .dashboard-grid {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Widgets fill the grid area; let padding handle breathing room */
+  .dashboard-grid > div,
+  .dashboard-widget {
     width: 100% !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
   }
 }

@@ -2066,7 +2066,6 @@ export function AppProvider({ children }) {
                 
                 // Prevent processing if we're already handling an update
                 if (isApplyingRemoteUpdateRef.current) {
-                    console.log('⏸️ Skipping app data sync - already processing an update');
                     return;
                 }
 

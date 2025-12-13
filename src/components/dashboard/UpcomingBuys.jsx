@@ -23,16 +23,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   
   // Initialize deleted IDs from persistent deletion tracking on mount ONLY
   const initializedRef = useRef(false);
-  const hasLoggedRef = useRef(false);
   if (!initializedRef.current) {
     const persistentDeletedIds = getDeletedItems('scheduledBuys');
     persistentDeletedIds.forEach(id => {
       justDeletedIdsRef.current.add(String(id));
     });
-    if (persistentDeletedIds.length > 0 && !hasLoggedRef.current) {
-      console.log('🔒 Initialized deleted IDs from persistent tracking:', persistentDeletedIds);
-      hasLoggedRef.current = true;
-    }
     initializedRef.current = true;
   }
   

@@ -395,7 +395,6 @@ export async function loadUserSubscription(userId) {
       
       if (lifetimeDoc.exists() && lifetimeDoc.data().hasLifetimeAccess) {
         const lifetimeData = lifetimeDoc.data();
-        console.log('✅ Found lifetime access in lifetimeAccess collection');
         return {
           hasLifetimeAccess: true,
           interval: 'lifetime',

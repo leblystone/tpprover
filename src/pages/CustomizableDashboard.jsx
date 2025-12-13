@@ -425,41 +425,15 @@ export default function CustomizableDashboard() {
   // Generate today's tasks from supplements and protocols
   // CRITICAL: Use Calendar's shared logic to ensure perfect sync
   useEffect(() => {
-    console.log('🔄 CustomizableDashboard: Generating today\'s tasks using Calendar logic');
-    
     // CRITICAL: Use Calendar's EXACT date calculation method to ensure perfect sync
     // Calendar uses: toKey(new Date()) which extracts year/month/day from current date
     const calendarRawDate = new Date();
     const finalToday = new Date(calendarRawDate.getFullYear(), calendarRawDate.getMonth(), calendarRawDate.getDate());
     finalToday.setHours(0, 0, 0, 0);
     
-    console.log('📅 CustomizableDashboard: Date calculation', {
-      rawDate: calendarRawDate.toISOString(),
-      finalTodayISO: finalToday.toISOString(),
-      finalTodayDateString: finalToday.toLocaleDateString('en-US'),
-      finalTodayKey: toKey(finalToday),
-      year: finalToday.getFullYear(),
-      month: finalToday.getMonth() + 1,
-      day: finalToday.getDate()
-    });
-    
     try {
       // Get today's scheduled tasks using the same logic as Calendar
       const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems);
-      
-      console.log('📊 CustomizableDashboard: Received scheduled data', {
-        timeSlots: Object.keys(scheduledData.bySlot || {}),
-        totalPeptides: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.peptides?.length || 0), 0),
-        totalSupplements: Object.values(scheduledData.bySlot || {}).reduce((sum, slot) => sum + (slot.supplements?.length || 0), 0),
-        peptideDetails: Object.values(scheduledData.bySlot || {}).flatMap(slot => 
-          (slot.peptides || []).map(pep => ({
-            name: pep.name,
-            deliveryMethod: pep.deliveryMethod,
-            penColor: pep.penColor,
-            penType: pep.penType
-          }))
-        )
-      });
       
       const tasks = [];
       
@@ -491,25 +465,6 @@ export default function CustomizableDashboard() {
               administrationRoute: pep.administrationRoute,
               protocolId: pep.protocolId
             };
-            
-            // Enhanced debug logging for ALL peptides to see what Calendar is providing
-            console.log('🔍 Peptide data from Calendar:', {
-              name: pep.name,
-              timeSlot: timeSlot,
-              fromCalendar: {
-                deliveryMethod: pep.deliveryMethod,
-                delivery: pep.delivery,
-                penColor: pep.penColor,
-                penType: pep.penType,
-                protocolId: pep.protocolId
-              },
-              toTask: {
-                deliveryMethod: task.deliveryMethod,
-                delivery: task.delivery,
-                penColor: task.penColor,
-                penType: task.penType
-              }
-            });
             
             // Generate stable task ID and check completion status
             const taskId = generateTaskId(task);
@@ -557,7 +512,6 @@ export default function CustomizableDashboard() {
         return a.name.localeCompare(b.name)
       });
       
-      console.log('✅ CustomizableDashboard: Generated', tasks.length, 'tasks');
       setTodaysTasks(tasks);
     } catch (error) {
       console.error('❌ CustomizableDashboard: Error generating tasks', error);
