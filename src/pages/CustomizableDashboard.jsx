@@ -798,7 +798,7 @@ export default function CustomizableDashboard() {
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
       
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative">
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border px-2 sm:px-0" style={{ minWidth: 0 }}>
         {/* Decorative background icon - positioned within content area */}
         <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
           <FlaskConical 
@@ -812,8 +812,8 @@ export default function CustomizableDashboard() {
         </div>
 
         {/* Dashboard Layout - Flexible Grid */}
-        <div className="overflow-x-hidden">
-          <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min w-full max-w-full p-1">
+        <div className="overflow-x-hidden w-full" style={{ maxWidth: '100%' }}>
+<div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4 auto-rows-min w-full p-2 sm:p-1 box-border" style={{ maxWidth: '100%' }}>
             {enabledWidgetsForGrid.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);
@@ -895,6 +895,7 @@ export default function CustomizableDashboard() {
                         });
                       })()}
                       pendingVendors={pendingVendors}
+                      vendors={vendors}
                       goals={goals}
                       metrics={metrics}
                       supplements={supplements}
@@ -1019,6 +1020,7 @@ export default function CustomizableDashboard() {
                         incomingOrder={incomingOrder}
                         upcomingBuys={scheduledBuys}
                         pendingVendors={pendingVendors}
+                        vendors={vendors}
                         goals={goals}
                         metrics={metrics}
                         supplements={supplements}

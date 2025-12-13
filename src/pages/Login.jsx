@@ -604,6 +604,56 @@ export default function Login() {
         console.log('🔄 Step 11: Setting user context...');
         setUser(user);
         
+        // Check if this login has a lifetime code to redeem (upgrade existing account)
+        if (lifetimeCode) {
+          console.log('🎁 Lifetime code detected during login, upgrading account...');
+          try {
+            const { grantLifetimeAccessFirestore } = await import('../services/firebase');
+            const { doc, updateDoc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            
+            // Grant lifetime access
+            await grantLifetimeAccessFirestore(
+              firebaseUser.uid,
+              firebaseUser.email,
+              'Lifetime Kit Redemption (Login Upgrade)',
+              'lifetime-kit'
+            );
+            console.log('✅ Lifetime access granted to existing account!');
+            
+            // Mark code as used
+            try {
+              const codeRef = doc(db, 'lifetimeCodes', lifetimeCode);
+              await updateDoc(codeRef, {
+                used: true,
+                usedBy: firebaseUser.email,
+                usedByUid: firebaseUser.uid,
+                usedAt: new Date().toISOString()
+              });
+              console.log('✅ Lifetime code marked as used:', lifetimeCode);
+            } catch (codeError) {
+              console.error('⚠️ Failed to mark code as used:', codeError);
+            }
+            
+            // Update localStorage subscription
+            const lifetimeSubscription = {
+              id: `lifetime_${Date.now()}`,
+              plan: 'lifetime',
+              interval: 'lifetime',
+              status: 'active',
+              hasLifetimeAccess: true,
+              lifetimeReason: 'Lifetime Kit Redemption (Login Upgrade)',
+              lifetimeGrantedAt: new Date().toISOString(),
+              currentPeriodEnd: null,
+            };
+            localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
+            console.log('💾 Lifetime subscription saved to localStorage');
+          } catch (lifetimeError) {
+            console.error('❌ Failed to apply lifetime during login:', lifetimeError);
+            // Continue with login even if lifetime fails - user can contact support
+          }
+        }
+        
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
         
@@ -611,7 +661,7 @@ export default function Login() {
         // Small delay to ensure context is updated before navigation
         setTimeout(() => {
           startTransition(() => {
-            navigate('/app/dashboard');
+            navigate(lifetimeCode ? '/app/dashboard?lifetime_activated=true' : '/app/dashboard');
           });
         }, 100);
         return true;
@@ -1017,7 +1067,7 @@ export default function Login() {
           try {
             // Import lifetime access function
             const { grantLifetimeAccessFirestore } = await import('../services/firebase');
-            const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+            const { doc, updateDoc } = await import('firebase/firestore');
             const { db } = await import('../config/firebase');
             
             // Grant lifetime access
@@ -1036,11 +1086,14 @@ export default function Login() {
                 used: true,
                 usedBy: firebaseUser.email,
                 usedByUid: firebaseUser.uid,
-                usedAt: serverTimestamp()
+                usedAt: new Date().toISOString()
               });
               console.log('✅ Lifetime code marked as used:', lifetimeCode);
             } catch (codeError) {
               console.error('⚠️ Failed to mark code as used (but access was granted):', codeError);
+              // Log more details for debugging
+              console.error('Code that failed:', lifetimeCode);
+              console.error('Error details:', codeError.code, codeError.message);
             }
             
             // Create lifetime subscription in localStorage

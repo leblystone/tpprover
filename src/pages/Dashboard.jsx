@@ -10,6 +10,7 @@ import UpcomingOrderCard from '../components/dashboard/UpcomingOrderCard'
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal'
 import UpcomingBuys from '../components/dashboard/UpcomingBuys'
 import PendingVendorsView from '../components/dashboard/PendingVendorsView'
+import DontForgetWidget from '../components/dashboard/widgets/DontForgetWidget'
 import OCRImportModal from '../components/import/OCRImportModal'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
@@ -1037,23 +1038,21 @@ export default function Dashboard() {
                 setShowAddBuyModal(true);
               }} 
             />
-            {/* Pending Vendors Widget - Hidden, will be replaced with different implementation
-            {pendingVendors.length > 0 && (
-                <PendingVendorsView 
-                    vendors={pendingVendors} 
-                    theme={theme} 
-                    onViewAll={() => navigate('/app/vendors')}
-                    onComplete={(vendor) => {
-                        if (isReadOnly) {
-                            setShowUpgradeModal(true);
-                            return;
-                        }
-                        setEditingVendor(vendor);
-                        setShowNewVendor(true);
-                    }}
-                />
-            )}
-            */}
+            <DontForgetWidget
+                theme={theme}
+                vendors={vendors}
+                onCompleteVendor={(vendor) => {
+                    if (isReadOnly) {
+                        setShowUpgradeModal(true);
+                        return;
+                    }
+                    setEditingVendor(vendor);
+                    setShowNewVendor(true);
+                }}
+                onViewAllVendors={() => navigate('/app/vendors')}
+                isReadOnly={isReadOnly}
+                onUpgrade={() => setShowUpgradeModal(true)}
+            />
         </div>
       </div>
 

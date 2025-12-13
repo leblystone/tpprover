@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, Siren
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, Siren, LogOut
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -1899,7 +1899,7 @@ function Admin() {
               />
             </div>
             
-            {/* Coffee/Wine Chip & Refresh Button */}
+            {/* Coffee/Wine Chip, Refresh & Logout Buttons */}
             <div className="flex items-center gap-2">
               {/* Refresh Button - Icon Only */}
               {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
@@ -1937,6 +1937,30 @@ function Admin() {
                 <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
                 <span className="text-xs font-semibold hidden sm:inline" style={{ color: timeColor }}>{timeMessage}</span>
               </div>
+              
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  // Force clear all auth state
+                  setIsAuthenticated(false);
+                  // Clear any stored credentials
+                  localStorage.removeItem('tpp_admin_auth');
+                  sessionStorage.clear();
+                  // Sign out from Firebase (don't await, just fire and forget)
+                  auth.signOut().catch(() => {});
+                  // Force reload to reset everything
+                  window.location.href = '/admin';
+                }}
+                className="p-2 rounded-lg flex items-center justify-center hover:scale-105 transition-all"
+                style={{ 
+                  backgroundColor: '#ef444420',
+                  border: '1px solid #ef444440',
+                  color: '#ef4444'
+                }}
+                title="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
             </div>
           </div>
           

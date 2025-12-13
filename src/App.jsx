@@ -345,9 +345,10 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex font-sans antialiased" style={{ backgroundColor: theme.background }}>
+    <div className="h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden" style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
-      <div className="flex-1 flex flex-col lg:ml-24 min-w-0" style={{
+      <div className="flex-1 flex flex-col lg:ml-24 min-w-0 w-full max-w-full overflow-x-hidden" style={{
+        boxSizing: 'border-box',
         // Add padding for mobile status bar - only for native apps (not PWA)
         paddingTop: window.innerWidth < 1024 && !window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
       }}>
@@ -376,7 +377,7 @@ function App() {
           } : null}
           showSampleData={showDemoBanner}
         />
-               <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0" style={{ backgroundColor: theme.background, color: theme.text }}>
+               <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0 w-full max-w-full" style={{ backgroundColor: theme.background, color: theme.text, minWidth: 0, boxSizing: 'border-box' }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />
           </Suspense>

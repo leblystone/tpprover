@@ -4,6 +4,7 @@ export const WIDGET_TYPES = {
   UPCOMING_ORDER: 'upcoming_order', 
   UPCOMING_BUYS: 'upcoming_buys',
   PENDING_VENDORS: 'pending_vendors',
+  DONT_FORGET: 'dont_forget',
   ANALYTICS: 'analytics',
   COMPLIANCE: 'compliance',
   SPENDING: 'spending',
@@ -141,11 +142,20 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
+    id: 'dont_forget',
+    type: WIDGET_TYPES.DONT_FORGET,
+    title: "Don't Forget",
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 3, y: 2 },
+    enabled: true,
+    settings: {}
+  },
+  {
     id: 'upcoming_buys',
     type: WIDGET_TYPES.UPCOMING_BUYS,
     title: 'Upcoming Buys',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 2 },
+    position: { x: 4, y: 2 },
     enabled: true,
     settings: {
       maxItems: 3
@@ -156,7 +166,7 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.NOTES,
     title: 'Research Notes',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 4, y: 2 },
+    position: { x: 5, y: 2 },
     enabled: true,
     settings: {}
   },
@@ -254,6 +264,13 @@ export const WIDGET_METADATA = {
     description: 'Complete vendor information for auto-created vendors',
     icon: 'Users',
     availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: []
+  },
+  [WIDGET_TYPES.DONT_FORGET]: {
+    title: "Don't Forget",
+    description: 'Tasks needing attention: incomplete vendors, protocol follow-ups',
+    icon: 'AlertCircle',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: []
   },
   [WIDGET_TYPES.ANALYTICS]: {
@@ -445,7 +462,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.7'; // UPDATED: Active Research widget changed from MEDIUM to SMALL size
+    const currentVersion = '3.8'; // UPDATED: Added Don't Forget widget and fixed position conflicts
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -485,6 +502,15 @@ export const loadDashboardLayout = () => {
         const activeProtocolsNotesWidget = DEFAULT_WIDGETS.find(w => w.id === 'active_protocols_notes');
         if (activeProtocolsNotesWidget) {
           filtered.push(activeProtocolsNotesWidget);
+        }
+      }
+      
+      // Ensure Don't Forget widget is present (for users upgrading to version 3.8+)
+      const hasDontForget = filtered.some(w => w.id === 'dont_forget' || w.type === WIDGET_TYPES.DONT_FORGET);
+      if (!hasDontForget) {
+        const dontForgetWidget = DEFAULT_WIDGETS.find(w => w.id === 'dont_forget');
+        if (dontForgetWidget) {
+          filtered.push(dontForgetWidget);
         }
       }
       

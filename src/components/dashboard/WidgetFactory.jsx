@@ -4,6 +4,7 @@ import TasksWidget from './widgets/TasksWidget';
 import UpcomingOrderWidget from './widgets/UpcomingOrderWidget';
 import UpcomingBuysWidget from './widgets/UpcomingBuysWidget';
 import PendingVendorsWidget from './widgets/PendingVendorsWidget';
+import DontForgetWidget from './widgets/DontForgetWidget';
 import AnalyticsWidget from './widgets/AnalyticsWidget';
 import ComplianceWidget from './widgets/ComplianceWidget';
 import SpendingWidget from './widgets/SpendingWidget';
@@ -74,8 +75,21 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
       );
       
     case WIDGET_TYPES.PENDING_VENDORS:
-      // Hidden - will be replaced with different implementation
+      // Hidden - replaced by DONT_FORGET widget
       return null;
+      
+    case WIDGET_TYPES.DONT_FORGET:
+      return (
+        <DontForgetWidget 
+          widget={widget} 
+          theme={theme} 
+          vendors={props.vendors}
+          onCompleteVendor={props.onCompleteVendor}
+          onViewAllVendors={props.onViewAllVendors}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
+        />
+      );
       
     case WIDGET_TYPES.ANALYTICS:
       return (

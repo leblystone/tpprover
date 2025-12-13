@@ -74,7 +74,10 @@ const DashboardWidget = ({
 
   const widgetStyle = {
     width: '100%',
+    maxWidth: '100%',
     height: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     ...style
   };
 
@@ -131,7 +134,7 @@ const DashboardWidget = ({
         </div>
       )}
       
-      <div className={`h-full overflow-hidden flex flex-col relative ${isHidden ? 'opacity-75' : ''}`}>
+      <div className={`h-full w-full max-w-full overflow-hidden flex flex-col relative ${isHidden ? 'opacity-75' : ''}`} style={{ minWidth: 0, boxSizing: 'border-box' }}>
         {children}
       </div>
       
