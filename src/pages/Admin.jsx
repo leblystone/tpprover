@@ -10,7 +10,6 @@ import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
 import { generateId } from '../utils/string';
-import WelcomeModal from '../components/admin/WelcomeModal';
 import {
   getEmailWhitelist,
   updateEmailWhitelist,
@@ -469,7 +468,6 @@ function Admin() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState('analytics');
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedGroups, setExpandedGroups] = useState({
     overview: true,
@@ -1431,7 +1429,6 @@ function Admin() {
       localStorage.setItem('tpp_admin_auth', 'true');
       setEmail('');
       setPassword('');
-      setShowWelcomeModal(true);
     } catch (error) {
       console.error('❌ Admin login error:', error);
       setLoginError(error.message || 'Login failed. Please try again.');
@@ -1750,13 +1747,6 @@ function Admin() {
   }
 
   return (
-    <>
-      <WelcomeModal 
-        isOpen={showWelcomeModal}
-        onClose={() => setShowWelcomeModal(false)}
-        theme={theme}
-      />
-      
       <div className="min-h-screen w-screen flex flex-col" style={{ 
         backgroundColor: elegantPalette.dark.wallpaper
       }}>
@@ -2002,22 +1992,93 @@ function Admin() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        {/* Page Title Bar */}
-        <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
-          backgroundColor: elegantPalette.neutral.white + 'F5',
-          backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${elegantPalette.taupe.light}`,
-          zIndex: 20
-        }}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
+        {/* Section Tabs Bar */}
+        {(() => {
+          // Define tab groups
+          const tabGroups = {
+            users: [
+              { id: 'subscriptions', label: 'All Users', icon: Users, color: '#5FAF8B' },
+              { id: 'lifetime', label: 'Lifetime', icon: Crown, color: '#7F9E95' },
+              { id: 'gifts', label: 'Gifts', icon: Gift, color: '#7CB8B2' }
+            ],
+            content: [
+              { id: 'content', label: 'Manage', icon: Layers, color: '#7F9E95' },
+              { id: 'feedback', label: 'Feedback', icon: MessagesSquare, color: '#5FAF8B' },
+              { id: 'improvements', label: 'Ideas', icon: Lightbulb, color: '#7CB8B2' }
+            ],
+            communications: [
+              { id: 'notifications', label: 'Notifications', icon: BellRing, color: '#5FAF8B' },
+              { id: 'emails', label: 'Email Templates', icon: MailOpen, color: '#7CB8B2' },
+              { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, color: '#7F9E95' }
+            ],
+            settings: [
+              { id: 'security', label: 'Security', icon: Shield, color: '#E58A7A' },
+              { id: 'version', label: 'App Version', icon: Smartphone, color: '#7F9E95' },
+              { id: 'agreements', label: 'Legal', icon: FileCheck, color: '#6B7D7A' }
+            ]
+          };
+
+          // Find which group the current tab belongs to
+          let currentGroup = null;
+          let currentGroupName = '';
+          for (const [groupName, tabs] of Object.entries(tabGroups)) {
+            if (tabs.some(tab => tab.id === activeTab)) {
+              currentGroup = tabs;
+              currentGroupName = groupName;
+              break;
+            }
+          }
+
+          // Don't show section tabs for analytics (single item) or if no group found
+          if (!currentGroup || activeTab === 'analytics') return null;
+
+          const groupTitles = {
+            users: 'Users',
+            content: 'Content',
+            communications: 'Communications',
+            settings: 'Settings'
+          };
+
+          return (
+            <div className="px-4 lg:px-6 py-3 flex-shrink-0 relative z-10 sticky top-0" style={{
+              backgroundColor: elegantPalette.neutral.white,
+              borderBottom: `1px solid ${elegantPalette.taupe.light}`,
+              zIndex: 20
+            }}>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold hidden sm:block" style={{ color: elegantPalette.black.textMuted }}>
+                  {groupTitles[currentGroupName]}:
+                </span>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {currentGroup.map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                          isActive ? 'shadow-sm' : 'hover:bg-gray-50'
+                        }`}
+                        style={{
+                          backgroundColor: isActive ? tab.color + '15' : 'transparent',
+                          color: isActive ? tab.color : elegantPalette.black.textMuted,
+                          border: `1px solid ${isActive ? tab.color + '40' : 'transparent'}`
+                        }}
+                      >
+                        <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Content Area */}
-        <div className="flex-1 p-4 lg:p-6">
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
 
         {activeTab === 'analytics' && (
           <div className="space-y-5">
@@ -4250,7 +4311,6 @@ function Admin() {
         )}
         </div>
       </div>
-    </>
   );
 }
 

@@ -106,7 +106,7 @@ export default function Landing() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5F5F0' }}>
       {/* Header */}
       <header className="pt-3 pb-3 md:pt-4 md:pb-3" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #DDE6DE' }}>
-        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           {/* Mobile Layout */}
           <div className="flex lg:hidden items-center justify-between">
             <h1 className="text-[8px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.15em' }}>Organize Your Research</h1>
@@ -172,7 +172,7 @@ export default function Landing() {
 
        {/* Hero Section */}
        <section className="py-12 md:py-20" style={{ backgroundColor: '#EFF2EE' }}>
-         <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
            {/* Mobile Title Section - Single Column */}
            <div className="text-center mb-8 md:hidden">
              <h1 className="text-4xl font-bold leading-tight" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
@@ -180,38 +180,104 @@ export default function Landing() {
              </h1>
            </div>
            
-           <div className="grid grid-cols-2 gap-4 md:gap-8 lg:gap-12 items-start">
-             {/* Left Side - Text Content */}
-             <div className="flex flex-col h-full justify-between">
+          {/* Mobile Layout - Stacked */}
+          <div className="md:hidden flex flex-col items-center gap-6">
+            {/* Today's Research Card - Mobile */}
+            <div className="w-full max-w-xs">
+              <div className="p-4 rounded-lg shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>Today's Research</h3>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#7F9E95' }}>
+                    <CheckCircle className="w-3 h-3" style={{ color: '#FFFFFF' }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
+                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>B12</div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="text-xs" style={{ color: '#4A5A56' }}>1mL</div>
+                      <Pipette className="w-3 h-3" style={{ color: '#6B7280' }} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
+                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>GLOW</div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="text-xs" style={{ color: '#4A5A56' }}>16 units</div>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#8B5CF6' }}></div>
+                      <Pen className="w-3 h-3" style={{ color: '#6B7280' }} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
+                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>NAD+</div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="text-xs" style={{ color: '#4A5A56' }}>10 units</div>
+                      <Pipette className="w-3 h-3" style={{ color: '#6B7280' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Text + Button - Mobile */}
+            <div className="flex flex-col items-center">
+              <p className="text-xs font-medium tracking-wider uppercase text-center mb-3" style={{ color: '#6B7D7A' }}>
+                Your Research, Organized and Simplified
+              </p>
+              <button
+                onClick={handleSignIn}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
+                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
+              >
+                Get Started
+                <Pen className="w-4 h-4 ml-2 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+            
+            {/* Built by researcher chip - Mobile */}
+            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
+              style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
+              <Heart className="w-3 h-3 mr-1" />
+              Built by researcher ✌️
+            </div>
+          </div>
+
+          {/* Desktop Layout - Side by Side */}
+          <div className="hidden md:grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
+            {/* Left Side - Text Content */}
+            <div className="flex flex-col h-full justify-between">
                {/* Section 1: Welcome Heading - Desktop Only */}
-               <div className="hidden md:flex flex-1 items-center mb-8 lg:mb-12">
-                 <h1 className="text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-bold leading-none sm:leading-tight text-center" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
-                   <span className="text-xl md:text-2xl lg:text-4xl xl:text-5xl">Welcome to your</span> <span className="text-3xl md:text-4xl lg:text-6xl xl:text-7xl whitespace-nowrap" style={{ color: '#1F2B2A' }}>Pep Planner</span>!
+               <div className="flex flex-1 items-center justify-center mb-8 lg:mb-12 w-full">
+                 <h1 className="font-bold leading-tight text-center" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
+                   <span className="block text-xl md:text-2xl lg:text-3xl mb-1">Welcome to your</span>
+                   <span className="block text-4xl md:text-5xl lg:text-7xl whitespace-nowrap" style={{ color: '#1F2B2A' }}>Pep Planner!</span>
                  </h1>
                </div>
                
                {/* Section 2: Blueprint Text - Desktop Only */}
-               <div className="hidden md:flex flex-1 items-center justify-center mb-8 lg:mb-12">
+               <div className="flex flex-1 items-center justify-center mb-8 lg:mb-12">
                  <p className="text-base lg:text-lg font-medium tracking-wider uppercase text-center" style={{ color: '#6B7D7A' }}>
                    <span className="block lg:hidden">YOUR RESEARCH,<br />ORGANIZED AND SIMPLIFIED</span>
                    <span className="hidden lg:block">YOUR RESEARCH, ORGANIZED AND SIMPLIFIED</span>
                  </p>
                </div>
 
-               {/* Section 3: Blueprint Text - Mobile Only (even spacing) */}
-               <div className="md:hidden flex-1 flex items-center justify-center">
-                 <p className="text-sm font-medium tracking-wider uppercase text-center" style={{ color: '#6B7D7A', lineHeight: '1.8' }}>
-                   <span className="block">YOUR RESEARCH,</span>
-                   <span className="block">ORGANIZED AND SIMPLIFIED</span>
-                 </p>
-               </div>
-
-              {/* Section 4: Button */}
-              <div className="flex-1 flex flex-col items-center justify-center -mt-4 md:mt-0">
-               <button
-                 onClick={handleSignIn}
-                 className="px-4 md:px-7 lg:px-10 py-2.5 md:py-3.5 lg:py-5 rounded-lg text-base md:text-lg lg:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
-                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
+             {/* Section 4: Button - Desktop Only */}
+             <div className="flex flex-col items-center justify-center flex-1">
+              <button
+                onClick={handleSignIn}
+                className="px-3 md:px-7 lg:px-10 py-2 md:py-3.5 lg:py-5 rounded-lg text-xs md:text-lg lg:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
+                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
                >
@@ -221,8 +287,8 @@ export default function Landing() {
              </div>
             </div>
 
-            {/* Right Side - Today's Research Visual */}
-            <div className="flex justify-end items-center">
+           {/* Right Side - Today's Research Visual */}
+           <div className="flex justify-end items-center">
               <div className="w-full max-w-sm md:max-w-md">
                 {/* Today's Research Card */}
                 <div className="p-4 md:p-6 rounded-lg md:rounded-xl shadow-lg md:shadow-2xl" style={{ backgroundColor: '#FFFFFF' }}>
@@ -283,13 +349,12 @@ export default function Landing() {
                   </div>
                 </div>
                 
-                {/* Built by researcher chip */}
+                {/* Built by researcher chip - Desktop Only */}
                 <div className="flex justify-center mt-8">
-                  <div className="inline-flex items-center gap-1 md:gap-2 px-2 md:px-3 lg:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm font-medium"
+                  <div className="inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full text-sm font-medium"
                     style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
-                    <Heart className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                    <span className="hidden sm:inline">Built by a fellow researcher. ✌️</span>
-                    <span className="sm:hidden">Built by researcher ✌️</span>
+                    <Heart className="w-4 h-4 mr-2" />
+                    Built by a fellow researcher. ✌️
                   </div>
                 </div>
               </div>
@@ -300,7 +365,7 @@ export default function Landing() {
 
       {/* Download Section */}
       <section className="py-6" style={{ backgroundColor: '#FFFFFF' }}>
-        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               Download the App
@@ -369,7 +434,7 @@ export default function Landing() {
 
       {/* Features Section */}
       <section className="py-6" style={{ backgroundColor: '#F5F5F0' }}>
-        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               <span className="block sm:inline">It's just like your Research Planner,</span> <span className="block sm:inline">just <em>smarter</em>.</span>
@@ -413,7 +478,7 @@ export default function Landing() {
 
       {/* CTA Section */}
       <section className="py-12" style={{ backgroundColor: '#6b8b78' }}>
-        <div className="w-full text-center px-2 md:max-w-4xl md:mx-auto md:px-8">
+        <div className="w-full text-center px-3 md:max-w-4xl md:mx-auto md:px-8">
           <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
             Ready to Organize Your Research?
           </h2>
@@ -432,7 +497,7 @@ export default function Landing() {
 
       {/* Additional Features Section */}
       <section className="py-8" style={{ backgroundColor: '#F5F5F0' }}>
-        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               Plus So Much More
@@ -517,7 +582,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="py-12" style={{ backgroundColor: '#2F3B3A', borderTop: `1px solid #DDE6DE` }}>
-        <div className="w-full px-2 md:max-w-7xl md:mx-auto md:px-8">
+        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="grid grid-cols-4 md:grid-cols-4 gap-4 md:gap-8">
             <div className="col-span-2 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">

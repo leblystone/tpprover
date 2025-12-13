@@ -273,3 +273,20 @@ html.landing-page-active #root {
   height: auto !important;
   min-height: 100vh;
 }
+
+/* Landing page - no padding on outer container, sections handle their own */
+html.landing-page-active .min-h-screen {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Landing header and hero stretch edge-to-edge */
+html.landing-page-active header {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+html.landing-page-active section {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
