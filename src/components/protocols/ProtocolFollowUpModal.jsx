@@ -194,6 +194,8 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
     };
 
     const handleSave = () => {
+        // If user clicks "Skip for Now", we don't save anything - just close
+        // This is handled by handleClose, not handleSave
         if (!content.trim() && selectedTags.length === 0 && rating === 0) {
             // Allow saving empty if user just wants to close
             onClose();

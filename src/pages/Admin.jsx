@@ -42,6 +42,7 @@ import {
 } from 'firebase/functions';
 import AgreementTracking from '../components/admin/AgreementTracking';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
+import LifetimeCodeManager from '../components/admin/LifetimeCodeManager';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import EmailHistory from '../components/admin/EmailHistory';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
@@ -3504,6 +3505,9 @@ function Admin() {
 
         {activeTab === 'lifetime' && (
           <div className="space-y-6">
+            {/* Lifetime Code Manager - Physical Kit Redemption */}
+            <LifetimeCodeManager theme={theme} />
+            
             {/* Manual Grant Tool */}
             <ManualLifetimeGrant 
               theme={theme} 

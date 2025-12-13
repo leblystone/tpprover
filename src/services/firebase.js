@@ -1967,3 +1967,162 @@ export async function cancelLifetimePreGrant(email) {
     throw error;
   }
 }
+
+// ============================================================================
+// LIFETIME CODES (Physical Kit Redemption)
+// ============================================================================
+
+/**
+ * Generate a random 6-character alphanumeric code
+ * @returns {string} - 6-character code
+ */
+function generateLifetimeCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars: I, O, 1, 0
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Create lifetime codes for physical kits
+ * @param {number} count - Number of codes to generate
+ * @param {string} batchName - Optional batch name for tracking
+ * @returns {Promise<Array>} - Array of generated codes
+ */
+export async function createLifetimeCodes(count, batchName = '') {
+  try {
+    const existingCodes = await getLifetimeCodes();
+    const existingCodeSet = new Set(existingCodes.map(c => c.code));
+    const createdCodes = [];
+    const batchId = `BATCH-${Date.now()}`;
+    
+    for (let i = 0; i < count; i++) {
+      // Generate unique code
+      let code = generateLifetimeCode();
+      let attempts = 0;
+      while (existingCodeSet.has(code) && attempts < 100) {
+        code = generateLifetimeCode();
+        attempts++;
+      }
+      
+      if (attempts >= 100) {
+        throw new Error('Failed to generate unique code after 100 attempts');
+      }
+      
+      // Create code document in Firestore
+      const codeData = {
+        code,
+        used: false,
+        usedBy: null,
+        usedByUid: null,
+        usedAt: null,
+        batchId,
+        batchName: batchName || `Batch ${new Date().toLocaleDateString()}`,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.email || 'admin',
+        expiresAt: null // No expiration by default
+      };
+      
+      await setDoc(doc(db, 'lifetimeCodes', code), codeData);
+      existingCodeSet.add(code);
+      createdCodes.push({ ...codeData, code });
+    }
+    
+    console.log(`✅ Created ${createdCodes.length} lifetime codes in batch ${batchId}`);
+    return createdCodes;
+  } catch (error) {
+    console.error('❌ Failed to create lifetime codes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all lifetime codes
+ * @returns {Promise<Array>} - Array of code objects
+ */
+export async function getLifetimeCodes() {
+  try {
+    const codesRef = collection(db, 'lifetimeCodes');
+    const codesSnapshot = await getDocs(codesRef);
+    
+    const codes = [];
+    codesSnapshot.forEach(doc => {
+      codes.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by creation date (newest first)
+    codes.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+      const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+      return bTime - aTime;
+    });
+    
+    return codes;
+  } catch (error) {
+    console.error('❌ Failed to get lifetime codes:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete a lifetime code (only unused codes)
+ * @param {string} code - Code to delete
+ * @returns {Promise<boolean>}
+ */
+export async function deleteLifetimeCode(code) {
+  try {
+    const codeRef = doc(db, 'lifetimeCodes', code);
+    const codeDoc = await getDoc(codeRef);
+    
+    if (!codeDoc.exists()) {
+      throw new Error('Code not found');
+    }
+    
+    if (codeDoc.data().used) {
+      throw new Error('Cannot delete a code that has been redeemed');
+    }
+    
+    await deleteDoc(codeRef);
+    console.log('🗑️ Deleted lifetime code:', code);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to delete lifetime code:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all unused codes in a batch
+ * @param {string} batchId - Batch ID to delete
+ * @returns {Promise<{deleted: number, skipped: number}>}
+ */
+export async function deleteLifetimeCodeBatch(batchId) {
+  try {
+    const codesRef = collection(db, 'lifetimeCodes');
+    const q = query(codesRef, where('batchId', '==', batchId));
+    const snapshot = await getDocs(q);
+    
+    let deleted = 0;
+    let skipped = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      if (!docSnap.data().used) {
+        await deleteDoc(docSnap.ref);
+        deleted++;
+      } else {
+        skipped++;
+      }
+    }
+    
+    console.log(`🗑️ Deleted ${deleted} codes from batch, skipped ${skipped} used codes`);
+    return { deleted, skipped };
+  } catch (error) {
+    console.error('❌ Failed to delete batch:', error);
+    throw error;
+  }
+}

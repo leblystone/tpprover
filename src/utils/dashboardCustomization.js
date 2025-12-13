@@ -67,8 +67,8 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'active_protocols_notes',
     type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
-    title: 'Active Protocols',
-    size: WIDGET_SIZES.MEDIUM,
+    title: 'Active Research',
+    size: WIDGET_SIZES.SMALL,
     position: { x: 4, y: 0 },
     enabled: true,
     settings: {
@@ -405,8 +405,8 @@ export const WIDGET_METADATA = {
     ]
   },
   [WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES]: {
-    title: 'Active Protocols',
-    description: 'View your active protocols and add research notes during your research',
+    title: 'Active Research',
+    description: 'View your active research protocols and add notes during your research',
     icon: 'FlaskConical',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: [
@@ -445,7 +445,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.6'; // UPDATED LAYOUT: Reordered widgets - wishlist before upcoming buys, peptide observations before incoming orders, supplements before incoming orders
+    const currentVersion = '3.7'; // UPDATED: Active Research widget changed from MEDIUM to SMALL size
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -538,7 +538,14 @@ export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
     if (savedWidget) {
       // Merge settings, keeping defaults for missing settings
       const mergedSettings = { ...defaultWidget.settings, ...savedWidget.settings };
-      return { ...defaultWidget, ...savedWidget, settings: mergedSettings };
+      const merged = { ...defaultWidget, ...savedWidget, settings: mergedSettings };
+      
+      // Force update active_protocols_notes widget size to SMALL (changed from MEDIUM)
+      if (merged.id === 'active_protocols_notes' || merged.type === 'active_protocols_notes') {
+        merged.size = WIDGET_SIZES.SMALL;
+      }
+      
+      return merged;
     }
     // If default widget doesn't exist in saved layout, add it (for new widgets like wishlist)
     return defaultWidget;

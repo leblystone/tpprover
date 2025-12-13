@@ -561,7 +561,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 )}
 
                 {/* Follow-Up Assessment Section - Prominently Displayed */}
-                {followUpNote && (
+                {followUpNote ? (
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
@@ -633,6 +633,37 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     Linked to calendar: {formatMMDDYYYY(followUpNote.linkedDate)}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                                <FileText size={16} />
+                                Follow-Up Assessment
+                            </h3>
+                            <div
+                                className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                                style={{
+                                    backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                    color: theme.textLight
+                                }}
+                            >
+                                <span className="font-medium text-xs">No Follow-Up</span>
+                            </div>
+                        </div>
+                        <div className="flex justify-center">
+                            <button
+                                onClick={handleEditFollowUp}
+                                className="px-6 py-3 rounded-lg text-base font-semibold transition-all flex items-center gap-2"
+                                style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.textOnPrimary
+                                }}
+                            >
+                                <Edit3 size={18} />
+                                Add Follow-Up Assessment
+                            </button>
                         </div>
                     </div>
                 )}

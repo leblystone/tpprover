@@ -48,6 +48,8 @@ export default function Protocols() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
+  const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
+  const [endedProtocolName, setEndedProtocolName] = useState(null);
   const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
   const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
 
@@ -155,9 +157,14 @@ export default function Protocols() {
   };
   
   const handleFollowUpClose = () => {
+    // Store protocol name before clearing
+    const protocolName = followUpProtocol?.protocolName || followUpProtocol?.name || 'Protocol';
+    setEndedProtocolName(protocolName);
     setFollowUpProtocol(null);
     setFollowUpHistoryId(null);
     window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+    // Show confirmation modal
+    setShowProtocolEndedConfirm(true);
   };
 
   // Check and auto-end protocols that have finished organically
@@ -1604,6 +1611,26 @@ export default function Protocols() {
         onSave={handleFollowUpClose}
       />
 
+      {/* Protocol Ended Confirmation Modal */}
+      <ConfirmationModal
+        open={showProtocolEndedConfirm}
+        onClose={() => {
+          setShowProtocolEndedConfirm(false);
+          setEndedProtocolName(null);
+        }}
+        onConfirm={() => {
+          setShowProtocolEndedConfirm(false);
+          setEndedProtocolName(null);
+        }}
+        title="Protocol Ended"
+        message={`${endedProtocolName || 'Protocol'} has been ended successfully.`}
+        confirmText="OK"
+        cancelText=""
+        type="primary"
+        theme={theme}
+        hideIcon={true}
+      />
+
       <ProtocolHistoryModal
         open={!!historyProtocol}
         onClose={() => setHistoryProtocol(null)}
@@ -1820,77 +1847,6 @@ export default function Protocols() {
                         }}
                     />
                 </>
-            )}
-
-            {/* Follow-Up Assessment Section */}
-            {manageConfirm?.active && (
-              <>
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
-                
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                  <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>FOLLOW-UP ASSESSMENT</h4>
-                </div>
-
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}>
-                  <div className="text-sm mb-3" style={{ color: theme.text }}>
-                    Add follow-up notes and assessment for this active protocol. These notes will be saved to the protocol history.
-                  </div>
-                  <button
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
-                    style={{ 
-                      backgroundColor: theme.primary, 
-                      color: theme.textOnPrimary 
-                    }}
-                    onClick={() => {
-                      const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
-                      if (activeHistoryEntry) {
-                        setFollowUpProtocol(manageConfirm);
-                        setFollowUpHistoryId(activeHistoryEntry.id);
-                        setManageConfirm(null);
-                      } else {
-                        // Create history entry if it doesn't exist
-                        const protocolName = manageConfirm.protocolName || manageConfirm.name || 'Unnamed Protocol';
-                        const historyId = saveProtocolHistoryEntry({
-                          protocolId: manageConfirm.id,
-                          protocolName: protocolName,
-                          startDate: manageConfirm.startDate || getLocalDateString(),
-                          protocolData: {
-                            protocolName: protocolName,
-                            peptides: manageConfirm.peptides || [],
-                            duration: manageConfirm.duration || {},
-                            purpose: manageConfirm.purpose || '',
-                            linkedItems: manageConfirm.linkedItems || {}
-                          },
-                          vials: [],
-                          reconstitutionData: null,
-                          skippedReconstitution: null
-                        });
-                        
-                        if (historyId) {
-                          setFollowUpProtocol(manageConfirm);
-                          setFollowUpHistoryId(historyId);
-                          setManageConfirm(null);
-                        } else {
-                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                            detail: { message: 'Failed to create protocol history entry.', type: 'error' } 
-                          }));
-                        }
-                      }
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = theme.isDark ? '0 6px 12px rgba(0, 0, 0, 0.3)' : '0 6px 12px rgba(0, 0, 0, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <FileText size={16} />
-                    Add Follow-Up Assessment
-                  </button>
-                </div>
-              </>
             )}
 
             {/* Page Break */}

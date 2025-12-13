@@ -168,6 +168,13 @@ service cloud.firestore {
       allow write: if isAdmin(); // Only admin can create pre-grants
     }
     
+    // Lifetime codes - redeemable codes from physical kits
+    match /lifetimeCodes/{codeId} {
+      allow read: if true; // Anyone can read for validation during redemption (user may not be authenticated)
+      allow update: if request.auth != null; // Authenticated users can mark codes as used
+      allow create, delete: if isAdmin(); // Only admin can create/delete codes
+    }
+    
     // Config collection - admin can read/write, others can read feature flags
     match /config/{configId} {
       allow read: if true; // Anyone can read config (for feature flags, etc.)

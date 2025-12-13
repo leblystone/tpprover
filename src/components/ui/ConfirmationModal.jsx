@@ -107,32 +107,34 @@ export default function ConfirmationModal({
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 mt-6">
-                    <button
-                        type="button"
-                        onMouseDown={(e) => {
-                            // Prevent blur events on mobile
-                            e.preventDefault();
-                        }}
-                        onTouchStart={(e) => {
-                            // Prevent blur events on touch devices
-                            e.preventDefault();
-                        }}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onClose();
-                        }}
-                        className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
-                        style={{ 
-                            backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF',
-                            color: theme?.text || '#374151',
-                            borderColor: theme?.border || '#E5E7EB',
-                            WebkitTapHighlightColor: 'transparent'
-                        }}
-                    >
-                        {cancelText}
-                    </button>
+                <div className={`flex gap-3 mt-6 ${!cancelText ? 'justify-center' : ''}`}>
+                    {cancelText && (
+                        <button
+                            type="button"
+                            onMouseDown={(e) => {
+                                // Prevent blur events on mobile
+                                e.preventDefault();
+                            }}
+                            onTouchStart={(e) => {
+                                // Prevent blur events on touch devices
+                                e.preventDefault();
+                            }}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onClose();
+                            }}
+                            className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
+                            style={{ 
+                                backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF',
+                                color: theme?.text || '#374151',
+                                borderColor: theme?.border || '#E5E7EB',
+                                WebkitTapHighlightColor: 'transparent'
+                            }}
+                        >
+                            {cancelText}
+                        </button>
+                    )}
                     <button
                         type="button"
                         onMouseDown={(e) => {
@@ -159,7 +161,7 @@ export default function ConfirmationModal({
                                 e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                             }
                         }}
-                        className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation"
+                        className={`${cancelText ? 'flex-1' : 'w-full'} px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation`}
                         style={{
                             ...getButtonStyle(),
                             WebkitTapHighlightColor: 'transparent'

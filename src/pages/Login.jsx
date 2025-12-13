@@ -113,6 +113,7 @@ export default function Login() {
     const isSignupMode = searchParams.get('signup') === 'true';
     const isPreGranted = searchParams.get('pregrant') === 'true';
     const emailFromUrl = searchParams.get('email');
+    const lifetimeCode = searchParams.get('lifetime'); // Lifetime access code from redemption page
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     // Default to signup mode if coming from trial link or signup=true, otherwise login
@@ -1010,59 +1011,115 @@ export default function Login() {
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         
-        // Create 10-day research trial subscription and save to BOTH cloud AND localStorage
-        try {
-          const now = new Date();
-          const end = new Date(now);
-          end.setDate(end.getDate() + 10);
-          const trial = {
-            id: String(Date.now()),
-            plan: '10-Day Research Trial',
-            price: 0,
-            interval: 'trial',
-            currency: 'USD',
-            status: 'trialing',
-            startedAt: now.toISOString(),
-            currentPeriodEnd: end.toISOString(),
-            paymentMethod: null,
-          };
-          
-          // CRITICAL: Save to localStorage FIRST (immediate fallback)
+        // Check if this is a lifetime code redemption
+        if (lifetimeCode) {
+          console.log('🎁 Lifetime code detected, granting lifetime access...');
           try {
-            localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
-            console.log('💾 Trial subscription saved to localStorage (fallback)');
-          } catch (e) {
-            console.error('❌ Failed to save trial to localStorage:', e);
+            // Import lifetime access function
+            const { grantLifetimeAccessFirestore } = await import('../services/firebase');
+            const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            
+            // Grant lifetime access
+            await grantLifetimeAccessFirestore(
+              firebaseUser.uid, 
+              firebaseUser.email, 
+              'Lifetime Access Kit Redemption',
+              'lifetime-kit'
+            );
+            console.log('✅ Lifetime access granted successfully!');
+            
+            // Mark the code as used
+            try {
+              const codeRef = doc(db, 'lifetimeCodes', lifetimeCode);
+              await updateDoc(codeRef, {
+                used: true,
+                usedBy: firebaseUser.email,
+                usedByUid: firebaseUser.uid,
+                usedAt: serverTimestamp()
+              });
+              console.log('✅ Lifetime code marked as used:', lifetimeCode);
+            } catch (codeError) {
+              console.error('⚠️ Failed to mark code as used (but access was granted):', codeError);
+            }
+            
+            // Create lifetime subscription in localStorage
+            const lifetimeSubscription = {
+              id: `lifetime_${Date.now()}`,
+              plan: 'lifetime',
+              interval: 'lifetime',
+              status: 'active',
+              hasLifetimeAccess: true,
+              lifetimeReason: 'Lifetime Access Kit Redemption',
+              lifetimeGrantedAt: new Date().toISOString(),
+              currentPeriodEnd: null,
+            };
+            try {
+              localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
+              console.log('💾 Lifetime subscription saved to localStorage');
+            } catch (e) {
+              console.error('❌ Failed to save lifetime to localStorage:', e);
+            }
+          } catch (lifetimeError) {
+            console.error('❌ Failed to grant lifetime access:', lifetimeError);
+            // Fall back to trial if lifetime granting fails
+            throw new Error('Failed to activate lifetime access. Please contact support.');
           }
-          
-          // Save trial subscription to cloud storage (with timeout)
+        } else {
+          // Create 10-day research trial subscription and save to BOTH cloud AND localStorage
           try {
-            const { saveUserSubscription } = await import('../services/cloudStorage');
-            await Promise.race([
-              saveUserSubscription(firebaseUser.uid, trial),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
-              )
-            ]);
-            console.log('☁️ Trial subscription saved to cloud storage');
-          } catch (cloudError) {
-            console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
-            // Don't throw - localStorage has the fallback
-          }
-        } catch (error) {
-          console.error('❌ Failed to create trial subscription:', error);
-          // This is critical - we should still create a minimal trial
-          const minimalTrial = {
-            id: String(Date.now()),
-            plan: '10-Day Research Trial',
-            status: 'trialing',
-            currentPeriodEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-          };
-          try {
-            localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
-            console.log('💾 Minimal trial subscription created in localStorage');
-          } catch (e) {
-            console.error('❌ CRITICAL: Cannot create trial subscription at all');
+            const now = new Date();
+            const end = new Date(now);
+            end.setDate(end.getDate() + 10);
+            const trial = {
+              id: String(Date.now()),
+              plan: '10-Day Research Trial',
+              price: 0,
+              interval: 'trial',
+              currency: 'USD',
+              status: 'trialing',
+              startedAt: now.toISOString(),
+              currentPeriodEnd: end.toISOString(),
+              paymentMethod: null,
+            };
+            
+            // CRITICAL: Save to localStorage FIRST (immediate fallback)
+            try {
+              localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
+              console.log('💾 Trial subscription saved to localStorage (fallback)');
+            } catch (e) {
+              console.error('❌ Failed to save trial to localStorage:', e);
+            }
+            
+            // Save trial subscription to cloud storage (with timeout)
+            try {
+              const { saveUserSubscription } = await import('../services/cloudStorage');
+              await Promise.race([
+                saveUserSubscription(firebaseUser.uid, trial),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
+                )
+              ]);
+              console.log('☁️ Trial subscription saved to cloud storage');
+            } catch (cloudError) {
+              console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
+              // Don't throw - localStorage has the fallback
+            }
+          } catch (error) {
+            console.error('❌ Failed to create trial subscription:', error);
+            // This is critical - we should still create a minimal trial
+            const minimalTrial = {
+              id: String(Date.now()),
+              plan: '10-Day Research Trial',
+              status: 'trialing',
+              currentPeriodEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+            };
+            try {
+              localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
+              console.log('💾 Minimal trial subscription created in localStorage');
+            } catch (e) {
+              console.error('❌ CRITICAL: Cannot create trial subscription at all');
+            }
           }
         }
         

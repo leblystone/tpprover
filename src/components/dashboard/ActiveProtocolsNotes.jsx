@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette } from 'lucide-react';
+import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette, PenTool } from 'lucide-react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
@@ -159,25 +159,33 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     // Format protocol duration
     const formatDuration = (protocol) => {
-        if (protocol.duration?.noEnd) return 'Ongoing';
+        if (protocol.duration?.noEnd) return null; // Don't show "Ongoing" - it's redundant in active research
         if (protocol.duration?.count && protocol.duration?.unit) {
             const count = protocol.duration.count;
             const unit = protocol.duration.unit;
             return `${count} ${unit}${count > 1 ? 's' : ''}`;
         }
-        return 'Duration not set';
+        return null; // Don't show "Duration not set" - it's not essential info
     };
 
-    // Format peptide names
-    const formatPeptides = (protocol) => {
-        if (!protocol.peptides || protocol.peptides.length === 0) return 'No peptides';
-        if (protocol.peptides.length === 1) {
-            return protocol.peptides[0].name || 'Unnamed peptide';
+    // Get delivery method icon for protocol
+    const getDeliveryMethodIcon = (protocol) => {
+        if (!protocol.peptides || protocol.peptides.length === 0) {
+            return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
-        if (protocol.peptides.length <= 3) {
-            return protocol.peptides.map(p => p.name || 'Unnamed').join(', ');
+        
+        // Check if any peptide uses pen delivery
+        const hasPenDelivery = protocol.peptides.some(pep => {
+            const deliveryMethod = pep.deliveryMethod || 'pipette';
+            return deliveryMethod === 'pen';
+        });
+        
+        if (hasPenDelivery) {
+            return <PenTool size={14} style={{ color: theme.textLight }} />;
         }
-        return `${protocol.peptides.slice(0, 2).map(p => p.name || 'Unnamed').join(', ')} +${protocol.peptides.length - 2} more`;
+        
+        // Default to pipette/syringe
+        return <Pipette size={14} style={{ color: theme.textLight }} />;
     };
 
     // Calculate days active
@@ -195,7 +203,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
                 <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
-                        Active Protocols
+                        Active Research
                         <FlaskConical size={18} style={{ color: theme.primary }} />
                     </span>
                     <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
@@ -214,7 +222,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
             <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
                 <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
-                        Active Protocols
+                        Active Research
                         <FlaskConical size={18} style={{ color: theme.primary }} />
                     </span>
                     <div className="flex items-center gap-2">
@@ -225,10 +233,10 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                 <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
                     {protocolsWithNotes.map((protocol) => {
                         const protocolName = protocol.name || protocol.protocolName || 'Unnamed Protocol';
-                        const peptides = formatPeptides(protocol);
                         const duration = formatDuration(protocol);
                         const daysActive = getDaysActive(protocol);
                         const startDate = protocol.startDate ? formatMMDDYYYY(new Date(protocol.startDate)) : null;
+                        const deliveryIcon = getDeliveryMethodIcon(protocol);
                         
                         return (
                             <div 
@@ -241,50 +249,51 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                             >
                                 <div className="space-y-2">
                                     {/* Protocol Header */}
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-sm mb-1 truncate" style={{ color: theme.text }}>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            {deliveryIcon}
+                                            <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
                                                 {protocolName}
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs mb-2" style={{ color: theme.textLight }}>
-                                                <Pipette size={12} />
-                                                <span className="truncate">{peptides}</span>
-                                            </div>
+                                        </div>
+                                        {daysActive !== null && (
+                                            <span className="flex items-center gap-1 text-xs flex-shrink-0" style={{ color: theme.textLight }}>
+                                                <Clock size={11} />
+                                                Day {daysActive}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Protocol Details */}
+                                    <div className="flex items-center justify-between gap-3 text-xs" style={{ color: theme.textLight }}>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            {startDate && (
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={11} />
+                                                    {startDate}
+                                                </span>
+                                            )}
+                                            {duration && (
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={11} />
+                                                    {duration}
+                                                </span>
+                                            )}
                                         </div>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleAddNoteClick(protocol);
                                             }}
-                                            className="p-1.5 rounded-full flex items-center justify-center transition-colors flex-shrink-0 hover:scale-110"
+                                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 flex-shrink-0 hover:opacity-90"
                                             style={{ 
                                                 backgroundColor: theme.primary,
                                                 color: '#ffffff'
                                             }}
-                                            title="Add note"
                                         >
-                                            <Plus size={14} strokeWidth={3} />
+                                            <Plus size={12} strokeWidth={2.5} />
+                                            Add Note
                                         </button>
-                                    </div>
-
-                                    {/* Protocol Details */}
-                                    <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: theme.textLight }}>
-                                        {startDate && (
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={11} />
-                                                {startDate}
-                                            </span>
-                                        )}
-                                        {daysActive !== null && (
-                                            <span className="flex items-center gap-1">
-                                                <Clock size={11} />
-                                                Day {daysActive}
-                                            </span>
-                                        )}
-                                        <span className="flex items-center gap-1">
-                                            <Clock size={11} />
-                                            {duration}
-                                        </span>
                                     </div>
 
                                     {/* Latest Note Preview */}
@@ -314,23 +323,6 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-
-                                    {/* No Notes State */}
-                                    {!protocol.latestNote && (
-                                        <button
-                                            onClick={() => handleAddNoteClick(protocol)}
-                                            className="w-full p-2 rounded border border-dashed text-xs text-center transition-colors hover:opacity-80"
-                                            style={{ 
-                                                borderColor: theme.border,
-                                                color: theme.textLight
-                                            }}
-                                        >
-                                            <span className="flex items-center justify-center gap-1">
-                                                <Plus size={12} />
-                                                Add note
-                                            </span>
-                                        </button>
                                     )}
                                 </div>
                             </div>

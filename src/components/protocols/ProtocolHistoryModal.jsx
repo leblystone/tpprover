@@ -1,14 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target, Play } from 'lucide-react';
+import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target, Play, FileText } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getProtocolHistoryEntries } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
+import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 
 export default function ProtocolHistoryModal({ open, onClose, protocol, theme, onStartProtocol }) {
     const { stockpile } = useAppContext();
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
+    const [followUpProtocol, setFollowUpProtocol] = useState(null);
+    const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
+    
+    const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+    const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
 
     // Load history entries for this protocol
     const historyEntries = useMemo(() => {
@@ -230,7 +236,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
                                                 {/* Protocol card */}
                                                 <button
                                                     onClick={() => setSelectedHistoryEntry(entry.historyEntry)}
-                                                    className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
+                                                    className="w-full text-left p-4 pb-16 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
                                                     style={{ 
                                                         backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
                                                         border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
@@ -275,11 +281,11 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
                                                         </div>
                                                     </div>
                                                     
-                                                    {/* Status badge - bottom right */}
-                                                    {statusBadge && StatusIcon && (
-                                                        <div className="absolute bottom-2 right-2">
+                                                    {/* Status badge and No Follow-Up chip - bottom right */}
+                                                    <div className="absolute bottom-2 right-2 flex items-center gap-2 justify-end">
+                                                        {statusBadge && StatusIcon && (
                                                             <span 
-                                                                className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
+                                                                className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 whitespace-nowrap"
                                                                 style={{ 
                                                                     backgroundColor: statusBadge.bgColor,
                                                                     color: statusBadge.textColor
@@ -288,8 +294,64 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
                                                                 <StatusIcon size={12} />
                                                                 {statusBadge.label}
                                                             </span>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                        {/* No Follow-Up chip */}
+                                                        {(() => {
+                                                            const hasFollowUp = entry.historyEntry.notes && 
+                                                                Array.isArray(entry.historyEntry.notes) && 
+                                                                entry.historyEntry.notes.some(n => n.type === 'follow_up');
+                                                            if (!hasFollowUp && entry.historyEntry.endDate) {
+                                                                return (
+                                                                    <span 
+                                                                        className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap"
+                                                                        style={{ 
+                                                                            backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                                                            color: theme.textLight
+                                                                        }}
+                                                                    >
+                                                                        No Follow-Up
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </div>
+                                                    
+                                                    {/* Terracotta Follow-Up Assessment Prompt Button */}
+                                                    {(() => {
+                                                        const hasFollowUp = entry.historyEntry.notes && 
+                                                            Array.isArray(entry.historyEntry.notes) && 
+                                                            entry.historyEntry.notes.some(n => n.type === 'follow_up');
+                                                        if (!hasFollowUp && entry.historyEntry.endDate) {
+                                                            return (
+                                                                <div className="absolute bottom-2 left-2 right-2">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setFollowUpProtocol(protocol);
+                                                                            setFollowUpHistoryId(entry.historyEntry.id);
+                                                                        }}
+                                                                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                                                                        style={{
+                                                                            background: terracottaGradient,
+                                                                            color: '#ffffff',
+                                                                            boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = terracottaHoverGradient;
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = terracottaGradient;
+                                                                        }}
+                                                                    >
+                                                                        <FileText size={14} />
+                                                                        Complete Follow-Up Assessment
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </button>
                                             </div>
                                         );
@@ -352,6 +414,26 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
                 theme={theme}
                 stockpile={stockpile}
             />
+            
+            {/* Follow-Up Modal */}
+            {followUpProtocol && (
+                <ProtocolFollowUpModal
+                    open={!!followUpProtocol}
+                    onClose={() => {
+                        setFollowUpProtocol(null);
+                        setFollowUpHistoryId(null);
+                        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+                    }}
+                    protocol={followUpProtocol}
+                    historyEntryId={followUpHistoryId}
+                    theme={theme}
+                    onSave={() => {
+                        setFollowUpProtocol(null);
+                        setFollowUpHistoryId(null);
+                        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+                    }}
+                />
+            )}
             
         </>
     );

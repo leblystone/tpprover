@@ -60,8 +60,9 @@ export const WIDGET_TOOLTIPS = {
   wishlist: `[Heart] Track research items you want to purchase or investigate
 [Heart] Build a list of peptides, supplements, or equipment for future research`,
   
-  active_protocols_notes: `[FlaskConical] Add notes to active protocols quickly while its happening
-[FlaskConical] Document side effects, observations, and important findings
-[FlaskConical] Notes will be added to your protocol automatically`
+  active_protocols_notes: `[FlaskConical] View all your active research protocols in one place
+[FlaskConical] See protocol details including peptides, duration, and start date
+[FlaskConical] Add notes to protocols quickly while research is happening
+[FlaskConical] Track your latest observations and findings for each protocol`
 };
 
