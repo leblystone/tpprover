@@ -87,18 +87,44 @@ class PWANotificationService {
       throw new Error('Notifications not supported in this browser');
     }
 
-    if (this.permissionStatus === 'granted') {
+    // Always check current browser permission status (not cached)
+    const currentPermission = Notification.permission;
+    this.permissionStatus = currentPermission; // Update cached status
+
+    // If already granted, return immediately
+    if (currentPermission === 'granted') {
+      // Ensure push subscription is set up
+      if (!this.pushSubscription?.token) {
+        await this.setupPushSubscription();
+      }
       return 'granted';
     }
 
-    if (this.permissionStatus === 'denied') {
-      throw new Error('Notification permission has been denied. Please enable it in browser settings.');
+    // If denied, we can't request again - user must enable in browser settings
+    if (currentPermission === 'denied') {
+      // Provide helpful error message with instructions
+      const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+      const isFirefox = /Firefox/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const isEdge = /Edg/.test(navigator.userAgent);
+      
+      let instructions = 'Please enable notifications in your browser settings.';
+      if (isChrome || isEdge) {
+        instructions = 'Please click the lock icon in the address bar and enable notifications, or go to Settings > Privacy and security > Site settings > Notifications.';
+      } else if (isFirefox) {
+        instructions = 'Please click the lock icon in the address bar and enable notifications, or go to Settings > Privacy & Security > Permissions > Notifications.';
+      } else if (isSafari) {
+        instructions = 'Please go to Safari > Settings for This Website > Notifications and select Allow.';
+      }
+      
+      throw new Error(`Notification permission has been denied. ${instructions}`);
     }
 
+    // Permission is 'default' - we can request it
     try {
       // Request permission
       const permission = await Notification.requestPermission();
-      this.permissionStatus = permission;
+      this.permissionStatus = permission; // Update cached status
       
       if (permission === 'granted') {
         // Try to set up push notifications if Firebase is available
@@ -394,14 +420,28 @@ class PWANotificationService {
    * Get current notification status
    */
   getStatus() {
+    // Always check current browser permission (not cached)
+    const currentPermission = Notification.permission;
+    this.permissionStatus = currentPermission; // Update cached status
+    
     return {
       supported: this.isSupported,
-      permission: this.permissionStatus,
-      enabled: this.permissionStatus === 'granted',
+      permission: currentPermission,
+      enabled: currentPermission === 'granted',
       serviceWorker: !!this.serviceWorkerRegistration,
       firebase: !!this.messaging,
       pushToken: this.pushSubscription?.token
     };
+  }
+
+  /**
+   * Refresh permission status from browser
+   */
+  refreshPermissionStatus() {
+    if (this.isSupported) {
+      this.permissionStatus = Notification.permission;
+    }
+    return this.permissionStatus;
   }
 
   /**

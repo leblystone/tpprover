@@ -458,10 +458,24 @@ export default function NotificationPermissionPrompt({ theme }) {
         setShowPrompt(false);
         setStatus(prev => ({ ...prev, permission: 'granted', enabled: true }));
       } else {
-        // Show error message
+        // Show error message - different for native vs PWA
+        let errorMessage = error.message || 'Failed to enable notifications.';
+        if (Capacitor.isNativePlatform()) {
+          // For native apps, user can try again (will prompt system dialog again)
+          // But if they've denied in system settings, they need to enable there
+          const platform = Capacitor.getPlatform();
+          if (platform === 'ios') {
+            errorMessage = error.message || 'Notifications denied. Please enable them in Settings > The Pep Planner > Notifications, or try again to show the permission prompt.';
+          } else if (platform === 'android') {
+            errorMessage = error.message || 'Notifications denied. Please enable them in Settings > Apps > The Pep Planner > Notifications, or try again to show the permission prompt.';
+          } else {
+            errorMessage = error.message || 'Notifications denied. Please enable them in your device settings, or try again to show the permission prompt.';
+          }
+        }
+        
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
-            message: error.message || 'Failed to enable notifications. Please enable them in your device settings.', 
+            message: errorMessage, 
             type: 'error' 
           } 
         }));
