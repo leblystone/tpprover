@@ -3370,94 +3370,9 @@ exports.updateAutoCleanupSettings = onCall(
 );
 
 // Run auto-cleanup manually
-exports.runAutoCleanup = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
-    const userEmail = request.auth?.token?.email;
-    
-    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
-      throw new HttpsError('permission-denied', 'Admin access required');
-    }
-
-    const { days = 30 } = request.data;
-    
-    try {
-      const db = admin.firestore();
-      const auth = admin.auth();
-      
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      
-      // Get all users
-      const usersSnapshot = await db.collection('users').get();
-      let deletedCount = 0;
-      
-      for (const doc of usersSnapshot.docs) {
-        const userData = doc.data();
-        
-        // Skip if has lifetime access
-        if (userData.subscription?.hasLifetimeAccess) continue;
-        
-        // Skip if email is verified
-        try {
-          const authUser = await auth.getUser(doc.id);
-          if (authUser.emailVerified) continue;
-        } catch (error) {
-          // User might not exist in Auth
-        }
-        
-        // Check last active date
-        let shouldDelete = false;
-        if (userData.lastActive) {
-          const lastActive = userData.lastActive.toDate ? userData.lastActive.toDate() : new Date(userData.lastActive);
-          if (lastActive < cutoffDate) {
-            shouldDelete = true;
-          }
-        } else if (userData.createdAt) {
-          // If never active, use creation date
-          const created = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
-          if (created < cutoffDate) {
-            shouldDelete = true;
-          }
-        }
-        
-        if (shouldDelete) {
-          try {
-            // Delete from Auth (if exists)
-            try {
-              await auth.deleteUser(doc.id);
-            } catch (error) {
-              // User might not exist in Auth, that's okay
-            }
-            
-            // Delete from Firestore
-            await db.collection('users').doc(doc.id).delete();
-            await db.collection('userdata').doc(doc.id).delete();
-            
-            deletedCount++;
-            logger.info(`🧹 Deleted inactive unverified account: ${userData.email || doc.id}`);
-          } catch (error) {
-            logger.error(`❌ Error deleting user ${doc.id}: ${error.message}`);
-          }
-        }
-      }
-      
-      logger.info(`✅ Auto-cleanup complete: ${deletedCount} accounts deleted`);
-      
-      return {
-        success: true,
-        deletedCount,
-        message: `Deleted ${deletedCount} inactive unverified accounts`
-      };
-    } catch (error) {
-      logger.error(`❌ Error running auto-cleanup: ${error.message}`);
-      throw new HttpsError('internal', `Failed to run cleanup: ${error.message}`);
-    }
-  }
-);
+// NOTE: Auto-cleanup function removed - manual review is safer for user retention
+// Use admin panel auditing system to manually identify and remove suspicious accounts
+// If you need to delete a specific user, use Firebase Console or create a targeted admin function
 
 // Cleanup expired gifts (scheduled function)
 // Process email queue every hour

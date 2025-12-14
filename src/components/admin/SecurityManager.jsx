@@ -14,8 +14,7 @@ export default function SecurityManager({ theme }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [autoCleanupEnabled, setAutoCleanupEnabled] = useState(false);
-  const [autoCleanupDays, setAutoCleanupDays] = useState(30);
+  const [lastRefresh, setLastRefresh] = useState(null);
   const [stats, setStats] = useState({
     totalUnverified: 0,
     totalSuspicious: 0,
@@ -24,7 +23,6 @@ export default function SecurityManager({ theme }) {
 
   useEffect(() => {
     loadSecurityData();
-    loadAutoCleanupSettings();
   }, []);
 
   const loadSecurityData = async () => {
@@ -42,28 +40,16 @@ export default function SecurityManager({ theme }) {
           totalSuspicious: result.data.suspiciousAccounts?.length || 0,
           totalBlocked: result.data.blockedAccounts?.length || 0
         });
+        setLastRefresh(new Date());
       }
     } catch (error) {
       console.error('Error loading security data:', error);
+      alert('❌ Error loading security data. Check console for details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAutoCleanupSettings = async () => {
-    try {
-      const functions = getFunctions();
-      const getAutoCleanupSettings = httpsCallable(functions, 'getAutoCleanupSettings');
-      const result = await getAutoCleanupSettings();
-      
-      if (result.data.success) {
-        setAutoCleanupEnabled(result.data.enabled || false);
-        setAutoCleanupDays(result.data.days || 30);
-      }
-    } catch (error) {
-      console.error('Error loading auto-cleanup settings:', error);
-    }
-  };
 
   const handleBlockUser = async (userId, email) => {
     if (!confirm(`Are you sure you want to BLOCK this user?\n\nEmail: ${email}\n\nThis will prevent them from logging in.`)) {
@@ -119,49 +105,7 @@ export default function SecurityManager({ theme }) {
     }
   };
 
-  const handleToggleAutoCleanup = async () => {
-    try {
-      const functions = getFunctions();
-      const updateAutoCleanupSettings = httpsCallable(functions, 'updateAutoCleanupSettings');
-      const result = await updateAutoCleanupSettings({
-        enabled: !autoCleanupEnabled,
-        days: autoCleanupDays
-      });
-      
-      if (result.data.success) {
-        setAutoCleanupEnabled(!autoCleanupEnabled);
-        alert(`✅ Auto-cleanup ${!autoCleanupEnabled ? 'enabled' : 'disabled'}`);
-      }
-    } catch (error) {
-      console.error('Error updating auto-cleanup settings:', error);
-      alert('❌ Error updating settings');
-    }
-  };
-
-  const handleRunCleanup = async () => {
-    if (!confirm(`Run cleanup now? This will delete accounts that are:\n- Unverified\n- Inactive for ${autoCleanupDays} days\n- Not lifetime users\n\nContinue?`)) {
-      return;
-    }
-
-    setActionLoading('cleanup');
-    try {
-      const functions = getFunctions();
-      const runAutoCleanup = httpsCallable(functions, 'runAutoCleanup');
-      const result = await runAutoCleanup({ days: autoCleanupDays });
-      
-      if (result.data.success) {
-        alert(`✅ Cleanup complete! Deleted ${result.data.deletedCount || 0} accounts`);
-        loadSecurityData();
-      } else {
-        alert('❌ Cleanup failed: ' + (result.data.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error running cleanup:', error);
-      alert('❌ Error running cleanup: ' + (error.message || 'Unknown error'));
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // Auto-cleanup functions removed - use manual review instead
 
   const getSuspiciousReason = (account) => {
     const reasons = [];
@@ -205,6 +149,31 @@ export default function SecurityManager({ theme }) {
 
   return (
     <div className="space-y-6">
+      {/* Refresh Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: theme.text }}>Security Dashboard</h2>
+          {lastRefresh && (
+            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+              Last refreshed: {lastRefresh.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={loadSecurityData}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
+          style={{ 
+            backgroundColor: theme.primary, 
+            color: '#fff',
+            opacity: loading ? 0.5 : 1
+          }}
+        >
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Refreshing...' : 'Refresh Data'}
+        </button>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -238,65 +207,19 @@ export default function SecurityManager({ theme }) {
         </div>
       </div>
 
-      {/* Auto-Cleanup Settings */}
+      {/* Manual Review Notice */}
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Settings size={20} style={{ color: theme.primary }} />
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Auto-Cleanup Settings</h3>
-          </div>
-          <button
-            onClick={handleToggleAutoCleanup}
-            disabled={actionLoading === 'cleanup'}
-            className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50"
-            style={{ 
-              backgroundColor: autoCleanupEnabled ? theme.primary : theme.border,
-              color: autoCleanupEnabled ? theme.textOnPrimary : theme.text
-            }}
-          >
-            {autoCleanupEnabled ? 'Enabled' : 'Disabled'}
-          </button>
+        <div className="flex items-center gap-2 mb-3">
+          <Info size={20} style={{ color: theme.primary }} />
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Account Management</h3>
         </div>
-        
-        <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            <label className="text-sm" style={{ color: theme.textLight }}>
-              Delete accounts after <strong>{autoCleanupDays}</strong> days of inactivity (if unverified)
-            </label>
-            <input
-              type="number"
-              min="7"
-              max="365"
-              value={autoCleanupDays}
-              onChange={(e) => setAutoCleanupDays(parseInt(e.target.value) || 30)}
-              className="w-20 px-2 py-1 rounded border text-sm"
-              style={{ borderColor: theme.border, backgroundColor: theme.background }}
-            />
-          </div>
-          
-          <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
-            <Info size={14} />
-            <span>Auto-cleanup will delete accounts that are unverified, inactive, and not lifetime users</span>
-          </div>
-          
-          <button
-            onClick={handleRunCleanup}
-            disabled={actionLoading === 'cleanup'}
-            className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            {actionLoading === 'cleanup' ? (
-              <>
-                <RefreshCw className="animate-spin" size={16} />
-                Running...
-              </>
-            ) : (
-              <>
-                <Play size={16} />
-                Run Cleanup Now
-              </>
-            )}
-          </button>
+        <div className="space-y-2 text-sm" style={{ color: theme.textLight }}>
+          <p>
+            <strong style={{ color: theme.text }}>Manual review is recommended.</strong> Use the auditing system below to identify suspicious accounts.
+          </p>
+          <p>
+            To delete a specific user, use Firebase Console Authentication or create a targeted admin function. Automatic bulk deletion has been disabled to protect user retention.
+          </p>
         </div>
       </div>
 
