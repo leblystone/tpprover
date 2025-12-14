@@ -280,9 +280,10 @@ export default function AccountSubscription() {
 
   const accentColor = theme.accent || '#2F3B3A'
 
-  const PlanGrid = () => (
+  const PlanGrid = ({ showMonthly = true, showAnnual = true, showLifetime = true }) => (
     <div className="space-y-4">
-      <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+      {/* Beta Pricing Notice */}
+      <div className="text-center mb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
             <Crown size={12} className="text-white" />
@@ -291,86 +292,91 @@ export default function AccountSubscription() {
             Beta Pricing
           </div>
         </div>
-        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-          <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
-            You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
-          </p>
-        </div>
+        <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
+          You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div
-          className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
-          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-          onClick={() => !isCheckoutProcessing && handleSelectPlan('monthly')}
-        >
-          <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-            <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
-            <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
-              {discountActive ? (
-                <>
-                  <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.monthly.base}</span>
-                  <span>{planPricing.monthly.founder}</span>
-                </>
-              ) : (
-                planPricing.monthly.base
-              )}
-            </div>
-            <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
-            {discountActive && (
-              <div className="text-xs mt-2 font-medium" style={{ color: accentColor }}>
-                Save {planPricing.monthly.savings} / mo
+      {(showMonthly || showAnnual) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {showMonthly && (
+            <div
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              onClick={() => !isCheckoutProcessing && handleSelectPlan('monthly')}
+            >
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.monthly.base}</span>
+                      <span>{planPricing.monthly.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.monthly.base
+                  )}
+                </div>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
+                {discountActive && (
+                  <div className="text-xs mt-2 font-medium" style={{ color: accentColor }}>
+                    Save {planPricing.monthly.savings} / mo
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <button
-            className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            disabled={isCheckoutProcessing}
-          >
-            {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
-          </button>
-        </div>
+              <button
+                className="py-1.5 px-6 rounded-lg font-medium text-sm transition-all hover:opacity-90 w-auto mx-auto block"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
+              >
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
+              </button>
+            </div>
+          )}
 
-        <div
-          className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
-          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-          onClick={() => !isCheckoutProcessing && handleSelectPlan('annual')}
-        >
-          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
-              {founderOffer.isFounder ? 'Founder Locked' : 'Same Price as Our Physical Planners'}
+          {showAnnual && (
+            <div
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              onClick={() => !isCheckoutProcessing && handleSelectPlan('annual')}
+            >
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
+                  {founderOffer.isFounder ? 'Founder Locked' : 'Same Price as Our Physical Planners'}
+                </div>
+              </div>
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.annual.base}</span>
+                      <span>{planPricing.annual.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.annual.base
+                  )}
+                </div>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
+                <div className="text-center mt-1">
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
+                    {discountActive ? `Save ${planPricing.annual.savings} / yr` : 'Save $17.89'}
+                  </span>
+                </div>
+              </div>
+              <button
+                className="py-1.5 px-6 rounded-lg font-medium text-sm transition-all hover:opacity-90 w-auto mx-auto block"
+                style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
+              >
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.annual.cta}
+              </button>
             </div>
-          </div>
-          <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-            <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
-            <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
-              {discountActive ? (
-                <>
-                  <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.annual.base}</span>
-                  <span>{planPricing.annual.founder}</span>
-                </>
-              ) : (
-                planPricing.annual.base
-              )}
-            </div>
-            <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
-            <div className="text-center mt-1">
-              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
-                {discountActive ? `Save ${planPricing.annual.savings} / yr` : 'Save $17.89'}
-              </span>
-            </div>
-          </div>
-          <button
-            className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
-            style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
-            disabled={isCheckoutProcessing}
-          >
-            {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.annual.cta}
-          </button>
+          )}
         </div>
-      </div>
+      )}
 
+      {showLifetime && (
         <div
           className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
           style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
@@ -381,39 +387,40 @@ export default function AccountSubscription() {
               Limited Offer
             </div>
           </div>
-        <div className="flex items-center justify-between min-h-[80px]">
-          <div className="flex items-center gap-5">
-            <div className="space-y-1">
-              <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
-              <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                {discountActive ? (
-                  <>
-                    <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.lifetime.base}</span>
-                    <span>{planPricing.lifetime.founder}</span>
-                  </>
-                ) : (
-                  planPricing.lifetime.base
+          <div className="flex items-center justify-between min-h-[80px]">
+            <div className="flex items-center gap-5">
+              <div className="space-y-1">
+                <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.lifetime.base}</span>
+                      <span>{planPricing.lifetime.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.lifetime.base
+                  )}
+                </div>
+                {discountActive && (
+                  <div className="text-xs font-semibold" style={{ color: accentColor }}>
+                    Save {planPricing.lifetime.savings} one-time
+                  </div>
                 )}
               </div>
-              {discountActive && (
-                <div className="text-xs font-semibold" style={{ color: accentColor }}>
-                  Save {planPricing.lifetime.savings} one-time
-                </div>
-              )}
+            </div>
+            <div>
+              <button
+                className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
+              >
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
+              </button>
+              <div className="text-sm text-center mt-2" style={{ color: theme.textLight }}>Never pay again</div>
             </div>
           </div>
-          <div>
-            <button
-              className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              disabled={isCheckoutProcessing}
-            >
-              {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
-            </button>
-            <div className="text-sm text-center mt-2" style={{ color: theme.textLight }}>Never pay again</div>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 
@@ -444,47 +451,63 @@ export default function AccountSubscription() {
     );
   }
 
-  // Determine subscription state
+  // Determine subscription state with real-time checking
   const getSubscriptionState = () => {
+    // Check if no subscription data
     if (!sub) {
-      // Check if they had a trial that expired
-      // This could be improved with more data from backend
       return {
         type: 'expired_trial',
         label: 'Trial Expired',
-        color: '#EF4444',
-        bgColor: '#FEE2E2',
         showUpgrade: true
       };
     }
 
-    if (sub.interval === 'lifetime') {
+    // Check for lifetime access
+    if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) {
       return {
         type: 'lifetime',
         label: 'Lifetime Access',
-        color: '#10B981',
-        bgColor: '#D1FAE5',
         showUpgrade: false
       };
     }
 
+    // Check for active trial - verify in real-time if it's actually active
     if (sub.status === 'trialing') {
+      // Real-time check: is trial actually still active?
+      if (sub.currentPeriodEnd) {
+        const now = new Date();
+        const endDate = new Date(sub.currentPeriodEnd);
+        const timeLeft = endDate.getTime() - now.getTime();
+        
+        if (timeLeft > 0) {
+          return {
+            type: 'trialing',
+            label: 'Active Trial',
+            showUpgrade: true
+          };
+        } else {
+          // Trial period has passed but status hasn't updated yet
+          return {
+            type: 'expired_trial',
+            label: 'Trial Expired',
+            showUpgrade: true
+          };
+        }
+      }
+      
       return {
         type: 'trialing',
         label: 'Active Trial',
-        color: '#3B82F6',
-        bgColor: '#DBEAFE',
         showUpgrade: true
       };
     }
 
+    // Check for active paid subscriptions
     if (sub.status === 'active') {
       if (sub.interval === 'month') {
         return {
           type: 'monthly',
           label: 'Monthly Plan',
-          color: '#10B981',
-          bgColor: '#D1FAE5',
           showUpgrade: true,
           upgradeTarget: 'annual'
         };
@@ -493,8 +516,6 @@ export default function AccountSubscription() {
         return {
           type: 'annual',
           label: 'Annual Plan',
-          color: '#10B981',
-          bgColor: '#D1FAE5',
           showUpgrade: true,
           upgradeTarget: 'lifetime'
         };
@@ -505,8 +526,6 @@ export default function AccountSubscription() {
     return {
       type: 'expired',
       label: 'Subscription Expired',
-      color: '#EF4444',
-      bgColor: '#FEE2E2',
       showUpgrade: true
     };
   };
@@ -531,73 +550,98 @@ export default function AccountSubscription() {
       </div>
 
       {/* Subscription Status Card - Always Show */}
-      <div 
-        className="p-6 rounded-lg border-2"
-        style={{ 
-          backgroundColor: subscriptionState.bgColor,
-          borderColor: subscriptionState.color
-        }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: subscriptionState.color + '40' }}
-            >
-              <Crown size={24} style={{ color: subscriptionState.color }} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+      <div className="flex justify-center">
+        <div 
+          className="relative rounded-xl border-2 max-w-md w-full overflow-hidden shadow-sm"
+          style={{ 
+            backgroundColor: theme.cardBackground,
+            borderColor: '#c87a5c'
+          }}
+        >
+          {/* Decorative top bar */}
+          <div 
+            className="h-1.5"
+            style={{ 
+              background: 'linear-gradient(90deg, #c87a5c 0%, #b5684a 50%, #c87a5c 100%)',
+              opacity: 0.8
+            }}
+          />
+          
+          <div className="p-5">
+            {/* Header with status badge */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
                 Current Status
-              </h3>
+              </div>
               <div 
-                className="text-base font-bold flex items-center gap-2"
-                style={{ color: subscriptionState.color }}
+                className="px-3 py-1 rounded-lg"
+                style={{ 
+                  background: 'linear-gradient(135deg, #c87a5c15 0%, #b5684a15 100%)',
+                  border: '1px solid #c87a5c30'
+                }}
               >
-                {subscriptionState.label}
+                <div 
+                  className="text-sm font-bold tracking-tight"
+                  style={{ color: '#c87a5c' }}
+                >
+                  {subscriptionState.label}
+                </div>
               </div>
             </div>
-          </div>
-          {sub?.status === 'trialing' && timeLeft && (
-            <div className="text-right">
-              <div className="text-sm" style={{ color: theme.mutedText }}>Trial ends in</div>
-              <div className="text-lg font-bold" style={{ color: theme.text }}>
-                {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Status Details */}
-        {subscriptionState.type === 'expired_trial' && (
-          <p className="text-sm" style={{ color: theme.text }}>
-            Your trial period has ended. Choose a plan below to continue using The Pep Planner.
-          </p>
-        )}
-        {subscriptionState.type === 'trialing' && (
-          <p className="text-sm" style={{ color: theme.text }}>
-            You're currently in your trial period. Choose a plan below to lock in your access.
-          </p>
-        )}
-        {subscriptionState.type === 'monthly' && (
-          <div className="space-y-2">
-            <p className="text-sm" style={{ color: theme.text }}>
-              You're on the <strong>Monthly Plan</strong>. Upgrade to Annual and save!
-            </p>
+            {/* Trial timer badge (if active) */}
+            {sub?.status === 'trialing' && subscriptionState.type === 'trialing' && timeLeft && (
+              <div className="flex justify-end mb-2">
+                <div 
+                  className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={{ 
+                    backgroundColor: '#c87a5c20',
+                    color: '#c87a5c',
+                    border: '1px solid #c87a5c40'
+                  }}
+                >
+                  {timeLeft.days}d {timeLeft.hours}h left
+                </div>
+              </div>
+            )}
+
+            {/* Status Details with divider */}
+            <div 
+              className="pt-3 border-t"
+              style={{ borderColor: theme.border }}
+            >
+              {subscriptionState.type === 'expired_trial' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  Your trial period has ended. <span className="font-semibold" style={{ color: theme.text }}>Choose a plan below</span> to continue using The Pep Planner.
+                </p>
+              )}
+              {subscriptionState.type === 'trialing' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  You're in your trial period. <span className="font-semibold" style={{ color: theme.text }}>Lock in your access</span> with a plan below.
+                </p>
+              )}
+              {subscriptionState.type === 'monthly' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  Currently on <span className="font-semibold" style={{ color: theme.text }}>Monthly Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Annual</span> and save!
+                </p>
+              )}
+              {subscriptionState.type === 'annual' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  Currently on <span className="font-semibold" style={{ color: theme.text }}>Annual Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Lifetime</span> and never pay again!
+                </p>
+              )}
+              {subscriptionState.type === 'lifetime' && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: '#c87a5c' }} />
+                  <p className="text-xs font-semibold" style={{ color: '#c87a5c' }}>
+                    Lifetime Access Unlocked
+                  </p>
+                  <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: '#c87a5c' }} />
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        {subscriptionState.type === 'annual' && (
-          <div className="space-y-2">
-            <p className="text-sm" style={{ color: theme.text }}>
-              You're on the <strong>Annual Plan</strong>. Upgrade to Lifetime and never pay again!
-            </p>
-          </div>
-        )}
-        {subscriptionState.type === 'lifetime' && (
-          <p className="text-sm" style={{ color: theme.text }}>
-            🎉 You have <strong>Lifetime Access</strong> to The Pep Planner. Thank you for your support!
-          </p>
-        )}
+        </div>
       </div>
 
       {/* Current Subscription Details - For Active Subs */}
@@ -711,13 +755,20 @@ export default function AccountSubscription() {
             </div>
           )}
 
-          {/* Subscription Plans - Show under trial countdown */}
-          {sub.status === 'trialing' && (
+          {/* Subscription Plans - Show based on subscription status */}
+          {subscriptionState.showUpgrade && sub && (
             <div 
               className="p-6 rounded-lg"
               style={{ backgroundColor: theme.cardBackground }}
             >
-              <PlanGrid />
+              <h3 className="text-lg font-bold mb-4" style={{ color: theme.text }}>
+                {subscriptionState.type === 'trialing' ? 'Available Plans' : 'Upgrade Options'}
+              </h3>
+              <PlanGrid 
+                showMonthly={subscriptionState.type === 'trialing' || subscriptionState.type === 'expired_trial'}
+                showAnnual={subscriptionState.type === 'trialing' || subscriptionState.type === 'monthly' || subscriptionState.type === 'expired_trial'}
+                showLifetime={subscriptionState.type !== 'lifetime'}
+              />
 
               {/* Gift Access Button */}
               <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
@@ -793,13 +844,20 @@ export default function AccountSubscription() {
         </div>
       )}
 
-      {/* Subscription Plans - Show for non-trial users */}
+      {/* Subscription Plans - Show for users without active subscription */}
       {!sub && (
         <div 
           className="p-6 rounded-lg"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <PlanGrid />
+          <h3 className="text-lg font-bold mb-4" style={{ color: theme.text }}>
+            Choose Your Plan
+          </h3>
+          <PlanGrid 
+            showMonthly={true}
+            showAnnual={true}
+            showLifetime={true}
+          />
           
           {/* Gift Access Button */}
           <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
