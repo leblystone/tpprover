@@ -428,7 +428,14 @@ function generateEmailHTML(template, variables = {}) {
       if (key === 'userEmail' && replacement && text.includes('?')) {
         replacement = encodeURIComponent(replacement);
       }
-      result = result.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
+      // Escape special regex characters in the key for safe replacement
+      const escapedKey = key.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`%${escapedKey}%`, 'g');
+      const beforeReplace = result;
+      result = result.replace(regex, replacement);
+      if (beforeReplace !== result && replacement) {
+        logger.info(`✅ Replaced %${key.toUpperCase()}% with: ${replacement.substring(0, 50)}${replacement.length > 50 ? '...' : ''}`);
+      }
     });
     return result;
   };
@@ -451,6 +458,11 @@ function generateEmailHTML(template, variables = {}) {
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATION_LINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATIONLINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%LINK%/g, variables.verificationLink);
+  }
+  // Also replace %SURVEY_LINK% (with underscore) if it exists
+  if (ctaLinkValue && variables.surveyLink) {
+    ctaLinkValue = ctaLinkValue.replace(/%SURVEY_LINK%/g, variables.surveyLink);
+    ctaLinkValue = ctaLinkValue.replace(/%SURVEYLINK%/g, variables.surveyLink);
   }
   // If ctaLink is empty or still contains a placeholder, use surveyLink, resetLink, verificationLink, or link from variables
   if (!ctaLinkValue || ctaLinkValue === '#' || 
@@ -517,6 +529,11 @@ function generateEmailHTML(template, variables = {}) {
     if (key === 'resetLink') {
       html = html.replace(/%RESET_LINK%/g, replacement);
       html = html.replace(/%RESETLINK%/g, replacement);
+    }
+    // Also handle SURVEY_LINK specifically (common pattern)
+    if (key === 'surveyLink') {
+      html = html.replace(/%SURVEY_LINK%/g, replacement);
+      html = html.replace(/%SURVEYLINK%/g, replacement);
     }
     if (beforeReplace !== html) {
       logger.info(`✅ Replaced %${key.toUpperCase()}% in HTML`);
@@ -771,6 +788,45 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
   logger.info('📧 Falling back to hardcoded trialEnding template');
   const subject = `Your trial ends in ${daysLeft} days - The Pep Planner`;
   const html = emailTemplates.trialEndingEmail(daysLeft, userEmail, founderState);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send trial extension notification
+ * Triggered when admin manually extends a user's trial period
+ */
+exports.sendTrialExtensionEmail = async (userEmail, userName, daysAdded, newEndDate, adminNote = null) => {
+  logger.info(`📧 Sending trial extension email to ${userEmail}`);
+  logger.info(`📧 Parameters: userName=${userName}, daysAdded=${daysAdded}, newEndDate=${newEndDate}`);
+  
+  // Try to load custom template from Firestore first
+  try {
+    logger.info('📧 Attempting to load trialExtension template from Firestore...');
+    const customTemplate = await loadEmailTemplate('trialExtension');
+    if (customTemplate) {
+      logger.info('✅ Found trialExtension template in Firestore');
+      const subject = customTemplate.subject || '🎉 Your Research Trial Has Been Extended!';
+      const html = generateEmailHTML(customTemplate, { 
+        userName, 
+        userEmail, 
+        daysAdded, 
+        newEndDate,
+        adminNote 
+      });
+      logger.info('✅ Generated HTML from custom template');
+      return sendEmail(userEmail, subject, html);
+    } else {
+      logger.info('⚠️ trialExtension template not found in Firestore, using default');
+    }
+  } catch (error) {
+    logger.error('❌ Failed to load trialExtension template:', error);
+    logger.error('❌ Error stack:', error.stack);
+  }
+  
+  // Fallback to hardcoded template
+  logger.info('📧 Using hardcoded trialExtension template');
+  const subject = '🎉 Your Research Trial Has Been Extended!';
+  const html = emailTemplates.trialExtensionEmail(userName, userEmail, daysAdded, newEndDate, adminNote);
   return sendEmail(userEmail, subject, html);
 };
 
@@ -1304,13 +1360,26 @@ exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyL
     const customTemplate = await loadEmailTemplate('trialExpiredSurvey');
     if (customTemplate) {
       logger.info('✅ Custom trialExpiredSurvey template found in Firestore');
-      const subject = customTemplate.subject || 'Quick Survey: Help Us Improve The Pep Planner 📊';
       // Use the surveyLink parameter if provided, otherwise use the template's ctaLink or default
       const finalSurveyLink = surveyLink || customTemplate.ctaLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
-      const html = generateEmailHTML(customTemplate, { 
+      const variables = { 
         userName: userName || 'there', 
         userEmail, 
         surveyLink: finalSurveyLink 
+      };
+      logger.info('📧 Variables for trial expired survey:', {
+        userName: variables.userName,
+        userEmail: variables.userEmail,
+        surveyLink: variables.surveyLink ? variables.surveyLink.substring(0, 50) + '...' : 'null'
+      });
+      const html = generateEmailHTML(customTemplate, variables);
+      // Replace variables in subject after processing (subject is processed in generateEmailHTML but we need to extract it)
+      let subject = customTemplate.subject || 'Quick Survey: Help Us Improve The Pep Planner 📊';
+      // Replace variables in subject manually since we extract it before generateEmailHTML processes it
+      Object.entries(variables).forEach(([key, value]) => {
+        const replacement = value || '';
+        const regex = new RegExp(`%${key.toUpperCase()}%`, 'g');
+        subject = subject.replace(regex, replacement);
       });
       // Use queue system with low priority for survey emails
       const result = await emailQueue.sendEmailWithQueue(userEmail, subject, html, {

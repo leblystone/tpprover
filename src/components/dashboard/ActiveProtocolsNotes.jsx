@@ -200,16 +200,16 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     if (activeProtocols.length === 0) {
         return (
-            <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+                <h3 className="text-sm lg:text-base font-semibold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
-                        <FlaskConical size={18} style={{ color: theme.primary }} />
+                        <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
                     </span>
                     <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 <div className="flex-1 flex items-center justify-center">
-                    <p className="text-sm text-center" style={{ color: theme.textLight }}>
+                    <p className="text-sm lg:text-base text-center" style={{ color: theme.textLight }}>
                         No active protocols. Start a protocol to begin tracking.
                     </p>
                 </div>
@@ -219,18 +219,18 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     return (
         <>
-            <div className="h-full flex flex-col p-4 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-sm font-semibold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: theme.white }}>
+                <h3 className="text-sm lg:text-base font-semibold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
-                        <FlaskConical size={18} style={{ color: theme.primary }} />
+                        <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
                     </span>
                     <div className="flex items-center gap-2">
                         <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                     </div>
                 </h3>
                 
-                <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-3 lg:space-y-4">
                     {protocolsWithNotes.map((protocol) => {
                         const protocolName = protocol.name || protocol.protocolName || 'Unnamed Protocol';
                         const duration = formatDuration(protocol);
@@ -241,41 +241,41 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                         return (
                             <div 
                                 key={protocol.id} 
-                                className="p-3 rounded-lg border transition-all hover:opacity-90"
+                                className="p-3 lg:p-4 rounded-lg border transition-all hover:opacity-90"
                                 style={{ 
                                     borderColor: theme.border,
                                     backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
                                 }}
                             >
-                                <div className="space-y-2">
+                                <div className="space-y-2 lg:space-y-3">
                                     {/* Protocol Header */}
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2 lg:gap-3">
+                                        <div className="flex items-center gap-2 lg:gap-2.5 flex-1 min-w-0">
                                             {deliveryIcon}
-                                            <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
+                                            <div className="font-semibold text-sm lg:text-base truncate" style={{ color: theme.text }}>
                                                 {protocolName}
                                             </div>
                                         </div>
                                         {daysActive !== null && (
-                                            <span className="flex items-center gap-1 text-xs flex-shrink-0" style={{ color: theme.textLight }}>
-                                                <Clock size={11} />
+                                            <span className="flex items-center gap-1 text-xs lg:text-sm flex-shrink-0" style={{ color: theme.textLight }}>
+                                                <Clock size={11} className="lg:w-3.5 lg:h-3.5" />
                                                 Day {daysActive}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Protocol Details */}
-                                    <div className="flex items-center justify-between gap-2 text-xs" style={{ color: theme.textLight }}>
-                                        <div className="flex flex-wrap items-center gap-2 min-w-0 overflow-hidden">
+                                    <div className="flex items-center justify-between gap-2 lg:gap-3 text-xs lg:text-sm" style={{ color: theme.textLight }}>
+                                        <div className="flex flex-wrap items-center gap-2 lg:gap-3 min-w-0 overflow-hidden">
                                             {startDate && (
                                                 <span className="flex items-center gap-1 whitespace-nowrap">
-                                                    <Calendar size={11} className="flex-shrink-0" />
+                                                    <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
                                                     {startDate}
                                                 </span>
                                             )}
                                             {duration && (
                                                 <span className="flex items-center gap-1 whitespace-nowrap">
-                                                    <Clock size={11} className="flex-shrink-0" />
+                                                    <Clock size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
                                                     {duration}
                                                 </span>
                                             )}
@@ -285,13 +285,13 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 e.stopPropagation();
                                                 handleAddNoteClick(protocol);
                                             }}
-                                            className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 flex-shrink-0 hover:opacity-90 whitespace-nowrap"
+                                            className="px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors flex items-center gap-1.5 lg:gap-2 flex-shrink-0 hover:opacity-90 whitespace-nowrap"
                                             style={{ 
                                                 backgroundColor: theme.primary,
                                                 color: '#ffffff'
                                             }}
                                         >
-                                            <Plus size={12} strokeWidth={2.5} />
+                                            <Plus size={12} className="lg:w-3.5 lg:h-3.5" strokeWidth={2.5} />
                                             Add Note
                                         </button>
                                     </div>
@@ -299,18 +299,18 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                     {/* Latest Note Preview */}
                                     {protocol.latestNote && (
                                         <div 
-                                            className="p-2 rounded border text-xs"
+                                            className="p-2 lg:p-3 rounded border text-xs lg:text-sm"
                                             style={{ 
                                                 borderColor: theme.border,
                                                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
                                             }}
                                         >
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <FileText size={11} style={{ color: theme.primary }} />
+                                            <div className="flex items-center gap-2 lg:gap-2.5 mb-1 lg:mb-1.5">
+                                                <FileText size={11} className="lg:w-3.5 lg:h-3.5" style={{ color: theme.primary }} />
                                                 <span className="font-medium" style={{ color: theme.text }}>
                                                     Latest Note
                                                 </span>
-                                                <span className="text-xs" style={{ color: theme.textLight }}>
+                                                <span className="text-xs lg:text-sm" style={{ color: theme.textLight }}>
                                                     {formatMMDDYYYY(protocol.latestNote.createdAt)}
                                                 </span>
                                             </div>
@@ -318,7 +318,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 {protocol.latestNote.content}
                                             </div>
                                             {protocol.notesCount > 1 && (
-                                                <div className="mt-1 text-xs" style={{ color: theme.textLight }}>
+                                                <div className="mt-1 lg:mt-1.5 text-xs lg:text-sm" style={{ color: theme.textLight }}>
                                                     +{protocol.notesCount - 1} more note{protocol.notesCount - 1 !== 1 ? 's' : ''}
                                                 </div>
                                             )}

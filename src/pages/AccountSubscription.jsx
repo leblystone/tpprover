@@ -444,6 +444,75 @@ export default function AccountSubscription() {
     );
   }
 
+  // Determine subscription state
+  const getSubscriptionState = () => {
+    if (!sub) {
+      // Check if they had a trial that expired
+      // This could be improved with more data from backend
+      return {
+        type: 'expired_trial',
+        label: 'Trial Expired',
+        color: '#EF4444',
+        bgColor: '#FEE2E2',
+        showUpgrade: true
+      };
+    }
+
+    if (sub.interval === 'lifetime') {
+      return {
+        type: 'lifetime',
+        label: 'Lifetime Access',
+        color: '#10B981',
+        bgColor: '#D1FAE5',
+        showUpgrade: false
+      };
+    }
+
+    if (sub.status === 'trialing') {
+      return {
+        type: 'trialing',
+        label: 'Active Trial',
+        color: '#3B82F6',
+        bgColor: '#DBEAFE',
+        showUpgrade: true
+      };
+    }
+
+    if (sub.status === 'active') {
+      if (sub.interval === 'month') {
+        return {
+          type: 'monthly',
+          label: 'Monthly Plan',
+          color: '#10B981',
+          bgColor: '#D1FAE5',
+          showUpgrade: true,
+          upgradeTarget: 'annual'
+        };
+      }
+      if (sub.interval === 'year') {
+        return {
+          type: 'annual',
+          label: 'Annual Plan',
+          color: '#10B981',
+          bgColor: '#D1FAE5',
+          showUpgrade: true,
+          upgradeTarget: 'lifetime'
+        };
+      }
+    }
+
+    // Cancelled or expired
+    return {
+      type: 'expired',
+      label: 'Subscription Expired',
+      color: '#EF4444',
+      bgColor: '#FEE2E2',
+      showUpgrade: true
+    };
+  };
+
+  const subscriptionState = getSubscriptionState();
+
   return (
     <section className="space-y-6">
       {/* Header */}
@@ -461,7 +530,77 @@ export default function AccountSubscription() {
         </div>
       </div>
 
-      {/* Current Subscription Status */}
+      {/* Subscription Status Card - Always Show */}
+      <div 
+        className="p-6 rounded-lg border-2"
+        style={{ 
+          backgroundColor: subscriptionState.bgColor,
+          borderColor: subscriptionState.color
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: subscriptionState.color + '40' }}
+            >
+              <Crown size={24} style={{ color: subscriptionState.color }} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+                Current Status
+              </h3>
+              <div 
+                className="text-base font-bold flex items-center gap-2"
+                style={{ color: subscriptionState.color }}
+              >
+                {subscriptionState.label}
+              </div>
+            </div>
+          </div>
+          {sub?.status === 'trialing' && timeLeft && (
+            <div className="text-right">
+              <div className="text-sm" style={{ color: theme.mutedText }}>Trial ends in</div>
+              <div className="text-lg font-bold" style={{ color: theme.text }}>
+                {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Status Details */}
+        {subscriptionState.type === 'expired_trial' && (
+          <p className="text-sm" style={{ color: theme.text }}>
+            Your trial period has ended. Choose a plan below to continue using The Pep Planner.
+          </p>
+        )}
+        {subscriptionState.type === 'trialing' && (
+          <p className="text-sm" style={{ color: theme.text }}>
+            You're currently in your trial period. Choose a plan below to lock in your access.
+          </p>
+        )}
+        {subscriptionState.type === 'monthly' && (
+          <div className="space-y-2">
+            <p className="text-sm" style={{ color: theme.text }}>
+              You're on the <strong>Monthly Plan</strong>. Upgrade to Annual and save!
+            </p>
+          </div>
+        )}
+        {subscriptionState.type === 'annual' && (
+          <div className="space-y-2">
+            <p className="text-sm" style={{ color: theme.text }}>
+              You're on the <strong>Annual Plan</strong>. Upgrade to Lifetime and never pay again!
+            </p>
+          </div>
+        )}
+        {subscriptionState.type === 'lifetime' && (
+          <p className="text-sm" style={{ color: theme.text }}>
+            🎉 You have <strong>Lifetime Access</strong> to The Pep Planner. Thank you for your support!
+          </p>
+        )}
+      </div>
+
+      {/* Current Subscription Details - For Active Subs */}
       {sub && (
         <div className="space-y-6">
           {/* Subscription Status */}

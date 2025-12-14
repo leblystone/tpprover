@@ -57,12 +57,27 @@ export default function NotificationBell({ theme }) {
     if (firebaseUser?.email) {
       loadNotifications();
       loadAnnouncements();
+      
       // Poll for new notifications every 30 seconds
       const interval = setInterval(() => {
         loadNotifications();
         loadAnnouncements();
       }, 30000);
-      return () => clearInterval(interval);
+      
+      // Listen for storage events (for cross-tab updates and admin panel updates)
+      const handleStorageChange = (e) => {
+        if (e.key === 'tpprover_announcements' || e.type === 'storage') {
+          console.log('🔔 Storage event detected, reloading announcements...');
+          loadAnnouncements();
+        }
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('storage', handleStorageChange);
+      };
     }
   }, [firebaseUser?.email]);
 

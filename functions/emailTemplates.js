@@ -3068,3 +3068,97 @@ exports.giftExpiringSoonEmail = (recipientEmail, planName, daysLeft, giftGiverNa
   return emailWrapper(content);
 };
 
+/**
+ * Trial Extension Email
+ * Sent when admin manually extends a user's trial period
+ */
+exports.trialExtensionEmail = (userName, userEmail, daysAdded, newEndDate, adminNote) => {
+  // Format the end date nicely
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const formattedEndDate = formatDate(newEndDate);
+  const displayName = userName || userEmail.split('@')[0];
+
+  const content = `
+    <div class="header">
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
+      <div class="logo">🎉 Great News!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Research Trial Has Been Extended!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${displayName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        We've extended your research trial access to The Pep Planner! You now have <strong>${daysAdded} additional ${daysAdded === 1 ? 'day' : 'days'}</strong> to explore all the features.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">⏰ Updated Trial Period:</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Additional Days:</strong> ${daysAdded} ${daysAdded === 1 ? 'day' : 'days'}<br>
+          <strong>New End Date:</strong> ${formattedEndDate}<br>
+          <strong>Status:</strong> Active
+        </p>
+      </div>
+      
+      ${adminNote ? `
+      <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #1E40AF;">💬 Note from our team:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${adminNote}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">Make the Most of Your Extended Trial</h2>
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        During your extended trial, you have full access to:
+      </p>
+      <ul class="feature-list" style="margin: 16px 0; padding-left: 20px; color: ${COLORS.text};">
+        <li>✓ Unlimited research protocol tracking</li>
+        <li>✓ Vendor management and comparison</li>
+        <li>✓ Order history and analytics</li>
+        <li>✓ Lab access tracking and planning</li>
+        <li>✓ Comprehensive research notes</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🔬 Continue Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        We're excited to have you continue using The Pep Planner for your research needs!<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid ${COLORS.border}; margin: 32px 0;">
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin: 0;">
+        Questions? Just reply to this email or reach out to us at support@thepepplanner.app
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

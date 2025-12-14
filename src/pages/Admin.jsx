@@ -54,6 +54,7 @@ import UserDetailModal from '../components/admin/UserDetailModal';
 import VersionManager from '../components/admin/VersionManager';
 import SingleMessageSender from '../components/admin/SingleMessageSender';
 import SecurityManager from '../components/admin/SecurityManager';
+import InAppNotificationManager from '../components/admin/InAppNotificationManager';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -1660,31 +1661,31 @@ function Admin() {
           <LayoutDashboard size={100} style={{ color: elegantPalette.taupe.muted }} />
         </div>
         
-        <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10" style={{ 
+        <div className="max-w-md w-full p-8 rounded-lg border shadow-lg relative z-10" style={{ 
           borderColor: elegantPalette.taupe.light, 
           backgroundColor: elegantPalette.neutral.white,
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
         }}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ 
+            <div className="w-16 h-16 mx-auto mb-2 rounded-2xl flex items-center justify-center" style={{ 
               background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
               border: `1px solid ${elegantPalette.taupe.light}`
             }}>
               <Book size={32} style={{ color: '#FFFFFF' }} />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
+            <h1 className="text-lg font-bold mb-2" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
             <p className="text-sm" style={{ color: theme.textLight }}>Welcome back</p>
             <p className="text-xs mt-2" style={{ color: theme.textLight }}>Enter your email and Firebase account password to access the admin panel</p>
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-2">
             <div>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Admin email"
-                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01] mb-3"
+                className="w-full p-4 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01] mb-3"
                 style={{ 
                   borderColor: loginError && !email.trim() ? theme.error : theme.border, 
                   backgroundColor: elegantPalette.neutral.white,
@@ -1699,7 +1700,7 @@ function Admin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Your Firebase account password"
-                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01]"
+                className="w-full p-4 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.01]"
                 style={{ 
                   borderColor: loginError && email.trim() ? theme.error : theme.border, 
                   backgroundColor: elegantPalette.neutral.white,
@@ -1722,7 +1723,7 @@ function Admin() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full p-4 rounded-lg font-semibold transition-all duration-300 hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ 
                 background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
                 color: '#FFFFFF',
@@ -1762,11 +1763,11 @@ function Admin() {
         backgroundColor: elegantPalette.neutral.white,
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
-        <div className="px-4 lg:px-6 py-3">
+        <div className="px-4 lg:px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Logo & Title */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ 
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ 
                 background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
                 border: `1px solid ${elegantPalette.taupe.light}`
               }}>
@@ -1797,9 +1798,7 @@ function Admin() {
                 title="Users"
                 icon={Users}
                 items={[
-                  { id: 'subscriptions', label: 'All Users', icon: Users, count: subscriptions.total || 0, color: '#5FAF8B' },
-                  { id: 'lifetime', label: 'Lifetime', icon: Crown, count: lifetimeUsers.length || 0, color: '#7F9E95' },
-                  { id: 'gifts', label: 'Gifts', icon: Gift, count: giftAnalytics.total || 0, color: '#7CB8B2' }
+                  { id: 'subscriptions', label: 'Users', icon: Users, count: subscriptions.total || 0, color: '#5FAF8B' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1825,9 +1824,10 @@ function Admin() {
                 title="Comms"
                 icon={MailOpen}
                 items={[
-                  { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#5FAF8B' },
+                  { id: 'pushNotifications', label: 'Push Notifications', icon: Smartphone, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#5FAF8B' },
+                  { id: 'inAppNotifications', label: 'In-App Notifications', icon: BellRing, count: 0, color: '#7F9E95' },
                   { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#7CB8B2' },
-                  { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#7F9E95' }
+                  { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#6B7D7A' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1921,8 +1921,6 @@ function Admin() {
             {[
               { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#5F7F76', short: 'Stats' },
               { id: 'subscriptions', label: 'Users', icon: Users, color: '#5FAF8B', short: 'Users' },
-              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#7F9E95', short: 'Lifetime' },
-              { id: 'gifts', label: 'Gifts', icon: Star, color: '#7CB8B2', short: 'Gifts' },
               { id: 'content', label: 'Content', icon: BookOpen, color: '#7F9E95', short: 'Content' },
               { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#5FAF8B', short: 'Feedback' },
               { id: 'improvements', label: 'Ideas', icon: Target, color: '#7CB8B2', short: 'Ideas' },
@@ -1963,11 +1961,6 @@ function Admin() {
                       {subscriptions.total}
                     </span>
                   )}
-                  {tab.id === 'lifetime' && lifetimeUsers.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {lifetimeUsers.length}
-                    </span>
-                  )}
                   {tab.id === 'feedback' && feedback.filter(f => f.status === 'new').length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
                       {feedback.filter(f => f.status === 'new').length}
@@ -1976,11 +1969,6 @@ function Admin() {
                   {tab.id === 'whitelist' && emailWhitelist.length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
                       {emailWhitelist.length}
-                    </span>
-                  )}
-                  {tab.id === 'gifts' && giftAnalytics.total > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {giftAnalytics.total}
                     </span>
                   )}
                 </button>
@@ -2007,9 +1995,10 @@ function Admin() {
               { id: 'improvements', label: 'Ideas', icon: Lightbulb, color: '#7CB8B2' }
             ],
             communications: [
-              { id: 'notifications', label: 'Notifications', icon: BellRing, color: '#5FAF8B' },
+              { id: 'pushNotifications', label: 'Push Notifications', icon: Smartphone, color: '#5FAF8B' },
+              { id: 'inAppNotifications', label: 'In-App Notifications', icon: BellRing, color: '#7F9E95' },
               { id: 'emails', label: 'Email Templates', icon: MailOpen, color: '#7CB8B2' },
-              { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, color: '#7F9E95' }
+              { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, color: '#6B7D7A' }
             ],
             settings: [
               { id: 'security', label: 'Security', icon: Shield, color: '#E58A7A' },
@@ -2040,13 +2029,13 @@ function Admin() {
           };
 
           return (
-            <div className="px-4 lg:px-6 py-3 flex-shrink-0 relative z-10 sticky top-0" style={{
+            <div className="px-3 lg:px-4 py-2 flex-shrink-0 relative z-10 sticky top-0" style={{
               backgroundColor: elegantPalette.neutral.white,
               borderBottom: `1px solid ${elegantPalette.taupe.light}`,
               zIndex: 20
             }}>
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-semibold hidden sm:block" style={{ color: elegantPalette.black.textMuted }}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold hidden sm:block" style={{ color: elegantPalette.black.textMuted }}>
                   {groupTitles[currentGroupName]}:
                 </span>
                 <div className="flex items-center gap-1 overflow-x-auto">
@@ -2057,7 +2046,7 @@ function Admin() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all duration-200 ${
                           isActive ? 'shadow-sm' : 'hover:bg-gray-50'
                         }`}
                         style={{
@@ -2066,7 +2055,7 @@ function Admin() {
                           border: `1px solid ${isActive ? tab.color + '40' : 'transparent'}`
                         }}
                       >
-                        <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} />
                         <span>{tab.label}</span>
                       </button>
                     );
@@ -2078,166 +2067,110 @@ function Admin() {
         })()}
 
         {/* Content Area */}
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <div className="flex-1 p-3 lg:p-4 overflow-y-auto">
 
         {activeTab === 'analytics' && (
-          <div className="space-y-5">
-            {/* Welcome Banner - Clean Sage */}
-            <div className="rounded-xl p-5 relative overflow-hidden border" style={{
+          <div className="space-y-3">
+            {/* Welcome Banner - Compact */}
+            <div className="rounded-lg p-3 flex items-center gap-3 border" style={{
               background: `linear-gradient(135deg, ${elegantPalette.neutral.white} 0%, ${elegantPalette.dark.wallpaper} 100%)`,
               borderColor: elegantPalette.taupe.light
             }}>
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{
-                  background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                  border: `1px solid ${elegantPalette.taupe.light}`
-                }}>
-                  <LayoutDashboard size={28} style={{ color: '#FFFFFF' }} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-xl mb-1" style={{ color: elegantPalette.black.text }}>
-                    Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}!
-                  </h3>
-                  <p className="text-sm" style={{ color: elegantPalette.black.textMuted }}>
-                    Welcome to The Pep Planner Admin Panel
-                  </p>
-                </div>
-                <div className="hidden md:flex items-center gap-2">
-                  <Book size={28} style={{ color: elegantPalette.taupe.muted }} className="opacity-60" />
-                </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{
+                background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`
+              }}>
+                <LayoutDashboard size={20} style={{ color: '#FFFFFF' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base" style={{ color: elegantPalette.black.text }}>
+                  Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}!
+                </h3>
+                <p className="text-xs" style={{ color: elegantPalette.black.textMuted }}>
+                  Admin Panel
+                </p>
               </div>
             </div>
 
             {/* Feedback & Tickets Section */}
-            <div className="rounded-xl border p-6" style={{ 
+            <div className="rounded-lg border p-3" style={{ 
               borderColor: elegantPalette.taupe.light,
               backgroundColor: elegantPalette.neutral.white
             }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
-                    <MessagesSquare size={20} style={{ color: elegantPalette.taupe.main }} />
-                    Support & Feedback
-                  </h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                    User feedback and support requests
-                  </p>
-                </div>
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={async () => {
-                      // Test admin message - send to current admin user
-                      const testEmail = auth.currentUser?.email || email;
-                      if (!testEmail) {
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                          detail: { message: 'Please log in first', type: 'error' } 
-                        }));
-                        return;
-                      }
-                      try {
-                        setLoading(prev => ({ ...prev, submitting: true }));
-                        await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team🥼" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                          detail: { message: 'Test admin message sent! Check your dashboard.', type: 'success' } 
-                        }));
-                      } catch (error) {
-                        console.error('❌ Failed to send test message:', error);
-                        let errorMessage = 'Failed to send test message';
-                        if (error.code === 'functions/internal' || error.code === 'functions/not-found') {
-                          errorMessage = 'Function not deployed. Please deploy Firebase functions: cd functions && firebase deploy --only functions:createAdminMessage';
-                        } else if (error.message) {
-                          errorMessage = error.message;
-                        }
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                          detail: { message: errorMessage, type: 'error' } 
-                        }));
-                      } finally {
-                        setLoading(prev => ({ ...prev, submitting: false }));
-                      }
-                    }}
-                    disabled={loading.submitting}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ 
-                      borderColor: theme.primary + '60',
-                      backgroundColor: theme.primary + '20',
-                      color: theme.primary,
-                      cursor: loading.submitting ? 'not-allowed' : 'pointer'
-                    }}
-                    title="Test Admin Message - sends a test message to your account"
-                  >
-                    <Shield size={14} />
-                    {loading.submitting ? 'Sending...' : 'Test Message'}
-                  </button>
-                  <div className="text-sm px-3 py-1 rounded-lg" style={{ 
+                  <MessagesSquare size={16} style={{ color: elegantPalette.taupe.main }} />
+                  <h2 className="text-sm font-semibold" style={{ color: elegantPalette.black.text }}>Support & Feedback</h2>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs px-2 py-0.5 rounded" style={{ 
                     backgroundColor: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
                     color: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning : theme.success
                   }}>
-                    {feedback.filter(f => f.status === 'new').length} new feedback
-                  </div>
-                  <div className="text-sm px-3 py-1 rounded-lg" style={{ 
+                    {feedback.filter(f => f.status === 'new').length} new
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded" style={{ 
                     backgroundColor: tickets.filter(t => t.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
                     color: tickets.filter(t => t.status === 'new').length > 0 ? theme.warning : theme.success
                   }}>
-                    {tickets.filter(t => t.status === 'new').length} new requests
-                  </div>
+                    {tickets.filter(t => t.status === 'new').length} tickets
+                  </span>
                   <button
                     onClick={() => {
                       setActiveTab('feedback');
                       setSupportView('feedback');
                     }}
-                    className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                    className="px-2.5 py-1 rounded text-xs font-medium"
                     style={{ 
                       background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                      color: '#FFFFFF',
-                      border: `1px solid ${elegantPalette.taupe.light}`
+                      color: '#FFFFFF'
                     }}
                   >
-                    View All
+                    View
                   </button>
                 </div>
               </div>
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-lg border" style={{ 
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="p-2 rounded border text-center" style={{ 
                   borderColor: elegantPalette.taupe.light,
                   backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.dark }}>{feedback.length}</div>
-                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Feedback</div>
+                  <div className="text-lg font-bold" style={{ color: elegantPalette.taupe.dark }}>{feedback.length}</div>
+                  <div className="text-[10px]" style={{ color: theme.textLight }}>Feedback</div>
                 </div>
-                <div className="p-4 rounded-lg border" style={{ 
+                <div className="p-2 rounded border text-center" style={{ 
                   borderColor: elegantPalette.taupe.light,
                   backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
-                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Feedback</div>
+                  <div className="text-lg font-bold" style={{ color: elegantPalette.functional.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
+                  <div className="text-[10px]" style={{ color: theme.textLight }}>New</div>
                 </div>
-                <div className="p-4 rounded-lg border" style={{ 
+                <div className="p-2 rounded border text-center" style={{ 
                   borderColor: elegantPalette.taupe.light,
                   backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.dark }}>{tickets.length}</div>
-                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Requests</div>
+                  <div className="text-lg font-bold" style={{ color: elegantPalette.taupe.dark }}>{tickets.length}</div>
+                  <div className="text-[10px]" style={{ color: theme.textLight }}>Tickets</div>
                 </div>
-                <div className="p-4 rounded-lg border" style={{ 
+                <div className="p-2 rounded border text-center" style={{ 
                   borderColor: elegantPalette.taupe.light,
                   backgroundColor: elegantPalette.dark.wallpaper
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
-                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Requests</div>
+                  <div className="text-lg font-bold" style={{ color: elegantPalette.functional.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
+                  <div className="text-[10px]" style={{ color: theme.textLight }}>Open</div>
                 </div>
               </div>
 
               {/* Recent Feedback Preview */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold" style={{ color: elegantPalette.black.text }}>Recent Feedback</h3>
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold" style={{ color: elegantPalette.black.text }}>Recent Feedback</h3>
                 {loading.feedback ? (
-                  <div className="text-center py-4">
+                  <div className="text-center py-2">
                     <Loader size={20} className="animate-spin mx-auto" style={{ color: theme.primary }} />
                   </div>
                 ) : feedback.length === 0 ? (
-                  <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
+                  <div className="text-center py-2 text-sm" style={{ color: theme.textLight }}>
                     No feedback yet
                   </div>
                 ) : (
@@ -2302,11 +2235,11 @@ function Admin() {
               <div className="space-y-3 mt-6">
                 <h3 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Support Requests</h3>
                 {loading.feedback ? (
-                  <div className="text-center py-4">
+                  <div className="text-center py-2">
                     <Loader size={20} className="animate-spin mx-auto" style={{ color: theme.primary }} />
                   </div>
                 ) : tickets.length === 0 ? (
-                  <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
+                  <div className="text-center py-2 text-sm" style={{ color: theme.textLight }}>
                     No requests yet
                   </div>
                 ) : (
@@ -2396,12 +2329,12 @@ function Admin() {
             </div>
 
             {/* User Growth Chart with Shadows */}
-            <div className="rounded-xl border-2 p-6 content-card" style={{ 
+            <div className="rounded-lg border-2 p-3 content-card" style={{ 
               borderColor: elegantPalette.gold.metallic + '40',
               backgroundColor: elegantPalette.dark.surface,
               boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
             }}>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
                     <TrendingUp size={20} style={{ color: elegantPalette.gold.metallic }} />
@@ -2419,7 +2352,7 @@ function Admin() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-2">
@@ -2428,7 +2361,7 @@ function Admin() {
                         Total: {analytics.userGrowth.slice(-14).reduce((sum, d) => sum + d.newUsers, 0)} new users
                       </span>
                     </div>
-                    <div className="h-56 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
+                    <div className="h-56 flex items-end justify-between gap-1 p-4 rounded-lg" style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
                     boxShadow: `inset 0 2px 15px ${elegantPalette.dark.deep}80`
                   }}>
@@ -2465,28 +2398,28 @@ function Admin() {
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="p-4 rounded-xl border-2" style={{ 
+                  <div className="p-4 rounded-lg border-2" style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
                     borderColor: elegantPalette.gold.metallic + '30',
                     boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{analytics.totalUsers}</div>
+                    <div className="text-lg font-bold" style={{ color: elegantPalette.gold.metallic }}>{analytics.totalUsers}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>Total Users</div>
                   </div>
-                  <div className="p-4 rounded-xl border-2" style={{ 
+                  <div className="p-4 rounded-lg border-2" style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.dark.surface} 0%, ${elegantPalette.dark.charcoal} 100%)`,
                     borderColor: elegantPalette.taupe.dark + '40',
                     boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.taupe.dark}20`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.light }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                    <div className="text-lg font-bold" style={{ color: elegantPalette.taupe.light }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>New This Month</div>
                   </div>
-                  <div className="p-4 rounded-xl border-2" style={{ 
+                  <div className="p-4 rounded-lg border-2" style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
                     borderColor: elegantPalette.functional.success + '50',
                     boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.functional.success}30`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.success }}>{analytics.activeUsers}</div>
+                    <div className="text-lg font-bold" style={{ color: elegantPalette.functional.success }}>{analytics.activeUsers}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>Active Users</div>
                   </div>
                 </div>
@@ -2521,7 +2454,7 @@ function Admin() {
                 background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
               }}>
                 <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* Mobile */}
                   {analytics.deviceBreakdown.mobile && (
                     <div className="space-y-2">
@@ -2642,11 +2575,11 @@ function Admin() {
         )}
 
         {activeTab === 'subscriptions' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* User Search and Table */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>All Users</h2>
-              <div className="mb-4">
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>All Users</h2>
+              <div className="mb-2">
                 <input
                   type="text"
                   placeholder="Search users by email or name..."
@@ -2665,11 +2598,11 @@ function Admin() {
             </div>
 
             {/* Recent Registrations */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
               <div className="space-y-3">
                 {subscriptions.recentRegistrations.length === 0 ? (
-                  <div className="text-center py-4">
+                  <div className="text-center py-2">
                     <p className="text-sm" style={{ color: theme.textLight }}>No recent registrations</p>
                   </div>
                 ) : (
@@ -2691,15 +2624,15 @@ function Admin() {
             </div>
 
             {/* Detailed User Activity */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-4">
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Activity Details</h2>
                 <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
                   Limited Tracking
                 </span>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Current Activity Limitations */}
                 <div className="space-y-3">
                   <h3 className="font-medium text-sm" style={{ color: theme.text }}>Currently Tracked:</h3>
@@ -2754,7 +2687,7 @@ function Admin() {
         )}
 
         {activeTab === 'feedback' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Status Filter Tabs */}
             <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4 border-b" style={{ borderColor: theme.border }}>
@@ -2809,7 +2742,7 @@ function Admin() {
               </div>
 
             {/* Main Tab Navigation */}
-            <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="rounded-lg border content-card shadow-sm mb-2" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4">
                 <div className="flex items-center gap-2">
                   <button
@@ -3304,7 +3237,7 @@ function Admin() {
                   
                   <div className="p-6">
                     {/* Messages */}
-                    <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-2 mb-2 max-h-[400px] overflow-y-auto">
                       {ticketMessages.length === 0 ? (
                         <div className="text-center py-8" style={{ color: theme.textLight }}>
                           <p>No messages yet</p>
@@ -3538,7 +3471,7 @@ function Admin() {
         )}
 
         {activeTab === 'lifetime' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Lifetime Code Manager - Physical Kit Redemption */}
             <LifetimeCodeManager theme={theme} />
             
@@ -3555,7 +3488,7 @@ function Admin() {
             <LifetimeAccessAudit theme={theme} />
 
             {/* Lifetime Users List */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
                   Lifetime Access Entries ({lifetimeUsers.length})
@@ -3745,7 +3678,7 @@ function Admin() {
 
 
         {activeTab === 'content' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
               <button
@@ -3762,7 +3695,7 @@ function Admin() {
               </button>
               <button
                 onClick={saveContentData}
-                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
               >
                 <Save size={18} />
@@ -3771,8 +3704,8 @@ function Admin() {
             </div>
 
             {/* Research Topics Management */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-4">
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Research Topics (Glossary)</h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -3784,7 +3717,7 @@ function Admin() {
                 </span>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Add New Topic */}
                 <div className="flex gap-2">
                   <input
@@ -3865,8 +3798,8 @@ function Admin() {
             </div>
 
             {/* Pen Types Management */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-4">
+            <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Pen Types</h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -3878,7 +3811,7 @@ function Admin() {
                 </span>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Add New Pen Type */}
                 <div className="flex gap-2">
                   <input
@@ -3972,15 +3905,21 @@ function Admin() {
           <VersionManager theme={theme} />
         )}
 
-        {activeTab === 'notifications' && (
-          <div className="space-y-6">
+        {activeTab === 'pushNotifications' && (
+          <div className="space-y-3">
             <PushNotificationBroadcast theme={theme} />
             <TriggeredNotificationManager theme={theme} />
           </div>
         )}
 
+        {activeTab === 'inAppNotifications' && (
+          <div className="space-y-3">
+            <InAppNotificationManager theme={theme} />
+          </div>
+        )}
+
         {activeTab === 'emails' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             <EmailQueueManager theme={theme} />
             <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />
@@ -3990,27 +3929,27 @@ function Admin() {
         )}
 
         {activeTab === 'emailTriggers' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             <EmailTriggerManager theme={theme} />
           </div>
         )}
 
         {activeTab === 'improvements' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             <ImprovementsTracker theme={theme} />
           </div>
         )}
 
         {/* Gifts Tab */}
         {activeTab === 'gifts' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Gift Analytics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium" style={{ color: theme.textLight }}>Total Gifts</p>
-                    <p className="text-2xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.total}</p>
+                    <p className="text-lg font-bold" style={{ color: theme.primary }}>{giftAnalytics.total}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
                     <Star size={24} style={{ color: theme.primary }} />
@@ -4018,11 +3957,11 @@ function Admin() {
                 </div>
               </div>
 
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium" style={{ color: theme.textLight }}>Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">{giftAnalytics.pending}</p>
+                    <p className="text-lg font-bold text-yellow-600">{giftAnalytics.pending}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100">
                     <Clock size={24} className="text-yellow-600" />
@@ -4030,11 +3969,11 @@ function Admin() {
                 </div>
               </div>
 
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium" style={{ color: theme.textLight }}>Redeemed</p>
-                    <p className="text-2xl font-bold text-green-600">{giftAnalytics.redeemed}</p>
+                    <p className="text-lg font-bold text-green-600">{giftAnalytics.redeemed}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
                     <CheckCircle size={24} className="text-green-600" />
@@ -4042,11 +3981,11 @@ function Admin() {
                 </div>
               </div>
 
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium" style={{ color: theme.textLight }}>Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">${giftAnalytics.totalRevenue.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-green-600">${giftAnalytics.totalRevenue.toFixed(2)}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
                     <DollarSign size={24} className="text-green-600" />
@@ -4056,8 +3995,8 @@ function Admin() {
             </div>
 
             {/* Gift Types Breakdown */}
-            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Gift Types</h3>
+            <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Gift Types</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
                   <p className="text-sm font-medium" style={{ color: theme.textLight }}>Monthly</p>
@@ -4075,8 +4014,8 @@ function Admin() {
             </div>
 
             {/* Recent Gifts */}
-            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Recent Gifts</h3>
+            <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Recent Gifts</h3>
               {giftAnalytics.recentGifts.length > 0 ? (
                 <div className="space-y-3">
                   {giftAnalytics.recentGifts.map((gift, index) => (
@@ -4146,7 +4085,7 @@ function Admin() {
           theme={theme}
           size="large"
         >
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
                 Topic Name
@@ -4249,7 +4188,7 @@ function Admin() {
           title="Edit Pen Type"
           theme={theme}
         >
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
                 Pen Type Name
@@ -4351,8 +4290,8 @@ function LifetimeAccessAudit({ theme }) {
   };
 
   return (
-    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-lg border p-3 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Shield size={20} style={{ color: theme.warning }} />
           <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
@@ -4383,26 +4322,26 @@ function LifetimeAccessAudit({ theme }) {
         </button>
       </div>
 
-      <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+      <p className="text-sm mb-2" style={{ color: theme.textLight }}>
         Scan all users to find anyone with lifetime access data who might be showing as "Trialing" in the app. This is read-only and won't change any accounts.
       </p>
 
       {showResults && auditResults && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-2">
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-              <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{auditResults.totalUsers}</div>
+              <div className="text-lg font-bold" style={{ color: elegantPalette.gold.metallic }}>{auditResults.totalUsers}</div>
               <div className="text-xs" style={{ color: theme.textLight }}>Total Users</div>
             </div>
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.success + '20' }}>
-              <div className="text-2xl font-bold" style={{ color: theme.success }}>
+              <div className="text-lg font-bold" style={{ color: theme.success }}>
                 {auditResults.summary.totalUsersWithLifetimeAccess}
               </div>
               <div className="text-xs" style={{ color: theme.textLight }}>Have Lifetime Access</div>
             </div>
             <div className="p-3 rounded-lg" style={{ backgroundColor: auditResults.conflictingUsers.length > 0 ? theme.warning + '20' : theme.success + '20' }}>
-              <div className="text-2xl font-bold" style={{ color: auditResults.conflictingUsers.length > 0 ? theme.warning : theme.success }}>
+              <div className="text-lg font-bold" style={{ color: auditResults.conflictingUsers.length > 0 ? theme.warning : theme.success }}>
                 {auditResults.conflictingUsers.length}
               </div>
               <div className="text-xs" style={{ color: theme.textLight }}>Conflicts Found</div>
@@ -4592,10 +4531,10 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
       <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
         <thead style={{ backgroundColor: theme.background }}>
           <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Subscription Status</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Subscription Status</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -4605,7 +4544,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
             
             return (
               <tr key={user.uid} className="hover:bg-opacity-50" style={{ backgroundColor: 'transparent' }}>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-4 py-2 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
                     <img className="h-10 w-10 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
@@ -4619,16 +4558,16 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
                   </div>
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-4 py-2 whitespace-nowrap">
                   <span className={`px-3 py-1 inline-flex items-center gap-1.5 text-xs leading-5 font-semibold rounded-full ${status.color}`}>
                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.dotColor }} />
                     {status.label}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+              <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
                   {user.lastActive?.toDate ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                   <button 
                     onClick={() => onViewUser(user)} 
                     className="px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-80 transition-all"

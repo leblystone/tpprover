@@ -709,9 +709,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
           )}
           */}
-          {/* Notifications temporarily hidden - future feature
           <NotificationBell theme={theme} />
-          */}
           {onDashboard && onDashboardCustomize && (
               <button 
                 type="button"

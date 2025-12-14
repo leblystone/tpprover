@@ -80,6 +80,14 @@ export function AppProvider({ children }) {
             const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
             const currentUserData = localStorage.getItem('tpprover_user');
             
+            // SAFETY: If no user tracking email exists, skip instant load
+            // This prevents loading old data after logout before new login completes
+            if (!lastUserEmail) {
+                console.log('⏸️ No user tracking email found - skipping instant load');
+                console.log('  Data will load from cloud after authentication');
+                return;
+            }
+            
             // If we have user data, check if there's a mismatch
             if (currentUserData) {
                 try {
@@ -94,6 +102,7 @@ export function AppProvider({ children }) {
                         
                         // Clear the stale data immediately
                         clearAllUserData();
+                        localStorage.removeItem('tpprover_last_user_email');
                         
                         // Skip loading any data - let auth handler load fresh data
                         return;
@@ -221,10 +230,30 @@ export function AppProvider({ children }) {
                     
                     if (lastEmail && lastEmail !== currentEmail) {
                         console.log('🛡️ Account switch detected. Clearing local user data to prevent bleed.');
+                        console.log(`  Previous user: ${lastEmail}`);
+                        console.log(`  New user: ${currentEmail}`);
+                        
+                        // CRITICAL: Clear all user data AND React state immediately
                         clearAllUserData();
+                        
+                        // Clear React state to prevent UI from showing old data
+                        setProtocols([]);
+                        setReconItems([]);
+                        setReconHistory([]);
+                        setSupplements([]);
+                        setOrders([]);
+                        setMetrics([]);
+                        setVendors([]);
+                        setCalendarNotes({});
+                        setStockpile([]);
+                        setScheduledBuys([]);
+                        setSubscription(null);
+                        
                         // Ensure demo can seed for brand new account
                         try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
                         try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                        
+                        console.log('✅ Account data cleared for new user (localStorage + React state)');
                     }
                     // Track current email for future comparisons
                     try { localStorage.setItem('tpprover_last_user_email', currentEmail); } catch {}
@@ -1110,9 +1139,25 @@ export function AppProvider({ children }) {
             } else {
                 // User is not authenticated, clear everything
                 setUser(null);
+                
+                // CRITICAL: Clear all auth-related data on logout
                 localStorage.removeItem('tpprover_auth_token');
                 localStorage.removeItem('tpprover_user');
-                localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking
+                localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking to prevent data bleeding
+                
+                // CRITICAL: Also clear all user data and React state to prevent bleeding
+                clearAllUserData();
+                setProtocols([]);
+                setReconItems([]);
+                setReconHistory([]);
+                setSupplements([]);
+                setOrders([]);
+                setMetrics([]);
+                setVendors([]);
+                setCalendarNotes({});
+                setStockpile([]);
+                setScheduledBuys([]);
+                setSubscription(null);
             }
         } catch (error) {
             console.error("Critical error in auth change handler:", error);
@@ -1350,6 +1395,12 @@ export function AppProvider({ children }) {
             
             // CRITICAL: Clear ALL user-specific localStorage data
             clearAllUserData();
+            
+            // CRITICAL: Explicitly clear user tracking to prevent data bleeding
+            localStorage.removeItem('tpprover_last_user_email');
+            localStorage.removeItem('tpprover_user');
+            localStorage.removeItem('tpprover_auth_token');
+            
             verifyUserDataCleared();
             
             // Clear app state

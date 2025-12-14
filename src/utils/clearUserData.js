@@ -3,11 +3,11 @@
  * This is CRITICAL for preventing data bleeding between accounts
  */
 
-// List of ALL keys that should be KEPT (minimal - auth only)
+// List of ALL keys that should be KEPT (minimal - preferences only)
+// CRITICAL: tpprover_last_user_email MUST be cleared on logout to enable account switch detection
 const KEYS_TO_KEEP = [
   'tpprover_theme',
   'tpprover_settings',
-  'tpprover_last_user_email',
 ];
 
 /**

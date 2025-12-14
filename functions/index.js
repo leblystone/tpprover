@@ -341,6 +341,31 @@ exports.adminExtendTrialPeriod = onCall(
       
       logger.info(`✅ Trial extended successfully. New end date: ${newEndIso}`);
       
+      // Send trial extension notification email
+      try {
+        const userEmail = userData.email;
+        const userName = userData.displayName || userData.name || null;
+        
+        if (userEmail) {
+          logger.info(`📧 Sending trial extension email to ${userEmail}`);
+          await emailService.sendTrialExtensionEmail(
+            userEmail,
+            userName,
+            days,
+            newEndIso,
+            note || null
+          );
+          logger.info(`✅ Trial extension email sent successfully to ${userEmail}`);
+        } else {
+          logger.warn('⚠️ User email not found, skipping trial extension email');
+        }
+      } catch (emailError) {
+        // Log but don't fail the function if email fails
+        logger.error('❌ Failed to send trial extension email:', emailError);
+        logger.error('❌ Email error details:', emailError.message);
+        // Trial extension still succeeded, email is just a notification
+      }
+      
       return { 
         success: true, 
         message: `Trial extended by ${days} days`,
