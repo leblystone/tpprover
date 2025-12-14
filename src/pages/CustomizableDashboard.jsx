@@ -752,7 +752,7 @@ export default function CustomizableDashboard() {
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
       
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border px-2" style={{ minWidth: 0 }}>
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border" style={{ minWidth: 0, boxSizing: 'border-box', width: '100%' }}>
         {/* Decorative background icon - positioned within content area */}
         <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
           <FlaskConical 
@@ -766,8 +766,8 @@ export default function CustomizableDashboard() {
         </div>
 
         {/* Dashboard Layout - Flexible Grid */}
-        <div className="overflow-x-hidden w-full" style={{ maxWidth: '100%' }}>
-<div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4 auto-rows-min w-full px-1 sm:px-2 box-border" style={{ maxWidth: '100%' }}>
+        <div className="w-full" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+<div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4 auto-rows-min box-border p-1" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             {enabledWidgetsForGrid.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);

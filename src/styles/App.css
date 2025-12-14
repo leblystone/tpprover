@@ -113,12 +113,16 @@ html, body {
   gap: 1rem !important;
   width: 100% !important;
   max-width: 100% !important;
-  padding: 0.25rem !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 
 .dashboard-grid > * {
   width: 100% !important;
   max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 
 /* ========================================
@@ -191,10 +195,7 @@ html, body {
   }
 
   /* Light, even padding on main containers */
-  .space-y-2,
-  .main-content,
-  .min-h-screen,
-  .dashboard-grid {
+  .main-content {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
@@ -206,9 +207,8 @@ html, body {
 
   /* Dashboard grid spacing */
   .dashboard-grid {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
     gap: 0.75rem !important;
+    padding: 2px !important; /* Add small padding for shadows */
   }
 
   /* Widgets fill the grid area; let padding handle breathing room */
