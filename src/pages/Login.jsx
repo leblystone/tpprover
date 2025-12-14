@@ -1645,18 +1645,6 @@ export default function Login() {
                                 </div>
                             )}
 
-                            {needsPasswordForSync && mode === 'login' && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                                    <div className="flex items-start gap-2">
-                                        <div className="text-blue-600 mt-0.5">🔐</div>
-                                        <div className="text-sm text-blue-800">
-                                            <strong>Data Sync Required:</strong> You're logging in from a new device or browser. 
-                                            Enter your password to sync your data (protocols, orders, stockpile, etc.) from your other devices.
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {error && (
                                 <div className="space-y-2">
                                     <p className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md whitespace-pre-line">{error}</p>
