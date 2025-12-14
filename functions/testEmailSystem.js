@@ -1351,49 +1351,110 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Trial Expired Survey Email';
+    } else if (templateType === 'trialExtension') {
+      logger.info('Testing trial extension email...');
+      
+      try {
+        // Try to load custom template or use templateData
+        let htmlContent, subjectText;
+        const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+        
+        const customTemplate = templateData || await loadEmailTemplate('trialExtension');
+        
+        if (customTemplate) {
+          logger.info('✅ Using custom trialExtension template');
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User',
+            userEmail: testEmail,
+            daysAdded: 7,
+            newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            adminNote: 'This is a test extension from the admin panel'
+          });
+          subjectText = customTemplate.subject || '🎉 Your Research Trial Has Been Extended!';
+        } else {
+          // Simple fallback
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Your Trial Has Been Extended! 🎉</h1>
+              <p>We've added 7 days to your trial. Keep exploring!</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = '🎉 Your Research Trial Has Been Extended!';
+        }
+        
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+        logger.info('✅ Trial extension test email sent successfully');
+      } catch (error) {
+        logger.error('❌ Trial extension email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Trial Extension Email';
     } else {
-      // Default: send all emails for general testing
-      logger.info('Testing all email types...');
+      // Default: send single generic test email instead of multiple
+      logger.info('⚠️ Unknown template type, sending generic test email...');
       
-      const welcomeResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
-      const trialResult = await emailService.sendTrialEndingEmail(testEmail, 2);
-      const lifetimeResult = await emailService.sendLifetimeAccessGrantedEmail(testEmail, 'System Test');
-      const giftExpiringResult = await emailService.sendGiftExpiringSoonEmail(testEmail, 'Monthly Gift Plan', 3, 'Test Friend');
-      
-      results.tests.welcomeEmail = {
-        success: welcomeResult,
-        message: welcomeResult ? 'Email sent successfully' : 'Email failed to send'
-      };
-      results.tests.trialEndingEmail = {
-        success: trialResult,
-        message: trialResult ? 'Email sent successfully' : 'Email failed to send'
-      };
-      results.tests.lifetimeAccessEmail = {
-        success: lifetimeResult,
-        message: lifetimeResult ? 'Email sent successfully' : 'Email failed to send'
-      };
-      results.tests.giftExpiringSoonEmail = {
-        success: giftExpiringResult,
-        message: giftExpiringResult ? 'Email sent successfully' : 'Email failed to send'
-      };
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
+          subject: `Test Email - ${templateType || 'Unknown Template'}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Test Email</h1>
+              <p>This is a test email for template type: <strong>${templateType || 'Unknown'}</strong></p>
+              <p>Template handler not yet implemented. Add a specific handler in testEmailSystem.js</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+        emailName = `Test Email (${templateType})`;
+      } catch (error) {
+        logger.error('❌ Generic test email failed:', error);
+        emailResult = false;
+        emailName = `Failed Test (${templateType})`;
+      }
 
-      const successCount = Object.values(results.tests).filter(test => test.success).length;
-      const totalTests = Object.keys(results.tests).length;
-      
-      results.summary = {
-        totalTests,
-        successfulTests: successCount,
-        failedTests: totalTests - successCount,
-        overallSuccess: successCount === totalTests
-      };
-
-      logger.info(`✅ Email system test completed: ${successCount}/${totalTests} tests passed`);
-      
-      return {
-        success: true,
-        message: `Email system test completed: ${successCount}/${totalTests} tests passed`,
-        results
-      };
     }
 
     // Single template test
