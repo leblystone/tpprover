@@ -13,8 +13,11 @@ import { formatCurrency } from '../utils/currencyUtils'
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans'
 
 // Load subscription from cloud storage ONLY (no localStorage)
-async function loadSubscription(firebaseUser) { 
+async function loadSubscription(firebaseUser, forceRefresh = false) { 
   try { 
+    if (forceRefresh) {
+      console.log('🔄 Force refreshing subscription from Firestore...');
+    }
     const { loadUserSubscription } = await import('../services/cloudStorage');
     if (firebaseUser) {
       const subscription = await loadUserSubscription(firebaseUser.uid);
@@ -132,6 +135,7 @@ export default function AccountSubscription() {
         }
         
         const subscription = await loadSubscription(firebaseUser);
+        console.log('📊 Loaded subscription:', subscription);
         setSub(subscription);
       } catch (error) {
         console.error('❌ Error loading subscription:', error);
@@ -144,6 +148,25 @@ export default function AccountSubscription() {
     }
     
     loadSubData();
+    
+    // Listen for subscription updates from admin panel or other sources
+    const handleSubscriptionUpdate = async (e) => {
+      console.log('🔄 AccountSubscription: Received subscription:updated event');
+      if (e.detail?.subscription) {
+        setSub(e.detail.subscription);
+      } else if (firebaseUser) {
+        // Refetch if no subscription in event
+        const subscription = await loadSubscription(firebaseUser, true);
+        console.log('🔄 Re-fetched subscription after update event:', subscription);
+        setSub(subscription);
+      }
+    };
+    
+    window.addEventListener('subscription:updated', handleSubscriptionUpdate);
+    
+    return () => {
+      window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
+    };
   }, [firebaseUser]);
 
   // Calculate time left for trial
@@ -531,22 +554,60 @@ export default function AccountSubscription() {
   };
 
   const subscriptionState = getSubscriptionState();
+  
+  // Manual refresh function
+  const handleRefreshSubscription = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔄 Manually refreshing subscription...');
+      const subscription = await loadSubscription(firebaseUser, true);
+      console.log('✅ Subscription refreshed:', subscription);
+      setSub(subscription);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '✅ Subscription status refreshed', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to refresh:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '❌ Failed to refresh subscription', type: 'error' }
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <section className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate('/app/account')}
-          className="p-2 rounded-lg hover:opacity-80 transition-all"
-          style={{ backgroundColor: theme.secondary }}
-        >
-          <ArrowLeft size={20} style={{ color: theme.text }} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Research Subscription</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Manage subscription and billing</p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/app/account')}
+            className="p-2 rounded-lg hover:opacity-80 transition-all"
+            style={{ backgroundColor: theme.secondary }}
+          >
+            <ArrowLeft size={20} style={{ color: theme.text }} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Research Subscription</h1>
+            <p className="text-sm" style={{ color: theme.mutedText }}>Manage subscription and billing</p>
+          </div>
         </div>
+        
+        {/* Refresh Button */}
+        <button
+          onClick={handleRefreshSubscription}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ 
+            backgroundColor: theme.secondary,
+            opacity: isLoading ? 0.5 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          <RefreshCw size={16} style={{ color: theme.text }} className={isLoading ? 'animate-spin' : ''} />
+          <span className="text-sm font-medium" style={{ color: theme.text }}>Refresh</span>
+        </button>
       </div>
 
       {/* Subscription Status Card - Always Show */}

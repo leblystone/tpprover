@@ -1085,10 +1085,15 @@ function Admin() {
       setLoading(prev => ({ ...prev, trialExtension: true }));
 
       const adminEmail = auth.currentUser?.email || email || 'admin@thepepplanner.com';
-      await extendTrialForUser(userId, days, note, adminEmail);
+      const result = await extendTrialForUser(userId, days, note, adminEmail);
 
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Research trial extended successfully.', type: 'success' }
+        detail: { message: '✅ Trial extended! User will see updated status on next refresh.', type: 'success' }
+      }));
+
+      // Trigger subscription update event - helps if user has account page open
+      window.dispatchEvent(new CustomEvent('subscription:updated', {
+        detail: { subscription: null } // Force refetch
       }));
 
       // Try to reload user list (may fail due to permissions)

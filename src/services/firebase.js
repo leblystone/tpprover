@@ -919,6 +919,31 @@ export async function extendTrialForUser(userId, additionalDays, note = '', admi
 }
 
 /**
+ * Debug function to check user's subscription data in Firestore
+ * @param {string} userId - User ID to check
+ * @returns {Promise<Object>} Raw subscription data from both collections
+ */
+export async function debugUserSubscription(userId) {
+  try {
+    console.log(`🔍 Debugging subscription for user: ${userId}`);
+    
+    const functions = getFunctions();
+    const debugFunction = httpsCallable(functions, 'debugUserSubscription');
+    
+    const result = await debugFunction({
+      adminPassword: 'j&jm9102',
+      userId
+    });
+    
+    console.log('📊 Raw Firestore data:', result.data);
+    return result.data;
+  } catch (error) {
+    console.error('❌ Failed to debug subscription:', error);
+    throw error;
+  }
+}
+
+/**
  * Get a specific user by email (optimized for admin lifetime grant)
  * @param {string} email - User email to search for
  * @returns {Promise<Object|null>} User object or null if not found

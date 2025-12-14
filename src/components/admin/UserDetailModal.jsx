@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren } from 'lucide-react';
-import { createAdminMessage, createSupportTicket } from '../../services/firebase';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug } from 'lucide-react';
+import { createAdminMessage, createSupportTicket, debugUserSubscription } from '../../services/firebase';
 
 export default function UserDetailModal({
   user,
@@ -40,6 +40,9 @@ export default function UserDetailModal({
   const [twoWayMessage, setTwoWayMessage] = useState('');
   const [twoWaySubject, setTwoWaySubject] = useState('');
   const [isSendingSupport, setIsSendingSupport] = useState(false);
+  
+  // Debug state
+  const [isDebugging, setIsDebugging] = useState(false);
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
 
@@ -164,7 +167,7 @@ export default function UserDetailModal({
         days: parsedDays,
         note: extensionNote.trim()
       });
-      setLocalMessage('Additional research time added successfully. Ask the researcher to refresh their session.');
+      setLocalMessage('✅ Trial extended! The researcher MUST log out and log back in (or refresh their browser) to see their reactivated trial access.');
       setLocalMessageType('success');
       setExtensionNote('');
     } catch (error) {

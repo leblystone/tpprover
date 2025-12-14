@@ -290,19 +290,26 @@ exports.adminExtendTrialPeriod = onCall(
         newEnd: newEndIso
       };
       
-      // Update subscription
+      // Update subscription - explicitly reactivate trial
       const updatedSubscription = {
         ...existingSubscription,
         plan: '10-Day Research Trial',
         interval: 'trial',
-        status: 'trialing',
+        status: 'trialing', // Force status to trialing
         startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),
         currentPeriodStart: existingSubscription.currentPeriodStart || existingSubscription.startedAt || now.toISOString(),
         currentPeriodEnd: newEndIso,
         paymentMethod: existingSubscription.paymentMethod || null,
         adminExtended: true,
+        // Remove any expired/canceled flags
+        canceled_at: admin.firestore.FieldValue.delete(),
+        cancel_at: admin.firestore.FieldValue.delete(),
+        cancel_at_period_end: false,
         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       };
+      
+      logger.info(`📊 Setting subscription status to: ${updatedSubscription.status}`);
+      logger.info(`📅 New trial end date: ${newEndIso}`);
       
       // Get existing history
       const subscriptionHistory = Array.isArray(subscriptionData.trialExtensionHistory)
@@ -315,7 +322,7 @@ exports.adminExtendTrialPeriod = onCall(
         : [];
       userHistory.push(extensionEntry);
       
-      // Update both collections
+      // Update both collections - force reactivate trial
       await Promise.all([
         subscriptionRef.set({
           subscription: updatedSubscription,
@@ -327,14 +334,20 @@ exports.adminExtendTrialPeriod = onCall(
             ...(userData.subscription || {}),
             plan: updatedSubscription.plan,
             interval: 'trial',
-            status: 'trialing',
+            status: 'trialing', // Force status to trialing
             currentPeriodEnd: newEndIso,
             currentPeriodStart: updatedSubscription.currentPeriodStart,
             adminExtended: true,
+            // Remove any expired/canceled flags
+            canceled_at: admin.firestore.FieldValue.delete(),
+            cancel_at: admin.firestore.FieldValue.delete(),
+            cancel_at_period_end: false,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
           },
           trialEndDate: admin.firestore.Timestamp.fromDate(newEndDate),
           trialExtensionHistory: userHistory,
+          // Clear any trial expired flags at user level
+          trialExpired: false,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true })
       ]);
@@ -385,6 +398,46 @@ exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
 // Audit Lifetime Access - Read-only function to find conflicting lifetime grants
 const auditLifetimeAccess = require('./auditLifetimeAccess');
 exports.auditLifetimeAccess = auditLifetimeAccess.auditLifetimeAccess;
+
+// Debug function to check user's actual subscription data in Firestore
+exports.debugUserSubscription = onCall(
+  { cors: true },
+  async (request) => {
+    try {
+      const { adminPassword, userId } = request.data;
+      
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      const db = admin.firestore();
+      
+      // Get both documents
+      const [userDoc, subDoc] = await Promise.all([
+        db.collection('users').doc(userId).get(),
+        db.collection('userSubscriptions').doc(userId).get()
+      ]);
+      
+      const result = {
+        userId,
+        usersCollection: userDoc.exists() ? {
+          email: userDoc.data().email,
+          subscription: userDoc.data().subscription,
+          trialEndDate: userDoc.data().trialEndDate,
+          trialExpired: userDoc.data().trialExpired
+        } : null,
+        userSubscriptionsCollection: subDoc.exists() ? subDoc.data() : null
+      };
+      
+      logger.info('📊 Debug subscription data:', result);
+      return result;
+    } catch (error) {
+      logger.error('❌ Error debugging subscription:', error);
+      throw error;
+    }
+  }
+);
 
 // Recover Lifetime Purchases - Find and fix users who paid but don't have lifetime access
 exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurchases;

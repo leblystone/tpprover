@@ -4,6 +4,33 @@ import { getLocalDateString } from './date';
 const PROTOCOL_HISTORY_KEY = 'tpprover_protocol_history';
 
 /**
+ * Clean up test/mock protocol history entries
+ * Removes entries with "Test Research Protocol" in the name
+ */
+export function cleanupTestProtocolHistory() {
+    try {
+        const allHistory = getProtocolHistory();
+        const filteredHistory = allHistory.filter(entry => {
+            const isTestEntry = entry.protocolName?.includes('Test Research Protocol');
+            if (isTestEntry) {
+                console.log('🧹 Removing test protocol history entry:', entry.protocolName);
+            }
+            return !isTestEntry;
+        });
+        
+        if (filteredHistory.length !== allHistory.length) {
+            localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(filteredHistory));
+            console.log(`✅ Cleaned up ${allHistory.length - filteredHistory.length} test protocol history entries`);
+        }
+        
+        // Also clean up the test flag
+        localStorage.removeItem('tpprover_test_history_created');
+    } catch (error) {
+        console.error('Error cleaning up test protocol history:', error);
+    }
+}
+
+/**
  * Get all protocol history entries
  */
 export function getProtocolHistory() {
@@ -454,138 +481,6 @@ export function scanForLegacyProtocolHistory() {
     } catch (error) {
         console.error('Error scanning for legacy protocol history:', error);
         return [];
-    }
-}
-
-/**
- * Create a test protocol history entry with full details for testing purposes
- * This function creates a complete history entry with all fields populated
- */
-export function createTestProtocolHistoryEntry(protocolId = 'test_protocol_001') {
-    try {
-        const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(startDate.getDate() - 30); // Started 30 days ago
-        const endDate = new Date(today);
-        endDate.setDate(endDate.getDate() - 5); // Ended 5 days ago
-        
-        const testEntry = {
-            id: generateId(12),
-            protocolId: protocolId,
-            protocolName: 'Test Research Protocol - Growth Hormone Optimization',
-            startDate: getLocalDateString(startDate),
-            endDate: getLocalDateString(endDate),
-            completionStatus: 'completed',
-            endType: 'completed',
-            protocolData: {
-                protocolName: 'Test Research Protocol - Growth Hormone Optimization',
-                peptides: [
-                    {
-                        name: 'BPC-157',
-                        dosage: {
-                            amount: 250,
-                            unit: 'mcg'
-                        },
-                        frequency: {
-                            type: 'regular',
-                            count: 1,
-                            per: 'Day',
-                            time: ['AM', 'PM']
-                        }
-                    },
-                    {
-                        name: 'Ipamorelin',
-                        dosage: {
-                            amount: 200,
-                            unit: 'mcg'
-                        },
-                        frequency: {
-                            type: 'cycle',
-                            onDays: 5,
-                            offDays: 2,
-                            time: ['PM']
-                        }
-                    },
-                    {
-                        name: 'CJC-1295',
-                        dosage: {
-                            amount: 100,
-                            unit: 'mcg'
-                        },
-                        frequency: {
-                            type: 'regular',
-                            count: 1,
-                            per: 'Day',
-                            time: ['PM']
-                        }
-                    }
-                ],
-                duration: {
-                    count: 4,
-                    unit: 'Week',
-                    noEnd: false
-                },
-                purpose: 'Research protocol for growth hormone optimization and recovery enhancement. Tracking adherence and outcomes for research documentation.'
-            },
-            vials: [
-                {
-                    vialId: 'test_vial_001',
-                    stockpileId: 'test_vial_001',
-                    name: 'BPC-157',
-                    mg: 5,
-                    vendor: 'Peptide Sciences',
-                    cost: 89.99,
-                    reconstitutionDate: getLocalDateString(new Date(startDate.getTime() + 1 * 24 * 60 * 60 * 1000))
-                },
-                {
-                    vialId: 'test_vial_002',
-                    stockpileId: 'test_vial_002',
-                    name: 'Ipamorelin',
-                    mg: 2,
-                    vendor: 'Core Peptides',
-                    cost: 45.00,
-                    reconstitutionDate: getLocalDateString(new Date(startDate.getTime() + 2 * 24 * 60 * 60 * 1000))
-                },
-                {
-                    vialId: 'test_vial_003',
-                    stockpileId: 'test_vial_003',
-                    name: 'CJC-1295',
-                    mg: 2,
-                    vendor: 'Peptide Sciences',
-                    cost: 75.50,
-                    reconstitutionDate: getLocalDateString(new Date(startDate.getTime() + 1 * 24 * 60 * 60 * 1000))
-                }
-            ],
-            reconstitutionData: {
-                reconStrategy: 'separate',
-                date: getLocalDateString(new Date(startDate.getTime() + 1 * 24 * 60 * 60 * 1000)),
-                notes: 'Reconstituted with bacteriostatic water. Stored in refrigerator at 2-8°C.'
-            },
-            vialsAddedDuring: [
-                {
-                    vialId: 'test_vial_004',
-                    stockpileId: 'test_vial_004',
-                    name: 'GHRP-6',
-                    mg: 2,
-                    vendor: 'Core Peptides',
-                    cost: 42.00,
-                    addedDate: getLocalDateString(new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000)),
-                    reconstitutionDate: getLocalDateString(new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000))
-                }
-            ],
-            createdAt: new Date(startDate.getTime()).toISOString(),
-            updatedAt: new Date(endDate.getTime()).toISOString()
-        };
-        
-        const allHistory = getProtocolHistory();
-        allHistory.push(testEntry);
-        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
-        
-        console.log('✅ Test protocol history entry created:', testEntry);
-        return testEntry;
-    } catch (error) {
-        console.error('Error creating test protocol history entry:', error);
-        return null;
     }
 }
 

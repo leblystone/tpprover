@@ -14,6 +14,7 @@ import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
+import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 
 const AppContext = createContext();
 
@@ -71,6 +72,9 @@ export function AppProvider({ children }) {
     useEffect(() => {
         // Initialize deletion tracking system
         initializeDeletionTracking();
+        
+        // Clean up test/mock protocol history entries
+        cleanupTestProtocolHistory();
         
         // Set flag to prevent welcome modal interference during initial load
         sessionStorage.setItem('tpp_initial_data_loading', 'true');
