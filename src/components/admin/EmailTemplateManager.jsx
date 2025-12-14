@@ -108,6 +108,24 @@ const DEFAULT_TEMPLATES = {
     highlightMessage: 'Choose from flexible plans starting at $8.99/month',
     features: []
   },
+  trialExtension: {
+    name: 'Trial Extension Notification',
+    subject: '🎉 Your Research Trial Has Been Extended!',
+    heading: 'Your Research Trial Has Been Extended! 🎉',
+    greeting: 'Hi %USERNAME%! Great news!',
+    mainMessage: 'We\'ve extended your research trial access to The Pep Planner! You now have %DAYSADDED% additional days to explore all the features. Your new trial end date is %NEWENDDATE%.',
+    ctaText: 'Continue Your Research',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '⏰ Updated Trial Period',
+    highlightMessage: 'Additional Days: %DAYSADDED% | New End Date: %NEWENDDATE%',
+    features: [
+      'Unlimited research protocol tracking',
+      'Vendor management and comparison',
+      'Order history and analytics',
+      'Lab access tracking and planning',
+      'Comprehensive research notes'
+    ]
+  },
   subscription: {
     name: 'Subscription Confirmed',
     subject: 'Subscription Confirmed - The Pep Planner',
@@ -371,6 +389,13 @@ export default function EmailTemplateManager({ theme }) {
     ],
     trialEnding: [
       { name: 'DAYSLEFT', description: 'Days remaining in trial' }
+    ],
+    trialExtension: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' },
+      { name: 'DAYSADDED', description: 'Number of days added to trial' },
+      { name: 'NEWENDDATE', description: 'New trial end date' },
+      { name: 'ADMINNOTE', description: 'Optional note from admin (can be empty)' }
     ],
     subscription: [
       { name: 'PLAN', description: 'Subscription plan name' },
@@ -995,7 +1020,7 @@ export default function EmailTemplateManager({ theme }) {
             ))}
           </optgroup>
           <optgroup label="Subscription & Billing">
-            {Object.entries(templates).filter(([key]) => ['trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder'].includes(key)).map(([key, template]) => (
+            {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder'].includes(key)).map(([key, template]) => (
               <option key={key} value={key}>{template.name}</option>
             ))}
           </optgroup>
@@ -1020,7 +1045,7 @@ export default function EmailTemplateManager({ theme }) {
             ))}
           </optgroup>
           <optgroup label="Other">
-            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
+            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
               <option key={key} value={key}>{template.name}</option>
             ))}
           </optgroup>

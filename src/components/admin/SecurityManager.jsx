@@ -14,7 +14,6 @@ export default function SecurityManager({ theme }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [lastRefresh, setLastRefresh] = useState(null);
   const [stats, setStats] = useState({
     totalUnverified: 0,
     totalSuspicious: 0,
@@ -40,11 +39,9 @@ export default function SecurityManager({ theme }) {
           totalSuspicious: result.data.suspiciousAccounts?.length || 0,
           totalBlocked: result.data.blockedAccounts?.length || 0
         });
-        setLastRefresh(new Date());
       }
     } catch (error) {
       console.error('Error loading security data:', error);
-      alert('❌ Error loading security data. Check console for details.');
     } finally {
       setLoading(false);
     }
@@ -149,31 +146,6 @@ export default function SecurityManager({ theme }) {
 
   return (
     <div className="space-y-6">
-      {/* Refresh Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: theme.text }}>Security Dashboard</h2>
-          {lastRefresh && (
-            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-              Last refreshed: {lastRefresh.toLocaleTimeString()}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={loadSecurityData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
-          style={{ 
-            backgroundColor: theme.primary, 
-            color: '#fff',
-            opacity: loading ? 0.5 : 1
-          }}
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'Refreshing...' : 'Refresh Data'}
-        </button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
