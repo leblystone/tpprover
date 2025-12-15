@@ -2151,3 +2151,229 @@ export async function deleteLifetimeCodeBatch(batchId) {
     throw error;
   }
 }
+
+// ============================================================================
+// ANNUAL CODES (Physical Kit Redemption - 1 Year Access)
+// ============================================================================
+
+/**
+ * Generate a random 6-character alphanumeric code for annual subscription
+ * @returns {string} - 6-character code
+ */
+function generateAnnualCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Create new annual subscription codes
+ * @param {number} count - Number of codes to generate
+ * @param {string} batchName - Optional name for the batch
+ * @returns {Promise<Array>} - Array of created codes
+ */
+export async function createAnnualCodes(count, batchName = '') {
+  try {
+    const existingCodes = await getAnnualCodes();
+    const existingCodeSet = new Set(existingCodes.map(c => c.code));
+    const createdCodes = [];
+    const batchId = `ANNUAL-${Date.now()}`;
+    
+    for (let i = 0; i < count; i++) {
+      // Generate unique code
+      let code = generateAnnualCode();
+      let attempts = 0;
+      while (existingCodeSet.has(code) && attempts < 100) {
+        code = generateAnnualCode();
+        attempts++;
+      }
+      
+      if (attempts >= 100) {
+        throw new Error('Failed to generate unique code after 100 attempts');
+      }
+      
+      // Create code document in Firestore
+      const codeData = {
+        code,
+        used: false,
+        usedBy: null,
+        usedByUid: null,
+        usedAt: null,
+        batchId,
+        batchName: batchName || `Annual Batch ${new Date().toLocaleDateString()}`,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.email || 'admin',
+        type: 'annual',
+        durationYears: 1 // 1 year subscription
+      };
+      
+      const codeRef = doc(db, 'annualCodes', code);
+      await setDoc(codeRef, codeData);
+      
+      existingCodeSet.add(code);
+      createdCodes.push({ ...codeData, code });
+    }
+    
+    console.log(`✅ Created ${createdCodes.length} annual codes in batch ${batchId}`);
+    return createdCodes;
+  } catch (error) {
+    console.error('❌ Failed to create annual codes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all annual codes
+ * @returns {Promise<Array>}
+ */
+export async function getAnnualCodes() {
+  try {
+    const codesRef = collection(db, 'annualCodes');
+    const codesSnapshot = await getDocs(codesRef);
+    
+    const codes = [];
+    codesSnapshot.forEach(doc => {
+      codes.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by creation date (newest first)
+    codes.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+      const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+      return bTime - aTime;
+    });
+    
+    return codes;
+  } catch (error) {
+    console.error('❌ Failed to get annual codes:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete an annual code (only unused codes)
+ * @param {string} code - Code to delete
+ * @returns {Promise<boolean>}
+ */
+export async function deleteAnnualCode(code) {
+  try {
+    const codeRef = doc(db, 'annualCodes', code);
+    const codeDoc = await getDoc(codeRef);
+    
+    if (!codeDoc.exists()) {
+      throw new Error('Code not found');
+    }
+    
+    if (codeDoc.data().used) {
+      throw new Error('Cannot delete a code that has been redeemed');
+    }
+    
+    await deleteDoc(codeRef);
+    console.log('🗑️ Deleted annual code:', code);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to delete annual code:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all unused annual codes in a batch
+ * @param {string} batchId - Batch ID to delete
+ * @returns {Promise<{deleted: number, skipped: number}>}
+ */
+export async function deleteAnnualCodeBatch(batchId) {
+  try {
+    const codesRef = collection(db, 'annualCodes');
+    const q = query(codesRef, where('batchId', '==', batchId));
+    const snapshot = await getDocs(q);
+    
+    let deleted = 0;
+    let skipped = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      if (!docSnap.data().used) {
+        await deleteDoc(docSnap.ref);
+        deleted++;
+      } else {
+        skipped++;
+      }
+    }
+    
+    console.log(`🗑️ Deleted ${deleted} annual codes from batch, skipped ${skipped} used codes`);
+    return { deleted, skipped };
+  } catch (error) {
+    console.error('❌ Failed to delete annual batch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Grant annual subscription access via Firestore
+ * @param {string} userId - User ID
+ * @param {string} email - User email
+ * @param {string} reason - Reason for grant
+ * @param {string} grantedBy - Who granted access
+ * @returns {Promise<object>} - Subscription details with expiration
+ */
+export async function grantAnnualAccessFirestore(userId, email, reason = 'Annual Kit Redemption', grantedBy = 'annual-kit') {
+  try {
+    console.log('📅 Granting annual access to:', email, userId);
+    
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    
+    // Update user document
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      subscription: {
+        plan: 'annual',
+        interval: 'year',
+        status: 'active',
+        source: grantedBy,
+        reason,
+        currentPeriodStart: now.toISOString(),
+        currentPeriodEnd: expiresAt.toISOString(),
+        redeemedAt: now.toISOString()
+      },
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    // Write to userSubscriptions collection (where app reads from)
+    const subscriptionRef = doc(db, 'userSubscriptions', userId);
+    await setDoc(subscriptionRef, {
+      subscription: {
+        id: `annual_kit_${Date.now()}`,
+        plan: 'annual',
+        interval: 'year',
+        status: 'active',
+        source: grantedBy,
+        currentPeriodStart: now.toISOString(),
+        currentPeriodEnd: expiresAt.toISOString(),
+        redeemedAt: now.toISOString()
+      },
+      userId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    console.log(`✅ Annual access granted until ${expiresAt.toLocaleDateString()}`);
+    
+    return {
+      plan: 'annual',
+      interval: 'year',
+      status: 'active',
+      currentPeriodStart: now.toISOString(),
+      currentPeriodEnd: expiresAt.toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Failed to grant annual access:', error);
+    throw error;
+  }
+}

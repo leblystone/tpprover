@@ -114,6 +114,7 @@ export default function Login() {
     const isPreGranted = searchParams.get('pregrant') === 'true';
     const emailFromUrl = searchParams.get('email');
     const lifetimeCode = searchParams.get('lifetime'); // Lifetime access code from redemption page
+    const annualCode = searchParams.get('annual'); // Annual subscription code from redemption page
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     // Default to signup mode if coming from trial link or signup=true, otherwise login
@@ -675,6 +676,82 @@ export default function Login() {
           }
         }
         
+        // Check if this login has an annual code to redeem (upgrade existing account)
+        if (annualCode) {
+          console.log('📅 Annual code detected during login, upgrading account...');
+          try {
+            const { grantAnnualAccessFirestore } = await import('../services/firebase');
+            const { doc, updateDoc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            
+            // Calculate expiration (1 year from now)
+            const now = new Date();
+            const expiresAt = new Date(now);
+            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+            
+            // Grant annual access
+            await grantAnnualAccessFirestore(
+              firebaseUser.uid,
+              firebaseUser.email,
+              'Annual Kit Redemption (Login Upgrade)',
+              'annual-kit'
+            );
+            console.log('✅ Annual access granted to existing account!');
+            
+            // Mark code as used
+            try {
+              const codeRef = doc(db, 'annualCodes', annualCode);
+              await updateDoc(codeRef, {
+                used: true,
+                usedBy: firebaseUser.email,
+                usedByUid: firebaseUser.uid,
+                usedAt: new Date().toISOString()
+              });
+              console.log('✅ Annual code marked as used:', annualCode);
+            } catch (codeError) {
+              console.error('⚠️ Failed to mark annual code as used:', codeError);
+            }
+            
+            // Update localStorage subscription
+            const annualSubscription = {
+              id: `annual_kit_${Date.now()}`,
+              plan: 'annual',
+              interval: 'year',
+              status: 'active',
+              source: 'annual-kit',
+              currentPeriodStart: now.toISOString(),
+              currentPeriodEnd: expiresAt.toISOString(),
+              redeemedAt: now.toISOString(),
+            };
+            localStorage.setItem('tpprover_subscription', JSON.stringify(annualSubscription));
+            console.log('💾 Annual subscription saved to localStorage');
+            
+            // CRITICAL: Trigger subscription refresh
+            window.dispatchEvent(new CustomEvent('subscription:updated', { 
+              detail: { subscription: annualSubscription } 
+            }));
+            
+            // Refresh from cloud after a moment
+            setTimeout(async () => {
+              try {
+                const { loadUserSubscription } = await import('../services/cloudStorage');
+                const refreshedSubscription = await loadUserSubscription(firebaseUser.uid);
+                if (refreshedSubscription) {
+                  window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                    detail: { subscription: refreshedSubscription } 
+                  }));
+                  console.log('✅ Subscription refreshed from cloud after annual grant');
+                }
+              } catch (err) {
+                console.error('⚠️ Failed to refresh subscription from cloud:', err);
+              }
+            }, 1000);
+          } catch (annualError) {
+            console.error('❌ Failed to apply annual during login:', annualError);
+            // Continue with login even if annual fails - user can contact support
+          }
+        }
+        
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
         
@@ -682,7 +759,8 @@ export default function Login() {
         // Small delay to ensure context is updated before navigation
         setTimeout(() => {
           startTransition(() => {
-            navigate(lifetimeCode ? '/app/dashboard?lifetime_activated=true' : '/app/dashboard');
+            const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
+            navigate(activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard');
           });
         }, 100);
         return true;
@@ -1160,6 +1238,87 @@ export default function Login() {
             // Fall back to trial if lifetime granting fails
             throw new Error('Failed to activate lifetime access. Please contact support.');
           }
+        } else if (annualCode) {
+          // Check if this is an annual code redemption
+          console.log('📅 Annual code detected, granting annual access...');
+          try {
+            // Import annual access function
+            const { grantAnnualAccessFirestore } = await import('../services/firebase');
+            const { doc, updateDoc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            
+            // Calculate expiration (1 year from now)
+            const now = new Date();
+            const expiresAt = new Date(now);
+            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+            
+            // Grant annual access
+            await grantAnnualAccessFirestore(
+              firebaseUser.uid, 
+              firebaseUser.email, 
+              'Annual Kit Redemption',
+              'annual-kit'
+            );
+            console.log('✅ Annual access granted successfully!');
+            
+            // Mark the code as used
+            try {
+              const codeRef = doc(db, 'annualCodes', annualCode);
+              await updateDoc(codeRef, {
+                used: true,
+                usedBy: firebaseUser.email,
+                usedByUid: firebaseUser.uid,
+                usedAt: new Date().toISOString()
+              });
+              console.log('✅ Annual code marked as used:', annualCode);
+            } catch (codeError) {
+              console.error('⚠️ Failed to mark annual code as used (but access was granted):', codeError);
+              console.error('Code that failed:', annualCode);
+              console.error('Error details:', codeError.code, codeError.message);
+            }
+            
+            // Create annual subscription in localStorage
+            const annualSubscription = {
+              id: `annual_kit_${Date.now()}`,
+              plan: 'annual',
+              interval: 'year',
+              status: 'active',
+              source: 'annual-kit',
+              currentPeriodStart: now.toISOString(),
+              currentPeriodEnd: expiresAt.toISOString(),
+              redeemedAt: now.toISOString(),
+            };
+            try {
+              localStorage.setItem('tpprover_subscription', JSON.stringify(annualSubscription));
+              
+              // CRITICAL: Trigger subscription refresh
+              window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                detail: { subscription: annualSubscription } 
+              }));
+              
+              // Refresh from cloud after a moment
+              setTimeout(async () => {
+                try {
+                  const { loadUserSubscription } = await import('../services/cloudStorage');
+                  const refreshedSubscription = await loadUserSubscription(firebaseUser.uid);
+                  if (refreshedSubscription) {
+                    window.dispatchEvent(new CustomEvent('subscription:updated', { 
+                      detail: { subscription: refreshedSubscription } 
+                    }));
+                    console.log('✅ Subscription refreshed from cloud after annual grant');
+                  }
+                } catch (err) {
+                  console.error('⚠️ Failed to refresh subscription from cloud:', err);
+                }
+              }, 1000);
+              console.log('💾 Annual subscription saved to localStorage');
+            } catch (e) {
+              console.error('❌ Failed to save annual to localStorage:', e);
+            }
+          } catch (annualError) {
+            console.error('❌ Failed to grant annual access:', annualError);
+            throw new Error('Failed to activate annual access. Please contact support.');
+          }
         } else {
           // Create 10-day research trial subscription and save to BOTH cloud AND localStorage
           try {
@@ -1229,7 +1388,8 @@ export default function Login() {
         
         // Navigate to dashboard
         console.log('🚀 Navigating to dashboard');
-        window.location.href = '/app/dashboard';
+        const activatedQuery = lifetimeCode ? '?lifetime_activated=true' : (annualCode ? '?annual_activated=true' : '');
+        window.location.href = `/app/dashboard${activatedQuery}`;
         return true;
       } catch (error) {
         // Clear signup flag on error too

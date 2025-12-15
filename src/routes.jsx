@@ -53,6 +53,7 @@ const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'), 'Veri
 const RedeemGift = lazyWithRetry(() => import('./pages/RedeemGift.jsx'), 'RedeemGift')
 const GiftSuccess = lazyWithRetry(() => import('./pages/GiftSuccess.jsx'), 'GiftSuccess')
 const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'), 'RedeemLifetime')
+const RedeemAnnual = lazyWithRetry(() => import('./pages/RedeemAnnual.jsx'), 'RedeemAnnual')
 const TestAnnualCheckout = lazyWithRetry(() => import('./pages/TestAnnualCheckout.jsx'), 'TestAnnualCheckout')
 
 // Launch Configuration
@@ -165,6 +166,11 @@ export const router = createBrowserRouter([
   {
     path: '/research-lifetime',
     element: <RedeemLifetime />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/research-annual',
+    element: <RedeemAnnual />,
     errorElement: <NotFound />,
   },
   {

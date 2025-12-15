@@ -647,29 +647,77 @@ export default function EmailTemplateManager({ theme }) {
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
 
       // Send specific template based on current selection WITH custom template data
+      console.log('📧 Calling testEmailSystem with:', {
+        testEmail: 'thepepplanner@gmail.com',
+        templateType: selectedTemplate,
+        hasTemplateData: !!currentTemplate
+      });
+      
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate,
         templateData: currentTemplate // Send the actual custom template
       });
 
-      if (result.data.success) {
+      console.log('📧 testEmailSystem response:', result.data);
+
+      if (result.data && result.data.success) {
         setTestResult({ 
           success: true, 
           message: `${currentTemplate.name} sent successfully to thepepplanner@gmail.com!` 
         });
       } else {
+        const errorMsg = result.data?.error || result.data?.message || 'Failed to send test email';
+        const testDetails = result.data?.results?.tests?.[selectedTemplate];
+        const detailedError = testDetails?.error || testDetails?.message || errorMsg;
+        const errorCode = result.data?.errorCode;
+        
+        console.error('❌ Email test failed:', detailedError);
+        console.error('❌ Error code:', errorCode);
+        console.error('❌ Full response:', result.data);
+        console.error('❌ Test details:', testDetails);
+        console.error('❌ Results object:', result.data?.results);
+        
+        // Show more detailed error message
+        let displayError = detailedError || errorMsg;
+        if (errorCode) {
+          displayError += ` (Code: ${errorCode})`;
+        }
+        
         setTestResult({ 
           success: false, 
-          message: result.data.error || result.data.message || 'Failed to send test email' 
+          message: displayError
         });
       }
     } catch (error) {
-      console.error('Error sending test email:', error);
+      console.error('❌ Error sending test email:', error);
+      console.error('❌ Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Failed to send test email';
+      if (error.code === 'functions/not-found') {
+        errorMessage = 'Function not found. Please deploy Firebase functions.';
+      } else if (error.code === 'functions/internal') {
+        errorMessage = `Function error: ${error.message || 'Internal server error'}`;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      } else if (error.details) {
+        errorMessage = `Error: ${JSON.stringify(error.details)}`;
+      }
+      
       setTestResult({ 
         success: false, 
-        message: `Error: ${error.message}` 
+        message: errorMessage
       });
+      
+      // Also show toast notification
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `❌ ${errorMessage}`, type: 'error' }
+      }));
     } finally {
       setIsSendingTest(false);
     }

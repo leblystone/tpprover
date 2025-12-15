@@ -1056,15 +1056,22 @@ exports.testEmailSystem = onCall(
           });
           
           logger.info('📧 Generating HTML with variables:', { userName: 'Test User', userEmail: testEmail, daysAdded: 7, newEndDate: testDate });
-          htmlContent = generateEmailHTML(customTemplate, { 
-            userName: 'Test User',
-            userEmail: testEmail,
-            daysAdded: 7,
-            newEndDate: testDate,
-            adminNote: 'This is a test extension from the admin panel'
-          });
-          subjectText = customTemplate.subject || '🎉 Your Research Trial Has Been Extended!';
-          logger.info('✅ HTML generated successfully, length:', htmlContent.length);
+          try {
+            htmlContent = generateEmailHTML(customTemplate, { 
+              userName: 'Test User',
+              userEmail: testEmail,
+              daysAdded: 7,
+              newEndDate: testDate,
+              adminNote: 'This is a test extension from the admin panel'
+            });
+            subjectText = customTemplate.subject || '🎉 Your Research Trial Has Been Extended!';
+            logger.info('✅ HTML generated successfully, length:', htmlContent.length);
+          } catch (htmlError) {
+            logger.error('❌ Failed to generate HTML:', htmlError);
+            logger.error('❌ HTML generation error message:', htmlError.message);
+            logger.error('❌ HTML generation error stack:', htmlError.stack);
+            throw new Error(`Failed to generate email HTML: ${htmlError.message}`);
+          }
         } else {
           // Fallback to themed default template
           logger.info('📧 Using themed default trialExtension template');
@@ -1079,14 +1086,22 @@ exports.testEmailSystem = onCall(
             postCtaNote: 'If you have any questions, feel free to reach out to our support team.',
             features: []
           };
-          htmlContent = generateEmailHTML(defaultTemplate, { 
-            userName: 'Test User', 
-            userEmail: testEmail, 
-            daysAdded: 7, 
-            newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-            adminNote: 'This is a test extension from the admin panel'
-          });
-          subjectText = '🎉 Your Research Trial Has Been Extended!';
+          try {
+            htmlContent = generateEmailHTML(defaultTemplate, { 
+              userName: 'Test User', 
+              userEmail: testEmail, 
+              daysAdded: 7, 
+              newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+              adminNote: 'This is a test extension from the admin panel'
+            });
+            subjectText = '🎉 Your Research Trial Has Been Extended!';
+            logger.info('✅ Default template HTML generated successfully, length:', htmlContent.length);
+          } catch (htmlError) {
+            logger.error('❌ Failed to generate default template HTML:', htmlError);
+            logger.error('❌ HTML generation error message:', htmlError.message);
+            logger.error('❌ HTML generation error stack:', htmlError.stack);
+            throw new Error(`Failed to generate email HTML: ${htmlError.message}`);
+          }
         }
         
         logger.info('📧 Sending email via Resend to:', testEmail);
@@ -1100,7 +1115,10 @@ exports.testEmailSystem = onCall(
         emailResult = false;
         emailName = `Trial Extension Email - ${error.message}`;
       }
-      emailName = 'Trial Extension Email';
+      // Don't overwrite emailName if it already has an error message
+      if (!emailName || emailName === 'Trial Extension Email') {
+        emailName = 'Trial Extension Email';
+      }
     } else {
       // Default: send single generic test email instead of multiple
       logger.info('⚠️ Unknown template type, sending generic test email...');
@@ -1131,22 +1149,37 @@ exports.testEmailSystem = onCall(
     // Single template test
     results.tests[templateType] = {
       success: emailResult,
-      message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+      message: emailResult ? 'Email sent successfully' : 'Email failed to send',
+      error: emailResult ? null : (emailName.includes(' - ') ? emailName.split(' - ')[1] : 'Unknown error')
     };
 
     logger.info(`✅ ${emailName} test completed: ${emailResult ? 'SUCCESS' : 'FAILED'}`);
     
+    // Include more error details in response
+    const responseMessage = emailResult 
+      ? `${emailName} sent successfully` 
+      : `${emailName} failed to send${emailName.includes(' - ') ? `: ${emailName.split(' - ')[1]}` : ''}`;
+    
     return {
       success: emailResult,
-      message: emailResult ? `${emailName} sent successfully` : `${emailName} failed to send`,
+      message: responseMessage,
+      error: emailResult ? null : (emailName.includes(' - ') ? emailName.split(' - ')[1] : 'Unknown error'),
       results
     };
 
   } catch (error) {
     logger.error('❌ Email system test failed:', error);
+    logger.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return {
       success: false,
-      error: error.message,
+      error: error.message || 'Unknown error',
+      errorCode: error.code,
+      errorStack: error.stack,
+      message: `Email system test failed: ${error.message || 'Unknown error'}`,
       results
     };
   }
