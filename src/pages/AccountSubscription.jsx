@@ -687,9 +687,18 @@ export default function AccountSubscription() {
                 </p>
               )}
               {subscriptionState.type === 'annual' && (
-                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                  Currently on <span className="font-semibold" style={{ color: theme.text }}>Annual Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Lifetime</span> and never pay again!
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                    Currently on <span className="font-semibold" style={{ color: theme.text }}>Annual Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Lifetime</span> and never pay again!
+                  </p>
+                  {sub?.currentPeriodEnd && (
+                    <p className="text-xs" style={{ color: theme.textLight }}>
+                      Access valid until: <span className="font-semibold" style={{ color: theme.text }}>
+                        {new Date(sub.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                    </p>
+                  )}
+                </div>
               )}
               {subscriptionState.type === 'lifetime' && (
                 <div className="flex items-center gap-2">
@@ -756,6 +765,15 @@ export default function AccountSubscription() {
                   <div className="text-sm" style={{ color: theme.mutedText }}>Trial ends in</div>
                   <div className="text-lg font-bold" style={{ color: theme.text }}>
                     {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
+                  </div>
+                </div>
+              )}
+              {/* Annual subscription expiration display */}
+              {sub.interval === 'year' && sub.currentPeriodEnd && sub.status === 'active' && (
+                <div className="text-right">
+                  <div className="text-sm" style={{ color: theme.mutedText }}>Access until</div>
+                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+                    {new Date(sub.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                 </div>
               )}
