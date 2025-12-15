@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Send } from 'lucide-react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { createSupportTicket } from '../../services/firebase';
 import { executeRecaptcha } from '../../utils/recaptcha';
 
 export default function LandingContactModal({ open, onClose }) {
@@ -27,42 +27,40 @@ export default function LandingContactModal({ open, onClose }) {
         setSubmitStatus(null);
         
         try {
-            // Execute reCAPTCHA for contact form
-            let recaptchaToken = null;
-            try {
-                recaptchaToken = await executeRecaptcha('contact');
-                console.log('✅ reCAPTCHA token obtained for contact form');
-            } catch (recaptchaError) {
-                console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
-                // Continue without token - server will handle gracefully
-            }
-            
-            // Call Firebase Function to send contact form email
-            const functions = getFunctions();
-            const submitContactForm = httpsCallable(functions, 'submitContactForm');
-            
-            const result = await submitContactForm({
+            console.log('📤 Creating support ticket from landing page...', {
                 name: formData.name,
                 email: formData.email,
-                subject: formData.subject,
-                message: formData.message,
-                recaptchaToken
+                subject: formData.subject
             });
             
-            if (result.data.success) {
-                setSubmitStatus('success');
-                setFormData({ name: '', email: '', subject: '', message: '' });
-                
-                // Auto-close after 2 seconds
-                setTimeout(() => {
-                    setSubmitStatus(null);
-                    onClose();
-                }, 2000);
-            } else {
-                setSubmitStatus('error');
-            }
+            // Create a support ticket (same system as in-app support)
+            const ticketId = await createSupportTicket({
+                userId: null, // No user ID for landing page submissions
+                userEmail: formData.email,
+                userName: formData.name,
+                type: 'contact',
+                subject: formData.subject,
+                message: formData.message.trim(),
+                metadata: {
+                    source: 'landing_page',
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                }
+            });
+            
+            console.log('✅ Support ticket created from landing page:', ticketId);
+            setSubmitStatus('success');
+            setFormData({ name: '', email: '', subject: '', message: '' });
+            
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+                setSubmitStatus(null);
+                onClose();
+            }, 2000);
         } catch (error) {
-            console.error('Error submitting contact form:', error);
+            console.error('❌ Error submitting contact form:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
