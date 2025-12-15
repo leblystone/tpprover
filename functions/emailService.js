@@ -535,7 +535,8 @@ function generateEmailHTML(template, variables = {}) {
   
   // Also replace variables in custom HTML if provided
   Object.entries(variables).forEach(([key, value]) => {
-    const replacement = value || '';
+    // Convert value to string to handle numbers, dates, etc.
+    const replacement = value != null ? String(value) : '';
     // Replace both %KEY% and %KEY_WITH_UNDERSCORE% formats
     const regex1 = new RegExp(`%${key.toUpperCase()}%`, 'g');
     const regex2 = new RegExp(`%${key.toUpperCase().replace(/([A-Z])/g, '_$1').substring(1)}%`, 'g');

@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, Siren, LogOut, CalendarClock
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, Siren, LogOut, Calendar
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -1993,7 +1993,7 @@ function Admin() {
             users: [
               { id: 'subscriptions', label: 'All Users', icon: Users, color: '#5FAF8B' },
               { id: 'lifetime', label: 'Lifetime', icon: Crown, color: '#7F9E95' },
-              { id: 'annual', label: 'Annual', icon: CalendarClock, color: '#F59E0B' },
+              { id: 'annual', label: 'Annual', icon: Calendar, color: '#F59E0B' },
               { id: 'gifts', label: 'Gifts', icon: Gift, color: '#7CB8B2' }
             ],
             content: [
