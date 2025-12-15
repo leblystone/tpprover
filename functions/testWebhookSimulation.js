@@ -12,7 +12,7 @@ const emailService = require('./emailService');
 exports.testWebhookEmails = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     if (!request.auth) {

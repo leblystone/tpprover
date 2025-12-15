@@ -34,7 +34,7 @@ const getDb = () => admin.firestore();
 exports.onSubscriptionConfirmed = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     try {
@@ -74,7 +74,7 @@ exports.onSubscriptionConfirmed = onCall(
 exports.onPaymentFailed = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     try {
@@ -116,7 +116,7 @@ exports.onPaymentFailed = onCall(
 exports.onPaymentSuccessful = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     try {
@@ -157,7 +157,7 @@ exports.onPaymentSuccessful = onCall(
 exports.onSubscriptionCancelled = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     try {
@@ -201,7 +201,7 @@ exports.onSubscriptionCancelled = onCall(
 exports.checkTrialEndingSoon = onSchedule({
     schedule: '0 * * * *', // Run hourly to check all user timezones
     timeZone: 'UTC', // Use UTC as base timezone
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Checking for trials ending in 2 days...');
@@ -270,7 +270,7 @@ exports.checkTrialEndingSoon = onSchedule({
 exports.checkRenewalReminders = onSchedule({
     schedule: '0 15 * * *', // 10 AM EST (15:00 UTC)
     timeZone: 'America/New_York',
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Checking for subscription renewals in 3 days...');
@@ -356,7 +356,7 @@ exports.checkRenewalReminders = onSchedule({
 exports.checkGiftExpiringSoon = onSchedule({
     schedule: '0 16 * * *', // 11 AM EST (16:00 UTC)
     timeZone: 'America/New_York',
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Checking for gift subscriptions expiring in 3 days...');
@@ -429,7 +429,7 @@ exports.checkGiftExpiringSoon = onSchedule({
 exports.sendWeeklyResearchReminders = onSchedule({
     schedule: '0 16 * * 0', // 11 AM EST every Sunday (16:00 UTC)
     timeZone: 'America/New_York',
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Sending weekly research reminders...');
@@ -492,7 +492,7 @@ exports.sendWeeklyResearchReminders = onSchedule({
 exports.testEmailAutomation = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     if (!request.auth) {
@@ -551,7 +551,7 @@ exports.testEmailAutomation = onCall(
 exports.getEmailStats = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     if (!request.auth) {

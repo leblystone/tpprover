@@ -163,7 +163,7 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
-    path: '/redeem-lifetime',
+    path: '/research-lifetime',
     element: <RedeemLifetime />,
     errorElement: <NotFound />,
   },

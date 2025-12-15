@@ -463,7 +463,7 @@ export default function LifetimeCodeManager({ theme }) {
           className="text-sm block p-2 rounded"
           style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}
         >
-          https://thepepplanner.app/redeem-lifetime
+          https://thepepplanner.app/research-lifetime
         </code>
         <p className="text-xs mt-2" style={{ color: theme.textLight }}>
           Include this URL in your Lifetime Access Kit packaging. Customers will enter their 6-character code to redeem.

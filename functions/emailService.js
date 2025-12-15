@@ -1,16 +1,16 @@
 // 📧 Email Service for The Pep Planner
-// Sends transactional emails via SendGrid
+// Sends transactional emails via Resend
 
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailTemplates = require('./emailTemplates');
 const { fetchFounderState } = require('./founderOffer');
 
-// SendGrid API key will be stored in Firebase environment config
-// Run: firebase functions:config:set sendgrid.api_key="YOUR_SENDGRID_API_KEY"
+// Resend API key will be stored in Firebase environment config
+// Run: firebase functions:secrets:set RESEND_API_KEY
 
 /**
- * Send email using SendGrid
+ * Send email using Resend
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
  * @param {string} html - Email HTML content
@@ -18,53 +18,44 @@ const { fetchFounderState } = require('./founderOffer');
  */
 async function sendEmail(to, subject, html) {
   try {
-    // Get SendGrid API key from environment variables (Firebase Functions v2)
+    // Get Resend API key from environment variables (Firebase Functions v2)
     // The secret is automatically injected as an environment variable when the function is called
-    let sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+    let resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/\r?\n/g, '');
     
-    logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
-    logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
+    logger.info('🔑 API Key being used:', resendApiKey ? `${resendApiKey.substring(0, 10)}...` : 'undefined');
+    logger.info('🔑 API Key length:', resendApiKey ? resendApiKey.length : 0);
     
-    if (!sendgridApiKey) {
-      logger.warn('⚠️ SendGrid not configured - email not sent');
+    if (!resendApiKey) {
+      logger.warn('⚠️ Resend not configured - email not sent');
       logger.info('📧 Would have sent email to:', to, 'Subject:', subject);
       return false;
     }
     
-    // Validate API key format
-    if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
-      logger.error('❌ Invalid SendGrid API key format. Key must start with "SG." and be at least 60 characters');
-      logger.error('API key provided:', sendgridApiKey.substring(0, 20) + '...');
-      logger.error('API key length:', sendgridApiKey.length);
+    // Validate API key format (Resend keys start with "re_")
+    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
+      logger.error('❌ Invalid Resend API key format. Key must start with "re_" and be at least 40 characters');
+      logger.error('API key provided:', resendApiKey.substring(0, 20) + '...');
+      logger.error('API key length:', resendApiKey.length);
       return false;
     }
 
-    // Dynamic import of SendGrid (only load if configured)
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(sendgridApiKey);
+    // Dynamic import of Resend (only load if configured)
+    const { Resend } = require('resend');
+    const resend = new Resend(resendApiKey);
 
-    const msg = {
+    const result = await resend.emails.send({
+      from: 'The Pep Planner <contact@thepepplanner.com>',
       to,
-      from: {
-        email: 'contact@thepepplanner.com',
-        name: 'The Pep Planner'
-      },
       subject,
       html,
-    };
-
-    const result = await sgMail.send(msg);
-    const statusCode = result[0]?.statusCode;
-    const headers = result[0]?.headers;
+    });
     
     logger.info('✅ Email sent successfully to:', to);
-    logger.info('📊 SendGrid Response Status:', statusCode);
-    logger.info('📊 SendGrid Response Headers:', JSON.stringify(headers));
-    logger.info('📊 Full SendGrid Response:', JSON.stringify(result));
+    logger.info('📊 Resend Response:', JSON.stringify(result));
     
-    // SendGrid returns 202 for accepted emails
-    if (statusCode === 202) {
-      logger.info('✅ Email accepted by SendGrid and queued for delivery');
+    // Resend returns an object with id on success
+    if (result.data && result.data.id) {
+      logger.info('✅ Email accepted by Resend and queued for delivery');
       
       // Track email count for ALL emails sent (including direct sends)
       try {
@@ -81,9 +72,12 @@ async function sendEmail(to, subject, html) {
       }
       
       return true;
+    } else if (result.error) {
+      logger.error('❌ Resend API error:', result.error);
+      return false;
     } else {
-      logger.warn('⚠️ Unexpected SendGrid status code:', statusCode);
-      return true; // Still return true if SendGrid accepted it
+      logger.warn('⚠️ Unexpected Resend response:', result);
+      return true; // Still return true if Resend accepted it
     }
     
   } catch (error) {
@@ -139,14 +133,26 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
       const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { verificationLink });
+      const html = generateEmailHTML(customTemplate, { verificationLink, userEmail });
       return sendEmail(userEmail, subject, html);
     }
   } catch (e) {
-    logger.warn('Failed to load custom verification template, using default:', e);
+    logger.warn('Failed to load custom verification template, using themed default:', e);
   }
+  // Fallback to themed default template that matches other emails
+  const defaultTemplate = {
+    heading: 'Verify Your Email 📧',
+    greeting: `Hi there,`,
+    mainMessage: `Thanks for signing up for The Pep Planner! Please verify your email address by clicking the button below.`,
+    ctaText: 'Verify Email',
+    ctaLink: verificationLink,
+    highlightTitle: '🎉 Welcome to The Pep Planner!',
+    highlightMessage: 'Once verified, you\'ll have full access to all features and can start organizing your research.',
+    postCtaNote: 'If you didn\'t create an account, you can safely ignore this email.',
+    features: []
+  };
   const subject = 'Verify your email for The Pep Planner';
-  const html = emailTemplates.verificationEmail(verificationLink);
+  const html = generateEmailHTML(defaultTemplate, { verificationLink, userEmail });
   return sendEmail(userEmail, subject, html);
 };
 
@@ -233,65 +239,64 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
   logger.info(`🔗 Password reset link: ${resetLink}`);
   
   try {
-    // Get SendGrid API key from environment variables
-    let sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+    // Get Resend API key from environment variables
+    let resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/\r?\n/g, '');
     
-    if (!sendgridApiKey) {
-      logger.warn('⚠️ SendGrid not configured - password reset email not sent');
+    if (!resendApiKey) {
+      logger.warn('⚠️ Resend not configured - password reset email not sent');
       return false;
     }
     
     // Validate API key format
-    if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
-      logger.error('❌ Invalid SendGrid API key format');
+    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
+      logger.error('❌ Invalid Resend API key format');
       return false;
     }
 
-    // Dynamic import of SendGrid
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(sendgridApiKey);
+    // Dynamic import of Resend
+    const { Resend } = require('resend');
+    const resend = new Resend(resendApiKey);
 
-    // Try to load custom template from Firestore, fallback to hardcoded
+    // Try to load custom template from Firestore, fallback to themed default
     let subject, html;
     try {
       const customTemplate = await loadEmailTemplate('passwordReset');
       if (customTemplate) {
         subject = customTemplate.subject || 'Reset your password for The Pep Planner';
-        html = generateEmailHTML(customTemplate, { resetLink });
+        html = generateEmailHTML(customTemplate, { resetLink, userEmail });
       } else {
         throw new Error('No custom template found');
       }
     } catch (error) {
-      logger.warn('Failed to load custom password reset template, using default:', error);
-      // Fallback to hardcoded template
+      logger.warn('Failed to load custom password reset template, using themed default:', error);
+      // Fallback to themed default template that matches other emails
+      const defaultTemplate = {
+        heading: 'Reset Your Password 🔐',
+        greeting: `Hi there,`,
+        mainMessage: `We received a request to reset the password for your account (${userEmail}). Click the button below to create a new password.`,
+        ctaText: 'Reset Password',
+        ctaLink: resetLink,
+        highlightTitle: '⏱️ This link expires in 1 hour',
+        highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
+        postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.',
+        features: []
+      };
       subject = 'Reset your password for The Pep Planner';
-      html = emailTemplates.passwordResetEmail(resetLink, userEmail);
+      html = generateEmailHTML(defaultTemplate, { resetLink, userEmail });
     }
 
-    // Send email with click tracking DISABLED for password reset links
-    const msg = {
+    // Send email via Resend (Resend doesn't track clicks by default, so links work directly)
+    const result = await resend.emails.send({
+      from: 'The Pep Planner <contact@thepepplanner.com>',
       to: userEmail,
-      from: {
-        email: 'contact@thepepplanner.com',
-        name: 'The Pep Planner'
-      },
       subject,
       html,
-      // Disable click tracking so links go directly to reset page
-      trackingSettings: {
-        clickTracking: {
-          enable: false
-        }
-      }
-    };
-
-    const result = await sgMail.send(msg);
-    const statusCode = result[0]?.statusCode;
+    });
     
     logger.info('✅ Password reset email sent successfully to:', userEmail);
-    logger.info('📊 SendGrid Response Status:', statusCode);
+    logger.info('📊 Resend Response:', JSON.stringify(result));
     
-    return statusCode === 202;
+    return result.data && result.data.id ? true : false;
     
   } catch (error) {
     logger.error('❌ Failed to send password reset email:', error);
@@ -315,7 +320,7 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
   
   logger.info(`🔗 Verification link: ${verificationLink}`);
   
-  // Try to load custom template from Firestore, fallback to hardcoded
+  // Try to load custom template from Firestore, fallback to themed default
   try {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
@@ -324,17 +329,29 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
       const html = generateEmailHTML(customTemplate, { 
         verificationLink,
         link: verificationLink,  // Support %LINK% variable in templates
-        verification_link: verificationLink  // Support %VERIFICATION_LINK% variable (with underscore)
+        verification_link: verificationLink,  // Support %VERIFICATION_LINK% variable (with underscore)
+        userEmail
       });
       return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
-    logger.warn('Failed to load custom verification template, using default:', error);
+    logger.warn('Failed to load custom verification template, using themed default:', error);
   }
   
-  // Fallback to hardcoded template
+  // Fallback to themed default template that matches other emails
+  const defaultTemplate = {
+    heading: 'Verify Your Email 📧',
+    greeting: `Hi there,`,
+    mainMessage: `Thanks for signing up for The Pep Planner! Please verify your email address by clicking the button below.`,
+    ctaText: 'Verify Email',
+    ctaLink: verificationLink,
+    highlightTitle: '🎉 Welcome to The Pep Planner!',
+    highlightMessage: 'Once verified, you\'ll have full access to all features and can start organizing your research.',
+    postCtaNote: 'If you didn\'t create an account, you can safely ignore this email.',
+    features: []
+  };
   const subject = 'Verify your email for The Pep Planner';
-  const html = emailTemplates.verificationEmail(verificationLink);
+  const html = generateEmailHTML(defaultTemplate, { verificationLink, userEmail });
   return sendEmail(userEmail, subject, html);
 };
 
@@ -744,14 +761,26 @@ exports.sendPasswordResetEmail = async (userEmail, resetLink) => {
     const customTemplate = await loadEmailTemplate('passwordReset');
     if (customTemplate) {
       const subject = customTemplate.subject || 'Reset your password for The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { resetLink });
+      const html = generateEmailHTML(customTemplate, { resetLink, userEmail });
       return sendEmail(userEmail, subject, html);
     }
   } catch (e) {
-    logger.warn('Failed to load custom password reset template, using default:', e);
+    logger.warn('Failed to load custom password reset template, using themed default:', e);
   }
+  // Fallback to themed default template that matches other emails
+  const defaultTemplate = {
+    heading: 'Reset Your Password 🔐',
+    greeting: `Hi there,`,
+    mainMessage: `We received a request to reset the password for your account (${userEmail}). Click the button below to create a new password.`,
+    ctaText: 'Reset Password',
+    ctaLink: resetLink,
+    highlightTitle: '⏱️ This link expires in 1 hour',
+    highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
+    postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.',
+    features: []
+  };
   const subject = 'Reset your password for The Pep Planner';
-  const html = emailTemplates.passwordResetEmail(resetLink, userEmail);
+  const html = generateEmailHTML(defaultTemplate, { resetLink, userEmail });
   return sendEmail(userEmail, subject, html);
 };
 
@@ -823,10 +852,21 @@ exports.sendTrialExtensionEmail = async (userEmail, userName, daysAdded, newEndD
     logger.error('❌ Error stack:', error.stack);
   }
   
-  // Fallback to hardcoded template
-  logger.info('📧 Using hardcoded trialExtension template');
+  // Fallback to themed default template that matches other emails
+  logger.info('📧 Using themed default trialExtension template');
+  const defaultTemplate = {
+    heading: '🎉 Your Research Trial Has Been Extended!',
+    greeting: `Hi ${userName || 'there'},`,
+    mainMessage: `Great news! We've added ${daysAdded} ${daysAdded === 1 ? 'day' : 'days'} to your research trial. Your trial now ends on ${newEndDate}.${adminNote ? `\n\n${adminNote}` : ''}`,
+    ctaText: 'Continue Researching',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '⏰ New Trial End Date',
+    highlightMessage: `Your extended trial ends on ${newEndDate}. Make the most of your extra time to explore all features!`,
+    postCtaNote: 'If you have any questions, feel free to reach out to our support team.',
+    features: []
+  };
   const subject = '🎉 Your Research Trial Has Been Extended!';
-  const html = emailTemplates.trialExtensionEmail(userName, userEmail, daysAdded, newEndDate, adminNote);
+  const html = generateEmailHTML(defaultTemplate, { userName, userEmail, daysAdded, newEndDate, adminNote });
   return sendEmail(userEmail, subject, html);
 };
 

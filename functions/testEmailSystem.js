@@ -6,13 +6,45 @@ const { logger } = require('firebase-functions');
 const emailService = require('./emailService');
 
 /**
+ * Helper function to send email via Resend
+ */
+async function sendEmailViaResend(to, subject, html) {
+  const { Resend } = require('resend');
+  const apiKey = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.trim() : null;
+  
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY environment variable is not set');
+  }
+  
+  if (!apiKey.startsWith('re_')) {
+    throw new Error(`Invalid Resend API key format. Got: ${apiKey.substring(0, 20)}...`);
+  }
+  
+  const resend = new Resend(apiKey);
+  const result = await resend.emails.send({
+    from: 'The Pep Planner <contact@thepepplanner.com>',
+    to,
+    subject,
+    html,
+  });
+  
+  if (result.data && result.data.id) {
+    return true;
+  } else if (result.error) {
+    throw new Error(result.error.message || 'Resend API error');
+  } else {
+    throw new Error('Unexpected Resend response');
+  }
+}
+
+/**
  * Test function to verify email system is working
  * Call this from Firebase Console or client app
  */
 exports.testEmailSystem = onCall(
     {
       cors: true,
-      secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
+      secrets: ['RESEND_API_KEY', 'LOGO_URL']
     },
     async (request) => {
   // For admin testing, we'll allow unauthenticated calls but log it
@@ -77,50 +109,19 @@ exports.testEmailSystem = onCall(
         subjectText = 'Welcome to The Pep Planner! 🎉';
       }
       
-      // Direct SendGrid test for welcome email
+      // Direct Resend test for welcome email
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        logger.info('🔑 Checking API Key...');
-        logger.info('API Key exists:', !!apiKey);
-        if (apiKey) {
-          logger.info('API Key length:', apiKey.length);
-          logger.info('API Key starts with:', apiKey.substring(0, 10));
-        }
-        
-        if (!apiKey) {
-          throw new Error('SENDGRID_API_KEY environment variable is not set');
-        }
-        
-        if (!apiKey.startsWith('SG.')) {
-          throw new Error(`Invalid SendGrid API key format. Got: ${apiKey.substring(0, 20)}...`);
-        }
-        
-        sgMail.setApiKey(apiKey);
-
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-
-        await sgMail.send(msg);
-        logger.info('✅ Direct SendGrid email sent successfully');
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
+        logger.info('✅ Direct Resend email sent successfully');
         emailResult = true;
       } catch (error) {
-        logger.error('❌ Direct SendGrid failed:', error);
+        logger.error('❌ Direct Resend failed:', error);
         logger.error('Error details:', {
           message: error.message,
-          code: error.code,
-          response: error.response?.body
+          code: error.code
         });
         emailResult = false;
-        emailName = error.message || 'SendGrid API error';
+        emailName = error.message || 'Resend API error';
       }
       
       emailName = 'Welcome Email';
@@ -165,27 +166,8 @@ exports.testEmailSystem = onCall(
           subjectText = 'Your trial ends in 2 days - The Pep Planner';
         }
         
-        // Send the email
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        // Send the email via Resend
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
         logger.info('✅ Trial ending test email sent successfully');
       } catch (error) {
@@ -197,32 +179,17 @@ exports.testEmailSystem = onCall(
     } else if (templateType === 'verification') {
       logger.info('Testing verification email...');
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: 'Verify your email for The Pep Planner',
-          html: `
+        await sendEmailViaResend(
+          testEmail,
+          'Verify your email for The Pep Planner',
+          `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Verify Your Email 📧</h1>
               <p>Thanks for signing up! Please verify your email address.</p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
           `
-        };
-        
-        await sgMail.send(msg);
+        );
         emailResult = true;
       } catch (error) {
         logger.error('Verification email failed:', error);
@@ -232,32 +199,17 @@ exports.testEmailSystem = onCall(
     } else if (templateType === 'passwordReset') {
       logger.info('Testing password reset email...');
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: 'Reset your password for The Pep Planner',
-          html: `
+        await sendEmailViaResend(
+          testEmail,
+          'Reset your password for The Pep Planner',
+          `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Reset Your Password 🔐</h1>
               <p>We received a request to reset the password for your account.</p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
           `
-        };
-        
-        await sgMail.send(msg);
+        );
         emailResult = true;
       } catch (error) {
         logger.error('Password reset email failed:', error);
@@ -309,27 +261,8 @@ exports.testEmailSystem = onCall(
           subjectText = 'Subscription Confirmed - The Pep Planner';
         }
         
-        // Send the email
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        // Send the email via Resend
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
         logger.info('✅ Subscription test email sent successfully');
       } catch (error) {
@@ -372,26 +305,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Payment successful email failed:', error);
@@ -429,26 +343,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Subscription cancelled email failed:', error);
@@ -486,26 +381,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Renewal reminder email failed:', error);
@@ -543,26 +419,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Weekly reminder email failed:', error);
@@ -600,26 +457,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Payment failed email failed:', error);
@@ -658,26 +496,7 @@ exports.testEmailSystem = onCall(
       }
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
       } catch (error) {
         logger.error('Gift expiring soon email failed:', error);
@@ -747,26 +566,7 @@ exports.testEmailSystem = onCall(
         }
         
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Gift purchase confirmation test email sent successfully');
         }
@@ -828,26 +628,7 @@ exports.testEmailSystem = onCall(
         }
         
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Gift redeemed test email sent successfully');
         }
@@ -919,26 +700,7 @@ exports.testEmailSystem = onCall(
         }
         
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Gift redeemed notification test email sent successfully');
         }
@@ -1006,26 +768,7 @@ exports.testEmailSystem = onCall(
         }
         
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Gift notification test email sent successfully');
         }
@@ -1086,26 +829,7 @@ exports.testEmailSystem = onCall(
         
         // Send the email if we generated HTML
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Manual lifetime grant test email sent successfully');
         }
@@ -1166,26 +890,7 @@ exports.testEmailSystem = onCall(
         
         // Send the email if we generated HTML
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Lifetime access granted test email sent successfully');
         }
@@ -1242,26 +947,7 @@ exports.testEmailSystem = onCall(
         }
         
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Custom announcement test email sent successfully');
         }
@@ -1322,26 +1008,7 @@ exports.testEmailSystem = onCall(
         
         // Send the email if we generated HTML
         if (htmlContent) {
-          const sgMail = require('@sendgrid/mail');
-          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-          
-          if (!apiKey || !apiKey.startsWith('SG.')) {
-            throw new Error('Invalid SendGrid API key');
-          }
-          
-          sgMail.setApiKey(apiKey);
-          
-          const msg = {
-            to: testEmail,
-            from: {
-              email: 'contact@thepepplanner.com',
-              name: 'The Pep Planner'
-            },
-            subject: subjectText,
-            html: htmlContent
-          };
-          
-          await sgMail.send(msg);
+          await sendEmailViaResend(testEmail, subjectText, htmlContent);
           emailResult = true;
           logger.info('✅ Trial expired survey test email sent successfully');
         }
@@ -1357,62 +1024,81 @@ exports.testEmailSystem = onCall(
       try {
         // Try to load custom template or use templateData
         let htmlContent, subjectText;
-        const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+        const emailService = require('./emailService');
+        const { loadEmailTemplate, generateEmailHTML } = emailService;
         
-        const customTemplate = templateData || await loadEmailTemplate('trialExtension');
+        logger.info('📧 Attempting to load trialExtension template...');
+        let customTemplate = null;
+        
+        if (templateData) {
+          logger.info('✅ Using templateData from admin panel');
+          customTemplate = templateData;
+        } else {
+          try {
+            customTemplate = await loadEmailTemplate('trialExtension');
+            if (customTemplate) {
+              logger.info('✅ Found trialExtension template in Firestore');
+            } else {
+              logger.info('⚠️ No trialExtension template in Firestore');
+            }
+          } catch (loadError) {
+            logger.warn('⚠️ Failed to load template from Firestore:', loadError.message);
+          }
+        }
         
         if (customTemplate) {
           logger.info('✅ Using custom trialExtension template');
+          const testDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          
+          logger.info('📧 Generating HTML with variables:', { userName: 'Test User', userEmail: testEmail, daysAdded: 7, newEndDate: testDate });
           htmlContent = generateEmailHTML(customTemplate, { 
             userName: 'Test User',
             userEmail: testEmail,
             daysAdded: 7,
-            newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            }),
+            newEndDate: testDate,
             adminNote: 'This is a test extension from the admin panel'
           });
           subjectText = customTemplate.subject || '🎉 Your Research Trial Has Been Extended!';
+          logger.info('✅ HTML generated successfully, length:', htmlContent.length);
         } else {
-          // Simple fallback
-          htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #6366f1;">Your Trial Has Been Extended! 🎉</h1>
-              <p>We've added 7 days to your trial. Keep exploring!</p>
-              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-            </div>
-          `;
+          // Fallback to themed default template
+          logger.info('📧 Using themed default trialExtension template');
+          const defaultTemplate = {
+            heading: '🎉 Your Research Trial Has Been Extended!',
+            greeting: `Hi Test User,`,
+            mainMessage: `Great news! We've added 7 days to your research trial. Your trial now ends on ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`,
+            ctaText: 'Continue Researching',
+            ctaLink: 'https://thepepplanner.app/app/dashboard',
+            highlightTitle: '⏰ New Trial End Date',
+            highlightMessage: `Your extended trial ends on ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Make the most of your extra time to explore all features!`,
+            postCtaNote: 'If you have any questions, feel free to reach out to our support team.',
+            features: []
+          };
+          htmlContent = generateEmailHTML(defaultTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail, 
+            daysAdded: 7, 
+            newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            adminNote: 'This is a test extension from the admin panel'
+          });
           subjectText = '🎉 Your Research Trial Has Been Extended!';
         }
         
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: subjectText,
-          html: htmlContent
-        };
-        
-        await sgMail.send(msg);
+        logger.info('📧 Sending email via Resend to:', testEmail);
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
         logger.info('✅ Trial extension test email sent successfully');
       } catch (error) {
         logger.error('❌ Trial extension email failed:', error);
+        logger.error('❌ Error message:', error.message);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
+        emailName = `Trial Extension Email - ${error.message}`;
       }
       emailName = 'Trial Extension Email';
     } else {
@@ -1420,23 +1106,10 @@ exports.testEmailSystem = onCall(
       logger.info('⚠️ Unknown template type, sending generic test email...');
       
       try {
-        const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
-        
-        if (!apiKey || !apiKey.startsWith('SG.')) {
-          throw new Error('Invalid SendGrid API key');
-        }
-        
-        sgMail.setApiKey(apiKey);
-        
-        const msg = {
-          to: testEmail,
-          from: {
-            email: 'contact@thepepplanner.com',
-            name: 'The Pep Planner'
-          },
-          subject: `Test Email - ${templateType || 'Unknown Template'}`,
-          html: `
+        await sendEmailViaResend(
+          testEmail,
+          `Test Email - ${templateType || 'Unknown Template'}`,
+          `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Test Email</h1>
               <p>This is a test email for template type: <strong>${templateType || 'Unknown'}</strong></p>
@@ -1444,9 +1117,7 @@ exports.testEmailSystem = onCall(
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
           `
-        };
-        
-        await sgMail.send(msg);
+        );
         emailResult = true;
         emailName = `Test Email (${templateType})`;
       } catch (error) {

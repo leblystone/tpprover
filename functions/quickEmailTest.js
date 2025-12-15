@@ -1,10 +1,11 @@
-// Quick email test with hardcoded API key
+// Quick email test with Resend
 const { onCall } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 
 exports.quickEmailTest = onCall(
   {
-    cors: true
+    cors: true,
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { testEmail } = request.data;
@@ -17,18 +18,18 @@ exports.quickEmailTest = onCall(
 
     try {
       // Use the API key from environment variables
-      const sgMail = require('@sendgrid/mail');
-      const apiKey = process.env.SENDGRID_API_KEY;
+      const { Resend } = require('resend');
+      const apiKey = process.env.RESEND_API_KEY;
       
       if (!apiKey) {
-        throw new Error('SENDGRID_API_KEY environment variable is not set');
+        throw new Error('RESEND_API_KEY environment variable is not set');
       }
       
-      sgMail.setApiKey(apiKey);
+      const resend = new Resend(apiKey);
 
-      const msg = {
+      const result = await resend.emails.send({
+        from: 'The Pep Planner <contact@thepepplanner.com>',
         to: testEmail,
-        from: 'contact@thepepplanner.com',
         subject: '🧪 Quick Test Email - The Pep Planner',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -38,16 +39,18 @@ exports.quickEmailTest = onCall(
             <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
           </div>
         `
-      };
+      });
 
-      await sgMail.send(msg);
-      
-      logger.info(`✅ Quick test email sent successfully to: ${testEmail}`);
-      
-      return {
-        success: true,
-        message: `Quick test email sent successfully to ${testEmail}!`
-      };
+      if (result.data && result.data.id) {
+        logger.info(`✅ Quick test email sent successfully to: ${testEmail}`);
+        return {
+          success: true,
+          message: `Quick test email sent successfully to ${testEmail}!`,
+          emailId: result.data.id
+        };
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
       
     } catch (error) {
       logger.error('❌ Quick email test failed:', error);

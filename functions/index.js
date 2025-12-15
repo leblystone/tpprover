@@ -446,7 +446,7 @@ exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurch
 exports.scheduledResearchReminders = onSchedule({
   schedule: '0 * * * *',
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
-  secrets: ['SENDGRID_API_KEY']
+  secrets: ['RESEND_API_KEY']
 }, async (event) => {
   logger.info('🔬 Running scheduled research reminders (hourly check)...');
   
@@ -1053,51 +1053,46 @@ exports.onPaymentFailed = emailAutomation.onPaymentFailed;
 exports.onPaymentSuccessful = emailAutomation.onPaymentSuccessful;
 exports.onSubscriptionCancelled = emailAutomation.onSubscriptionCancelled;
 
-// Test SendGrid API key validity
-exports.testSendGridConnection = onCall(
+// Test Resend API key validity
+exports.testResendConnection = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     try {
-      const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+      const resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/\r?\n/g, '');
       
-      logger.info('🔑 Testing SendGrid API key...');
-      logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
-      logger.info('🔑 API Key starts with SG.:', sendgridApiKey ? sendgridApiKey.startsWith('SG.') : false);
+      logger.info('🔑 Testing Resend API key...');
+      logger.info('🔑 API Key length:', resendApiKey ? resendApiKey.length : 0);
+      logger.info('🔑 API Key starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false);
       
-      if (!sendgridApiKey) {
-        throw new Error('SendGrid API key not configured');
+      if (!resendApiKey) {
+        throw new Error('Resend API key not configured');
       }
       
-      if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
-        throw new Error('Invalid SendGrid API key format');
+      if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
+        throw new Error('Invalid Resend API key format');
       }
       
       // Test with a simple API call
-      const sgClient = require('@sendgrid/client');
-      sgClient.setApiKey(sendgridApiKey);
+      const { Resend } = require('resend');
+      const resend = new Resend(resendApiKey);
       
-      const testRequest = {
-        url: '/v3/user/account',
-        method: 'GET'
-      };
+      // Test by getting API keys (this validates the key)
+      const response = await resend.apiKeys.list();
       
-      const [response] = await sgClient.request(testRequest);
-      
-      logger.info('✅ SendGrid API key is valid');
-      logger.info('📊 Account info:', response.body);
+      logger.info('✅ Resend API key is valid');
+      logger.info('📊 API keys count:', response.data?.length || 0);
       
       return { 
         success: true, 
-        message: 'SendGrid API key is valid',
-        accountType: response.body.type,
-        accountStatus: response.body.status
+        message: 'Resend API key is valid',
+        apiKeysCount: response.data?.length || 0
       };
       
     } catch (error) {
-      logger.error('❌ SendGrid API key test failed:', error);
+      logger.error('❌ Resend API key test failed:', error);
       return { 
         success: false, 
         message: error.message,
@@ -1123,7 +1118,7 @@ exports.testWebhookEmails = testWebhookSimulation.testWebhookEmails;
 exports.sendCustomPasswordResetEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     // Verify user is authenticated
@@ -1153,7 +1148,7 @@ exports.sendCustomPasswordResetEmail = onCall(
         used: false
       });
 
-      // Send custom password reset email via SendGrid
+      // Send custom password reset email via Resend
       await emailService.sendCustomPasswordResetEmail(userEmail, resetToken);
       
       logger.info(`✅ Custom password reset email sent to: ${userEmail}`);
@@ -1167,11 +1162,11 @@ exports.sendCustomPasswordResetEmail = onCall(
 );
 
 // Password reset for unauthenticated users (forgot password flow)
-// This uses your custom email templates via SendGrid
+// This uses your custom email templates via Resend
 exports.requestPasswordReset = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { email } = request.data;
@@ -1213,7 +1208,7 @@ exports.requestPasswordReset = onCall(
         used: false
       });
 
-      // Send custom password reset email via SendGrid using your email templates
+      // Send custom password reset email via Resend using your email templates
       await emailService.sendCustomPasswordResetEmail(normalizedEmail, resetToken);
       
       logger.info(`✅ Custom password reset email sent to: ${normalizedEmail}`);
@@ -1231,7 +1226,7 @@ exports.requestPasswordReset = onCall(
 exports.sendCustomVerificationEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
   // Verify user is authenticated
@@ -1261,7 +1256,7 @@ exports.sendCustomVerificationEmail = onCall(
       used: false
     });
 
-    // Send custom verification email via SendGrid
+    // Send custom verification email via Resend
     await emailService.sendCustomVerificationEmail(userEmail, verificationToken);
     
     logger.info(`✅ Custom verification email sent to: ${userEmail}`);
@@ -1524,7 +1519,7 @@ exports.resetPasswordWithToken = onCall(
 exports.onUserCreated = onDocumentCreated(
   {
     document: 'users/{userId}',
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (event) => {
   const userData = event.data.data();
@@ -1617,7 +1612,7 @@ exports.onUserCreated = onDocumentCreated(
       used: false
     });
 
-    // Send custom verification email via SendGrid
+    // Send custom verification email via Resend
     await emailService.sendCustomVerificationEmail(userData.email, verificationToken);
     logger.info(`✅ Custom verification email sent to: ${userData.email}`);
     
@@ -1633,7 +1628,7 @@ exports.onUserCreated = onDocumentCreated(
 exports.scheduledTrialReminders = onSchedule({
   schedule: '0 * * * *',
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
-  secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
+  secrets: ['RESEND_API_KEY', 'LOGO_URL']
 }, async (event) => {
   logger.info('🔔 Running scheduled trial ending reminders (hourly check)...');
   
@@ -1701,7 +1696,7 @@ exports.scheduledTrialReminders = onSchedule({
 exports.scheduledTrialExpiredSurvey = onSchedule({
   schedule: '0 * * * *', // Run hourly to check all user timezones
   timeZone: 'UTC',
-  secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
+  secrets: ['RESEND_API_KEY', 'LOGO_URL']
 }, async (event) => {
   logger.info('📊 Running scheduled trial expired survey check (hourly check)...');
   
@@ -1785,7 +1780,7 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
 exports.sendCustomAnnouncementEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName } = request.data;
@@ -1844,7 +1839,7 @@ exports.sendCustomAnnouncementEmail = onCall(
 exports.sendTrialExpiredSurveyEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName, surveyLink } = request.data;
@@ -1903,7 +1898,7 @@ exports.sendTrialExpiredSurveyEmail = onCall(
 exports.sendAccountDeletionEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName } = request.data;
@@ -2147,7 +2142,7 @@ exports.deleteBlockedAccount = onCall(
 exports.sendAccountDeletionRequestToAdmin = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName, dataSummary } = request.data;
@@ -2180,7 +2175,7 @@ exports.sendAccountDeletionRequestToAdmin = onCall(
 exports.sendInDepthRequestEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName, customContent } = request.data;
@@ -2242,7 +2237,7 @@ exports.sendInDepthRequestEmail = onCall(
 exports.sendInviteEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userEmail, userName, inviteLink, customContent } = request.data;
@@ -2306,7 +2301,7 @@ exports.sendInviteEmail = onCall(
 exports.sendLifetimeAccessEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
+    secrets: ['RESEND_API_KEY', 'LOGO_URL']
   },
   async (request) => {
     const { userEmail, userName, reason } = request.data;
@@ -2376,7 +2371,7 @@ exports.sendLifetimeAccessEmail = onCall(
 exports.submitContactForm = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { name, email, subject, message, recaptchaToken } = request.data;
@@ -2472,7 +2467,7 @@ exports.submitContactForm = onCall(
 exports.createSupportTicket = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { userId, userEmail, userName, type, subject, message, metadata } = request.data;
@@ -2617,7 +2612,7 @@ exports.createSupportTicket = onCall(
 exports.addTicketMessage = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const { ticketId, senderType, senderEmail, senderName, message } = request.data;
