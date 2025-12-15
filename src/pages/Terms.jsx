@@ -80,7 +80,7 @@ export default function Terms() {
             Clear terms that protect both you and our platform.
           </p>
           <p className="text-sm" style={{ color: theme.textLight }}>
-            Last updated: December 2024
+            Last updated: December 2025
           </p>
         </div>
       </div>
@@ -232,6 +232,15 @@ export default function Terms() {
                 </p>
                 <p>
                   <strong>Cancellation:</strong> You may cancel your subscription at any time. Cancellation takes effect at the end of your current billing period.
+                </p>
+                <p>
+                  <strong>Lifetime Access:</strong> Lifetime access may be purchased as a one-time payment or obtained through promotional redemption codes. Lifetime access grants unlimited use of the Service for as long as The Pep Planner continues to operate. Lifetime purchases are non-refundable and non-transferable.
+                </p>
+                <p>
+                  <strong>Redemption Codes:</strong> Promotional and product redemption codes are single-use, non-transferable, and tied to one account only. Once redeemed, codes cannot be transferred to a different account. Codes have no cash value and cannot be resold. We reserve the right to invalidate codes obtained through unauthorized means.
+                </p>
+                <p>
+                  <strong>Service Continuity:</strong> "Lifetime" access refers to the operational lifetime of The Pep Planner service, not the lifetime of the user. In the event of service discontinuation, we will provide reasonable notice and data export capabilities.
                 </p>
               </div>
             </section>
