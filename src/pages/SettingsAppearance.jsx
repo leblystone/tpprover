@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft, Check, Palette, Sparkles } from 'lucide-react'
 import { themes, defaultThemeName } from '../theme/themes'
-import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 
 export default function SettingsAppearance() {
   const { theme } = useOutletContext()
@@ -11,8 +10,8 @@ export default function SettingsAppearance() {
   const [selectedTheme, setSelectedTheme] = useState(() => {
     try { 
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
-      // Migrate from deprecated themes
-      if (savedTheme === 'beekeeper' || savedTheme === 'mauve' || savedTheme === 'taupe') {
+      // Migrate from deprecated themes - wait, if they are hidden, keep migration
+      if (savedTheme === 'beekeeper') {
         localStorage.setItem('tpprover_theme', defaultThemeName);
         return defaultThemeName;
       }
@@ -25,27 +24,6 @@ export default function SettingsAppearance() {
     }
   })
 
-  const [settings, setSettings] = useState(() => {
-    const loadedSettings = loadSettings()
-    const defaultSettings = getDefaultSettings()
-    
-    return {
-      ...defaultSettings,
-      ...loadedSettings,
-      appearance: {
-        ...defaultSettings.appearance,
-        ...(loadedSettings?.appearance || {})
-      }
-    }
-  })
-
-  useEffect(() => {
-    try {
-      const scale = settings?.appearance?.fontScale || '1.0';
-      document.documentElement.style.fontSize = `${parseFloat(scale) * 16}px`;
-    } catch {}
-  }, [settings?.appearance?.fontScale]);
-
   const handleThemeChange = (newTheme) => {
     setSelectedTheme(newTheme);
     try { 
@@ -57,167 +35,120 @@ export default function SettingsAppearance() {
     }, 100);
   };
 
-  const update = (path, value) => {
-    const next = { ...settings }
-    const segs = path.split('.')
-    let ref = next
-    
-    for (let i = 0; i < segs.length - 1; i++) {
-      if (!ref[segs[i]] || typeof ref[segs[i]] !== 'object') {
-        ref[segs[i]] = {}
-      }
-      ref = ref[segs[i]]
-    }
-    
-    ref[segs[segs.length - 1]] = value
-    setSettings(next)
-    saveSettings(next)
-  }
-
   return (
-    <section className="space-y-4">
+    <section className="max-w-xl mx-auto space-y-8 pb-10">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => navigate('/app/settings')}
-          className="p-2 rounded-lg hover:opacity-80 transition-all"
-          style={{ backgroundColor: theme.secondary }}
+          className="group p-3 rounded-2xl transition-all active:scale-95 shadow-sm"
+          style={{ backgroundColor: theme.cardBackground }}
         >
-          <ArrowLeft size={20} style={{ color: theme.text }} />
+          <ArrowLeft size={22} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Appearance</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Add personality to your research</p>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Appearance</h1>
+          <p className="text-sm font-medium opacity-60" style={{ color: theme.text }}>Add personality to your research</p>
         </div>
       </div>
 
-      {/* Appearance Settings */}
-      <div className="space-y-4">
-        {/* Theme Selection */}
-        <div 
-          className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Color Theme</h4>
-          <div className="grid grid-cols-2 gap-2">
+      <div className="space-y-8">
+        {/* Theme Selection Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Palette size={16} style={{ color: theme.primary }} />
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Color Theme
+            </h4>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {Object.keys(themes)
-              .filter(themeKey => !['mauve', 'taupe'].includes(themeKey)) // Hide mauve and taupe
+              // Only showing Sage and Dark for now as requested/implied by "ugly" selection
+              .filter(themeKey => !['mauve', 'taupe', 'beekeeper'].includes(themeKey)) 
               .map(themeKey => {
-              const themeData = themes[themeKey]
-              const isSelected = selectedTheme === themeKey
-              
-              // Define unique swatch colors for each theme (darker to match actual theme colors)
-              const swatchColors = {
-                sage: { start: '#5F7F76', mid: '#7F9E95', end: '#4A6B63' },
-                softDark: { start: '#2C2C30', mid: '#3A3A40', end: '#1A1A1D' }
-              }
-              
-              const colors = swatchColors[themeKey] || { start: themeData.primary, mid: themeData.primaryLight, end: themeData.primaryDark }
-              
-              return (
-                <button
-                  key={themeKey}
-                  onClick={() => handleThemeChange(themeKey)}
-                  className="relative p-2 rounded-lg transition-all hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: theme.secondary,
-                    border: isSelected ? `2px solid ${theme.accent}` : '2px solid transparent',
-                    boxShadow: isSelected ? `0 4px 12px ${theme.accent}40` : '0 2px 6px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  {/* Compact Color Swatch with Metallic Finish */}
-                  <div 
-                    className="w-full h-12 rounded-lg mb-2 relative overflow-hidden"
+                const themeData = themes[themeKey]
+                const isSelected = selectedTheme === themeKey
+                
+                return (
+                  <button
+                    key={themeKey}
+                    onClick={() => handleThemeChange(themeKey)}
+                    className="group relative flex flex-col p-5 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
                     style={{
-                      background: `linear-gradient(135deg, ${colors.start} 0%, ${colors.mid} 50%, ${colors.end} 100%)`,
-                      boxShadow: themeKey === 'softDark' 
-                        ? 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.25)'
-                        : 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
+                      backgroundColor: theme.cardBackground,
+                      borderColor: isSelected ? theme.primary : 'transparent',
+                      boxShadow: isSelected 
+                        ? `0 20px 40px ${theme.primary}15, 0 8px 16px ${theme.primary}10` 
+                        : '0 4px 12px rgba(0,0,0,0.03)'
                     }}
                   >
-                    {/* Metallic shine overlay */}
+                    {/* Visual Preview */}
                     <div 
-                      className="absolute inset-0"
-                      style={{
-                        background: themeKey === 'softDark'
-                          ? 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.2) 100%)'
-                          : 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
-                        mixBlendMode: 'overlay'
-                      }}
-                    />
-                    {/* Additional metallic reflection */}
-                    <div 
-                      className="absolute inset-0"
-                      style={{
-                        background: themeKey === 'softDark'
-                          ? 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 100%)'
-                          : 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 100%)',
-                        mixBlendMode: 'overlay'
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Theme Name and Check */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
-                      {themeData.name}
-                    </div>
-                    {isSelected && (
-                      <div 
-                        className="w-4 h-4 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: theme.accent }}
-                      >
-                        <Check size={10} style={{ color: theme.accentText }} />
+                      className="w-full h-24 rounded-2xl mb-4 relative overflow-hidden border border-black/[0.03]"
+                      style={{ backgroundColor: themeData.background }}
+                    >
+                      {/* Mini App UI Elements */}
+                      <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: themeData.primary }} />
+                      <div className="absolute top-6 left-3 right-3 space-y-2">
+                        <div className="flex gap-2">
+                          <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: themeData.primary, opacity: 0.1 }} />
+                          <div className="flex-1 space-y-2 py-1">
+                            <div className="w-2/3 h-2 rounded-full" style={{ backgroundColor: themeData.primary }} />
+                            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: themeData.text, opacity: 0.1 }} />
+                          </div>
+                        </div>
+                        <div className="w-full h-12 rounded-xl" style={{ backgroundColor: themeData.cardBackground, border: `1px solid ${themeData.border}` }} />
                       </div>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-          <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
-            More on the way!
-          </p>
-        </div>
 
-        {/* Font Size Selection */}
-        <div 
-          className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Font Size</h4>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { value: '0.9', label: 'Small', preview: 'Aa' },
-              { value: '1.0', label: 'Default', preview: 'Aa' },
-              { value: '1.1', label: 'Large', preview: 'Aa' },
-              { value: '1.25', label: 'XL', preview: 'Aa' }
-            ].map(option => {
-              const isSelected = (settings?.appearance?.fontScale || '1.0') === option.value
-              
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => update('appearance.fontScale', option.value)}
-                  className="p-3 rounded-lg transition-all hover:opacity-90 text-center"
-                  style={{
-                    backgroundColor: isSelected ? theme.accent : theme.secondary,
-                    color: isSelected ? theme.accentText : theme.text,
-                    border: isSelected ? `2px solid ${theme.accent}` : '2px solid transparent'
-                  }}
-                >
-                  <div 
-                    className="font-bold mb-1"
-                    style={{ fontSize: `${parseFloat(option.value) * 1.5}rem` }}
-                  >
-                    {option.preview}
-                  </div>
-                  <div className="text-xs">
-                    {option.label}
-                  </div>
-                </button>
-              )
-            })}
+                      {/* Selection Indicator */}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <div 
+                            className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300"
+                            style={{ backgroundColor: themeData.primary, color: '#ffffff' }}
+                          >
+                            <Check size={14} strokeWidth={3} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="px-1 flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-lg" style={{ color: theme.text }}>
+                          {themeData.name}
+                        </span>
+                        <div className="flex gap-1">
+                          {[themeData.primary, themeData.background].map((c, i) => (
+                            <div key={i} className="w-2.5 h-2.5 rounded-full border border-black/5" style={{ backgroundColor: c }} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
+                        {themeKey === 'softDark' 
+                          ? 'Perfect for late night research.' 
+                          : 'A natural, focused environment.'}
+                      </p>
+                    </div>
+
+                    {/* Subtle Gradient Overlay on Hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/20 to-transparent dark:from-white/5" />
+                  </button>
+                )
+              })
+            }
+            
+            {/* "More Coming" Placeholder Card */}
+            <div 
+              className="flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-dashed opacity-40"
+              style={{ borderColor: theme.border }}
+            >
+              <Sparkles size={24} style={{ color: theme.textLight }} className="mb-2" />
+              <p className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.textLight }}>
+                Sequencing New<br/>Color Chains
+              </p>
+            </div>
           </div>
         </div>
       </div>
