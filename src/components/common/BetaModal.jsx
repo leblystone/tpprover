@@ -28,13 +28,13 @@ export default function BetaModal({ open, onClose, theme }) {
       title={
         <div className="flex items-center gap-2">
           <span>We're in Beta!</span>
-          <FlaskRound className="w-6 h-6" style={{ color: '#ffffff' }} />
+          <FlaskRound className="w-6 h-6" style={{ color: '#7F9E95' }} />
         </div>
       }
       theme={theme}
       maxWidth="max-w-2xl"
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <style>{`
           @keyframes pulse-text {
             0%, 100% {
@@ -53,8 +53,8 @@ export default function BetaModal({ open, onClose, theme }) {
         
         <div className="text-center">
           <h3 
-            className="text-lg font-bold mb-2 pulsing-tagline"
-            style={{ color: theme?.primaryDark }}
+            className="text-lg font-bold mb-1 pulsing-tagline"
+            style={{ color: '#4A4A4A' }}
           >
             Building with you!
           </h3>
@@ -67,7 +67,7 @@ export default function BetaModal({ open, onClose, theme }) {
         </div>
 
         <div 
-          className="rounded-lg p-4"
+          className="rounded-lg p-3"
           style={{
             backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
             border: `1px solid ${theme?.isDark ? 'rgba(240, 238, 231, 0.2)' : '#e0ddd3'}`
@@ -120,10 +120,9 @@ export default function BetaModal({ open, onClose, theme }) {
         </div>
 
         <div 
-          className="rounded-lg p-4 text-center"
+          className="text-center pt-3"
           style={{
-            backgroundColor: theme?.isDark ? 'rgba(186, 166, 142, 0.1)' : 'rgba(186, 166, 142, 0.15)',
-            border: `1px solid ${theme?.isDark ? 'rgba(186, 166, 142, 0.2)' : 'rgba(165, 148, 127, 0.3)'}`
+            borderTop: `1px solid ${theme?.border || '#DDE6DE'}`
           }}
         >
           <p className="text-sm font-semibold mb-2" style={{ color: theme?.text }}>
@@ -141,7 +140,7 @@ export default function BetaModal({ open, onClose, theme }) {
           </button>
         </div>
         
-        <div className="flex justify-center pt-3">
+        <div className="flex justify-center pt-2">
           <HeartHandshake className="w-8 h-8" style={{ color: '#a8b5a0' }} />
         </div>
       </div>
