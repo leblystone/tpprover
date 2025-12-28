@@ -15,6 +15,9 @@ const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
 const recoverLifetimePurchases = require('./recoverLifetimePurchases');
 const shippo = require('./shippo');
+const googlePlayBilling = require('./googlePlayBilling');
+const googlePlayWebhooks = require('./googlePlayWebhooks');
+const appleInAppPurchase = require('./appleInAppPurchase');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 const emailQueue = require('./emailQueue');
@@ -31,6 +34,14 @@ exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 exports.completeGiftFromSession = stripe.completeGiftFromSession;
 exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
+
+// Google Play Billing Functions
+exports.verifyGooglePlayPurchase = googlePlayBilling.verifyGooglePlayPurchase;
+exports.googlePlayWebhook = googlePlayWebhooks.googlePlayWebhook;
+
+// Apple In-App Purchase Functions (commented out until iOS is ready)
+// exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
+// exports.appleWebhook = appleInAppPurchase.appleWebhook;
 
 // Shippo Tracking Functions
 exports.getTrackingInfo = shippo.getTrackingInfo;
@@ -1071,7 +1082,7 @@ exports.testResendConnection = onCall(
         throw new Error('Resend API key not configured');
       }
       
-      if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
+      if (!resendApiKey.startsWith('re_') || resendApiKey.length < 30) {
         throw new Error('Invalid Resend API key format');
       }
       
@@ -1515,6 +1526,10 @@ exports.resetPasswordWithToken = onCall(
 
 // 📧 Email Functions
 
+// Import and export diagnostic function
+const diagnoseEmailIssue = require('./diagnoseEmailIssue');
+exports.diagnoseEmailSystem = diagnoseEmailIssue.diagnoseEmailSystem;
+
 // Send welcome email when new user is created
 exports.onUserCreated = onDocumentCreated(
   {
@@ -1522,11 +1537,29 @@ exports.onUserCreated = onDocumentCreated(
     secrets: ['RESEND_API_KEY']
   },
   async (event) => {
-  const userData = event.data.data();
+  logger.info('🔥 onUserCreated trigger FIRED!');
+  logger.info('📋 Event data:', JSON.stringify(event.data ? 'exists' : 'null'));
+  logger.info('📋 Event params:', JSON.stringify(event.params));
+  
+  const userData = event.data?.data();
   const userId = event.params.userId;
-  const userEmail = userData.email?.toLowerCase().trim();
+  
+  logger.info(`📋 User ID from params: ${userId}`);
+  logger.info(`📋 User data exists: ${!!userData}`);
+  logger.info(`📋 User data keys: ${userData ? Object.keys(userData).join(', ') : 'none'}`);
+  
+  // Validate email exists
+  if (!userData || !userData.email) {
+    logger.error(`❌ New user created without email: ${userId}`);
+    logger.error(`❌ User data: ${JSON.stringify(userData)}`);
+    return null;
+  }
+  
+  const userEmail = userData.email.toLowerCase().trim();
+  const userName = userData.displayName || null;
   
   logger.info(`👋 New user created: ${userId} (${userEmail})`);
+  logger.info(`📧 Will send welcome and verification emails to: ${userEmail}`);
   
   try {
     // Check for pre-granted lifetime access (granted before user signed up)
@@ -1534,7 +1567,7 @@ exports.onUserCreated = onDocumentCreated(
     const preGrantRef = db.collection('lifetimeAccessPreGrants').doc(userEmail);
     const preGrantDoc = await preGrantRef.get();
     
-    if (preGrantDoc.exists()) {
+    if (preGrantDoc.exists) {
       const preGrant = preGrantDoc.data();
       logger.info(`🎁 Found pre-granted lifetime access for: ${userEmail}`);
       
@@ -1596,28 +1629,114 @@ exports.onUserCreated = onDocumentCreated(
     }
     
     // Send welcome email
-    await emailService.sendWelcomeEmail(userData.email, userData.displayName || null);
-    logger.info(`✅ Welcome email sent to: ${userData.email}`);
+    logger.info(`📧 Attempting to send welcome email to: ${userEmail}`);
+    logger.info(`📧 User ID: ${userId}, User Name: ${userName || 'null'}`);
+    
+    const welcomeEmailSent = await emailService.sendWelcomeEmail(userEmail, userName, {
+      userId: userId,
+      sentBy: 'system'
+    });
+    
+    logger.info(`📧 sendWelcomeEmail returned: ${welcomeEmailSent}`);
+    
+    // Note: sendWelcomeEmail now logs to emailHistory automatically via sendEmail
+    // But we'll keep this as a backup in case logToHistory fails
+    if (!welcomeEmailSent) {
+      logger.error(`❌ Failed to send welcome email to: ${userEmail}`);
+      
+      // Log failed attempt as backup (sendEmail should have already logged it)
+      try {
+        await db.collection('emailHistory').add({
+          type: 'welcome',
+          recipientEmail: userEmail,
+          recipientName: userName,
+          userId: userId,
+          subject: 'Welcome to The Pep Planner! 🎉',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'system',
+          error: 'sendWelcomeEmail returned false'
+        });
+      } catch (logError) {
+        logger.error('❌ Failed to log welcome email failure:', logError);
+      }
+    }
     
     // Send custom verification email
+    logger.info(`📧 Generating verification token for: ${userEmail}`);
     const verificationToken = require('crypto').randomBytes(32).toString('hex');
     
     // Store the token in Firestore with expiration (1 hour)
     const tokenRef = admin.firestore().collection('verificationTokens').doc(verificationToken);
     await tokenRef.set({
       userId,
-      userEmail: userData.email,
+      userEmail: userEmail,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       used: false
     });
+    logger.info(`✅ Verification token stored for: ${userEmail}`);
 
     // Send custom verification email via Resend
-    await emailService.sendCustomVerificationEmail(userData.email, verificationToken);
-    logger.info(`✅ Custom verification email sent to: ${userData.email}`);
+    logger.info(`📧 Attempting to send verification email to: ${userEmail}`);
+    logger.info(`📧 Verification token generated: ${verificationToken.substring(0, 10)}...`);
+    
+    const verificationEmailSent = await emailService.sendCustomVerificationEmail(userEmail, verificationToken, {
+      userId: userId,
+      recipientName: userName,
+      sentBy: 'system'
+    });
+    
+    logger.info(`📧 sendCustomVerificationEmail returned: ${verificationEmailSent}`);
+    
+    // Note: sendCustomVerificationEmail should log to emailHistory automatically
+    // But we'll keep this as a backup in case it fails
+    if (!verificationEmailSent) {
+      logger.error(`❌ Failed to send verification email to: ${userEmail}`);
+      
+      // Log failed attempt as backup
+      try {
+        await db.collection('emailHistory').add({
+          type: 'verification',
+          recipientEmail: userEmail,
+          recipientName: userName,
+          userId: userId,
+          subject: 'Verify your email for The Pep Planner',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'system',
+          error: 'sendCustomVerificationEmail returned false'
+        });
+      } catch (logError) {
+        logger.error('❌ Failed to log verification email failure:', logError);
+      }
+    }
     
   } catch (error) {
     logger.error('❌ Failed to send emails:', error);
+    logger.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userId: userId,
+      userEmail: userEmail
+    });
+    
+    // Log error to email history
+    try {
+      await admin.firestore().collection('emailHistory').add({
+        type: 'welcome',
+        recipientEmail: userEmail,
+        recipientName: userName,
+        userId: userId,
+        subject: 'Welcome to The Pep Planner! 🎉',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'error',
+        error: error.message,
+        sentBy: 'system'
+      });
+    } catch (logError) {
+      logger.error('❌ Failed to log email error to history:', logError);
+    }
     // Don't fail the function if email fails
   }
   
@@ -2293,6 +2412,156 @@ exports.sendInviteEmail = onCall(
     } catch (error) {
       logger.error(`❌ Error sending invite email: ${error.message}`);
       throw new Error('Failed to send invite email');
+    }
+  }
+);
+
+// Resend email from history
+exports.resendEmail = onCall(
+  {
+    cors: true,
+    secrets: ['RESEND_API_KEY', 'LOGO_URL']
+  },
+  async (request) => {
+    const { emailHistoryId, type, recipientEmail, recipientName, subject, customContent, inviteLink, reason } = request.data;
+
+    if (!recipientEmail || !type) {
+      throw new Error('recipientEmail and type are required');
+    }
+
+    logger.info(`📧 Resending ${type} email to: ${recipientEmail}`);
+    logger.info(`📧 Resend will use custom templates from Firestore if available`);
+
+    try {
+      const db = admin.firestore();
+      const emailService = require('./emailService');
+      let success = false;
+
+      // Call the appropriate email service function based on type
+      // These functions automatically load custom templates from Firestore
+      switch (type) {
+        case 'account_deletion':
+          logger.info(`📧 Resending account deletion email - will load 'accountDeletion' template`);
+          success = await emailService.sendAccountDeletionEmail(recipientEmail, recipientName);
+          break;
+        case 'in_depth_request':
+          logger.info(`📧 Resending in-depth request email - will load 'inDepthRequest' template`);
+          success = await emailService.sendInDepthRequestEmail(recipientEmail, recipientName, customContent);
+          break;
+        case 'invite':
+          logger.info(`📧 Resending invite email - will load 'inviteEmail' template`);
+          success = await emailService.sendInviteEmail(recipientEmail, recipientName, inviteLink, customContent);
+          break;
+        case 'lifetime_access':
+          logger.info(`📧 Resending lifetime access email - will load 'manualLifetimeGrant' or 'lifetimeAccessGranted' template`);
+          success = await emailService.sendLifetimeAccessEmail(recipientEmail, recipientName, reason);
+          break;
+        case 'announcement':
+          logger.info(`📧 Resending announcement email - will load 'customAnnouncement' template`);
+          success = await emailService.sendCustomAnnouncementEmail(recipientEmail, recipientName);
+          break;
+        case 'trialExpiredSurvey':
+          logger.info(`📧 Resending trial expired survey email - will load 'trialExpiredSurvey' template`);
+          // Extract surveyLink from customContent or use default
+          const surveyLink = customContent?.surveyLink || inviteLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
+          success = await emailService.sendTrialExpiredSurveyEmail(recipientEmail, recipientName, surveyLink);
+          break;
+        case 'welcome':
+          logger.info(`📧 Resending welcome email - will load 'welcome' template`);
+          success = await emailService.sendWelcomeEmail(recipientEmail, recipientName);
+          break;
+        case 'verification':
+          logger.info(`📧 Resending verification email - will load 'verification' template`);
+          // For verification, we need a token - can't resend without it
+          logger.warn(`⚠️ Cannot resend verification email without token. Use sendCustomVerificationEmail instead.`);
+          throw new Error('Cannot resend verification email - token required. Use verification resend from account page.');
+        case 'password_reset':
+          logger.info(`📧 Resending password reset email - will load 'passwordReset' template`);
+          // For password reset, we need a token - can't resend without it
+          logger.warn(`⚠️ Cannot resend password reset email without token.`);
+          throw new Error('Cannot resend password reset email - token required.');
+        default:
+          // For unsupported types, try to send a generic email using the subject and customContent
+          logger.warn(`⚠️ Unsupported email type for resend: ${type}. Attempting generic send.`);
+          if (subject && customContent?.mainMessage) {
+            // Use the base sendEmail function with the HTML from customContent
+            const html = customContent.html || customContent.mainMessage;
+            success = await emailService.sendEmail(recipientEmail, subject, html);
+          } else {
+            throw new Error(`Unsupported email type for resend: ${type}. Missing subject or content.`);
+          }
+          break;
+      }
+
+      if (success) {
+        logger.info(`✅ Email resent successfully to: ${recipientEmail}`);
+        
+        // Log resend to email history
+        await db.collection('emailHistory').add({
+          type: type,
+          recipientEmail: recipientEmail,
+          recipientName: recipientName || null,
+          subject: subject || 'Resent Email',
+          customContent: customContent || null,
+          inviteLink: inviteLink || null,
+          reason: reason || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin',
+          isResend: true,
+          originalEmailHistoryId: emailHistoryId || null
+        });
+        
+        return { success: true, message: 'Email resent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to resend email to: ${recipientEmail}`);
+        
+        // Log failed resend attempt
+        await db.collection('emailHistory').add({
+          type: type,
+          recipientEmail: recipientEmail,
+          recipientName: recipientName || null,
+          subject: subject || 'Resent Email',
+          customContent: customContent || null,
+          inviteLink: inviteLink || null,
+          reason: reason || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin',
+          isResend: true,
+          originalEmailHistoryId: emailHistoryId || null
+        });
+        
+        return { success: false, message: 'Failed to resend email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error resending email: ${error.message}`);
+      logger.error(`❌ Error stack: ${error.stack}`);
+      
+      // Log error to email history
+      try {
+        const db = admin.firestore();
+        await db.collection('emailHistory').add({
+          type: type,
+          recipientEmail: recipientEmail,
+          recipientName: recipientName || null,
+          subject: subject || 'Resent Email',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin',
+          isResend: true,
+          originalEmailHistoryId: emailHistoryId || null,
+          error: error.message
+        });
+      } catch (logError) {
+        logger.error('❌ Failed to log resend error to history:', logError);
+      }
+      
+      return { 
+        success: false, 
+        message: `Failed to resend email: ${error.message}`,
+        error: error.message
+      };
     }
   }
 );

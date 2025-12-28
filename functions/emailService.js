@@ -14,9 +14,10 @@ const { fetchFounderState } = require('./founderOffer');
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
  * @param {string} html - Email HTML content
+ * @param {object} options - Optional metadata for logging (type, recipientName, userId, etc.)
  * @returns {Promise<boolean>}
  */
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, options = {}) {
   try {
     // Get Resend API key from environment variables (Firebase Functions v2)
     // The secret is automatically injected as an environment variable when the function is called
@@ -28,14 +29,52 @@ async function sendEmail(to, subject, html) {
     if (!resendApiKey) {
       logger.warn('⚠️ Resend not configured - email not sent');
       logger.info('📧 Would have sent email to:', to, 'Subject:', subject);
+      
+      // Log to email history if options provided
+      if (options.logToHistory && options.type) {
+        try {
+          await logEmailToHistory({
+            type: options.type,
+            recipientEmail: to,
+            recipientName: options.recipientName || null,
+            userId: options.userId || null,
+            subject: subject,
+            status: 'failed',
+            error: 'Resend API key not configured',
+            sentBy: options.sentBy || 'system'
+          });
+        } catch (logError) {
+          logger.error('❌ Failed to log email to history:', logError);
+        }
+      }
+      
       return false;
     }
     
     // Validate API key format (Resend keys start with "re_")
-    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
-      logger.error('❌ Invalid Resend API key format. Key must start with "re_" and be at least 40 characters');
+    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 30) {
+      logger.error('❌ Invalid Resend API key format. Key must start with "re_" and be at least 30 characters');
       logger.error('API key provided:', resendApiKey.substring(0, 20) + '...');
       logger.error('API key length:', resendApiKey.length);
+      
+      // Log to email history if options provided
+      if (options.logToHistory && options.type) {
+        try {
+          await logEmailToHistory({
+            type: options.type,
+            recipientEmail: to,
+            recipientName: options.recipientName || null,
+            userId: options.userId || null,
+            subject: subject,
+            status: 'failed',
+            error: 'Invalid Resend API key format',
+            sentBy: options.sentBy || 'system'
+          });
+        } catch (logError) {
+          logger.error('❌ Failed to log email to history:', logError);
+        }
+      }
+      
       return false;
     }
 
@@ -48,6 +87,16 @@ async function sendEmail(to, subject, html) {
       to,
       subject,
       html,
+      replyTo: 'contact@thepepplanner.com',
+      headers: {
+        'X-Entity-Ref-ID': `tpp-${Date.now()}`,
+        'List-Unsubscribe': '<https://thepepplanner.app/app/account>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+      tags: [
+        { name: 'category', value: 'transactional' },
+        { name: 'source', value: 'the-pep-planner' }
+      ],
     });
     
     logger.info('✅ Email sent successfully to:', to);
@@ -71,9 +120,48 @@ async function sendEmail(to, subject, html) {
         // Don't fail the email send if count increment fails, but log it
       }
       
+      // Log to email history if options provided
+      if (options.logToHistory && options.type) {
+        try {
+          await logEmailToHistory({
+            type: options.type,
+            recipientEmail: to,
+            recipientName: options.recipientName || null,
+            userId: options.userId || null,
+            subject: subject,
+            status: 'sent',
+            sentBy: options.sentBy || 'system',
+            customContent: options.customContent || null,
+            inviteLink: options.inviteLink || null,
+            reason: options.reason || null
+          });
+        } catch (logError) {
+          logger.error('❌ Failed to log email to history:', logError);
+        }
+      }
+      
       return true;
     } else if (result.error) {
       logger.error('❌ Resend API error:', result.error);
+      
+      // Log to email history if options provided
+      if (options.logToHistory && options.type) {
+        try {
+          await logEmailToHistory({
+            type: options.type,
+            recipientEmail: to,
+            recipientName: options.recipientName || null,
+            userId: options.userId || null,
+            subject: subject,
+            status: 'failed',
+            error: result.error?.message || 'Resend API error',
+            sentBy: options.sentBy || 'system'
+          });
+        } catch (logError) {
+          logger.error('❌ Failed to log email to history:', logError);
+        }
+      }
+      
       return false;
     } else {
       logger.warn('⚠️ Unexpected Resend response:', result);
@@ -87,7 +175,43 @@ async function sendEmail(to, subject, html) {
       code: error.code,
       response: error.response?.body
     });
+    
+    // Log to email history if options provided
+    if (options.logToHistory && options.type) {
+      try {
+        await logEmailToHistory({
+          type: options.type,
+          recipientEmail: to,
+          recipientName: options.recipientName || null,
+          userId: options.userId || null,
+          subject: subject,
+          status: 'failed',
+          error: error.message,
+          sentBy: options.sentBy || 'system'
+        });
+      } catch (logError) {
+        logger.error('❌ Failed to log email to history:', logError);
+      }
+    }
+    
     return false;
+  }
+}
+
+/**
+ * Helper function to log email to emailHistory collection
+ */
+async function logEmailToHistory(emailData) {
+  try {
+    const db = admin.firestore();
+    await db.collection('emailHistory').add({
+      ...emailData,
+      sentAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    logger.info(`✅ Email logged to history: ${emailData.type} to ${emailData.recipientEmail}`);
+  } catch (error) {
+    logger.error('❌ Failed to log email to history:', error);
+    throw error;
   }
 }
 
@@ -106,40 +230,70 @@ exports.sendEmailWithQueue = async (to, subject, html, options = {}) => {
 /**
  * Send welcome email to new user
  */
-exports.sendWelcomeEmail = async (userEmail, userName = null) => {
+exports.sendWelcomeEmail = async (userEmail, userName = null, options = {}) => {
+  logger.info(`📧 sendWelcomeEmail called for: ${userEmail}, userName: ${userName}`);
+  
   // Try to load custom template from Firestore, fallback to hardcoded
   try {
     const customTemplate = await loadEmailTemplate('welcome');
     if (customTemplate) {
+      logger.info('✅ Using custom welcome template from Firestore');
       const subject = customTemplate.subject || 'Welcome to The Pep Planner! 🎉';
       const html = generateEmailHTML(customTemplate, { userName, userEmail });
-      return sendEmail(userEmail, subject, html);
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'welcome',
+        recipientName: userName,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    } else {
+      logger.warn('⚠️ No custom welcome template found in Firestore');
     }
   } catch (error) {
     logger.warn('Failed to load custom welcome template, using default:', error);
   }
   
   // Fallback to hardcoded template
+  logger.info('📧 Using hardcoded welcome template');
   const subject = 'Welcome to The Pep Planner! 🎉';
   const html = emailTemplates.welcomeEmail(userName, userEmail);
-  return sendEmail(userEmail, subject, html);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'welcome',
+    recipientName: userName,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
 };
 
 /**
  * Send email verification
  */
-exports.sendVerificationEmail = async (userEmail, verificationLink) => {
+exports.sendVerificationEmail = async (userEmail, verificationLink, options = {}) => {
+  logger.info(`📧 sendVerificationEmail called for: ${userEmail}`);
+  
   try {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
+      logger.info('✅ Using custom verification template from Firestore');
       const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
       const html = generateEmailHTML(customTemplate, { verificationLink, userEmail });
-      return sendEmail(userEmail, subject, html);
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'verification',
+        recipientName: options.recipientName || null,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    } else {
+      logger.warn('⚠️ No custom verification template found in Firestore');
     }
   } catch (e) {
     logger.warn('Failed to load custom verification template, using themed default:', e);
   }
   // Fallback to themed default template that matches other emails
+  logger.info('📧 Using hardcoded verification template');
   const defaultTemplate = {
     heading: 'Verify Your Email 📧',
     greeting: `Hi there,`,
@@ -153,7 +307,13 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
   };
   const subject = 'Verify your email for The Pep Planner';
   const html = generateEmailHTML(defaultTemplate, { verificationLink, userEmail });
-  return sendEmail(userEmail, subject, html);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'verification',
+    recipientName: options.recipientName || null,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
 };
 
 /**
@@ -248,7 +408,7 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
     }
     
     // Validate API key format
-    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 40) {
+    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 30) {
       logger.error('❌ Invalid Resend API key format');
       return false;
     }
@@ -312,18 +472,20 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
 /**
  * Send custom verification email with Firebase token
  */
-exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
+exports.sendCustomVerificationEmail = async (userEmail, verificationToken, options = {}) => {
   // Use environment variable for base URL, fallback to production
   // For local development, you can set BASE_URL=http://localhost:5173
   const baseUrl = process.env.BASE_URL || 'https://thepepplanner.app';
   const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
   
   logger.info(`🔗 Verification link: ${verificationLink}`);
+  logger.info(`📧 sendCustomVerificationEmail called for: ${userEmail}`);
   
   // Try to load custom template from Firestore, fallback to themed default
   try {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
+      logger.info('✅ Using custom verification template from Firestore');
       const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
       // Pass multiple variable names to support different template formats
       const html = generateEmailHTML(customTemplate, { 
@@ -332,13 +494,22 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
         verification_link: verificationLink,  // Support %VERIFICATION_LINK% variable (with underscore)
         userEmail
       });
-      return sendEmail(userEmail, subject, html);
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'verification',
+        recipientName: options.recipientName || null,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    } else {
+      logger.warn('⚠️ No custom verification template found in Firestore');
     }
   } catch (error) {
     logger.warn('Failed to load custom verification template, using themed default:', error);
   }
   
   // Fallback to themed default template that matches other emails
+  logger.info('📧 Using hardcoded verification template');
   const defaultTemplate = {
     heading: 'Verify Your Email 📧',
     greeting: `Hi there,`,
@@ -352,7 +523,13 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
   };
   const subject = 'Verify your email for The Pep Planner';
   const html = generateEmailHTML(defaultTemplate, { verificationLink, userEmail });
-  return sendEmail(userEmail, subject, html);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'verification',
+    recipientName: options.recipientName || null,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
 };
 
 /**
@@ -439,8 +616,8 @@ function generateEmailHTML(template, variables = {}) {
     if (!text) return text;
     let result = text;
     Object.entries(variables).forEach(([key, value]) => {
-      // Handle null/undefined values gracefully
-      let replacement = value || '';
+      // Convert value to string to handle numbers, dates, etc.
+      let replacement = value != null ? String(value) : '';
       // URL encode email addresses when used in URLs
       if (key === 'userEmail' && replacement && text.includes('?')) {
         replacement = encodeURIComponent(replacement);

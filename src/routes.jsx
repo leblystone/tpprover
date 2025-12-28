@@ -28,7 +28,6 @@ const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'Se
 const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
 const AccountProfile = lazyWithRetry(() => import('./pages/AccountProfile.jsx'), 'AccountProfile')
 const AccountSubscription = lazyWithRetry(() => import('./pages/AccountSubscription.jsx'), 'AccountSubscription')
-const AccountSecurity = lazyWithRetry(() => import('./pages/AccountSecurity.jsx'), 'AccountSecurity')
 const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'AccountLegal')
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
@@ -55,6 +54,7 @@ const GiftSuccess = lazyWithRetry(() => import('./pages/GiftSuccess.jsx'), 'Gift
 const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'), 'RedeemLifetime')
 const RedeemAnnual = lazyWithRetry(() => import('./pages/RedeemAnnual.jsx'), 'RedeemAnnual')
 const TestAnnualCheckout = lazyWithRetry(() => import('./pages/TestAnnualCheckout.jsx'), 'TestAnnualCheckout')
+const TrialExpired = lazyWithRetry(() => import('./pages/TrialExpired.jsx'), 'TrialExpired')
 
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
@@ -201,8 +201,9 @@ export const router = createBrowserRouter([
           { path: 'account', element: <Account /> },
           { path: 'account/profile', element: <AccountProfile /> },
           { path: 'account/subscription', element: <AccountSubscription /> },
-          { path: 'account/security', element: <AccountSecurity /> },
+          { path: 'account/security', element: <Navigate to="/app/account/profile" replace /> },
           { path: 'account/legal', element: <AccountLegal /> },
+          { path: 'trial-expired', element: <TrialExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },

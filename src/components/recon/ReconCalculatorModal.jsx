@@ -207,7 +207,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       {/* Use the calculator panel without its card wrapper for modal */}
       <ReconCalculatorPanel 
         theme={theme} 
-        prefill={form}
+        prefill={prefill}
         isReadOnly={isReadOnly}
         onSave={handleSave}
         noCard={true}

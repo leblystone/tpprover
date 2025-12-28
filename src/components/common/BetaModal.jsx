@@ -28,7 +28,7 @@ export default function BetaModal({ open, onClose, theme }) {
       title={
         <div className="flex items-center gap-2">
           <span>We're in Beta!</span>
-          <FlaskRound className="w-6 h-6" style={{ color: '#7F9E95' }} />
+          <FlaskRound className="w-6 h-6" style={{ color: theme?.isDark ? '#b8bbaa' : '#7F9E95' }} />
         </div>
       }
       theme={theme}
@@ -54,7 +54,7 @@ export default function BetaModal({ open, onClose, theme }) {
         <div className="text-center">
           <h3 
             className="text-lg font-bold mb-1 pulsing-tagline"
-            style={{ color: '#4A4A4A' }}
+            style={{ color: theme?.isDark ? '#929e82' : '#4A4A4A' }}
           >
             Building with you!
           </h3>

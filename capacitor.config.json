@@ -11,10 +11,11 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#E8EAE3",
+      "backgroundColor": "#FFFFFF",
       "androidSplashResourceName": "splash",
-      "androidScaleType": "CENTER_CROP",
-      "showSpinner": false
+      "androidScaleType": "CENTER_INSIDE",
+      "showSpinner": true,
+      "spinnerColor": "#7F9E95"
     },
     "StatusBar": {
       "style": "DARK",

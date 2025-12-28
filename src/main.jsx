@@ -35,9 +35,17 @@ if (typeof window !== 'undefined') {
   
   // Catch unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('🚨 Unhandled promise rejection:', {
-      reason: event.reason,
-      promise: event.promise
+    const reason = event.reason;
+    const errorMessage = reason?.message || reason?.toString() || String(reason);
+    const errorStack = reason?.stack || 'No stack trace';
+    
+    console.error('🚨 Unhandled promise rejection:', errorMessage);
+    console.error('🚨 Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      reason: reason,
+      type: typeof reason,
+      constructor: reason?.constructor?.name
     });
     
     // Prevent default handling that could crash the renderer

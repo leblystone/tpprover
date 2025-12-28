@@ -4,13 +4,12 @@ import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
-import TrialButton from '../common/TrialButton';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../context/AppContext.jsx';
 import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 
-export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
+export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -650,15 +649,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 <span className="whitespace-nowrap">Support Response</span>
                 <MessageSquareDot size={14} />
               </button>
-          )}
-          {/* Trial Button - Only show on dashboard */}
-          {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
-            <TrialButton
-              daysRemaining={trialInfo.daysRemaining}
-              isTrialExpired={trialInfo.isTrialExpired}
-              onUpgradeClick={trialInfo.onUpgradeClick}
-              theme={theme}
-            />
           )}
           {/* Search for other pages */}
           {!onDashboard && seg !== 'settings' && seg !== 'account' && seg !== 'calendar' && (

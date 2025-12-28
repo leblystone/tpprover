@@ -48,6 +48,7 @@ import EmailHistory from '../components/admin/EmailHistory';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import PushNotificationBroadcast from '../components/admin/PushNotificationBroadcast';
 import EmailQueueManager from '../components/admin/EmailQueueManager';
+import EmailDiagnostic from '../components/admin/EmailDiagnostic';
 import ExpiredTrialManager from '../components/admin/ExpiredTrialManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
@@ -3933,6 +3934,7 @@ function Admin() {
 
         {activeTab === 'emails' && (
           <div className="space-y-3">
+            <EmailDiagnostic theme={theme} />
             <EmailQueueManager theme={theme} />
             <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />

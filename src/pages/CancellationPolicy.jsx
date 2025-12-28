@@ -11,7 +11,7 @@ export default function CancellationPolicy() {
     {
       icon: <XCircle className="w-8 h-8" />,
       title: "Easy Cancellation",
-      description: "Cancel your subscription at any time through your account settings or by contacting support."
+      description: "Cancel your subscription at any time through your Account or by contacting support."
     },
     {
       icon: <Calendar className="w-8 h-8" />,

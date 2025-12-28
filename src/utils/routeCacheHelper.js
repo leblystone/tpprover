@@ -18,7 +18,7 @@ const VALID_APP_ROUTES = [
   '/app/account',
   '/app/account/profile',
   '/app/account/subscription',
-  '/app/account/security',
+  '/app/account/profile',
   '/app/account/legal',
   '/app/settings',
   '/app/settings/notifications',

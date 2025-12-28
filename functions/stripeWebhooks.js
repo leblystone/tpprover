@@ -230,6 +230,7 @@ async function upsertSubscriptionState({
     latestInvoiceAmountDue: invoice?.amount_due != null ? invoice.amount_due / 100 : null,
     latestInvoiceHostedUrl: invoice?.hosted_invoice_url || null,
     billingStatus: paymentState || null,
+    paymentProvider: 'stripe', // Cross-platform: Track subscription source
     statusUpdatedAt: FieldValue.serverTimestamp(),
   });
 

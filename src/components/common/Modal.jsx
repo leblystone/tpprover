@@ -231,7 +231,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={headerStyle}>
+        <div className="flex items-center justify-between px-6 py-3 flex-shrink-0" style={headerStyle}>
           <div className="flex items-center gap-3">
             {onBack && (
               <button 
@@ -289,11 +289,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             </button>
           </div>
         </div>
-        <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0 border-t" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', borderColor: theme?.border || 'rgba(0,0,0,0.1)' }}>
+          <div className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', borderColor: theme?.border || 'rgba(0,0,0,0.1)' }}>
             {footer}
           </div>
         )}

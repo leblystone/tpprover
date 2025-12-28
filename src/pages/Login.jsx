@@ -1438,7 +1438,7 @@ export default function Login() {
               }, 1500);
             } else {
               // Account exists in Firestore but not Auth - orphaned account
-              setError('Account data found but authentication is incomplete. Please contact support to resolve this issue.');
+              setError('We found your account but there\'s a setup issue. Please contact support for assistance.');
             }
           } catch (statusError) {
             // Fallback error handling

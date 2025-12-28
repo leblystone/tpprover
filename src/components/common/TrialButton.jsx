@@ -1,10 +1,13 @@
 import React from 'react';
 import { Crown, Clock } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
+import { isAndroid } from '../../utils/platform';
+import { getAndroidUpgradeMessage } from '../../utils/paymentCompliance';
 
 /**
  * Compact trial button for top header
  * Modern, clean design that sits next to search button
+ * Android-compliant: Hides clickable buttons on Android (Google Play policy)
  */
 export default function TrialButton({ daysRemaining, isTrialExpired, onUpgradeClick, theme }) {
   const [isDismissed, setIsDismissed] = React.useState(false);
@@ -24,7 +27,26 @@ export default function TrialButton({ daysRemaining, isTrialExpired, onUpgradeCl
 
   if (isDismissed) return null;
 
-  // Trial ending soon (last 2 days)
+  // Android compliance: Show text-only message, no clickable buttons
+  if (isAndroid()) {
+    if (daysRemaining > 0 && daysRemaining <= 2) {
+      return (
+        <div className="px-3 py-1.5 text-xs" style={{ color: theme?.textLight || '#6B7280' }}>
+          {daysRemaining} {daysRemaining === 1 ? 'Day' : 'Days'} Left
+        </div>
+      );
+    }
+    if (isTrialExpired) {
+      return (
+        <div className="px-3 py-1.5 text-xs" style={{ color: theme?.textLight || '#6B7280' }}>
+          Trial Expired
+        </div>
+      );
+    }
+    return null;
+  }
+
+  // Trial ending soon (last 2 days) - Web/iOS only
   if (daysRemaining > 0 && daysRemaining <= 2) {
     return (
       <ModernTooltip text={`Trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`} position="bottom">
@@ -52,7 +74,7 @@ export default function TrialButton({ daysRemaining, isTrialExpired, onUpgradeCl
     );
   }
 
-  // Trial expired
+  // Trial expired - Web/iOS only
   if (isTrialExpired) {
     return (
       <ModernTooltip text="Trial expired - Upgrade to continue" position="bottom">

@@ -38,7 +38,11 @@ exports.quickEmailTest = onCall(
             <p>If you're seeing this, the email system is working! 🎉</p>
             <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
           </div>
-        `
+        `,
+        replyTo: 'contact@thepepplanner.com',
+        headers: {
+          'X-Entity-Ref-ID': `tpp-quick-test-${Date.now()}`,
+        },
       });
 
       if (result.data && result.data.id) {

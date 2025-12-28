@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Clock, CheckCircle, ArrowRight, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isAndroid } from '../../utils/platform';
+import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
 
 export default function ResearchStatusWidget({ theme, subscription }) {
   const navigate = useNavigate();
@@ -160,15 +162,21 @@ export default function ResearchStatusWidget({ theme, subscription }) {
               </div>
             </div>
 
-            {/* Action Button */}
-            <button
-              onClick={handleUpgrade}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              <span>Continue Research</span>
-              <ArrowRight size={14} />
-            </button>
+            {/* Action Button - Android compliance: Hide on Android */}
+            {isAndroid() ? (
+              <div className="w-full py-2 px-3 rounded-md text-xs text-center" style={{ color: theme.textLight }}>
+                {getAndroidSubscriptionMessage()}
+              </div>
+            ) : (
+              <button
+                onClick={handleUpgrade}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-semibold transition-all hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <span>Continue Research</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
 
             {/* Urgency message for last 2 days */}
             {trialDaysLeft <= 2 && trialDaysLeft > 0 && (
@@ -221,15 +229,21 @@ export default function ResearchStatusWidget({ theme, subscription }) {
               </div>
             </div>
 
-            {/* Action Button */}
-            <button
-              onClick={handleUpgrade}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              <span>Choose Plan</span>
-              <ArrowRight size={14} />
-            </button>
+            {/* Action Button - Android compliance: Hide on Android */}
+            {isAndroid() ? (
+              <div className="w-full py-2 px-3 rounded-md text-xs text-center" style={{ color: theme.textLight }}>
+                {getAndroidSubscriptionMessage()}
+              </div>
+            ) : (
+              <button
+                onClick={handleUpgrade}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-semibold transition-all hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <span>Choose Plan</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
           </div>
         </>
       ) : isCanceled ? (

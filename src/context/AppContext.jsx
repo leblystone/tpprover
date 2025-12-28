@@ -2508,32 +2508,25 @@ export function AppProvider({ children }) {
     // Listen for subscription changes from custom events (e.g., from Account page, lifetime redemption)
     // CRITICAL: This ensures subscription is refreshed immediately after lifetime grant
     useEffect(() => {
+        let isRefreshing = false; // Prevent concurrent refreshes
+        
         const handleSubscriptionUpdate = async (e) => {
-            if (e.detail && e.detail.subscription !== undefined && firebaseUser) {
+            if (e.detail && e.detail.subscription !== undefined && firebaseUser && !isRefreshing) {
+                isRefreshing = true;
                 const userId = firebaseUser.uid;
                 console.log('🔄 Subscription update event received:', e.detail.subscription);
                 
-                // First set the subscription from the event (immediate update)
-                setSubscription(e.detail.subscription);
-                await saveUserSubscription(userId, e.detail.subscription);
-                
-                // CRITICAL: Also refresh from cloud to ensure we have the latest data from Firestore
-                // This is especially important after lifetime redemption to get the full lifetime data
                 try {
-                    const refreshedSubscription = await loadUserSubscription(userId);
-                    if (refreshedSubscription) {
-                        console.log('✅ Subscription refreshed from cloud:', refreshedSubscription);
-                        // Only update if the cloud version is different or has lifetime access
-                        if (refreshedSubscription.hasLifetimeAccess || 
-                            refreshedSubscription.interval === 'lifetime' || 
-                            refreshedSubscription.plan === 'lifetime' ||
-                            JSON.stringify(refreshedSubscription) !== JSON.stringify(e.detail.subscription)) {
-                            setSubscription(refreshedSubscription);
-                        }
-                    }
+                    // Use the subscription from the event directly (it's already the latest from Firebase Function)
+                    setSubscription(e.detail.subscription);
+                    
+                    // Save to cloud storage for persistence
+                    await saveUserSubscription(userId, e.detail.subscription);
+                    console.log('✅ Subscription updated and saved to cloud');
                 } catch (err) {
-                    console.error('⚠️ Failed to refresh subscription from cloud:', err);
-                    // Keep the event subscription as fallback
+                    console.error('⚠️ Failed to save subscription:', err);
+                } finally {
+                    isRefreshing = false;
                 }
             }
         };

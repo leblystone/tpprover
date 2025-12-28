@@ -1,5 +1,7 @@
 import React from 'react';
 import { Crown, X, ArrowRight } from 'lucide-react';
+import { isAndroid } from '../../utils/platform';
+import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
 
 /**
  * Banner displayed when trial is expired or subscription ended
@@ -43,14 +45,21 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={handleUpgradeClick}
-                className="px-3 py-1.5 text-xs sm:text-sm sm:px-4 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-1 sm:gap-2"
-                style={{ color: '#D97944' }}
-              >
-                Choose a Plan
-                <ArrowRight size={14} />
-              </button>
+              {/* Android compliance: Hide payment button, show text */}
+              {isAndroid() ? (
+                <div className="text-xs sm:text-sm px-2">
+                  {getAndroidSubscriptionMessage()}
+                </div>
+              ) : (
+                <button 
+                  onClick={handleUpgradeClick}
+                  className="px-3 py-1.5 text-xs sm:text-sm sm:px-4 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-1 sm:gap-2"
+                  style={{ color: '#D97944' }}
+                >
+                  Choose a Plan
+                  <ArrowRight size={14} />
+                </button>
+              )}
               <button 
                 onClick={handleDismiss}
                 className="p-1 hover:bg-white/20 rounded transition-all"
@@ -78,14 +87,21 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
               </div>
             </div>
             <div className="flex items-center">
-              <button 
-                onClick={handleUpgradeClick}
-                className="px-3 py-1.5 text-xs sm:text-sm sm:px-4 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-1 sm:gap-2 animate-pulse"
-                style={{ color: '#A2496D' }}
-              >
-                Choose a Plan
-                <ArrowRight size={14} />
-              </button>
+              {/* Android compliance: Hide payment button, show text */}
+              {isAndroid() ? (
+                <div className="text-xs sm:text-sm px-2">
+                  {getAndroidSubscriptionMessage()}
+                </div>
+              ) : (
+                <button 
+                  onClick={handleUpgradeClick}
+                  className="px-3 py-1.5 text-xs sm:text-sm sm:px-4 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-1 sm:gap-2 animate-pulse"
+                  style={{ color: '#A2496D' }}
+                >
+                  Choose a Plan
+                  <ArrowRight size={14} />
+                </button>
+              )}
             </div>
           </div>
         </div>

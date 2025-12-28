@@ -5,6 +5,8 @@ import Modal from './Modal';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
+import { isAndroid } from '../../utils/platform';
+import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
 
 /**
  * Modal displayed when user tries to perform an action in read-only mode
@@ -99,14 +101,21 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
 
         {/* Plan Selection */}
         <div className="mt-6 space-y-4">
-          {/* Monthly and Annual in 2-column layout */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Monthly Plan */}
-            <div 
-              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
-              style={{ borderColor: '#D4D7CD' }}
-              onClick={handleUpgradeClick}
-            >
+          {/* Android compliance: Show text message instead of payment buttons */}
+          {isAndroid() ? (
+            <div className="p-4 rounded-lg text-center text-sm" style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+              {getAndroidSubscriptionMessage()}
+            </div>
+          ) : (
+            <>
+              {/* Monthly and Annual in 2-column layout */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Monthly Plan */}
+                <div 
+                  className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                  style={{ borderColor: '#D4D7CD' }}
+                  onClick={handleUpgradeClick}
+                >
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
@@ -226,6 +235,8 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
               </button>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </Modal>

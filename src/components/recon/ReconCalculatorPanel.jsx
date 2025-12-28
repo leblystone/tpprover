@@ -5,12 +5,18 @@ import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
   // Use controlled form if provided, otherwise use internal state
-  const [internalForm, setInternalForm] = useState({ vendor: '', vendorId: null, water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] });
+  const [internalForm, setInternalForm] = useState({ 
+    vendor: '', 
+    vendorId: null, 
+    water: '', 
+    cost: '',
+    peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] 
+  });
   const form = formData !== undefined ? formData : internalForm;
   const setForm = setFormData !== undefined ? setFormData : setInternalForm;
   
@@ -37,7 +43,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const [deliveryMethod, setDeliveryMethod] = useState('pipette');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
   const [penColor, setPenColor] = useState('#9ca3af');
-  const [cost, setCost] = useState('');
   const [priceUnit, setPriceUnit] = useState('vial');
   const [isPriceFocused, setIsPriceFocused] = useState(false);
   const [isPriceUnitDropdownOpen, setIsPriceUnitDropdownOpen] = useState(false);
@@ -116,6 +121,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           ...prev,
           vendor: vendors,
           vendorId: firstVendorId,
+          cost: costValue,
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 
             id: pep.id || index + 1, 
@@ -126,9 +132,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             dose: (pep.dose && pep.dose !== '251' && pep.dose !== 251) ? pep.dose : ''
           }))
         }));
-        // Only set cost if it's valid (not 0 or empty)
-        const costValue = totalCost > 0 ? String(totalCost) : '';
-        setCost(costValue);
       } 
       // Simple prefill (single peptide from stockpile page, etc.)
       else if (prefill.peptide) {
@@ -146,15 +149,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           quantityUsed: prefill.quantityUsed || 1,
           costPerMg: prefill.costPerMg || '' // Include costPerMg if available (may be cost per mg/g/ml/iu)
         };
+        const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
         setForm(prev => ({ 
           ...prev, 
           vendor: prefill.vendor || '', 
           vendorId: prefill.vendorId || null, // Include vendorId from prefill
+          cost: costValue,
           peptides: [p] 
         }));
-        // Only set cost if it's valid (not 0 or empty)
-        const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
-        setCost(costValue);
       }
       // Handle formData prefill (from modal or draft)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
@@ -166,15 +168,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           deliveryMethod: prefill.deliveryMethod || prev.deliveryMethod,
           administrationRoute: prefill.administrationRoute || prev.administrationRoute,
           penType: prefill.penType || prev.penType,
-          penColor: prefill.penColor || prev.penColor
+          penColor: prefill.penColor || prev.penColor,
+          cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : prev.cost
         }));
-        if (prefill.deliveryMethod) setDeliveryMethod(prefill.deliveryMethod);
-        if (prefill.administrationRoute) setAdministrationRoute(prefill.administrationRoute);
-        if (prefill.penColor) setPenColor(prefill.penColor);
-        // Only set cost if it's valid (not 0 or empty)
-        if (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) {
-          setCost(String(prefill.cost));
-        }
       }
 
       // Trigger pulse animation to alert user that data was loaded
@@ -199,11 +195,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       if (formData.penColor && formData.penColor !== penColor) {
         setPenColor(formData.penColor);
       }
-      if (formData.cost !== undefined && formData.cost !== cost) {
-        setCost(formData.cost);
-      }
     }
-  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor, formData?.cost])
+  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor])
 
   const totalMg = useMemo(() => {
     if (!safeForm.peptides || !Array.isArray(safeForm.peptides)) return 0;
@@ -286,12 +279,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     }
     
     // Fall back to dividing cost by doses per vial (default behavior)
-    if (cost && calc.dosesPerVial > 0) {
-      return formatCurrency(Number(cost) / calc.dosesPerVial);
+    if (form.cost && calc.dosesPerVial > 0) {
+      return formatCurrency(Number(form.cost) / calc.dosesPerVial);
     }
     
     return '';
-  }, [cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg, prefill?.mgUnit])
+  }, [form.cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg, prefill?.mgUnit])
 
   const addPeptide = () => {
     const peptides = safeForm.peptides || [];
@@ -415,27 +408,27 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const content = (
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
-      <div 
-        className="px-4 py-2.5 rounded-lg flex items-center justify-between relative z-10" 
-        style={{ 
-          backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-          borderLeft: '4px solid #e0ded7' 
-        }}
-      >
-        <h4 
-          className="font-bold text-sm tracking-wider uppercase" 
-          style={{ 
-            color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-            letterSpacing: '0.1em' 
-          }}
-        >
-          VIAL DETAILS
-        </h4>
-        <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+      <div className="flex flex-col gap-1 mb-2">
+        <div className="flex items-center gap-2">
+          <TestTube size={20} style={{ color: theme.primary }} />
+          <h4 
+            className="text-lg font-bold tracking-wide" 
+            style={{ color: theme.text }}
+          >
+            Vial Details
+          </h4>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            Research Parameters
+          </span>
+        </div>
       </div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Two Column Layout: Left Content + Visual Preview */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-3">
         {/* Left Column: Equal Split for Vial Details and Visual Preview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-end" style={{ minWidth: 0 }}>
           {/* Vial Details - Takes 1/2 width */}
@@ -802,26 +795,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               {/* Cost */}
               <div className="relative">
                 <div 
-                  className="flex items-stretch rounded-lg"
+                  className="flex items-stretch rounded-lg overflow-hidden"
                   style={{ 
                     border: `1px solid #f0eee7`,
                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                   }}
                 >
-                  <div className="flex items-center px-3" style={{ color: theme.textLight || theme.text }}>
-                    <Info size={16} />
-                  </div>
                   <input 
                     type="text"
+                    inputMode="decimal"
                     id="recon-cost-input"
-                    value={cost === 0 ? '' : (cost || '')} 
+                    value={form.cost === 0 ? '' : (form.cost || '')} 
                     onChange={e => {
-                      // Preserve user input exactly as typed - allow empty strings, don't convert to 0
-                      // Only convert to number when needed for calculations (handled in costPerDose)
-                      const newValue = e.target.value === '' || e.target.value === null || e.target.value === undefined ? '' : String(e.target.value);
-                      setCost(newValue);
-                      setForm(prev => ({ ...prev, cost: newValue }));
+                      // Allow only numbers and a single decimal point
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setForm(prev => ({ ...prev, cost: value }));
+                      }
                     }} 
                     onFocus={() => setIsPriceFocused(true)}
                     onBlur={(e) => {
@@ -834,15 +825,23 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       }, 150)
                     }}
                     placeholder=" "
-                    className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                    className="flex-1 py-3 outline-none min-w-0"
                     style={{
                       backgroundColor: 'transparent',
                       color: theme.isDark ? theme.text : '#181A18',
                       border: 'none',
-                      paddingLeft: '8px',
-                      paddingRight: '8px'
+                      paddingLeft: '12px',
+                      paddingRight: '4px'
                     }}
                   />
+                  <div className="flex items-center pr-2 pointer-events-none">
+                    <span 
+                      className="text-[10px] font-black uppercase tracking-widest" 
+                      style={{ color: '#7F9E95' }}
+                    >
+                      per
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
@@ -936,19 +935,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     </div>
                   )}
                 </div>
-                <label 
-                  htmlFor="recon-cost-input"
-                  className="absolute pointer-events-none transition-all"
-                  style={{
-                    fontSize: (isPriceFocused || (cost && String(cost).trim())) ? '0.75rem' : '0.9375rem',
-                    top: (isPriceFocused || (cost && String(cost).trim())) ? '-8px' : '14px',
-                    left: (isPriceFocused || (cost && String(cost).trim())) ? '40px' : '44px',
-                    padding: (isPriceFocused || (cost && String(cost).trim())) ? '0 4px' : '0',
-                    background: (isPriceFocused || (cost && String(cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                    color: (isPriceFocused || (cost && String(cost).trim())) ? theme.primary : (theme.textLight || theme.text),
-                    fontWeight: 500
-                  }}
-                >
+                  <label 
+                    htmlFor="recon-cost-input"
+                    className="absolute pointer-events-none transition-all"
+                    style={{
+                      fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                      top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                      left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '40px' : '44px',
+                      padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                      background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                      color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                      fontWeight: 500
+                    }}
+                  >
                   Cost ($)
                 </label>
               </div>
@@ -1167,80 +1166,72 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
           {/* Section Banner - Delivery Method */}
-          <div 
-            className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
-            style={{ 
-              backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-              borderLeft: '4px solid #e0ded7' 
-            }}
-          >
-            <h4 
-              className="font-bold text-sm tracking-wider uppercase" 
-              style={{ 
-                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-                letterSpacing: '0.1em' 
-              }}
-            >
-              DELIVERY METHOD
-            </h4>
-            <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+          <div className="flex flex-col gap-1 mb-2">
+            <div className="flex items-center gap-2">
+              <Droplets size={20} style={{ color: theme.primary }} />
+              <h4 
+                className="text-lg font-bold tracking-wide" 
+                style={{ color: theme.text }}
+              >
+                Delivery Method
+              </h4>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Administration Mode
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+          <div className="grid grid-cols-3 gap-3">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
-                        // Preserve dose unit when switching to syringe (don't reset to mcg)
+                        // Revert sprays to mcg when switching away from nasal
                         setForm(prev => ({
                             ...prev,
-                            deliveryMethod: 'pipette'
+                            deliveryMethod: 'pipette',
+                            peptides: prev.peptides.map(p => ({ 
+                                ...p, 
+                                doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
+                            }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
-                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border
-                    }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'pipette') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'pipette') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                        }
+                        borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border,
+                        boxShadow: deliveryMethod === 'pipette' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
+                        transform: deliveryMethod === 'pipette' ? 'translateY(-2px)' : 'none'
                     }}
                 >
-                    <Pipette size={14} /> Syringe
+                    <Pipette size={18} /> Syringe
                 </button>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pen');
-                        // Preserve dose unit when switching to pen (don't reset to mcg)
+                        // Revert sprays to mcg when switching away from nasal
                         setForm(prev => ({
                             ...prev,
-                            deliveryMethod: 'pen'
+                            deliveryMethod: 'pen',
+                            peptides: prev.peptides.map(p => ({ 
+                                ...p, 
+                                doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
+                            }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
-                        backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                        backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border
-                    }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'pen') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'pen') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                        }
+                        borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border,
+                        boxShadow: deliveryMethod === 'pen' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
+                        transform: deliveryMethod === 'pen' ? 'translateY(-2px)' : 'none'
                     }}
                 >
-                    <Pen size={14} /> Pen
+                    <Pen size={18} /> Pen
                 </button>
                 <button 
                     onClick={() => {
@@ -1252,24 +1243,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'sprays' }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
-                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
-                    }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'nasal') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'nasal') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                        }
+                        borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border,
+                        boxShadow: deliveryMethod === 'nasal' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
+                        transform: deliveryMethod === 'nasal' ? 'translateY(-2px)' : 'none'
                     }}
                 >
-                    <Droplets size={14} /> Nasal
+                    <Wind size={18} /> Nasal
                 </button>
             </div>
             
@@ -1277,10 +1260,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             {deliveryMethod === 'pipette' && (
                 <div className="mt-3">
                     <div 
-                        className="flex items-center gap-1 p-1 rounded-md" 
+                        className="flex items-center gap-1.5 p-1.5 rounded-2xl" 
                         style={{ 
-                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
-                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                            backgroundColor: theme.isDark ? theme.background : theme.secondary + '40',
+                            border: `1px solid ${theme.border}`
                         }}
                     >
                         {['subq', 'im', 'iv'].map(route => (
@@ -1291,14 +1274,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                   setAdministrationRoute(route);
                                   setForm(prev => ({ ...prev, administrationRoute: route }));
                                 }}
-                                className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
+                                className={`flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-300 ${
                                     administrationRoute === route 
-                                        ? 'text-white shadow-sm' 
-                                        : 'text-gray-600 hover:bg-gray-200'
+                                        ? 'text-white shadow-md' 
+                                        : 'text-gray-500 hover:text-gray-700'
                                 }`}
-                                style={administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                                style={administrationRoute === route ? { 
+                                    backgroundColor: theme.primary,
+                                    boxShadow: `0 4px 12px -2px ${theme.primary}50`
+                                } : {}}
                             >
-                                {route.toUpperCase()}
+                                {route}
                             </button>
                         ))}
                     </div>
@@ -1783,16 +1769,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             {prefill?.peptides?.length == null && (
               <button 
                 onClick={addPeptide} 
-                className="px-3 py-2 text-sm font-semibold rounded-md transition-all" 
+                className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.15em] rounded-xl transition-all border" 
                 style={{ 
-                  backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                  backgroundColor: theme.isDark ? theme.background : theme.secondary + '30',
+                  borderColor: theme.border,
                   color: theme.primary 
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                  e.currentTarget.style.borderColor = theme.primary + '30';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.background : theme.secondary + '30';
+                  e.currentTarget.style.borderColor = theme.border;
                 }}
               >
                 + Add Peptide
@@ -1803,25 +1792,48 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
         {/* Step 3: Results */}
         <div>
-          <div className="my-2 border-t" style={{ borderColor: theme.border }} />
-          <div className="rounded-lg border p-3" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Units/Dose</div>
-                <div className="text-lg font-bold" style={{ color: theme.primary }}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</div>
+          <div className="my-3 border-t opacity-50" style={{ borderColor: theme.border }} />
+          <div 
+            className="rounded-2xl p-4 relative overflow-hidden group transition-all duration-300 hover:shadow-xl" 
+            style={{ 
+              backgroundColor: theme.isDark ? theme.background : theme.primary + '05', 
+              border: `1px solid ${theme.primary}15`
+            }}
+          >
+            {/* Subtle background decoration */}
+            <div 
+              className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-5 pointer-events-none"
+              style={{ backgroundColor: theme.primary }}
+            ></div>
+
+            <div className="grid grid-cols-3 gap-4 text-center relative z-10">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Units/Dose</div>
+                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
+                  {calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}
+                </div>
               </div>
-              <div>
-                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Doses/Vial</div>
-                <div className="text-lg font-bold" style={{ color: theme.primary }}>{calc.dosesPerVial || '-'}</div>
+              <div className="space-y-1 border-x" style={{ borderColor: theme.primary + '15' }}>
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
+                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
+                  {calc.dosesPerVial || '-'}
+                </div>
               </div>
-              <div>
-                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Cost/Dose</div>
-                <div className="text-lg font-bold" style={{ color: theme.primary }}>{costPerDose || '-'}</div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Cost/Dose</div>
+                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
+                  {costPerDose || '-'}
+                </div>
               </div>
             </div>
-            <p className="text-xs text-center mt-2 opacity-75" style={{ color: theme.textLight }}>
-                {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
-            </p>
+            
+            <div className="flex items-center justify-center gap-2 mt-2 opacity-50">
+              <div className="h-px w-8 bg-current"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
+                  {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
+              </p>
+              <div className="h-px w-8 bg-current"></div>
+            </div>
           </div>
         </div>
         
@@ -1856,7 +1868,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
               penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
               penColor: penColorName || form.penColor, 
-              cost: form.cost || cost
+              cost: form.cost || ''
             };
             
             console.log('💾 Saving recon calculation with peptides:', peptidesWithStockpile.map(p => ({
@@ -1868,24 +1880,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             onSave(dataToSave);
           }}
           type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl text-[14px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-xl active:scale-95"
           style={{ 
             background: getPrimaryActionGradient(false),
             color: theme?.textOnPrimary || '#ffffff',
             border: 'none',
-            boxShadow: primaryActionDefaultShadow
+            boxShadow: `0 10px 20px -5px ${theme.primary}60`
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = `0 15px 30px -5px ${theme.primary}80`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
+            e.currentTarget.style.boxShadow = `0 10px 20px -5px ${theme.primary}60`;
             e.currentTarget.style.background = getPrimaryActionGradient(false);
           }}
         >
-          <FilePlus size={16} />
+          <FilePlus size={18} />
           Save Calculation
         </button>
         {onSaveDraft && (
@@ -1914,25 +1926,42 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
                 penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
                 penColor: penColorName || form.penColor, 
-                cost: form.cost || cost
+                cost: form.cost || ''
               };
               
               onSaveDraft(dataToSave);
             }}
             type="button"
-            className="w-full mt-2 text-sm font-medium transition-all hover:opacity-80 underline"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 border mt-3"
             style={{ 
-              color: theme?.primary || theme?.text || '#2563eb',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer'
+              backgroundColor: theme.isDark ? theme.background : 'transparent',
+              borderColor: theme.border,
+              color: theme.textLight
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.isDark ? theme.cardBackground : theme.primary + '05';
+              e.currentTarget.style.borderColor = theme.primary + '30';
+              e.currentTarget.style.color = theme.primary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme.isDark ? theme.background : 'transparent';
+              e.currentTarget.style.borderColor = theme.border;
+              e.currentTarget.style.color = theme.textLight;
             }}
           >
+            <Bookmark size={16} />
             Save as Draft
           </button>
         )}
-        <div className="p-3 rounded-md bg-yellow-50 text-yellow-800 text-xs mt-4 border border-yellow-200 text-center">
-          <Info size={14} className="inline mr-1" />
+        <div 
+          className="p-3 rounded-2xl text-[10px] font-bold uppercase tracking-wider mt-4 text-center border transition-all duration-300" 
+          style={{ 
+            backgroundColor: theme.isDark ? '#2D2616' : '#FFFBEB', 
+            borderColor: theme.isDark ? '#4A3E1D' : '#FEF3C7', 
+            color: theme.isDark ? '#EAB308' : '#92400E' 
+          }}
+        >
+          <Info size={14} className="inline mr-2 opacity-70" />
           For research purposes only. Always verify calculations with alternative methods.
         </div>
         </div>

@@ -16,8 +16,8 @@ async function sendEmailViaResend(to, subject, html) {
     throw new Error('RESEND_API_KEY environment variable is not set');
   }
   
-  if (!apiKey.startsWith('re_')) {
-    throw new Error(`Invalid Resend API key format. Got: ${apiKey.substring(0, 20)}...`);
+  if (!apiKey.startsWith('re_') || apiKey.length < 30) {
+    throw new Error(`Invalid Resend API key format. Got: ${apiKey.substring(0, 20)}... (length: ${apiKey.length})`);
   }
   
   const resend = new Resend(apiKey);
@@ -26,6 +26,16 @@ async function sendEmailViaResend(to, subject, html) {
     to,
     subject,
     html,
+    replyTo: 'contact@thepepplanner.com',
+    headers: {
+      'X-Entity-Ref-ID': `tpp-test-${Date.now()}`,
+      'List-Unsubscribe': '<https://thepepplanner.app/app/account>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+    tags: [
+      { name: 'category', value: 'test' },
+      { name: 'source', value: 'the-pep-planner' }
+    ],
   });
   
   if (result.data && result.data.id) {
@@ -343,13 +353,20 @@ exports.testEmailSystem = onCall(
       }
       
       try {
+        logger.info(`📧 Sending subscription cancelled email to ${testEmail}...`);
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Subscription cancelled email sent successfully');
       } catch (error) {
-        logger.error('Subscription cancelled email failed:', error);
+        logger.error('❌ Subscription cancelled email failed:', error);
+        logger.error('❌ Error message:', error.message);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
+        emailName = `Subscription Cancelled Email - ${error.message}`;
       }
-      emailName = 'Subscription Cancelled Email';
+      if (emailResult) {
+        emailName = 'Subscription Cancelled Email';
+      }
     } else if (templateType === 'renewalReminder') {
       logger.info('Testing renewal reminder email...');
       
@@ -381,13 +398,20 @@ exports.testEmailSystem = onCall(
       }
       
       try {
+        logger.info(`📧 Sending renewal reminder email to ${testEmail}...`);
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Renewal reminder email sent successfully');
       } catch (error) {
-        logger.error('Renewal reminder email failed:', error);
+        logger.error('❌ Renewal reminder email failed:', error);
+        logger.error('❌ Error message:', error.message);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
+        emailName = `Renewal Reminder Email - ${error.message}`;
       }
-      emailName = 'Renewal Reminder Email';
+      if (emailResult) {
+        emailName = 'Renewal Reminder Email';
+      }
     } else if (templateType === 'weeklyReminder') {
       logger.info('Testing weekly reminder email...');
       

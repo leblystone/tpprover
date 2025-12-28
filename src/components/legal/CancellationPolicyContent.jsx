@@ -10,7 +10,7 @@ export const CancellationPolicyContent = () => (
             <h3 className="font-semibold text-gray-800">1. How to Cancel Your Subscription</h3>
             <p>You may cancel your subscription at any time through the following methods:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-                <li><strong>Account Settings:</strong> Navigate to your Account settings within the application and select "Cancel Subscription" from your subscription management page.</li>
+                <li><strong>Account:</strong> Navigate to your Account within the application and select "Cancel Subscription" from your subscription management page.</li>
                 <li><strong>Email Request:</strong> Send an email to support@thepepplanner.com with your account email address and a request to cancel your subscription.</li>
                 <li><strong>Customer Support:</strong> Contact our customer support team through the in-app support feature or via email.</li>
             </ul>

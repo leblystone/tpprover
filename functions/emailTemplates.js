@@ -900,7 +900,7 @@ exports.subscriptionConfirmedEmail = (plan, interval, price) => {
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
         You now have full access to all features. Your subscription will automatically renew, 
-        and you can manage your billing at any time from your account settings.
+        and you can manage your billing at any time from your Account.
       </p>
 
       <center>
@@ -911,7 +911,7 @@ exports.subscriptionConfirmedEmail = (plan, interval, price) => {
 
       <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
         Need to manage your subscription? Visit your 
-        <a href="https://thepepplanner.app/app/account" style="color: ${COLORS.primary};">Account Settings</a> 
+        <a href="https://thepepplanner.app/app/account" style="color: ${COLORS.primary};">Account</a> 
         to update payment methods, view invoices, or make changes.
       </p>
 

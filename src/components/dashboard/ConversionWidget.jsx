@@ -6,6 +6,8 @@ import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
 import { useFirebase } from '../../context/FirebaseContext';
+import { isAndroid } from '../../utils/platform';
+import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
 
 export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -300,72 +302,82 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             <div className="space-y-2 pt-2">
               <h4 className="font-semibold text-xs" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>Continue Your Research</h4>
               
-              {/* All Plans in 3 Columns */}
-              <div className="grid grid-cols-3 gap-2 relative">
-                {/* Monthly Plan */}
-                <button
-                  onClick={() => !isProcessing && handleSelectPlan('monthly')}
-                  disabled={isProcessing}
-                  className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
-                  style={{ 
-                    border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
-                  }}
-                >
-                  <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
-                  <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
-                  <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                    {isProcessing ? '...' : 'Select →'}
-                  </div>
-                </button>
-
-                {/* Annual Plan */}
-                <div className="relative">
-                  <button
-                    onClick={() => !isProcessing && handleSelectPlan('annual')}
-                    disabled={isProcessing}
-                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
-                    style={{ 
-                      border: theme.isDark ? `2px solid #d97706` : `2px solid ${theme.primary}`,
-                      backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
-                    }}
-                  >
-                    <div className="pt-2">
-                      <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
-                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.success }}>Best value</div>
-                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                        {isProcessing ? '...' : 'Select →'}
-                      </div>
-                    </div>
-                  </button>
+              {/* Android compliance: Show text-only message, hide payment buttons */}
+              {isAndroid() ? (
+                <div className="p-3 rounded-lg text-center text-xs" style={{ 
+                  backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                  color: theme.isDark ? '#d1d5db' : '#6b7280'
+                }}>
+                  {getAndroidSubscriptionMessage()}
                 </div>
-
-                {/* Lifetime Plan */}
-                <div className="relative">
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', fontSize: '10px' }}>
-                      Limited
-                    </div>
-                  </div>
+              ) : (
+                /* All Plans in 3 Columns - Web/iOS only */
+                <div className="grid grid-cols-3 gap-2 relative">
+                  {/* Monthly Plan */}
                   <button
-                    onClick={() => !isProcessing && handleSelectPlan('lifetime')}
+                    onClick={() => !isProcessing && handleSelectPlan('monthly')}
                     disabled={isProcessing}
-                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
+                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
                     style={{ 
                       border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
                       backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                     }}
                   >
-                    <div className="pt-2">
-                      <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
-                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
-                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                        {isProcessing ? '...' : 'Select →'}
-                      </div>
+                    <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
+                    <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
+                    <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                      {isProcessing ? '...' : 'Select →'}
                     </div>
                   </button>
+
+                  {/* Annual Plan */}
+                  <div className="relative">
+                    <button
+                      onClick={() => !isProcessing && handleSelectPlan('annual')}
+                      disabled={isProcessing}
+                      className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
+                      style={{ 
+                        border: theme.isDark ? `2px solid #d97706` : `2px solid ${theme.primary}`,
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
+                      }}
+                    >
+                      <div className="pt-2">
+                        <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
+                        <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.success }}>Best value</div>
+                        <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                          {isProcessing ? '...' : 'Select →'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Lifetime Plan */}
+                  <div className="relative">
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+                      <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', fontSize: '10px' }}>
+                        Limited
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => !isProcessing && handleSelectPlan('lifetime')}
+                      disabled={isProcessing}
+                      className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
+                      style={{ 
+                        border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
+                      }}
+                    >
+                      <div className="pt-2">
+                        <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
+                        <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
+                        <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                          {isProcessing ? '...' : 'Select →'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
     </div>
   );

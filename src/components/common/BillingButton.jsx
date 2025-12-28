@@ -1,8 +1,11 @@
 import React from 'react';
 import { navigateToBilling, isNative } from '../../utils/platform';
+import { canShowPaymentButtons, getAndroidUpgradeMessage } from '../../utils/paymentCompliance';
+import { isAndroid } from '../../utils/platform';
 
 /**
  * Universal billing management button for all platforms
+ * Android-compliant: Hides payment buttons on Android (Google Play policy)
  */
 const BillingButton = ({ 
   children = 'Manage Billing',
@@ -13,6 +16,15 @@ const BillingButton = ({
   const handleBilling = () => {
     navigateToBilling();
   };
+
+  // Android compliance: Hide payment buttons, show text-only message
+  if (isAndroid()) {
+    return (
+      <div className="px-4 py-2 text-sm" style={{ color: theme?.textLight || '#6B7280' }}>
+        {getAndroidUpgradeMessage()}
+      </div>
+    );
+  }
 
   const getButtonStyles = () => {
     const baseStyles = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2";

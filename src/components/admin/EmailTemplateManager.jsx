@@ -131,7 +131,7 @@ const DEFAULT_TEMPLATES = {
     subject: 'Subscription Confirmed - The Pep Planner',
     heading: 'Welcome to Pro Plan! 🎉',
     greeting: 'Thank you for subscribing to The Pep Planner!',
-    mainMessage: 'You now have full access to all features. Your subscription will automatically renew, and you can manage your billing at any time from your account settings.',
+    mainMessage: 'You now have full access to all features. Your subscription will automatically renew, and you can manage your billing at any time from your Account.',
     ctaText: 'Go to Dashboard',
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: 'Subscription Details',

@@ -1,20 +1,31 @@
-// Lab Access Expired Lockout Page
-import React from 'react';
-import { Clock, CreditCard } from 'lucide-react';
-import { Zap } from '../icons/lucide-safe';
+// Lab Access Expired - Read-Only Mode Page
+import React, { useState } from 'react';
+import { CreditCard, Download, Trash2, Eye, Lock, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
 import { useFounderOffer } from '../context/FounderOfferContext';
-import { createCheckoutSession } from '../services/stripe';
 import { STRIPE_CONFIG } from '../config/stripe';
 import { formatCurrency } from '../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
-import logo from '../assets/tpp_logo.png';
+import { isAndroid } from '../utils/platform';
+import { getAndroidSubscriptionMessage } from '../utils/paymentCompliance';
+import { subscribe } from '../services/payment/paymentService';
+import { exportToCSV } from '../utils/export';
+import DeleteAccountModal from '../components/common/DeleteAccountModal';
+import DataViewModal from '../components/common/DataViewModal';
 
 export default function TrialExpired() {
   const theme = themes[defaultThemeName];
+  const navigate = useNavigate();
   const { user } = useAppContext();
+  const { 
+    protocols, orders, stockpile, vendors, reconItems, reconHistory, 
+    supplements, metrics, calendarNotes, scheduledBuys 
+  } = useAppContext();
   const founderOffer = useFounderOffer();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDataModal, setShowDataModal] = useState(false);
 
   const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
 
@@ -35,30 +46,72 @@ export default function TrialExpired() {
   };
   const discountActive = discount > 0;
 
+  const [isCheckoutProcessing, setIsCheckoutProcessing] = useState(false);
+
   const handleSubscribe = async (plan) => {
+    if (isCheckoutProcessing) {
+      return;
+    }
+
     try {
       if (!user?.email) {
-        alert('Please log in to subscribe');
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Please log in to subscribe', type: 'error' } 
+        }));
         return;
       }
 
-      let priceId = plan.priceId;
-      if (plan.key === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
-        priceId = STRIPE_CONFIG.founder.lifetimePrice;
-      }
-
-      await createCheckoutSession(
-        priceId,
-        user.email,
-        user.uid || user.email,
-        null,
-        false,
-        { planName: plan.name }
-      );
+      setIsCheckoutProcessing(true);
+      await subscribe(plan.key, {
+        userEmail: user.email,
+        userId: user.uid || user.email,
+        plan: {
+          label: plan.name,
+          key: plan.key
+        },
+        founderOffer: founderOffer
+      });
     } catch (error) {
       console.error('Subscription error:', error);
-      alert('Unable to start subscription. Please try again.');
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: error.message || 'Unable to start subscription. Please try again.', type: 'error' } 
+      }));
+    } finally {
+      setIsCheckoutProcessing(false);
     }
+  };
+
+  const handleExportData = () => {
+    const data = {
+      protocols: protocols || [],
+      orders: orders || [],
+      stockpile: stockpile || [],
+      supplements: supplements || [],
+      vendors: vendors || [],
+      calendarNotes: calendarNotes || {},
+      scheduledBuys: scheduledBuys || [],
+      reconItems: reconItems || [],
+      reconHistory: reconHistory || [],
+      metrics: metrics || [],
+    };
+    
+    const allData = [
+      ...data.protocols.map(d => ({ type: 'protocol', ...d })),
+      ...data.orders.map(d => ({ type: 'order', ...d })),
+      ...data.stockpile.map(d => ({ type: 'stockpile', ...d })),
+      ...data.supplements.map(d => ({ type: 'supplement', ...d })),
+      ...data.vendors.map(d => ({ type: 'vendor', ...d })),
+      ...data.scheduledBuys.map(d => ({ type: 'scheduled_buy', ...d })),
+      ...data.reconItems.map(d => ({ type: 'recon_item', ...d })),
+      ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
+      ...data.metrics.map(d => ({ type: 'metric', ...d })),
+    ];
+    
+    exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
+    
+    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+      detail: { message: 'Data exported successfully!', type: 'success' } 
+    }));
   };
 
   const plans = [
@@ -96,133 +149,178 @@ export default function TrialExpired() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: theme.background }}>
-      <div className="w-full max-w-4xl">
+    <>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8" style={{ backgroundColor: theme.background }}>
+      <div className="w-full max-w-4xl space-y-4">
         {/* Header */}
-        <div className="text-center mb-8">
-          <img src={logo} alt="The Pep Planner Logo" className="h-16 w-16 rounded-full shadow-lg object-cover mx-auto mb-4" />
-          <h1 className="text-3xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
-          <p className="text-lg text-gray-600">Your research trial has ended</p>
-        </div>
-
-        {/* Lab Access Ended Message */}
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-8 mb-8 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-              <Clock size={32} className="text-white" />
+        <div className="text-center mb-4">
+          <div className="flex items-center justify-center mb-3">
+            <div 
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Lock size={28} style={{ color: '#ffffff' }} />
             </div>
           </div>
-          
-          <h2 className="text-2xl font-bold text-orange-800 mb-3">
-            Your Lab Access Has Expired
-          </h2>
-          
-          <p className="text-orange-700 mb-4 text-lg">
-            Thank you for exploring The Pep Planner! To continue organizing your research 
-            and accessing all premium features, please choose a subscription plan below.
+          <h1 className="text-3xl font-bold mb-1" style={{ color: theme.primaryDark }}>
+            Trial Has Ended
+          </h1>
+          <p className="text-base" style={{ color: theme.textLight }}>
+            Choose a plan to resume your research
           </p>
-          
-          <div className="bg-white/50 rounded-lg p-4 text-sm text-orange-600">
-            <strong>What you experienced during your lab access:</strong>
-            <br />
-            Full access to protocols, recon tracking, stockpile management, and all premium features
-          </div>
         </div>
 
-        {/* Subscription Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative bg-white rounded-xl border-2 p-6 transition-all hover:shadow-lg ${
-                plan.popular 
-                  ? 'border-blue-500 ring-2 ring-blue-200' 
-                  : 'border-gray-200 hover:border-blue-300'
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                    {founderOffer.isFounder ? 'Founder Locked' : 'Most Popular'}
-                  </span>
-                </div>
-              )}
-              {!plan.popular && plan.badge && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              <div className="text-center">
-                <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
-                  {plan.name}
-                </h3>
+        {/* Subscription Section (Conversion First) */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
+                style={{
+                  backgroundColor: theme?.cardBackground,
+                  borderColor: plan.popular ? theme?.primary : theme?.border,
+                }}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span 
+                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
+                      style={{ 
+                        backgroundColor: theme?.primary, 
+                        color: '#ffffff' 
+                      }}
+                    >
+                      {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
+                    </span>
+                  </div>
+                )}
                 
-                <div className="mb-4 flex items-center justify-center gap-2">
-                  <span className="text-3xl font-bold flex items-center gap-2" style={{ color: theme.primary }}>
-                    {discountActive ? (
-                      <>
-                        <span className="line-through text-xl text-gray-500">{plan.display.base}</span>
-                        <span>{plan.display.founder}</span>
-                      </>
-                    ) : (
-                      plan.display.base
+                <div className="text-center flex-1">
+                  <h3 className="text-lg font-bold mb-1" style={{ color: theme.primaryDark }}>
+                    {plan.name}
+                  </h3>
+                  
+                  <div className="mb-3">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-2xl font-black" style={{ color: theme.primary }}>
+                        {discountActive ? plan.display.founder : plan.display.base}
+                      </span>
+                      <span className="text-[10px] opacity-60 font-bold" style={{ color: theme.textLight }}>
+                        {plan.intervalLabel}
+                      </span>
+                    </div>
+                    {discountActive && (
+                      <p className="text-[10px] line-through opacity-40" style={{ color: theme.textLight }}>
+                        Regularly {plan.display.base}
+                      </p>
                     )}
-                  </span>
-                  <span className="text-gray-600">
-                    {plan.intervalLabel}
-                  </span>
+                  </div>
+                  
+                  <p className="text-[11px] mb-4 leading-snug" style={{ color: theme.textLight }}>
+                    {plan.description}
+                  </p>
                 </div>
-                
-                <p className="text-sm text-gray-600 mb-6">
-                  {plan.description}
-                </p>
-                
+
                 <button
-                  onClick={() => handleSubscribe(plan)}
-                  className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90'
-                      : 'hover:opacity-90'
-                  }`}
-                  style={
-                    plan.popular
-                      ? {}
-                      : { backgroundColor: theme.primary, color: theme.textOnPrimary }
-                  }
+                  onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
+                  disabled={isCheckoutProcessing}
+                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                  style={{
+                    backgroundColor: theme.primary,
+                    color: theme.textOnPrimary || '#ffffff'
+                  }}
                 >
                   <CreditCard size={16} />
-                  {plan.cta}
+                  {isCheckoutProcessing ? 'Processing…' : plan.cta}
                 </button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Features Reminder */}
-        <div className="bg-white rounded-xl border p-6 text-center">
-          <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>
-            Continue Your Research Journey
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Zap size={16} style={{ color: theme.primary }} />
-              <span>Protocol Management</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap size={16} style={{ color: theme.primary }} />
-              <span>Recon Tracking</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap size={16} style={{ color: theme.primary }} />
-              <span>Stockpile Organization</span>
-            </div>
+        {/* Data Access Section (Lower for Conversion) */}
+        <div 
+          className="rounded-2xl p-6 shadow-sm mt-8"
+          style={{
+            backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.05)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : theme?.border}`
+          }}
+        >
+          <div className="text-center mb-5">
+            <h3 className="text-sm font-bold mb-1" style={{ color: theme?.text }}>
+              Your Research is Safe
+            </h3>
+            <p className="text-xs max-w-lg mx-auto" style={{ color: theme?.textLight }}>
+              You still have full read-only access and can export your entries anytime.
+            </p>
           </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <button
+              onClick={() => setShowDataModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                color: theme?.text
+              }}
+            >
+              <Eye size={16} />
+              View Data
+            </button>
+            <button
+              onClick={handleExportData}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                color: theme?.text
+              }}
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Subtle Footer Action */}
+        <div className="text-center pt-4">
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity flex items-center gap-1.5 mx-auto"
+            style={{ color: theme?.text }}
+          >
+            <Trash2 size={12} />
+            Request Account Deletion
+          </button>
         </div>
       </div>
     </div>
+
+    {/* Delete Account Modal */}
+    <DeleteAccountModal
+      open={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      theme={theme}
+    />
+
+    {/* Data View Modal */}
+    <DataViewModal
+      open={showDataModal}
+      onClose={() => setShowDataModal(false)}
+      theme={theme}
+      userData={{
+        protocols,
+        orders,
+        stockpile,
+        vendors,
+        reconItems,
+        reconHistory,
+        supplements,
+        metrics,
+        calendarNotes,
+        scheduledBuys
+      }}
+    />
+    </>
   );
 }

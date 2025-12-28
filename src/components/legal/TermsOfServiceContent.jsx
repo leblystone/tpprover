@@ -28,7 +28,7 @@ export const TermsOfServiceContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">4. Subscription Services</h3>
-            <p>Full continued access to features is available through subscription plans. Subscriptions automatically renew unless cancelled. You may cancel your subscription at any time through your account settings. Refunds are not provided for unused portions of subscription periods. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
+            <p>Full continued access to features is available through subscription plans. Subscriptions automatically renew unless cancelled. You may cancel your subscription at any time through your Account. Refunds are not provided for unused portions of subscription periods. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
         </div>
 
         <div>

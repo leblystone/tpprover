@@ -1,10 +1,16 @@
 // 📧 Email Queue System for The Pep Planner
-// Handles email rate limiting and queuing for free SendGrid plan (100 emails/day)
+// Handles email rate limiting and queuing for Resend email service
+// Default limit: 1,500 emails/day (configurable via RESEND_DAILY_LIMIT env var)
+// Resend upgraded plan: 50,000/month (~1,667/day average)
+// Set to 1,500/day to leave monthly buffer (~45k/month used, 5k buffer)
 
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
-const DAILY_EMAIL_LIMIT = 100;
+// Get daily limit from environment variable or use default
+// Resend free tier: 100/day, Upgraded: 50k/month (~1,667/day average)
+// Using 1,500/day to stay safely within monthly limit with buffer
+const DAILY_EMAIL_LIMIT = parseInt(process.env.RESEND_DAILY_LIMIT) || 1500;
 const PRIORITY_CRITICAL = 1; // Password resets, verifications
 const PRIORITY_HIGH = 2; // Welcome emails, subscription confirmations
 const PRIORITY_NORMAL = 3; // Trial ending, announcements
@@ -190,7 +196,7 @@ async function processEmailQueue() {
             status: 'failed',
             lastAttempt: admin.firestore.FieldValue.serverTimestamp(),
             attempts: admin.firestore.FieldValue.increment(1),
-            error: 'SendGrid returned false'
+            error: 'Resend returned false'
           });
           failed++;
         }
