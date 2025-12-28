@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { Mail, RefreshCw, Search, Filter, CheckCircle, XCircle, Clock, User, FileText, Trash2, UserPlus, Gift, Bell, AlertCircle } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Mail, RefreshCw, Search, Filter, CheckCircle, XCircle, Clock, User, FileText, Trash2, UserPlus, Gift, Bell, AlertCircle, Send, Loader } from 'lucide-react';
 
 const EMAIL_TYPE_LABELS = {
   account_deletion: 'Account Deletion',
@@ -68,6 +69,7 @@ export default function EmailHistory({ theme }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAll, setShowAll] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState(null);
+  const [resendingEmailId, setResendingEmailId] = useState(null);
 
   useEffect(() => {
     loadEmailHistory();
@@ -76,23 +78,53 @@ export default function EmailHistory({ theme }) {
   const loadEmailHistory = async () => {
     try {
       setLoading(true);
+      
+      // Debug logging
+      console.log('🔍 Loading email history...');
+      console.log('📊 showAll:', showAll);
+      
       const historyQuery = query(
         collection(db, 'emailHistory'),
         orderBy('sentAt', 'desc'),
         limit(showAll ? 200 : 50)
       );
+      
       const snapshot = await getDocs(historyQuery);
+      
+      console.log('✅ Email history loaded:', {
+        totalDocs: snapshot.docs.length,
+        empty: snapshot.empty,
+        size: snapshot.size
+      });
+      
       const history = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         sentAt: doc.data().sentAt?.toDate ? doc.data().sentAt.toDate() : (doc.data().sentAt ? new Date(doc.data().sentAt) : new Date())
       }));
+      
+      console.log('📧 Parsed email history:', history);
+      
       setEmailHistory(history);
     } catch (error) {
-      console.error('Error loading email history:', error);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: '❌ Failed to load email history', type: 'error' }
-      }));
+      console.error('❌ Error loading email history:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      
+      // Check for specific errors
+      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '❌ Firestore index required. Check console for link.', type: 'error' }
+        }));
+      } else if (error.code === 'permission-denied') {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '❌ Permission denied. Make sure you\'re logged in as admin.', type: 'error' }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '❌ Failed to load email history', type: 'error' }
+        }));
+      }
     } finally {
       setLoading(false);
     }
@@ -140,6 +172,51 @@ export default function EmailHistory({ theme }) {
 
   const getEmailTypeColor = (type) => {
     return EMAIL_TYPE_COLORS[type] || theme.primary;
+  };
+
+  const handleResendEmail = async (email, e) => {
+    e.stopPropagation(); // Prevent expanding the email card
+    
+    if (!confirm(`Resend ${getEmailTypeLabel(email.type)} email to ${email.recipientEmail}?`)) {
+      return;
+    }
+
+    setResendingEmailId(email.id);
+    
+    try {
+      const functions = getFunctions();
+      const resendEmail = httpsCallable(functions, 'resendEmail');
+      
+      const result = await resendEmail({
+        emailHistoryId: email.id,
+        type: email.type,
+        recipientEmail: email.recipientEmail,
+        recipientName: email.recipientName,
+        subject: email.subject,
+        customContent: email.customContent,
+        inviteLink: email.inviteLink,
+        reason: email.reason
+      });
+
+      if (result.data?.success) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `✅ Email resent successfully to ${email.recipientEmail}`, type: 'success' }
+        }));
+        // Reload email history to show the new entry
+        await loadEmailHistory();
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `❌ Failed to resend email: ${result.data?.message || 'Unknown error'}`, type: 'error' }
+        }));
+      }
+    } catch (error) {
+      console.error('Error resending email:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `❌ Failed to resend email: ${error.message}`, type: 'error' }
+      }));
+    } finally {
+      setResendingEmailId(null);
+    }
   };
 
   return (
@@ -366,6 +443,31 @@ export default function EmailHistory({ theme }) {
                       </div>
                     </div>
                     <div className="flex-shrink-0 text-right">
+                      <div className="flex items-center gap-2 mb-2">
+                        <button
+                          onClick={(e) => handleResendEmail(email, e)}
+                          disabled={resendingEmailId === email.id}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{
+                            backgroundColor: theme.primary,
+                            color: theme.textOnPrimary || '#FFFFFF',
+                            border: `1px solid ${theme.primary}`
+                          }}
+                          title="Resend this email"
+                        >
+                          {resendingEmailId === email.id ? (
+                            <>
+                              <Loader size={12} className="animate-spin" />
+                              Resending...
+                            </>
+                          ) : (
+                            <>
+                              <Send size={12} />
+                              Resend
+                            </>
+                          )}
+                        </button>
+                      </div>
                       <div className="flex items-center gap-1 text-xs mb-1" style={{ color: theme.textLight }}>
                         <Clock size={12} />
                         <span>{formatDate(email.sentAt)}</span>
