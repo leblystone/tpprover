@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight } from 'lucide-react'
+import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight, Eye } from 'lucide-react'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -27,6 +27,13 @@ export default function Settings() {
       description: 'Customize language, currency, tracking, and other app settings',
       icon: SettingsIcon,
       path: '/app/settings/preferences'
+    },
+    {
+      id: 'privacy',
+      title: 'Privacy',
+      description: 'Control cookies, data sharing, and privacy preferences',
+      icon: Eye,
+      path: '/app/settings/privacy'
     },
     {
       id: 'data',

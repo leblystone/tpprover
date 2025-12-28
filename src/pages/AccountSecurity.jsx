@@ -335,8 +335,8 @@ export default function AccountSecurity() {
           <ArrowLeft size={20} style={{ color: theme.text }} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Security & Privacy</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Manage authentication and privacy settings</p>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Security</h1>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Manage password and two-factor authentication</p>
         </div>
       </div>
 

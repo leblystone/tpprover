@@ -24,8 +24,8 @@ export default function Account() {
       color: theme.accent
     },
     {
-      title: 'Security & Privacy',
-      description: 'Two-factor authentication and privacy settings',
+      title: 'Security',
+      description: 'Password and two-factor authentication',
       icon: Shield,
       path: '/app/account/security',
       color: theme.secondary
