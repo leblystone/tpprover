@@ -24,6 +24,7 @@ import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
+import SubscriptionGuard from './components/common/SubscriptionGuard';
 import SupportModal from './components/common/SupportModal';
 import BetaModal from './components/common/BetaModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
@@ -136,9 +137,20 @@ function App() {
   // TEST HELPER: Manual test trigger (remove in production)
   useEffect(() => {
     window.testUpdatePrompt = testUpdateModal;
+    window.testWelcomeModal = () => {
+      console.log('🧪 Testing welcome modal');
+      setShowWelcome(true);
+    };
   }, [testUpdateModal]);
 
   // App is now live - no beta restrictions
+
+  useEffect(() => {
+    // Force welcome modal if query param is present
+    if (searchParams.get('testWelcome') === 'true') {
+      setShowWelcome(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -370,16 +382,13 @@ function App() {
           onActionClick={topbarTabs?.onActionClick}
           actionDisabled={topbarTabs?.actionDisabled}
           autoSaveIndicator={topbarAutoSave}
-          trialInfo={showUpgradePrompt && user && !isLoading ? {
-            daysRemaining,
-            isTrialExpired,
-            onUpgradeClick: () => setShowSubscriptionModal(true)
-          } : null}
           showSampleData={showDemoBanner}
         />
                <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0 w-full max-w-full" style={{ backgroundColor: theme.background, color: theme.text, minWidth: 0, boxSizing: 'border-box' }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
-            <Outlet context={{ theme, installPrompt }} />
+            <SubscriptionGuard>
+              <Outlet context={{ theme, installPrompt }} />
+            </SubscriptionGuard>
           </Suspense>
         </main>
       </div>
