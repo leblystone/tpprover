@@ -1,42 +1,46 @@
 import React, { useState } from 'react';
-import { Calculator, Package, Users, FlaskConical } from 'lucide-react';
+import { Calculator, Package, Users, FlaskConical, Plus } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
-import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const QuickActionsWidget = ({ widget, theme }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [pressedIndex, setPressedIndex] = useState(null);
+
   const actions = [
     {
-      icon: Calculator,
-      label: 'Reconstitute',
-      color: theme.isDark ? '#0080a7' : theme.primary,
+      icon: Plus,
+      subIcon: Calculator,
+      label: 'Add Peptide',
+      color: theme.isDark ? '#0ea5e9' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openRecon'));
       }
     },
     {
-      icon: Package,
+      icon: Plus,
+      subIcon: Package,
       label: 'Add Order',
-      color: theme.isDark ? '#c65368' : theme.primary,
+      color: theme.isDark ? '#f43f5e' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openOrder'));
       }
     },
     {
-      icon: Users,
+      icon: Plus,
+      subIcon: Users,
       label: 'Add Vendor',
-      color: theme.isDark ? '#f07268' : theme.primary,
+      color: theme.isDark ? '#f59e0b' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openVendor'));
       }
     },
     {
-      icon: FlaskConical,
+      icon: Plus,
+      subIcon: FlaskConical,
       label: 'Add Protocol',
-      color: theme.isDark ? '#f07268' : theme.primary,
+      color: theme.isDark ? '#10b981' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openProtocol'));
       }
@@ -44,71 +48,69 @@ const QuickActionsWidget = ({ widget, theme }) => {
   ];
 
   return (
-    <div className="h-full flex flex-col">
-      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className={`px-4 py-2 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+          <h3 className="text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider" style={{ color: theme.text }}>
             Quick Actions
-            <Zap size={18} style={{ color: theme.primary }} />
+            <Zap size={14} style={{ color: theme.primary }} className="opacity-80" />
           </h3>
-          <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
-          </div>
+          <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
         </div>
       </div>
       
-      <div className="flex-1 p-1.5">
-        <div className="flex flex-col h-full justify-evenly">
+      <div className="flex-1 p-2">
+        <div className="grid grid-cols-2 grid-rows-2 gap-2 h-full">
           {actions.map((action, index) => {
-            const baseOpacities = ['1A', '2A', '3A', '4A'];
-            const hoverOpacities = ['33', '44', '55', '66'];
-            const activeOpacities = ['4F', '5F', '6F', '7F'];
-            
             const isHovered = hoveredIndex === index;
             const isPressed = pressedIndex === index;
             
-            let bgColor = `${theme.primary}${baseOpacities[index]}`;
-            if (isPressed) {
-              bgColor = `${theme.primary}${activeOpacities[index]}`;
-            } else if (isHovered) {
-              bgColor = `${theme.primary}${hoverOpacities[index]}`;
-            }
-            
             return (
-            <button
-              key={index}
-              onClick={action.onClick}
-              className="grid grid-cols-4 items-center px-3 py-1.5 rounded-lg transition-all duration-200 group w-full"
-              style={{ 
-                backgroundColor: bgColor,
-                color: theme.text,
-                transform: isHovered || isPressed ? 'translateY(-2px)' : 'translateY(0)',
-                boxShadow: isHovered || isPressed ? `0 6px 16px ${theme.primary}20` : 'none'
-              }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => {
-                setHoveredIndex(null);
-                setPressedIndex(null);
-              }}
-              onMouseDown={() => setPressedIndex(index)}
-              onMouseUp={() => setPressedIndex(null)}
-              onTouchStart={() => setPressedIndex(index)}
-              onTouchEnd={() => setPressedIndex(null)}
-            >
-              <div className="flex justify-start">
-                <action.icon 
-                  className="w-4 h-4 transition-transform duration-200" 
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group border"
+                style={{ 
+                  backgroundColor: theme.isDark ? (isHovered ? `${action.color}15` : 'transparent') : (isHovered ? `${action.color}08` : 'transparent'),
+                  borderColor: isHovered ? `${action.color}40` : (theme.isDark ? `${theme.text}10` : `${theme.primary}15`),
+                  transform: isPressed ? 'scale(0.98)' : 'none',
+                }}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => {
+                  setHoveredIndex(null);
+                  setPressedIndex(null);
+                }}
+                onMouseDown={() => setPressedIndex(index)}
+                onMouseUp={() => setPressedIndex(null)}
+                onTouchStart={() => setPressedIndex(index)}
+                onTouchEnd={() => setPressedIndex(null)}
+              >
+                <div 
+                  className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 shrink-0"
                   style={{ 
-                    color: theme.text,
-                    transform: isHovered || isPressed ? 'scale(1.15)' : 'scale(1)'
-                  }} 
-                />
-              </div>
-              <span className="col-span-2 text-center text-xs sm:text-sm font-semibold uppercase tracking-tight transition-opacity duration-200 whitespace-nowrap" style={{ color: theme.text, opacity: isHovered || isPressed ? 0.85 : 1 }}>
-                {action.label}
-              </span>
-            </button>
-          );
+                    backgroundColor: isHovered ? action.color : `${action.color}15`,
+                    color: isHovered ? '#fff' : action.color
+                  }}
+                >
+                  <action.subIcon size={16} />
+                </div>
+                
+                <div className="flex flex-col items-start overflow-hidden">
+                  <span 
+                    className="text-[10px] font-bold uppercase tracking-tight leading-none mb-0.5 whitespace-nowrap"
+                    style={{ color: theme.text }}
+                  >
+                    {action.label}
+                  </span>
+                  <span 
+                    className="text-[8px] opacity-40 font-medium uppercase"
+                    style={{ color: theme.text }}
+                  >
+                    Create New
+                  </span>
+                </div>
+              </button>
+            );
           })}
         </div>
       </div>
