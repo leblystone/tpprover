@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, CreditCard, Calendar, Siren, Microscope, Check, BookOpenCheck } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, Calendar, Siren, Microscope, Check, BookOpenCheck } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 // ... (imports remain same)
@@ -512,14 +512,14 @@ export default function AccountSubscription() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => navigate('/app/account')}
-            className="p-2 rounded-lg hover:opacity-80 transition-all"
-            style={{ backgroundColor: theme.secondary }}
+            className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
+            style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
           >
-            <ArrowLeft size={20} style={{ color: theme.text }} />
+            <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Subscription</h1>
-            <p className="text-sm" style={{ color: theme.mutedText }}>Loading subscription details...</p>
+            <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Subscription</h1>
+            <p className="text-sm opacity-50" style={{ color: theme.text }}>Loading subscription details...</p>
           </div>
         </div>
         <div 
@@ -646,18 +646,13 @@ export default function AccountSubscription() {
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <CreditCard size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Subscription</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Research Access & Billing
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Subscription</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Research Access & Billing
+            </span>
           </div>
         </div>
       </div>
@@ -685,7 +680,7 @@ export default function AccountSubscription() {
           </div>
 
           <div 
-            className="p-5 rounded-[2rem] border-2 transition-all overflow-hidden"
+            className="p-4 rounded-[2rem] border-2 transition-all overflow-hidden"
             style={{ 
               backgroundColor: theme.cardBackground,
               borderColor: 'transparent',
@@ -701,7 +696,7 @@ export default function AccountSubscription() {
                   <BookOpenCheck size={24} style={{ color: theme.primary }} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight" style={{ color: theme.text }}>
+                  <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
                     {subscriptionState.label}
                   </h3>
                   <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>

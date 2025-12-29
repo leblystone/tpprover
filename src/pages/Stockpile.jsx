@@ -1519,21 +1519,18 @@ export default function Stockpile() {
           )}
           
           {/* VIAL DETAILS Section Header */}
-          <div className="flex flex-col gap-1 mb-2">
-            <div className="flex items-center gap-2">
-              <TestTube size={18} style={{ color: theme.primary }} />
-              <h4 
-                className="text-base font-bold tracking-wide" 
-                style={{ color: theme.text }}
-              >
+          <div className="flex items-center gap-4 mb-2">
+            <TestTube size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-base font-black tracking-wide" style={{ color: theme.text }}>
                 Vial Details
               </h4>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Research Parameters
-              </span>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Research Parameters
+                </span>
+              </div>
             </div>
           </div>
           <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
@@ -2813,5 +2810,3 @@ export default function Stockpile() {
     </section>
   )
 }
-
-

@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { isNative } from '../../utils/platform';
-import { lazyWithRetry } from '../../utils/lazyWithRetry.jsx';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
 const Landing = lazyWithRetry(() => import('../../pages/Landing.jsx'), 'Landing');
 

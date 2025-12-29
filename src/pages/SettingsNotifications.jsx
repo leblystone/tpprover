@@ -200,18 +200,13 @@ export default function SettingsNotifications() {
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <Bell size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Notifications</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Alerts & Communication
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Notifications</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Alerts & Communication
+            </span>
           </div>
         </div>
       </div>
@@ -221,7 +216,7 @@ export default function SettingsNotifications() {
       <div className="space-y-6">
         {/* Master Control */}
         <div 
-          className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+          className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
           style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
         >
           <SettingToggle 
@@ -236,7 +231,7 @@ export default function SettingsNotifications() {
         </div>
 
         {/* Protocol & Research */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <FlaskConical size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -245,7 +240,7 @@ export default function SettingsNotifications() {
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
             <SettingToggle 
@@ -277,7 +272,7 @@ export default function SettingsNotifications() {
         </div>
 
         {/* Orders & Stock */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Package size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -286,7 +281,7 @@ export default function SettingsNotifications() {
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
             <SettingToggle 
@@ -318,7 +313,7 @@ export default function SettingsNotifications() {
         </div>
 
         {/* Subscription & Billing */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <CreditCard size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -327,7 +322,7 @@ export default function SettingsNotifications() {
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
             <SettingToggle 
@@ -347,7 +342,7 @@ export default function SettingsNotifications() {
 }
 
 const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
-  <div className={`flex items-center justify-between py-6 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
     <div className="flex items-center gap-4">
       <div 
         className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
@@ -356,25 +351,287 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <Bell size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-sm font-black uppercase tracking-wide mb-0.5" style={{ color: theme.text }}>
           {label}
-        </div>
-        <div className="text-base font-black tracking-tight" style={{ color: theme.text }}>
-          {checked ? 'Active' : 'Inactive'}
         </div>
         <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
           {description}
         </div>
       </div>
     </div>
-    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
-      <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
-           style={{ 
-             backgroundColor: checked ? theme.primary : '#d1d5db', 
-             opacity: disabled ? 0.5 : 1
-           }}></div>
-    </label>
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? 'opacity-100' : 'opacity-50'
+      }`}
+      style={{ 
+        backgroundColor: checked ? theme.primary : theme.border
+      }}
+    >
+      <div
+        className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'translate-x-7' : 'translate-x-0'
+        }`}
+        style={{ backgroundColor: '#ffffff' }}
+      />
+    </button>
+  </div>
+)
+
+
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Subscription & Billing
+            </h4>
+          </div>
+
+          <div 
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.notifications?.billing ?? true} 
+              onChange={v => update('notifications.billing', v)} 
+              label="Billing Alerts" 
+              description="Notifications for renewals, payments, and trial status" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+              isLast={true}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+    <div className="flex items-center gap-4">
+      <div 
+        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+        style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
+      >
+        <Bell size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+      </div>
+      <div>
+        <div className="text-sm font-black uppercase tracking-wide mb-0.5" style={{ color: theme.text }}>
+          {label}
+        </div>
+        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+          {description}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? 'opacity-100' : 'opacity-50'
+      }`}
+      style={{ 
+        backgroundColor: checked ? theme.primary : theme.border
+      }}
+    >
+      <div
+        className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'translate-x-7' : 'translate-x-0'
+        }`}
+        style={{ backgroundColor: '#ffffff' }}
+      />
+    </button>
+  </div>
+)
+
+
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Subscription & Billing
+            </h4>
+          </div>
+
+          <div 
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.notifications?.billing ?? true} 
+              onChange={v => update('notifications.billing', v)} 
+              label="Billing Alerts" 
+              description="Notifications for renewals, payments, and trial status" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+              isLast={true}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+    <div className="flex items-center gap-4">
+      <div 
+        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+        style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
+      >
+        <Bell size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+      </div>
+      <div>
+        <div className="text-sm font-black uppercase tracking-wide mb-0.5" style={{ color: theme.text }}>
+          {label}
+        </div>
+        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+          {description}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? 'opacity-100' : 'opacity-50'
+      }`}
+      style={{ 
+        backgroundColor: checked ? theme.primary : theme.border
+      }}
+    >
+      <div
+        className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'translate-x-7' : 'translate-x-0'
+        }`}
+        style={{ backgroundColor: '#ffffff' }}
+      />
+    </button>
+  </div>
+)
+
+
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Subscription & Billing
+            </h4>
+          </div>
+
+          <div 
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.notifications?.billing ?? true} 
+              onChange={v => update('notifications.billing', v)} 
+              label="Billing Alerts" 
+              description="Notifications for renewals, payments, and trial status" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+              isLast={true}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+    <div className="flex items-center gap-4">
+      <div 
+        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+        style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
+      >
+        <Bell size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+      </div>
+      <div>
+        <div className="text-sm font-black uppercase tracking-wide mb-0.5" style={{ color: theme.text }}>
+          {label}
+        </div>
+        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+          {description}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? 'opacity-100' : 'opacity-50'
+      }`}
+      style={{ 
+        backgroundColor: checked ? theme.primary : theme.border
+      }}
+    >
+      <div
+        className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'translate-x-7' : 'translate-x-0'
+        }`}
+        style={{ backgroundColor: '#ffffff' }}
+      />
+    </button>
+  </div>
+)
+
+
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Subscription & Billing
+            </h4>
+          </div>
+
+          <div 
+            className="px-5 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.notifications?.billing ?? true} 
+              onChange={v => update('notifications.billing', v)} 
+              label="Billing Alerts" 
+              description="Notifications for renewals, payments, and trial status" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+              isLast={true}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+    <div className="flex items-center gap-4">
+      <div 
+        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+        style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
+      >
+        <Bell size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+      </div>
+      <div>
+        <div className="text-sm font-black uppercase tracking-wide mb-0.5" style={{ color: theme.text }}>
+          {label}
+        </div>
+        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+          {description}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+        checked ? 'opacity-100' : 'opacity-50'
+      }`}
+      style={{ 
+        backgroundColor: checked ? theme.primary : theme.border
+      }}
+    >
+      <div
+        className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+          checked ? 'translate-x-7' : 'translate-x-0'
+        }`}
+        style={{ backgroundColor: '#ffffff' }}
+      />
+    </button>
   </div>
 )
 

@@ -1,0 +1,45 @@
+/* Bottom Navigation Styles */
+
+/* Ensure main content has padding for bottom nav on mobile */
+@media (max-width: 1023px) {
+  .main-content {
+    padding-bottom: calc(4rem + max(env(safe-area-inset-bottom, 0px), 0px)) !important;
+  }
+}
+
+/* Smooth transitions for bottom nav items */
+.bottom-nav-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Safe area handling for iOS devices */
+@supports (padding: max(0px)) {
+  .bottom-nav-container {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+}
+
+/* Section tabs styling - Level 2 (Bold, Prominent) */
+.section-tabs {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Page tabs styling - Level 3 (Subtle, Small) */
+.page-tabs {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Hide hamburger menu on mobile when bottom nav is visible */
+@media (max-width: 1023px) {
+  .mobile-hamburger {
+    /* Keep visible for now - users might still want access to hamburger menu */
+    /* We can phase this out later if bottom nav works well */
+  }
+}
+

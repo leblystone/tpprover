@@ -139,4 +139,3 @@ export function markCacheClearAttempt(pathname) {
     sessionStorage.removeItem(key);
   }, 5 * 60 * 1000);
 }
-

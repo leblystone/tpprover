@@ -80,15 +80,29 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
-                        <button onClick={handleSave} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.white }}>Save</button>
+                        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
+                        <button onClick={handleSave} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save Supplement</button>
                     </div>
                 </div>
             }
         >
-            <div className="space-y-4 p-1">
-                <TextInput label="Supplement Name" value={name} onChange={setName} theme={theme} placeholder="e.g., Vitamin D3, B12 Injection, Protein Powder" />
-                <TextInput label="Dosage" value={dose} onChange={setDose} theme={theme} placeholder="e.g., 2 pills, 5000 IU, 1ml" />
+            <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                    <Pill size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Supplement Info</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Regimen Details
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <TextInput label="Supplement Name" value={name} onChange={setName} theme={theme} placeholder="e.g., Vitamin D3, B12 Injection, Protein Powder" outlined={true} />
+                    <TextInput label="Dosage" value={dose} onChange={setDose} theme={theme} placeholder="e.g., 2 pills, 5000 IU, 1ml" outlined={true} />
 
                 <div>
                     <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Schedule</label>
@@ -142,11 +156,6 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                         ))}
                     </div>
                 </div>
-
-                <div className="flex justify-end gap-2 pt-4">
-                    <button onClick={onClose} className="px-4 py-2 rounded-md" style={{ backgroundColor: theme.background, color: theme.text }}>Cancel</button>
-                    <button onClick={handleSave} className="px-4 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
-                </div>
             </div>
         </Modal>
         
@@ -161,6 +170,33 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
             title="Confirm Deletion"
             message=""
             confirmText="Delete"
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+            hideIcon={true}
+        />
+    </>
+    );
+}
+
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+            hideIcon={true}
+        />
+    </>
+    );
+}
+
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+            hideIcon={true}
+        />
+    </>
+    );
+}
+
             cancelText="Cancel"
             type="delete"
             theme={theme}

@@ -49,18 +49,13 @@ export default function SettingsPrivacy() {
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <Eye size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Privacy</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Data Protection & cookies
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Privacy</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Data Protection & cookies
+            </span>
           </div>
         </div>
       </div>
@@ -69,7 +64,7 @@ export default function SettingsPrivacy() {
       {/* Privacy Settings */}
       <div className="space-y-6">
         {/* Cookie Settings */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Shield size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -78,7 +73,7 @@ export default function SettingsPrivacy() {
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
             <SettingToggle 
@@ -103,7 +98,7 @@ export default function SettingsPrivacy() {
         </div>
 
         {/* Data Sharing */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Info size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -112,7 +107,7 @@ export default function SettingsPrivacy() {
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
             <SettingToggle 
@@ -132,20 +127,17 @@ export default function SettingsPrivacy() {
 }
 
 const SettingToggle = ({ checked, onChange, label, description, theme, disabled, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-6 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
+  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
     <div className="flex items-center gap-4">
       <div 
         className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-        style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
+        style={{ backgroundColor: theme.secondary }}
       >
-        <Icon size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
       </div>
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>
           {label}
-        </div>
-        <div className="text-base font-black tracking-tight" style={{ color: theme.text }}>
-          {checked ? 'Enabled' : 'Disabled'}
         </div>
         <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
           {description}
@@ -162,5 +154,3 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
     </label>
   </div>
 )
-
-

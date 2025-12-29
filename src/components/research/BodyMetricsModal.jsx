@@ -190,9 +190,17 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         </div>
 
         {/* PHYSICAL Section Header */}
-        <div className="px-3 py-1.5 rounded-lg flex items-center justify-between mb-1.5" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '3px solid #e0ded7' }}>
-          <h4 className="font-bold text-xs tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PHYSICAL</h4>
-          <Scale size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4">
+          <Scale size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Physical</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Body Measurements
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Physical Measurements */}
@@ -220,9 +228,17 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         </div>
 
         {/* WELLNESS Section Header */}
-        <div className="px-3 py-1.5 rounded-lg flex items-center justify-between mb-1.5" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '3px solid #e0ded7' }}>
-          <h4 className="font-bold text-xs tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>WELLNESS</h4>
-          <CloudSunRain size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4 pt-2">
+          <CloudSunRain size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Wellness</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Subjective Bio-Markers
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Wellness Metrics */}
@@ -270,5 +286,3 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
     </Modal>
   )
 }
-
-

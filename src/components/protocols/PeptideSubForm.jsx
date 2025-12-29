@@ -105,628 +105,260 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
     return (
         <div className="space-y-4">
-                {/* PEPTIDE DETAILS Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PEPTIDE DETAILS</h4>
-                    <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                </div>
-
-                {/* Peptide Information */}
-                <div className="space-y-4">
-                    <TextInput 
-                        label="Peptide Name" 
-                        value={item.name || ''} 
-                        onChange={v => handleChange('name', v)} 
-                        theme={theme} 
-                        placeholder="e.g., BPC-157, Lipo-C"
-                        outlined={true}
-                        customTextColor={theme.isDark ? null : "#181A18"}
-                        customShadow
-                    />
+                {/* Peptide Information - Horizontal Row */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+                    <div className="lg:col-span-6">
+                        <TextInput 
+                            label="Peptide Name" 
+                            value={item.name || ''} 
+                            onChange={v => handleChange('name', v)} 
+                            theme={theme} 
+                            placeholder="e.g., BPC-157, Lipo-C"
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
                     
-                    <div>
-                        <div className="grid grid-cols-3 gap-3">
-                            {/* Dosage - 2/3 width */}
-                            <div className="col-span-2">
-                                <CombinedDosageInput
-                                            value={item.dosage || { amount: '', unit: 'mcg' }}
-                                            onChange={(newDosage) => {
-                                                // Update only dosage, do NOT sync to units text box
-                                                onChange({ 
-                                                    ...item, 
-                                                    dosage: newDosage
-                                                });
-                                            }}
-                                            theme={theme}
-                                            deliveryMethod={item.deliveryMethod}
-                                            placeholder="250"
-                                            outlined={true}
-                                            customTextColor={theme.isDark ? null : "#181A18"}
-                                            customShadow
-                                        />
-                                    </div>
-                                    
-                                    {/* Units - 1/3 width */}
-                                    <div className="col-span-1">
-                                        <TextInput
-                                            label="Units"
-                                            value={item.unitValue || ''}
-                                            onChange={v => onChange({ 
-                                                ...item, 
-                                                unitValue: v
-                                            })}
-                                            placeholder="10"
-                                            theme={theme}
-                                            outlined={true}
-                                            customTextColor={theme.isDark ? null : "#181A18"}
-                                            customShadow
-                                        />
-                                    </div>
-                                </div>
-                        </div>
+                    <div className="lg:col-span-4">
+                        <CombinedDosageInput
+                            value={item.dosage || { amount: '', unit: 'mcg' }}
+                            onChange={(newDosage) => {
+                                // Update only dosage, do NOT sync to units text box
+                                onChange({ 
+                                    ...item, 
+                                    dosage: newDosage
+                                });
+                            }}
+                            theme={theme}
+                            deliveryMethod={item.deliveryMethod}
+                            placeholder="250"
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
+                    
+                    <div className="lg:col-span-2">
+                        <TextInput
+                            label="Units"
+                            value={item.unitValue || ''}
+                            onChange={v => onChange({ 
+                                ...item, 
+                                unitValue: v
+                            })}
+                            placeholder="10"
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
                 </div>
 
-                {/* DELIVERY METHOD Section - Only show for separate protocols or first peptide in blended */}
+                {/* DELIVERY & FREQUENCY - Side by Side on Desktop */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
-                    <>
-                        <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>
-                                DELIVERY METHOD {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }}>(shared by all peptides)</span>}
-                            </h4>
-                            <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-lg" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)' }}>
-                                <button 
-                                    type="button"
-                                    onClick={() => {
-                                        handleChange('deliveryMethod', 'pipette');
-                                        // Auto-set injection type to SubQ if not already set
-                                        if (!item.injectionType) {
-                                            handleChange('injectionType', 'SubQ');
-                                        }
-                                        // Reset unit to mcg if it was sprays (from nasal)
-                                        if (item.dosage && item.dosage.unit === 'sprays') {
-                                            handleChange('dosage', { ...item.dosage, unit: 'mcg' });
-                                        } else if (!item.dosage || !item.dosage.unit) {
-                                            handleChange('dosage', { ...(item.dosage || {}), unit: 'mcg' });
-                                        }
-                                    }}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                    style={{
-                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'pipette') {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'pipette') {
-                                            e.currentTarget.style.backgroundColor = theme.secondary;
-                                        }
-                                    }}
-                                >
-                                    <Pipette size={16} /> Syringe
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => {
-                                        handleChange('deliveryMethod', 'pen');
-                                        // Reset unit to mcg if it was sprays (from nasal)
-                                        if (item.dosage && item.dosage.unit === 'sprays') {
-                                            handleChange('dosage', { ...item.dosage, unit: 'mcg' });
-                                        } else if (!item.dosage || !item.dosage.unit) {
-                                            handleChange('dosage', { ...(item.dosage || {}), unit: 'mcg' });
-                                        }
-                                    }}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                    style={{
-                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.border
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'pen') {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'pen') {
-                                            e.currentTarget.style.backgroundColor = theme.secondary;
-                                        }
-                                    }}
-                                >
-                                    <Pen size={16} /> Pen
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => {
-                                        handleChange('deliveryMethod', 'nasal');
-                                        // Auto-set unit to sprays when nasal is selected
-                                        if (!item.dosage || item.dosage.unit !== 'sprays') {
-                                            handleChange('dosage', { ...item.dosage, unit: 'sprays' });
-                                        }
-                                    }}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                    style={{
-                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.border
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'nasal') {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if ((item.deliveryMethod || 'pipette') !== 'nasal') {
-                                            e.currentTarget.style.backgroundColor = theme.secondary;
-                                        }
-                                    }}
-                                >
-                                    <Droplets size={16} /> Nasal
-                                </button>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                        {/* Delivery Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Droplets size={14} className="opacity-50" style={{ color: theme.text }} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Delivery Method {protocolType === 'blended' && <span className="lowercase">(shared)</span>}
+                                </span>
                             </div>
-                            
-                            {/* Pipette Injection Type Options */}
-                            {(item.deliveryMethod || 'pipette') === 'pipette' && (
-                                <div className="mt-3">
-                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
+
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-3 gap-2 p-1 rounded-lg" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            handleChange('deliveryMethod', 'pipette');
+                                            if (!item.injectionType) handleChange('injectionType', 'SubQ');
+                                            if (item.dosage?.unit === 'sprays') handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                        }}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        style={{
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : 'transparent',
+                                            color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : 'transparent'
+                                        }}
+                                    >
+                                        <Pipette size={14} /> Syringe
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            handleChange('deliveryMethod', 'pen');
+                                            if (item.dosage?.unit === 'sprays') handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                        }}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        style={{
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : 'transparent',
+                                            color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : 'transparent'
+                                        }}
+                                    >
+                                        <Pen size={14} /> Pen
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            handleChange('deliveryMethod', 'nasal');
+                                            if (!item.dosage || item.dosage.unit !== 'sprays') handleChange('dosage', { ...item.dosage, unit: 'sprays' });
+                                        }}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        style={{
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : 'transparent',
+                                            color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : 'transparent'
+                                        }}
+                                    >
+                                        <Droplets size={14} /> Nasal
+                                    </button>
+                                </div>
+                                
+                                {/* Pipette Injection Type Options */}
+                                {(item.deliveryMethod || 'pipette') === 'pipette' && (
+                                    <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
                                         {['SubQ', 'IM', 'IV'].map(type => (
                                             <button 
                                                 key={type}
                                                 type="button"
                                                 onClick={() => handleChange('injectionType', type)}
-                                                className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                className={`flex-1 py-1.5 text-[10px] font-bold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                                 style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary } : {}}
                                             >
                                                 {type}
                                             </button>
                                         ))}
                                     </div>
-                                </div>
-                            )}
-                            
-                            {/* Pen Options */}
-                            {(item.deliveryMethod || 'pipette') === 'pen' && (
-                                <div className="mt-3 grid grid-cols-2 gap-4">
-                                    {/* Pen Type Selection */}
-                                    <div className="relative" ref={penTypeDropdownRef}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
-                                            onMouseDown={(e) => {
-                                              // Prevent any parent blur events on mobile
-                                              e.preventDefault();
-                                            }}
-                                            onTouchStart={(e) => {
-                                              // Prevent any parent blur events on touch devices
-                                              e.preventDefault();
-                                            }}
-                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
-                                            style={{
-                                                borderColor: isPenTypeDropdownOpen ? theme.primary : '#f0eee7',
-                                                backgroundColor: theme.cardBackground,
-                                                color: item.penType ? theme.text : theme.textLight,
-                                                WebkitTapHighlightColor: 'transparent'
-                                            }}
-                                        >
-                                            <span>
-                                                {item.penType ? (
-                                                    penTypes.find(t => t.id === item.penType)?.name || 
-                                                    (item.penType === 'savvio' ? 'Savvio' :
-                                                     item.penType === 'novo' ? 'Novo' :
-                                                     item.penType === 'v1' ? 'V1' :
-                                                     item.penType === 'v2' ? 'V2' :
-                                                     item.penType === 'v3' ? 'V3' :
-                                                     item.penType === 'bird-pen' ? 'Bird Pen' :
-                                                     item.penType === 'luxura' ? 'Luxura' :
-                                                     item.penType === 'gansulin' ? 'Gansulin' :
-                                                     item.penType === 'other' ? 'Other' : item.penType)
-                                                ) : 'Pen Type'}
-                                            </span>
-                                            <ChevronDown 
-                                                size={16} 
-                                                className={`transition-transform duration-200 ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`}
-                                                style={{ color: theme.textLight }}
-                                            />
-                                        </button>
-                                        {isPenTypeDropdownOpen && (
-                                            <div 
-                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
-                                                style={{
-                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                    borderColor: theme.border,
-                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                                }}
+                                )}
+                                
+                                {/* Pen Options */}
+                                {(item.deliveryMethod || 'pipette') === 'pen' && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="relative" ref={penTypeDropdownRef}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
+                                                className="w-full px-2 py-1.5 text-xs border rounded-md flex items-center justify-between transition-all"
+                                                style={{ borderColor: '#f0eee7', backgroundColor: theme.cardBackground, color: item.penType ? theme.text : theme.textLight }}
                                             >
-                                                {[
-                                                    { value: '', label: 'Pen Type' },
-                                                    ...penTypes
-                                                ].map((option, optIdx) => (
-                                                    <React.Fragment key={option.id || option.value || 'empty'}>
-                                                        {optIdx > 0 && (
-                                                            <div 
-                                                                className="h-px mx-2"
-                                                                style={{ backgroundColor: theme.border }}
-                                                            />
-                                                        )}
+                                                <span className="truncate">{item.penType ? penTypes.find(t => t.id === item.penType)?.name || 'Other' : 'Pen Type'}</span>
+                                                <ChevronDown size={14} className={`transition-transform ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            {isPenTypeDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border }}>
+                                                    {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option) => (
                                                         <button
+                                                            key={option.id}
                                                             type="button"
-                                                            onMouseDown={(e) => {
-                                                              // Prevent blur events on mobile
-                                                              e.preventDefault();
-                                                            }}
-                                                            onTouchStart={(e) => {
-                                                              // Prevent blur events on touch devices
-                                                              e.preventDefault();
-                                                            }}
-                                                            onClick={(e) => {
-                                                              e.preventDefault();
-                                                              e.stopPropagation();
-                                                              handleChange('penType', option.id || option.value || '');
-                                                              setIsPenTypeDropdownOpen(false);
-                                                            }}
-                                                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                            style={{
-                                                                color: item.penType === (option.id || option.value) ? theme.primary : theme.text,
-                                                                backgroundColor: 'transparent',
-                                                                WebkitTapHighlightColor: 'transparent'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                                e.currentTarget.style.color = theme.primary;
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                                                e.currentTarget.style.color = item.penType === (option.id || option.value) ? theme.primary : theme.text;
-                                                            }}
+                                                            onClick={() => { handleChange('penType', option.id); setIsPenTypeDropdownOpen(false); }}
+                                                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 transition-colors"
+                                                            style={{ color: item.penType === option.id ? theme.primary : theme.text }}
                                                         >
-                                                            {option.name || option.label}
+                                                            {option.name}
                                                         </button>
-                                                    </React.Fragment>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Pen Color Selection - Dropdown with Color Swatch */}
-                                    <div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                         <ColorSwatchDropdown
-                                            value={item.penColor ? (() => {
-                                                const colorObj = penColors.find(c => c.name.toLowerCase() === item.penColor.toLowerCase());
-                                                return colorObj?.hex || '#9ca3af';
-                                            })() : '#9ca3af'}
-                                            onChange={(hexValue) => {
-                                                // Find the color name from hex and save the name
-                                                const colorObj = penColors.find(c => c.hex === hexValue);
-                                                handleChange('penColor', colorObj?.name || hexValue);
-                                            }}
+                                            value={item.penColor ? penColors.find(c => c.name.toLowerCase() === item.penColor.toLowerCase())?.hex : '#9ca3af'}
+                                            onChange={(hex) => handleChange('penColor', penColors.find(c => c.hex === hex)?.name || hex)}
                                             colors={penColors}
                                             theme={theme}
-                                            placeholder="Pen Color"
+                                            compact={true}
                                         />
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
-
-                {/* FREQUENCY Section - Show for separate protocols OR first peptide in blended protocols */}
-                {(protocolType === 'separate' || isFirstPeptide) && (
-                <>
-                    <div>
-                        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>FREQUENCY & SCHEDULE</h4>
-                            <Calendar size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                        </div>
-                        <div className="text-xs text-center mt-2 italic" style={{ color: theme.textLight }}>
-                            Schedules peptide research on your dashboard & calendar
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                        <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                            {['daily', 'weekly', 'custom', 'cycle'].map(type => (
-                                <button 
-                                    key={type} 
-                                    type="button" 
-                                    onClick={() => handleFrequencyChange('type', type)}
-                                    className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
-                                    style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
-                                    title={
-                                        type === 'daily' ? 'Every day of the week' :
-                                        type === 'weekly' ? 'Select specific days of the week' :
-                                        type === 'custom' ? 'Every X number of days' :
-                                        type === 'cycle' ? 'X days on, Y days off pattern' : ''
-                                    }
-                                >
-                                    {type === 'custom' ? 'Every X Days' : type.charAt(0).toUpperCase() + type.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        {/* Frequency explanations */}
-                        <div className="text-xs text-center italic" style={{ color: theme.textLight }}>
-                            {((item.frequency?.type || 'daily') === 'daily' && 'Task appears every day') ||
-                             (item.frequency?.type === 'weekly' && 'Task appears on selected days only') ||
-                             (item.frequency?.type === 'custom' && 'Task repeats every X days') ||
-                             (item.frequency?.type === 'cycle' && 'On/off cycling pattern (e.g., 5 days on, 2 days off)') ||
-                             ''}
-                        </div>
-                    </div>
-
-                    {item.frequency?.type === 'cycle' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-center">
-                                <div className="lg:col-span-1">
-                                    <TextInput 
-                                        label="Days On" 
-                                        value={item.frequency?.onDays || ''} 
-                                        onChange={v => handleFrequencyChange('onDays', v)} 
-                                        theme={theme} 
-                                        placeholder="5" 
-                                        type="number"
-                                        outlined={true}
-                                        customShadow
-                                    />
-                                </div>
-                                <div className="lg:col-span-1">
-                                    <TextInput 
-                                        label="Days Off" 
-                                        value={item.frequency?.offDays || ''} 
-                                        onChange={v => handleFrequencyChange('offDays', v)} 
-                                        theme={theme} 
-                                        placeholder="2" 
-                                        type="number"
-                                        outlined={true}
-                                        customShadow
-                                    />
-                                </div>
-                                
-                                {/* Time of Day */}
-                                <div className="lg:col-span-1">
-                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                                        {['AM','PM'].map(t => {
-                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
-                                            return (
-                                                <button
-                                                    key={t}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
-                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                        const safeNext = next.length === 0 ? ['AM'] : next;
-                                                        handleFrequencyChange('time', safeNext);
-                                                    }}
-                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
-                                                    style={active 
-                                                        ? { backgroundColor: theme.primary } 
-                                                        : { 
-                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
-                                                            color: theme.isDark ? theme.text : '#6B7280'
-                                                        }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
-                                                        }
-                                                    }}
-                                                >
-                                                    {t}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
-                    )}
 
-                    {item.frequency?.type === 'weekly' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="space-y-4">
-                                <div>
-                                    <div className="flex flex-nowrap gap-1.5 overflow-x-auto">
+                        {/* Frequency Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Calendar size={14} className="opacity-50" style={{ color: theme.text }} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Frequency & Schedule
+                                </span>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary }}>
+                                    {['daily', 'weekly', 'custom', 'cycle'].map(type => (
+                                        <button 
+                                            key={type} 
+                                            type="button" 
+                                            onClick={() => handleFrequencyChange('type', type)}
+                                            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                            style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
+                                        >
+                                            {type === 'custom' ? 'X Days' : type}
+                                        </button>
+                                    ))}
+                                </div>
+                                
+                                {item.frequency?.type === 'cycle' && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <TextInput label="On" value={item.frequency?.onDays || ''} onChange={v => handleFrequencyChange('onDays', v)} theme={theme} placeholder="5" type="number" outlined={true} compact={true} />
+                                        <TextInput label="Off" value={item.frequency?.offDays || ''} onChange={v => handleFrequencyChange('offDays', v)} theme={theme} placeholder="2" type="number" outlined={true} compact={true} />
+                                    </div>
+                                )}
+
+                                {item.frequency?.type === 'weekly' && (
+                                    <div className="flex flex-wrap gap-1">
                                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
                                             const isSelected = isDaySelected(day, item.frequency?.days);
                                             return (
-                                                <button 
-                                                    key={day} 
-                                                    type="button" 
-                                                    onClick={() => toggleDay(day)}
-                                                    className="flex-1 min-w-0 px-1.5 py-1 text-[10px] lg:text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+                                                <button key={day} type="button" onClick={() => toggleDay(day)}
+                                                    className="flex-1 min-w-[35px] py-1 text-[9px] font-bold rounded border transition-all"
                                                     style={{
-                                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                                                        border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                                                        color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
-                                                        boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!isSelected) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb';
-                                                            e.currentTarget.style.color = theme.text;
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!isSelected) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff';
-                                                            e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280';
-                                                        }
+                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
+                                                        borderColor: isSelected ? theme.primary : theme.border,
+                                                        color: isSelected ? '#ffffff' : theme.textLight
                                                     }}
                                                 >
-                                                    {day}
+                                                    {day[0]}
                                                 </button>
                                             );
                                         })}
                                     </div>
-                                </div>
-                                
-                                {/* Time of Day */}
-                                <div>
-                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                                        {['AM','PM'].map(t => {
-                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
-                                            return (
-                                                <button
-                                                    key={t}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
-                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                        const safeNext = next.length === 0 ? ['AM'] : next;
-                                                        handleFrequencyChange('time', safeNext);
-                                                    }}
-                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
-                                                    style={active 
-                                                        ? { backgroundColor: theme.primary } 
-                                                        : { 
-                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
-                                                            color: theme.isDark ? theme.text : '#6B7280'
-                                                        }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
-                                                        }
-                                                    }}
-                                                >
-                                                    {t}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                                )}
 
-                    {item.frequency?.type === 'custom' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-center">
-                                <div className="flex items-center justify-center gap-3 lg:col-span-1">
-                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
-                                    
-                                    {/* Combined Input with 'days' pill */}
-                                    <div 
-                                        className="flex items-stretch border rounded-lg overflow-hidden flex-1"
-                                        style={{ borderColor: theme.border }}
-                                    >
-                                        <input 
-                                            type="text"
-                                            value={item.frequency?.customDays || ''}
-                                            onChange={e => handleFrequencyChange('customDays', e.target.value)}
-                                            placeholder="3"
-                                            className="flex-1 px-3 py-2 outline-none min-w-0 lg:w-full"
-                                            style={{ 
-                                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                                color: theme.text 
-                                            }}
-                                        />
-                                        
-                                        {/* Single 'days' pill */}
-                                        <div 
-                                            className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
-                                            style={{ 
-                                                borderColor: theme.border,
-                                                backgroundColor: theme.cardBackground || '#f9fafb'
-                                            }}
-                                        >
-                                            <div
-                                                className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
-                                                style={{ backgroundColor: theme.primary }}
+                                {item.frequency?.type === 'custom' && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold uppercase opacity-40">Every</span>
+                                        <input type="text" value={item.frequency?.customDays || ''} onChange={e => handleFrequencyChange('customDays', e.target.value)} placeholder="3" className="w-12 px-2 py-1 text-xs border rounded" />
+                                        <span className="text-[10px] font-bold uppercase opacity-40">Days</span>
+                                    </div>
+                                )}
+
+                                {/* AM/PM Toggle - More compact */}
+                                <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                    {['AM','PM'].map(t => {
+                                        const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
+                                        return (
+                                            <button key={t} type="button"
+                                                onClick={() => {
+                                                    const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
+                                                    const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+                                                    handleFrequencyChange('time', next.length === 0 ? ['AM'] : next);
+                                                }}
+                                                className={`flex-1 py-1 text-[10px] font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                                style={active ? { backgroundColor: theme.primary } : {}}
                                             >
-                                                days
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {/* Time of Day */}
-                                <div className="lg:col-span-1">
-                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                                        {['AM','PM'].map(t => {
-                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
-                                            return (
-                                                <button
-                                                    key={t}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
-                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                        const safeNext = next.length === 0 ? ['AM'] : next;
-                                                        handleFrequencyChange('time', safeNext);
-                                                    }}
-                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
-                                                    style={active 
-                                                        ? { backgroundColor: theme.primary } 
-                                                        : { 
-                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
-                                                            color: theme.isDark ? theme.text : '#6B7280'
-                                                        }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!active) {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
-                                                        }
-                                                    }}
-                                                >
-                                                    {t}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                                {t}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
-                    )}
-
-                    {item.frequency?.type !== 'custom' && item.frequency?.type !== 'cycle' && item.frequency?.type !== 'weekly' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                                {['AM','PM'].map(t => {
-                                    const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
-                                    return (
-                                        <button
-                                            key={t}
-                                            type="button"
-                                            onClick={() => {
-                                                const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
-                                                const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                const safeNext = next.length === 0 ? ['AM'] : next;
-                                                handleFrequencyChange('time', safeNext);
-                                            }}
-                                            className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
-                                            style={active ? { backgroundColor: theme.primary } : {}}
-                                        >
-                                            {t}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
                     </div>
-                </>
                 )}
+
 
                 {/* Info note for blended protocols (non-first peptides) */}
                 {protocolType === 'blended' && !isFirstPeptide && (

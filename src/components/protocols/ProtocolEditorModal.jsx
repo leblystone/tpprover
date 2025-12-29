@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
@@ -472,27 +472,71 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
             }
         >
-            <div className="space-y-5">
+            <div className="space-y-4">
                 {/* PROTOCOL INFO Section Header */}
-                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL INFO</h4>
-                    <BookOpenCheck size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                <div className="flex items-center gap-4 mb-3">
+                    <BookOpenCheck size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Research Basics
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Protocol Basics - Visual Cards */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 -mt-2">
-                    <div className="space-y-2">
-                        <TextInput
-                            label="Name"
-                            value={form.protocolName || ''}
-                            onChange={v => handleChange('protocolName', v)}
-                            placeholder="e.g., Retatrutide, GLOW, etc."
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
+                {/* Protocol Basics - Compact Layout */}
+                <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+                        <div className="lg:col-span-8">
+                            <TextInput
+                                label="Protocol Name"
+                                value={form.protocolName || ''}
+                                onChange={v => handleChange('protocolName', v)}
+                                placeholder="e.g., Retatrutide, GLOW, etc."
+                                theme={theme}
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow
+                            />
+                        </div>
+                        
+                        {/* Protocol Type - Segmented Control */}
+                        <div className="lg:col-span-4 pb-0.5">
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40 ml-1" style={{ color: theme.text }}>Type</span>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                                    {[
+                                        { key: 'separate', name: 'Separate', icon: Ungroup },
+                                        { key: 'blended', name: 'Blended', icon: Blend }
+                                    ].map(option => {
+                                        const Icon = option.icon;
+                                        const isSelected = form.protocolType === option.key;
+                                        return (
+                                            <button
+                                                key={option.key}
+                                                type="button"
+                                                onClick={() => handleChange('protocolType', option.key)}
+                                                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all text-[10px] font-bold uppercase tracking-wider"
+                                                style={{
+                                                    backgroundColor: isSelected ? theme.primary : 'transparent',
+                                                    color: isSelected ? '#ffffff' : theme.textLight,
+                                                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                                }}
+                                            >
+                                                <Icon size={14} />
+                                                {option.name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div className="w-full">
                         <TextInput
                             label="Purpose/Goal"
                             value={form.purpose || ''}
@@ -504,165 +548,105 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             customShadow
                         />
                     </div>
-
-                    {/* Protocol Type - Compact Card Style */}
-                    <div className="flex items-start lg:items-center">
-                        <div className="grid grid-cols-2 gap-2 w-full lg:max-w-[420px] lg:mx-auto">
-                            {[
-                                { key: 'separate', name: 'Separate', icon: Ungroup, description: 'Individual doses' },
-                                { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
-                            ].map(option => {
-                                const Icon = option.icon
-                                const isSelected = form.protocolType === option.key
-                                return (
-                                    <button
-                                        key={option.key}
-                                        type="button"
-                                        onClick={() => handleChange('protocolType', option.key)}
-                                        className="flex flex-row items-center p-3 rounded-lg transition-all"
-                                        style={{
-                                            backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                                            border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                                            color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
-                                            minHeight: '50px',
-                                            boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
-                                            position: 'relative'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
-                                                e.currentTarget.style.color = theme.text
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
-                                                e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
-                                            }
-                                        }}
-                                    >
-                                        <div className="flex-shrink-0" style={{ width: '33.33%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                            <Icon size={24} style={{ position: 'relative', zIndex: 1 }} />
-                                        </div>
-                                        <div className="flex-1 flex flex-col items-center justify-center" style={{ width: '66.67%', paddingLeft: '8px' }}>
-                                            <span className="text-lg font-semibold leading-tight text-center" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
-                                            <span className="text-xs leading-tight opacity-75 mt-0.5 text-center" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
-                                        </div>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
                 </div>
 
-                {/* Separator */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
+                {/* Peptides Section - Redesigned */}
+                <div className="space-y-4">
+                    {/* Section Header */}
+                    <div className="flex items-center gap-4 mb-3 pt-2">
+                        <TestTube size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Dosage & Schedule
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
-
-                {/* Peptides Section - Visual Cards */}
-                <div className="space-y-6">
                     {/* Shared Settings for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
-                        <div className="p-4 rounded-xl border-2" 
-                             style={{ borderColor: theme.primary + '40', backgroundColor: theme.primary + '08' }}>
-                            <h4 className="font-semibold mb-1.5 text-sm" style={{ color: theme.text }}>
-                                Shared Protocol Settings
-                            </h4>
-                            <p className="text-xs" style={{ color: theme.textLight }}>
-                                These settings apply to all peptides since they'll be mixed together
+                        <div className="p-3 rounded-lg border" 
+                             style={{ borderColor: theme.primary + '20', backgroundColor: theme.primary + '05' }}>
+                            <p className="text-xs font-medium" style={{ color: theme.text }}>
+                                <span className="font-bold uppercase mr-1" style={{ color: theme.primary }}>Blended:</span>
+                                All peptides in this protocol share the same delivery method and schedule.
                             </p>
                         </div>
                     )}
                     
-                    {/* Peptide Cards */}
-                    <div className="grid gap-4">
+                    {/* Peptide List */}
+                    <div className="space-y-6">
                         {form.peptides?.map((p, index) => (
-                            <div key={p.id || index} 
-                                 className="rounded-xl overflow-hidden transition-all hover:shadow-lg"
-                                 style={{ 
-                                     border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-                                     backgroundColor: index % 2 === 0 
-                                         ? (theme.isDark ? '#0f172a' : theme.cardBackground)  // Darker for better contrast with input fields
-                                         : (theme.isDark ? '#111827' : theme.secondary + '80')
-                                 }}>
-                                {/* Peptide Header with Number */}
-                                <div className="px-4 py-2 border-b flex items-center justify-between"
-                                     style={{ 
-                                         backgroundColor: index % 2 === 0 
-                                             ? theme.primary + '15' 
-                                             : theme.primary + '25',
-                                         borderColor: theme.border
-                                     }}>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                                             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                                            {index + 1}
-                                        </div>
-                                        <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                            <div key={p.id || index} className="relative">
+                                {/* Optional: Peptide Number and Remove button if multiple */}
+                                {form.peptides.length > 1 && (
+                                    <div className="flex items-center justify-between mb-2 px-1">
+                                        <span className="text-xs font-black uppercase tracking-widest opacity-30" style={{ color: theme.text }}>
                                             Peptide {index + 1}
                                         </span>
-                                    </div>
-                                    {form.peptides.length > 1 && (
                                         <button 
                                             onClick={() => removePeptide(index)}
-                                            className="text-red-500 hover:text-red-700 text-xs font-medium"
+                                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                                            style={{ color: '#ef4444' }}
                                         >
                                             Remove
                                         </button>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                                 
-                                {/* Peptide Content */}
-                                <div className="p-4">
-                                    <PeptideSubForm
-                                        item={p}
-                                        onChange={(updated) => handlePeptideChange(index, updated)}
-                                        onRemove={() => removePeptide(index)}
-                                        protocolType={form.protocolType}
-                                        isFirstPeptide={index === 0}
-                                        theme={theme}
-                                        isOnlyItem={form.peptides.length === 1}
-                                    />
-                                </div>
+                                <PeptideSubForm
+                                    item={p}
+                                    onChange={(updated) => handlePeptideChange(index, updated)}
+                                    onRemove={() => removePeptide(index)}
+                                    protocolType={form.protocolType}
+                                    isFirstPeptide={index === 0}
+                                    theme={theme}
+                                    isOnlyItem={form.peptides.length === 1}
+                                />
+                                
+                                {index < form.peptides.length - 1 && (
+                                    <div className="mt-6 border-t border-dashed" style={{ borderColor: theme.border }}></div>
+                                )}
                             </div>
                         ))}
                     </div>
 
-                    {/* Add Peptide Button */}
-                    <div className="flex justify-center">
+                    {/* Add Peptide Button - More subtle */}
+                    <div className="flex justify-center pt-2">
                         <button
                             onClick={addPeptide}
-                            className="px-6 py-3 rounded-lg flex items-center gap-2 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-dashed transition-all hover:scale-105"
                             style={{ 
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                                color: theme.primary
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                                borderColor: theme.primary + '40',
+                                color: theme.primary,
+                                backgroundColor: 'transparent'
                             }}
                         >
-                            <PlusCircle size={18} />
-                            <span className="font-semibold text-sm" style={{ color: theme.text }}>Add Another Peptide</span>
+                            <PlusCircle size={16} />
+                            <span className="text-xs font-bold uppercase tracking-wider">Add Peptide</span>
                         </button>
                     </div>
-
                 </div>
 
-                {/* Separator */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
-
                 {/* PROTOCOL DURATION Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL DURATION</h4>
-                    <CalendarClock size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                <div className="flex items-center gap-4 mb-3 pt-2">
+                    <CalendarClock size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Timeline & Washout
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Duration Content */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -830,79 +814,69 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* Separator */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
-
-                {/* Scheduling Preview */}
-                {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
+                {/* EXTRA DETAILS & NOTES Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-2">
                     <div className="space-y-3">
-                        <SchedulingPreview protocol={form} theme={theme} />
+                        <div className="flex items-center gap-4 mb-1">
+                            <ImageUp size={32} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                                <div className="flex items-center gap-2 ml-1">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                        Notes & Records
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <TextInput 
+                            label="Notes"
+                            value={form.notes || ''} 
+                            onChange={v => handleChange('notes', v)} 
+                            theme={theme} 
+                            placeholder="Add any personal notes for this protocol..." 
+                            multiline 
+                            rows={3}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
                     </div>
-                )}
 
-                {/* After Start Info */}
-                <div className="p-3 rounded-lg" style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(15,23,42,0.08)'
-                }}>
-                    <div className="text-sm font-semibold mb-3" style={{ color: theme.text }}>What Happens After Starting</div>
-                    <div className="grid grid-cols-1 gap-2.5 text-sm">
-                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
+                    {/* Scheduling Preview - Now sits nicely next to notes on desktop */}
+                    {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-4 mb-1">
+                                <BookOpenCheck size={32} style={{ color: theme.primary }} />
+                                <div className="flex flex-col gap-0.5">
+                                    <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
+                                    <div className="flex items-center gap-2 ml-1">
+                                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                            Study Timeline
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-0.5">
-                                <div className="font-medium" style={{ color: theme.text }}>Dashboard Integration</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Daily research entries surface on your Dashboard.</div>
-                            </div>
+                            <SchedulingPreview protocol={form} theme={theme} />
                         </div>
-                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                            <div className="space-y-0.5">
-                                <div className="font-medium" style={{ color: theme.text }}>Calendar Schedule</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Research cadence appears on your Calendar automatically.</div>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div className="space-y-0.5">
-                                <div className="font-medium" style={{ color: theme.text }}>Progress Tracking</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Mark research complete to track momentum across the study.</div>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* EXTRA DETAILS Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
-                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
-                    <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                </div>
-
-                {/* Notes Content */}
-                <div>
-                    <TextInput 
-                        label="Notes"
-                        value={form.notes || ''} 
-                        onChange={v => handleChange('notes', v)} 
-                        theme={theme} 
-                        placeholder="Add any personal notes for this protocol..." 
-                        multiline 
-                        rows={3}
-                        outlined={true}
-                        customTextColor={theme.isDark ? null : "#181A18"}
-                        customShadow
-                    />
+                {/* Research Insights Footer - Minimal & Clean */}
+                <div className="flex items-center justify-center gap-6 py-2 border-t border-dashed" style={{ borderColor: theme.border }}>
+                    {[
+                        { label: 'Dashboard Integration', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z' },
+                        { label: 'Calendar Schedule', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { label: 'Progress Tracking', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }
+                    ].map(info => (
+                        <div key={info.label} className="flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-opacity cursor-default">
+                            <svg className="w-3.5 h-3.5" style={{ color: theme.primary }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={info.icon} />
+                            </svg>
+                            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: theme.text }}>{info.label}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
             

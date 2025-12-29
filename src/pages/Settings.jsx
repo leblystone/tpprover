@@ -53,15 +53,13 @@ export default function Settings() {
     <section className="max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
-        <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-          <SettingsIcon size={32} style={{ color: theme.primary }} />
-        </div>
+        <SettingsIcon size={32} style={{ color: theme.primary }} />
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Settings</h1>
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Settings</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Environment Configuration
+              Research Environment
             </span>
           </div>
         </div>
@@ -92,7 +90,167 @@ export default function Settings() {
                     <Icon size={22} style={{ color: theme.primary }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black tracking-tight" style={{ color: theme.text }}>
+                    <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+                      {section.title}
+                    </h3>
+                    <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
+                  style={{ color: theme.text }} 
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+              key={index}
+              type="button"
+              onClick={() => navigate(section.path)}
+              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              style={{
+                backgroundColor: theme.cardBackground,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
+                    style={{ backgroundColor: theme.primary + '10' }}
+                  >
+                    <Icon size={22} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+                      {section.title}
+                    </h3>
+                    <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
+                  style={{ color: theme.text }} 
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+              key={index}
+              type="button"
+              onClick={() => navigate(section.path)}
+              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              style={{
+                backgroundColor: theme.cardBackground,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
+                    style={{ backgroundColor: theme.primary + '10' }}
+                  >
+                    <Icon size={22} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+                      {section.title}
+                    </h3>
+                    <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
+                  style={{ color: theme.text }} 
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+              key={index}
+              type="button"
+              onClick={() => navigate(section.path)}
+              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              style={{
+                backgroundColor: theme.cardBackground,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
+                    style={{ backgroundColor: theme.primary + '10' }}
+                  >
+                    <Icon size={22} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+                      {section.title}
+                    </h3>
+                    <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
+                  style={{ color: theme.text }} 
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+              key={index}
+              type="button"
+              onClick={() => navigate(section.path)}
+              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              style={{
+                backgroundColor: theme.cardBackground,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
+                    style={{ backgroundColor: theme.primary + '10' }}
+                  >
+                    <Icon size={22} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
                       {section.title}
                     </h3>
                     <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>

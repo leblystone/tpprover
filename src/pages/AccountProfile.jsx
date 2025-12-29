@@ -20,12 +20,13 @@ import {
   Copy,
   Check,
   Send,
-  ChevronRight
+  ChevronRight,
+  Fingerprint
 } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import Modal from '../components/common/Modal'
-import { getTwoFactorSettings, disableTwoFactor } from '../services/twoFactorAuth'
+import { getTwoFactorSettings, disableTwoFactor, saveTwoFactorSettings } from '../services/twoFactorAuth'
 
 export default function AccountProfile() {
   const { theme } = useOutletContext()
@@ -48,6 +49,7 @@ export default function AccountProfile() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [isSendingReset, setIsSendingReset] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
   
   // State for email verification
   const [emailVerified, setEmailVerified] = useState(false)
@@ -58,8 +60,8 @@ export default function AccountProfile() {
   const [security, setSecurity] = useState({ twoFactorEnabled: false })
   const [twoFAOpen, setTwoFAOpen] = useState(false)
   const [manage2FAOpen, setManage2FAOpen] = useState(false)
-  const [disable2FAOpen, setDisable2FAOpen] = useState(false)
   const [isDisabling2FA, setIsDisabling2FA] = useState(false)
+  const [twoFAMethod, setTwoFAMethod] = useState('authenticator') // 'email', 'authenticator', 'biometrics'
   
   // Get member since date from Firebase metadata or user object
   const getMemberSinceDate = () => {
@@ -159,13 +161,8 @@ export default function AccountProfile() {
       const { auth } = await import('../config/firebase')
       await sendPasswordResetEmail(auth, user.email)
       
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { 
-          message: 'Password reset link sent! Check your email.', 
-          type: 'success' 
-        }
-      }))
-      setPasswordModalOpen(false)
+      setResetEmailSent(true)
+      setTimeout(() => setResetEmailSent(false), 5000) // Hide after 5 seconds
     } catch (error) {
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: 'Failed to send reset email', type: 'error' }
@@ -230,30 +227,58 @@ export default function AccountProfile() {
     }
   }
   
-  // Handle disable 2FA
-  const handleDisable2FA = async () => {
+  // Handle toggle 2FA
+  const handleToggle2FA = async (enabled) => {
     if (!firebaseUser) return
     
-    setIsDisabling2FA(true)
-    try {
-      const success = await disableTwoFactor(firebaseUser.uid)
-      if (success) {
-        setSecurity({ twoFactorEnabled: false })
-        setDisable2FAOpen(false)
-        setManage2FAOpen(false)
+    if (!enabled) {
+      // Disable 2FA directly (no confirmation)
+      setIsDisabling2FA(true)
+      try {
+        const success = await disableTwoFactor(firebaseUser.uid)
+        if (success) {
+          setSecurity({ twoFactorEnabled: false })
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Two-Factor Auth has been disabled', type: 'success' }
+          }))
+        } else {
+          throw new Error('Failed to disable 2FA')
+        }
+      } catch (error) {
+        console.error('Failed to disable 2FA:', error)
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '2FA has been disabled', type: 'success' }
+          detail: { message: 'Failed to disable Two-Factor Auth', type: 'error' }
         }))
-      } else {
-        throw new Error('Failed to disable 2FA')
+      } finally {
+        setIsDisabling2FA(false)
       }
-    } catch (error) {
-      console.error('Failed to disable 2FA:', error)
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Failed to disable 2FA', type: 'error' }
-      }))
-    } finally {
-      setIsDisabling2FA(false)
+    } else {
+      // Enable 2FA
+      setIsDisabling2FA(true)
+      try {
+        const success = await saveTwoFactorSettings(firebaseUser.uid, {
+          enabled: true,
+          method: twoFAMethod || 'authenticator'
+        })
+        if (success) {
+          setSecurity({ 
+            twoFactorEnabled: true,
+            method: twoFAMethod || 'authenticator'
+          })
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Two-Factor Auth has been enabled', type: 'success' }
+          }))
+        } else {
+          throw new Error('Failed to enable 2FA')
+        }
+      } catch (error) {
+        console.error('Failed to enable 2FA:', error)
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: 'Failed to enable Two-Factor Auth', type: 'error' }
+        }))
+      } finally {
+        setIsDisabling2FA(false)
+      }
     }
   }
   
@@ -299,13 +324,13 @@ export default function AccountProfile() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/app/account')}
-          className="group p-2.5 rounded-2xl transition-all active:scale-95 shadow-sm"
-          style={{ backgroundColor: theme.secondary }}
+          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
+          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
         >
-          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-normal" style={{ color: theme.text }}>Profile</h1>
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Profile</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -319,7 +344,7 @@ export default function AccountProfile() {
         <div className="space-y-6">
           {/* Profile Header Card */}
           <div 
-            className="p-6 rounded-[2rem] border-2 transition-all overflow-hidden"
+            className="p-4 rounded-[2rem] border-2 transition-all overflow-hidden"
             style={{ 
               backgroundColor: theme.cardBackground,
               borderColor: 'transparent',
@@ -438,7 +463,7 @@ export default function AccountProfile() {
             <div className="grid grid-cols-1 gap-4">
               {/* Password Card */}
               <div 
-                className="flex items-center justify-between p-5 rounded-[2rem] border-2 transition-all shadow-sm"
+                className="flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all shadow-sm"
                 style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
               >
                 <div className="flex items-center gap-4">
@@ -465,7 +490,7 @@ export default function AccountProfile() {
 
               {/* Two-Factor Card */}
               <div 
-                className="flex items-center justify-between p-5 rounded-[2rem] border-2 transition-all shadow-sm"
+                className="flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all shadow-sm"
                 style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
               >
                 <div className="flex items-center gap-4">
@@ -488,13 +513,7 @@ export default function AccountProfile() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    if (security.twoFactorEnabled) {
-                      setManage2FAOpen(true)
-                    } else {
-                      setTwoFAOpen(true)
-                    }
-                  }}
+                  onClick={() => setManage2FAOpen(true)}
                   className="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 border"
                   style={{ 
                     borderColor: theme.border, 
@@ -522,130 +541,124 @@ export default function AccountProfile() {
       {/* Update Password Modal */}
       <Modal
         open={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
+        onClose={() => {
+          setPasswordModalOpen(false)
+          setResetEmailSent(false)
+        }}
         title="Update Password"
         theme={theme}
       >
         <div className="space-y-4">
-          {/* Reset Link Option */}
-          <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100/50">
-            <div className="flex items-start gap-3">
-              <Mail size={18} className="text-blue-600 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm font-bold mb-1 text-blue-900">Forgot your password?</h4>
-                <p className="text-xs text-blue-700/70 leading-relaxed mb-3">
-                  We'll send you a secure password reset link via email.
-                </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
+                Current Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
+                  style={{ 
+                    backgroundColor: theme.background, 
+                    borderColor: theme.border, 
+                    color: theme.text 
+                  }}
+                  placeholder="Enter current password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
+                  style={{ color: theme.mutedText }}
+                >
+                  {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              
+              {/* Forgot Password Link */}
+              {!resetEmailSent ? (
                 <button
                   onClick={handlePasswordReset}
                   disabled={isSendingReset}
-                  className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 border border-blue-200 hover:bg-blue-100/50 disabled:opacity-50"
-                  style={{ color: '#1e40af' }}
+                  className="mt-2 text-xs font-medium hover:underline disabled:opacity-50 w-full text-center"
+                  style={{ color: theme.primary }}
                 >
-                  {isSendingReset ? 'Sending...' : 'Send Reset Link'}
+                  {isSendingReset ? 'Sending...' : 'Forgot password?'}
+                </button>
+              ) : (
+                <div className="mt-2 flex items-center justify-center gap-2 text-xs font-medium" style={{ color: theme.primary }}>
+                  <Check size={14} className="shrink-0" />
+                  <span>Reset Link Sent via Email</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
+                New Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
+                  style={{ 
+                    backgroundColor: theme.background, 
+                    borderColor: theme.border, 
+                    color: theme.text 
+                  }}
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
+                  style={{ color: theme.mutedText }}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Manual Update Form */}
-          <div className="pt-4 border-t border-dashed" style={{ borderColor: theme.border }}>
-            <h4 className="text-sm font-bold mb-4" style={{ color: theme.text }}>Or update manually:</h4>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
-                    style={{ 
-                      backgroundColor: theme.background, 
-                      borderColor: theme.border, 
-                      color: theme.text 
-                    }}
-                    placeholder="Enter current password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
-                    style={{ color: theme.mutedText }}
-                  >
-                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
+                  style={{ 
+                    backgroundColor: theme.background, 
+                    borderColor: theme.border, 
+                    color: theme.text 
+                  }}
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
+                  style={{ color: theme.mutedText }}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
-                    style={{ 
-                      backgroundColor: theme.background, 
-                      borderColor: theme.border, 
-                      color: theme.text 
-                    }}
-                    placeholder="Enter new password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
-                    style={{ color: theme.mutedText }}
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest opacity-40 mb-2" style={{ color: theme.text }}>
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl border text-sm font-medium"
-                    style={{ 
-                      backgroundColor: theme.background, 
-                      borderColor: theme.border, 
-                      color: theme.text 
-                    }}
-                    placeholder="Confirm new password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-black/5 transition-colors"
-                    style={{ color: theme.mutedText }}
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={handlePasswordUpdate}
-                disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
-                className="w-full px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-md active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: theme.primary, color: '#ffffff' }}
-              >
-                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-              </button>
             </div>
+
+            <button
+              onClick={handlePasswordUpdate}
+              disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
+              className="w-full px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-md active:scale-95 disabled:opacity-50"
+              style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+            >
+              {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+            </button>
           </div>
         </div>
       </Modal>
@@ -654,79 +667,130 @@ export default function AccountProfile() {
       <Modal
         open={manage2FAOpen}
         onClose={() => setManage2FAOpen(false)}
-        title="Manage Two-Factor Authentication"
+        title="Manage Two-Factor Auth"
         theme={theme}
       >
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-green-50/50 border border-green-200/50">
-            <div className="flex items-center gap-3 mb-2">
-              <ShieldCheck size={20} className="text-green-600" />
-              <h4 className="text-sm font-bold text-green-900">2FA is Active</h4>
-            </div>
-            <p className="text-xs text-green-700/70 leading-relaxed">
-              Your account is protected with two-factor authentication.
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              setManage2FAOpen(false)
-              setDisable2FAOpen(true)
-            }}
-            className="w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all hover:shadow-md active:scale-[0.99]"
-            style={{ backgroundColor: '#991B1B10', borderColor: '#991B1B20' }}
-          >
+        <div className="space-y-6">
+          {/* Toggle Section */}
+          <div className="flex items-center justify-between p-5 rounded-2xl border-2" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#991B1B15' }}>
-                <ShieldCheck size={18} style={{ color: '#991B1B' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '10' }}>
+                <ShieldCheck size={18} style={{ color: theme.primary }} />
               </div>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#991B1B' }}>Disable 2FA</div>
-                <div className="text-xs opacity-50" style={{ color: '#991B1B' }}>Remove two-factor protection</div>
-              </div>
-            </div>
-            <ChevronRight size={18} style={{ color: '#991B1B' }} className="opacity-40" />
-          </button>
-        </div>
-      </Modal>
-
-      {/* Disable 2FA Modal */}
-      <Modal
-        open={disable2FAOpen}
-        onClose={() => setDisable2FAOpen(false)}
-        title="Disable Two-Factor Authentication"
-        theme={theme}
-      >
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-red-50/50 border border-red-200/50">
-            <div className="flex items-start gap-3">
-              <Info size={18} className="text-red-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-bold mb-1 text-red-900">Warning</h4>
-                <p className="text-xs text-red-700/70 leading-relaxed">
-                  Disabling 2FA will make your account less secure. You'll only need your password to log in.
-                </p>
+                <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Two-Factor Auth</div>
+                <div className="text-xs opacity-50" style={{ color: theme.text }}>
+                  {security.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                </div>
               </div>
             </div>
+            <button
+              onClick={() => handleToggle2FA(!security.twoFactorEnabled)}
+              disabled={isDisabling2FA}
+              className={`relative w-14 h-7 rounded-full transition-all duration-300 disabled:opacity-50 ${
+                security.twoFactorEnabled ? 'opacity-100' : 'opacity-50'
+              }`}
+              style={{ 
+                backgroundColor: security.twoFactorEnabled ? theme.primary : theme.border
+              }}
+            >
+              <div
+                className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+                  security.twoFactorEnabled ? 'translate-x-7' : 'translate-x-0'
+                }`}
+                style={{ backgroundColor: '#ffffff' }}
+              />
+            </button>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setDisable2FAOpen(false)}
-              className="flex-1 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all border active:scale-95"
-              style={{ borderColor: theme.border, color: theme.text, backgroundColor: 'transparent' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDisable2FA}
-              disabled={isDisabling2FA}
-              className="flex-1 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-md active:scale-95 disabled:opacity-50"
-              style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-            >
-              {isDisabling2FA ? 'Disabling...' : 'Disable 2FA'}
-            </button>
-          </div>
+          {/* Prompt when disabled */}
+          {!security.twoFactorEnabled && (
+            <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/50">
+              <div className="flex items-start gap-3">
+                <Info size={18} className="text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-blue-700/70 leading-relaxed">
+                    Enable Two-Factor Auth to add an extra layer of security to your account. Protect your research data and protocols.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Method Options (only show when enabled) */}
+          {security.twoFactorEnabled && (
+            <div className="space-y-3">
+              <h4 className="text-[11px] font-bold uppercase tracking-widest opacity-60 px-1" style={{ color: theme.text }}>
+                Authentication Method
+              </h4>
+              
+              {/* Email Verification */}
+              <button
+                onClick={() => setTwoFAMethod('email')}
+                className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all ${
+                  twoFAMethod === 'email' ? 'shadow-md' : ''
+                }`}
+                style={{ 
+                  backgroundColor: twoFAMethod === 'email' ? theme.primary + '10' : theme.cardBackground,
+                  borderColor: twoFAMethod === 'email' ? theme.primary : theme.border
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '10' }}>
+                    <Mail size={18} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Email Verification</div>
+                    <div className="text-xs opacity-50" style={{ color: theme.text }}>Receive codes via email</div>
+                  </div>
+                </div>
+                {twoFAMethod === 'email' && <Check size={18} style={{ color: theme.primary }} />}
+              </button>
+
+              {/* Authenticator App */}
+              <button
+                onClick={() => setTwoFAMethod('authenticator')}
+                className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all ${
+                  twoFAMethod === 'authenticator' ? 'shadow-md' : ''
+                }`}
+                style={{ 
+                  backgroundColor: twoFAMethod === 'authenticator' ? theme.primary + '10' : theme.cardBackground,
+                  borderColor: twoFAMethod === 'authenticator' ? theme.primary : theme.border
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '10' }}>
+                    <Smartphone size={18} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Authenticator App</div>
+                    <div className="text-xs opacity-50" style={{ color: theme.text }}>Use an authenticator app</div>
+                  </div>
+                </div>
+                {twoFAMethod === 'authenticator' && <Check size={18} style={{ color: theme.primary }} />}
+              </button>
+
+              {/* Biometrics (Coming Soon) */}
+              <button
+                disabled
+                className="w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all opacity-50 cursor-not-allowed"
+                style={{ 
+                  backgroundColor: theme.cardBackground,
+                  borderColor: theme.border
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.border }}>
+                    <Fingerprint size={18} style={{ color: theme.mutedText }} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Biometrics</div>
+                    <div className="text-xs opacity-50" style={{ color: theme.text }}>Coming soon</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -734,7 +798,7 @@ export default function AccountProfile() {
       <Modal
         open={twoFAOpen}
         onClose={() => setTwoFAOpen(false)}
-        title="Enable Two-Factor Authentication"
+        title="Enable Two-Factor Auth"
         theme={theme}
       >
         <div className="p-6 text-center">
@@ -743,7 +807,7 @@ export default function AccountProfile() {
             Two-factor authentication setup is being enhanced.
           </p>
           <p className="text-xs opacity-50" style={{ color: theme.text }}>
-            You can enable 2FA during login for enhanced security.
+            You can enable Two-Factor Auth during login for enhanced security.
           </p>
         </div>
       </Modal>
@@ -753,7 +817,7 @@ export default function AccountProfile() {
 
 const InfoCard = ({ icon: Icon, label, value, theme }) => (
   <div 
-    className="flex items-center justify-between p-5 rounded-[2rem] border-2 transition-all shadow-sm"
+    className="flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all shadow-sm"
     style={{ 
       backgroundColor: theme.cardBackground,
       borderColor: 'transparent'
@@ -783,7 +847,263 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
   
   return (
     <div 
-      className="p-5 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
+      style={{ 
+        backgroundColor: theme.cardBackground,
+        borderColor: 'transparent'
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ 
+              backgroundColor: isVerified ? theme.primary + '15' : '#c87a5c15'
+            }}
+          >
+            <Mail size={18} style={{ color: isVerified ? theme.primary : '#c87a5c' }} />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+              Email Verification
+            </div>
+            <div 
+              className="text-base font-black tracking-wide" 
+              style={{ color: isVerified ? theme.primary : '#c87a5c' }}
+            >
+              {isVerified ? 'Verified' : 'Unverified'}
+            </div>
+          </div>
+        </div>
+        
+        {!isVerified && (
+          <button
+            onClick={onSendVerification}
+            disabled={isDisabled}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 hover:shadow-md active:scale-95"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
+          >
+            {isSending ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+            <span>{isSending ? 'Sending' : cooldown > 0 ? `${cooldown}s` : 'Verify'}</span>
+          </button>
+        )}
+      </div>
+
+      {!isVerified && (
+        <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: theme.border }}>
+          <div className="flex gap-2 text-[11px] leading-relaxed opacity-70" style={{ color: theme.text }}>
+            <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: '#c87a5c' }} />
+            <p>Verification enables secure password recovery and account protection.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+)
+
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, cooldown = 0 }) => {
+  const isDisabled = isSending || cooldown > 0
+  
+  return (
+    <div 
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
+      style={{ 
+        backgroundColor: theme.cardBackground,
+        borderColor: 'transparent'
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ 
+              backgroundColor: isVerified ? theme.primary + '15' : '#c87a5c15'
+            }}
+          >
+            <Mail size={18} style={{ color: isVerified ? theme.primary : '#c87a5c' }} />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+              Email Verification
+            </div>
+            <div 
+              className="text-base font-black tracking-wide" 
+              style={{ color: isVerified ? theme.primary : '#c87a5c' }}
+            >
+              {isVerified ? 'Verified' : 'Unverified'}
+            </div>
+          </div>
+        </div>
+        
+        {!isVerified && (
+          <button
+            onClick={onSendVerification}
+            disabled={isDisabled}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 hover:shadow-md active:scale-95"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
+          >
+            {isSending ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+            <span>{isSending ? 'Sending' : cooldown > 0 ? `${cooldown}s` : 'Verify'}</span>
+          </button>
+        )}
+      </div>
+
+      {!isVerified && (
+        <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: theme.border }}>
+          <div className="flex gap-2 text-[11px] leading-relaxed opacity-70" style={{ color: theme.text }}>
+            <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: '#c87a5c' }} />
+            <p>Verification enables secure password recovery and account protection.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+)
+
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, cooldown = 0 }) => {
+  const isDisabled = isSending || cooldown > 0
+  
+  return (
+    <div 
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
+      style={{ 
+        backgroundColor: theme.cardBackground,
+        borderColor: 'transparent'
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ 
+              backgroundColor: isVerified ? theme.primary + '15' : '#c87a5c15'
+            }}
+          >
+            <Mail size={18} style={{ color: isVerified ? theme.primary : '#c87a5c' }} />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+              Email Verification
+            </div>
+            <div 
+              className="text-base font-black tracking-wide" 
+              style={{ color: isVerified ? theme.primary : '#c87a5c' }}
+            >
+              {isVerified ? 'Verified' : 'Unverified'}
+            </div>
+          </div>
+        </div>
+        
+        {!isVerified && (
+          <button
+            onClick={onSendVerification}
+            disabled={isDisabled}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 hover:shadow-md active:scale-95"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
+          >
+            {isSending ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+            <span>{isSending ? 'Sending' : cooldown > 0 ? `${cooldown}s` : 'Verify'}</span>
+          </button>
+        )}
+      </div>
+
+      {!isVerified && (
+        <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: theme.border }}>
+          <div className="flex gap-2 text-[11px] leading-relaxed opacity-70" style={{ color: theme.text }}>
+            <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: '#c87a5c' }} />
+            <p>Verification enables secure password recovery and account protection.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+)
+
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, cooldown = 0 }) => {
+  const isDisabled = isSending || cooldown > 0
+  
+  return (
+    <div 
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
+      style={{ 
+        backgroundColor: theme.cardBackground,
+        borderColor: 'transparent'
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ 
+              backgroundColor: isVerified ? theme.primary + '15' : '#c87a5c15'
+            }}
+          >
+            <Mail size={18} style={{ color: isVerified ? theme.primary : '#c87a5c' }} />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+              Email Verification
+            </div>
+            <div 
+              className="text-base font-black tracking-wide" 
+              style={{ color: isVerified ? theme.primary : '#c87a5c' }}
+            >
+              {isVerified ? 'Verified' : 'Unverified'}
+            </div>
+          </div>
+        </div>
+        
+        {!isVerified && (
+          <button
+            onClick={onSendVerification}
+            disabled={isDisabled}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 hover:shadow-md active:scale-95"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
+          >
+            {isSending ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+            <span>{isSending ? 'Sending' : cooldown > 0 ? `${cooldown}s` : 'Verify'}</span>
+          </button>
+        )}
+      </div>
+
+      {!isVerified && (
+        <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: theme.border }}>
+          <div className="flex gap-2 text-[11px] leading-relaxed opacity-70" style={{ color: theme.text }}>
+            <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: '#c87a5c' }} />
+            <p>Verification enables secure password recovery and account protection.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+)
+
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, cooldown = 0 }) => {
+  const isDisabled = isSending || cooldown > 0
+  
+  return (
+    <div 
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm overflow-hidden"
       style={{ 
         backgroundColor: theme.cardBackground,
         borderColor: 'transparent'

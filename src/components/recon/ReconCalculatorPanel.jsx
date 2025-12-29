@@ -408,21 +408,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const content = (
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
-      <div className="flex flex-col gap-1 mb-2">
-        <div className="flex items-center gap-2">
-          <TestTube size={20} style={{ color: theme.primary }} />
-          <h4 
-            className="text-lg font-bold tracking-wide" 
-            style={{ color: theme.text }}
-          >
+      <div className="flex items-center gap-4 mb-2">
+        <TestTube size={32} style={{ color: theme.primary }} />
+        <div className="flex flex-col gap-0.5">
+          <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
             Vial Details
           </h4>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-            Research Parameters
-          </span>
+          <div className="flex items-center gap-2 ml-1">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Research Parameters
+            </span>
+          </div>
         </div>
       </div>
       <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
@@ -1166,21 +1163,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
           {/* Section Banner - Delivery Method */}
-          <div className="flex flex-col gap-1 mb-2">
-            <div className="flex items-center gap-2">
-              <Droplets size={20} style={{ color: theme.primary }} />
-              <h4 
-                className="text-lg font-bold tracking-wide" 
-                style={{ color: theme.text }}
-              >
+          <div className="flex items-center gap-4 mb-2">
+            <Droplets size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
                 Delivery Method
               </h4>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Administration Mode
-              </span>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Administration Mode
+                </span>
+              </div>
             </div>
           </div>
           <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
@@ -2036,5 +2030,3 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     </div>
   );
 }
-
-

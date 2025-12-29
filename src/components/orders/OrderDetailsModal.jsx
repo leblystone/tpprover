@@ -445,28 +445,36 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           {/* Section: Vendor & Category */}
           <div>
             {/* Section Header */}
-            <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-              <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER DETAILS</h4>
-              <div className="flex items-center gap-2">
-              {form.vendorId && (
-                <button
-                  onClick={() => {
-                    const selectedVendor = vendors.find(v => v.id === form.vendorId);
-                    if (selectedVendor && selectedVendor.type) {
-                      setForm(prev => ({ ...prev, category: selectedVendor.type }));
-                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                        detail: { message: 'Category autofilled from vendor', type: 'success' } 
-                      }));
-                    }
-                  }}
-                  className="text-xs px-2 py-1 rounded-md transition-all hover:opacity-80"
-                  style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                  title="Autofill category from selected vendor"
-                >
-                  Autofill from Vendor
-                </button>
-              )}
-                <PackageOpen size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+            <div className="flex items-center gap-4 mb-4">
+              <PackageOpen size={32} style={{ color: theme.primary }} />
+              <div className="flex flex-col gap-0.5 flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+                  {form.vendorId && (
+                    <button
+                      onClick={() => {
+                        const selectedVendor = vendors.find(v => v.id === form.vendorId);
+                        if (selectedVendor && selectedVendor.type) {
+                          setForm(prev => ({ ...prev, category: selectedVendor.type }));
+                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                            detail: { message: 'Category autofilled from vendor', type: 'success' } 
+                          }));
+                        }
+                      }}
+                      className="text-[10px] px-2 py-1 rounded-md transition-all hover:opacity-80 font-bold uppercase tracking-wider"
+                      style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                      title="Autofill category from selected vendor"
+                    >
+                      Autofill Category
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    Vendor & Category
+                  </span>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -513,11 +521,19 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         </div>
 
         {/* Section: Items */}
-        <div>
+        <div className="pt-2">
             {/* Section Header */}
-            <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-              <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ITEMS</h4>
-              <ListChecks size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+            <div className="flex items-center gap-4 mb-4">
+              <ListChecks size={32} style={{ color: theme.primary }} />
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Items</h4>
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    Peptides & Quantities
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="space-y-3">
                 {form.items?.map((item, index) => {
@@ -586,11 +602,19 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         </div>
 
         {/* Section: Status & Dates */}
-        <div>
+        <div className="pt-2">
           {/* Section Header */}
-          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER STATUS</h4>
-            <TruckElectric size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+          <div className="flex items-center gap-4 mb-4">
+            <TruckElectric size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Status</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Shipment Tracking
+                </span>
+              </div>
+            </div>
           </div>
           <div className="space-y-3">
             <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
@@ -727,11 +751,19 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         <div className="border-t" style={{ borderColor: theme.border }}></div>
 
         {/* Section: Notes & Documentation */}
-        <div>
+        <div className="pt-2">
           {/* Section Header */}
-          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
-            <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+          <div className="flex items-center gap-4 mb-4">
+            <ImageUp size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Notes & Documentation
+                </span>
+              </div>
+            </div>
           </div>
         <div className="space-y-4">
             <TextInput 
@@ -795,5 +827,3 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 }
 
 // shipping timeline removed
-
-

@@ -203,9 +203,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     )}    >
       <div className="relative space-y-4">
         {/* VENDOR INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VENDOR INFO</h4>
-          <Building2 size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4">
+          <Building2 size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vendor Info</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Identity & Rating
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Section: Name, Rating, Category */}
@@ -274,9 +282,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* CONTACT INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>CONTACT INFO</h4>
-          <Phone size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4 pt-2">
+          <Phone size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Contact Info</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Communication Channels
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Section: Contacts */}
@@ -475,9 +491,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* PAYMENT METHODS Section Header */}
-        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PAYMENT METHODS</h4>
-          <CreditCard size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4 pt-2">
+          <CreditCard size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Payment Methods</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Accepted Options
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Section: Payment */}
@@ -541,9 +565,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* ADDITIONAL INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ADDITIONAL INFO</h4>
-          <FileText size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+        <div className="flex items-center gap-4 mb-4 pt-2">
+          <FileText size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Additional Info</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Labels & Records
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Section: Labels + Notes */}
@@ -625,9 +657,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         {/* ORDER HISTORY Section Header - Only show for existing vendors */}
         {vendor && (
           <>
-            <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-              <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER HISTORY</h4>
-              <History size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+            <div className="flex items-center gap-4 mb-4 pt-2">
+              <History size={32} style={{ color: theme.primary }} />
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order History</h4>
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    Past Purchases
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Section: Order History */}
@@ -772,5 +812,3 @@ function VendorOrderHistory({ vendorName, theme }) {
     </div>
   )
 }
-
-
