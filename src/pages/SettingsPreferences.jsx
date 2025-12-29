@@ -230,8 +230,8 @@ export default function SettingsPreferences() {
           </div>
         </div>
 
-        {/* Regional Settings */}
-        <div className="space-y-3">
+        {/* Regional Settings - Hidden until fully implemented */}
+        {/* <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Globe size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -273,7 +273,7 @@ export default function SettingsPreferences() {
               isLast={true}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Calendar Settings */}
         <div className="space-y-3">
