@@ -114,7 +114,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           {/* Today Button - Integrated Action */}
           <button 
             onClick={onToday}
-            className="relative px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl overflow-hidden group"
+            className="relative px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 rounded-xl overflow-hidden group"
             style={{
               color: isToday ? theme.textOnPrimary : (theme.isDark ? theme.text : theme.primaryDark),
               backgroundColor: isToday ? theme.primary : 'transparent',
@@ -134,7 +134,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           <div className="flex gap-1">
             <button 
               onClick={() => onChangeView('month')}
-              className="px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
+              className="px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
               style={{
                 backgroundColor: viewMode === 'month' ? theme.primary : 'transparent',
                 color: viewMode === 'month' ? theme.textOnPrimary : (theme.isDark ? theme.textLight : '#6b7280'),
@@ -146,7 +146,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
             </button>
             <button 
               onClick={() => onChangeView('week')}
-              className="px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
+              className="px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
               style={{
                 backgroundColor: viewMode === 'week' ? theme.primary : 'transparent',
                 color: viewMode === 'week' ? theme.textOnPrimary : (theme.isDark ? theme.textLight : '#6b7280'),

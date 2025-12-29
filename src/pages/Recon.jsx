@@ -8,7 +8,7 @@ import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
-import ReconHelpPanel from '../components/recon/ReconHelpPanel'
+import ReconTipsBanner from '../components/recon/ReconTipsBanner'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS, penColors } from '../utils/penColors'
@@ -790,7 +790,7 @@ export default function Recon() {
 
 	return (
 		<>
-			<ReconHelpPanel theme={theme} />
+			<ReconTipsBanner theme={theme} />
 			
 			{/* Calculator Tab - Full width centered on desktop when active */}
 			{activeTab === 'calculator' && (
