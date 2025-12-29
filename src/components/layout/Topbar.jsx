@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import { Menu, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -16,7 +16,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
   const [customizingState, setCustomizingState] = React.useState(false);
-  const [isSearchActive, setIsSearchActive] = useState(false);
 
   // Listen for customizing state changes from dashboard
   useEffect(() => {
@@ -27,23 +26,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     return () => window.removeEventListener('tpp:dashboard-customizing-changed', handleCustomizingChange);
   }, []);
 
-  const getPlaceholderForPage = (pageSeg) => {
-    const placeholders = {
-      recon: 'Search recon entries...',
-      orders: 'Search orders...',
-      protocols: 'Search protocols...',
-      stockpile: 'Search stockpile...',
-      vendors: 'Search vendors...',
-      glossary: 'Search glossary...',
-      research: 'Search supplements...',
-      calendar: 'Search events...',
-      imports: 'Search imports...',
-    };
-    return placeholders[pageSeg] || 'Search...';
-  };
-
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const searchInputRef = React.useRef(null);
   const { user } = useAppContext();
   
   // Support ticket state
@@ -489,9 +471,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
-              maxWidth: isSearchActive ? 'calc(100vw - 200px)' : 'calc(100vw - 120px)',
-              transition: 'max-width 0.3s ease',
-              willChange: 'max-width'
+              maxWidth: 'calc(100vw - 120px)'
             }}
           >
             <style>{`
@@ -637,50 +617,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 <span className="whitespace-nowrap">Support Response</span>
                 <MessageSquareDot size={14} />
               </button>
-          )}
-          {/* Search for other pages */}
-          {!onDashboard && seg !== 'settings' && seg !== 'account' && seg !== 'calendar' && (
-            <form 
-              className={`search-box-wrapper ${isSearchActive ? 'is-active' : ''}`}
-              style={{ color: theme.text, backgroundColor: theme.cardBackground }}
-              onSubmit={(e) => { e.preventDefault(); }}
-            >
-              <button
-                type="button"
-                className="search-icon-button"
-                onClick={() => {
-                  const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
-                  if (input) {
-                    input.focus();
-                    setIsSearchActive(true);
-                  }
-                }}
-                style={{ color: theme.textLight, opacity: 0.7 }}
-              >
-                <Search size={18} />
-              </button>
-              <input 
-                type="text" 
-                data-page={seg}
-                onFocus={() => setIsSearchActive(true)}
-                onBlur={() => setIsSearchActive(false)}
-                onChange={(e) => window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: e.target.value } }))} 
-                placeholder={getPlaceholderForPage(seg)}
-                style={{ color: theme.text }}
-              />
-              <button 
-                type="reset"
-                onClick={() => {
-                  const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
-                  if (input) {
-                    input.value = '';
-                    input.blur();
-                    window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: '' } }));
-                    setIsSearchActive(false);
-                  }
-                }}
-              />
-            </form>
           )}
           {/* Account and Settings icons */}
           <button 

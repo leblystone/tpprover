@@ -33,6 +33,7 @@ import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
+import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -104,6 +105,7 @@ function App() {
   const [showBetaModal, setShowBetaModal] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const [showFeatureAnnouncement, setShowFeatureAnnouncement] = useState(false);
 
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
@@ -127,6 +129,24 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Check if feature announcement should be shown
+  useEffect(() => {
+    const checkFeatureAnnouncement = () => {
+      // Change this ID when you have a new announcement to show
+      const CURRENT_ANNOUNCEMENT_ID = 'redesign-2024';
+      
+      if (shouldShowAnnouncement(CURRENT_ANNOUNCEMENT_ID)) {
+        // Show after a slight delay to not overwhelm on first load
+        const timeoutId = setTimeout(() => {
+          setShowFeatureAnnouncement(true);
+        }, 3000); // 3 second delay
+        return () => clearTimeout(timeoutId);
+      }
+    };
+    
+    checkFeatureAnnouncement();
+  }, []);
+
   // Test function to trigger update modal
   const testUpdateModal = useCallback((type = 'recommended') => {
     const mockData = mockUpdates[type] || mockUpdates.recommended;
@@ -141,6 +161,16 @@ function App() {
     window.testWelcomeModal = () => {
       console.log('🧪 Testing welcome modal');
       setShowWelcome(true);
+    };
+    window.testFeatureAnnouncement = () => {
+      console.log('🧪 Testing feature announcement');
+      setShowFeatureAnnouncement(true);
+    };
+    // Utility to reset announcement (for testing)
+    window.resetFeatureAnnouncement = async () => {
+      const { resetAnnouncement } = await import('./components/common/FeatureAnnouncementModal');
+      resetAnnouncement('redesign-2024');
+      console.log('✅ Feature announcement reset - refresh to see it again');
     };
   }, [testUpdateModal]);
 
@@ -463,6 +493,12 @@ function App() {
         open={showUpdatePrompt}
         onClose={() => setShowUpdatePrompt(false)}
         updateInfo={updateInfo}
+        theme={theme}
+      />
+      <FeatureAnnouncementModal
+        open={showFeatureAnnouncement}
+        onClose={() => setShowFeatureAnnouncement(false)}
+        announcementId="redesign-2024"
         theme={theme}
       />
       
