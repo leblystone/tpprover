@@ -1,111 +1,48 @@
 # Feature Announcement Modal - Usage Guide
 
-## 🔬 Overview
-The Feature Announcement Modal is a sophisticated, professional popup designed to communicate major platform updates and redesigns to your researchers.
+## ✨ Overview
+A minimalist, modern announcement modal designed for clarity and ease of use. This component skips the "heavy" cards and large headers in favor of a clean, typography-focused layout.
 
 ## ✨ Features
-- **Professional Aesthetic**: Clean, modern design matching the "research principal".
-- **One-time display**: Users only see it once per announcement.
-- **Persistent tracking**: Uses localStorage to remember seen state.
-- **Easy testing**: Built-in test commands.
-- **Thematic Integration**: Uses Lucide icons and theme-based gradients.
+- **Minimalist Aesthetic**: Flat design with generous whitespace and subtle icons.
+- **One-time display**: Tracks seen state via `localStorage`.
+- **User-Friendly Tone**: Simple language that avoids excessive technical or thematic jargon.
+- **Responsive & Lightweight**: Designed to feel snappy and native.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Usage
 
-### The modal is already integrated and ready to go!
+The modal is pre-integrated into `App.jsx`. It appears automatically 3 seconds after launch for new updates.
 
-It will automatically show **3 seconds after app launch** if the researcher hasn't seen the current update yet.
-
----
-
-## 🧪 Testing
-
-### Test the Modal
-Open your browser console and run:
-```javascript
-window.testFeatureAnnouncement()
-```
-
-### Reset the Modal (to see it again)
-```javascript
-window.resetFeatureAnnouncement()
-```
-Then refresh the page.
+### Testing Commands
+Run these in your browser console:
+- `window.testFeatureAnnouncement()` - Preview the current design.
+- `window.resetFeatureAnnouncement()` - Reset the state to see it automatically again on refresh.
 
 ---
 
-## 📝 Customizing the Announcement
+## 📝 Customization
 
-### 1. Update the Announcement ID
-When you have a **new** announcement, change the ID in `src/App.jsx`:
-
+### 1. Change the Update ID
+Update `src/App.jsx` when you want to show a new announcement:
 ```javascript
-// Around line 140
-const CURRENT_ANNOUNCEMENT_ID = 'redesign-2024'; // Change this for new announcements
+const CURRENT_ANNOUNCEMENT_ID = 'redesign-2024'; // Increment this for new updates
 ```
 
-### 2. Customize the Content
+### 2. Update Content
 Edit `src/components/common/FeatureAnnouncementModal.jsx`:
 
-**Change the Primary Header:**
-```jsx
-<h2 className="text-4xl font-extrabold mb-3 tracking-tight">
-  Platform Redesign {/* Change this */}
-</h2>
-```
+- **Title**: `<h2 className="text-2xl font-semibold ...">`
+- **Subtitle**: `<p className="text-sm opacity-60 ...">`
+- **Features**: A simple flex list. Each feature has an icon and two lines of text.
 
-**Update the Subtitle:**
-```jsx
-<p className="text-lg opacity-90 font-medium max-w-sm">
-  Significant enhancements to your research environment are now live. {/* Change this */}
-</p>
-```
-
-**Modify System Improvements:**
-The modal uses a structured grid. Edit them in the "Feature Grid" section:
-```jsx
-{/* Feature 1 */}
-<h4 className="font-bold text-sm">
-  Unified Interface {/* Feature title */}
-</h4>
-<p className="text-xs leading-relaxed">
-  Streamlined navigation... {/* Feature description */}
-</p>
-```
-
-### 3. Adjust Icons
-Import different icons from `lucide-react` at the top. We recommend technical icons like `Database`, `Shield`, `Zap`, `Monitor`, etc.
+### 3. Styling
+The modal uses the application `theme` object for colors. The main button uses `theme.primary` with a subtle shadow for a modern "lift" effect.
 
 ---
 
-## 🎨 Design Customization
-
-### Hero Gradient
-Update the hero section gradient to match your desired mood:
-```jsx
-background: `linear-gradient(135deg, ${theme?.primaryDark} 0%, ${theme?.primary} 100%)`,
-```
-
-### Action Button
-The main button uses a strong gradient and a chevron icon:
-```jsx
-style={{
-  background: `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark} 100%)`
-}}
-```
-
----
-
-## 🔄 Updating for a New Announcement
-
-When you have a **NEW** major feature to show:
-
-1. **Change the Announcement ID** in `App.jsx`:
-   ```javascript
-   const CURRENT_ANNOUNCEMENT_ID = 'v2-protocol-engine';
-   ```
-
-2. **Update content** in `FeatureAnnouncementModal.jsx`.
-3. **Deploy** - Researchers will see the new update once!
+## 💡 Best Practices
+- **Keep it short**: Modern users scan, they don't read. 2-3 sentences per feature max.
+- **Clear Icons**: Use Lucide icons that clearly represent the feature (e.g., `Layout` for UI, `Zap` for Speed).
+- **Whitespace**: Don't crowd the list. The current 4-item limit is ideal for the `max-w-md` size.
