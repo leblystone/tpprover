@@ -511,7 +511,8 @@ export default function BottomNavigation({ theme }) {
                       className="text-xs transition-all duration-300"
                       style={{
                         fontWeight: active || isExpanded ? 700 : 500,
-                        letterSpacing: active || isExpanded ? '0.02em' : '0'
+                        letterSpacing: active || isExpanded ? '0.02em' : '0',
+                        marginTop: '-4px'
                       }}
                     >
                       {item.label}
