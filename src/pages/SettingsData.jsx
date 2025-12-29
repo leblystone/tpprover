@@ -451,9 +451,9 @@ export default function SettingsData() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
           className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
@@ -471,10 +471,10 @@ export default function SettingsData() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Data Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Deletion Request Chip */}
         {hasDeletionRequest && (
           <div 
@@ -502,7 +502,15 @@ export default function SettingsData() {
         )}
 
         {/* Recently Deleted Section */}
-        <RecentlyDeleted theme={theme} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Trash2 size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Recently Deleted
+            </h4>
+          </div>
+          <RecentlyDeleted theme={theme} />
+        </div>
 
         {/* Recovery Section */}
         <div className="space-y-4">

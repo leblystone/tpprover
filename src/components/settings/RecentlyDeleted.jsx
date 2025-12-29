@@ -413,17 +413,24 @@ export default function RecentlyDeleted({ theme }) {
   if (deletedItems.length === 0) {
     return (
       <div 
-        className="p-4 rounded-lg"
-        style={{ backgroundColor: theme.cardBackground }}
+        className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+        style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
       >
-        <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>
-          Recently Deleted
-        </h4>
-        <p className="text-xs" style={{ color: theme.mutedText }}>
-          Items deleted in the last 14 days will appear here. You can restore accidentally deleted protocols, orders, or stockpile items.
-        </p>
-        <div className="mt-4 p-6 text-center rounded-lg border border-dashed" style={{ borderColor: theme.border }}>
-          <p className="text-sm" style={{ color: theme.mutedText }}>
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+            <Trash2 size={18} style={{ color: theme.primary }} />
+          </div>
+          <div>
+            <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
+              Recently Deleted
+            </div>
+            <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
+              Items deleted in the last 14 days will appear here. You can restore accidentally deleted protocols, orders, or stockpile items.
+            </p>
+          </div>
+        </div>
+        <div className="p-6 text-center rounded-xl border border-dashed" style={{ borderColor: theme.border }}>
+          <p className="text-xs opacity-50" style={{ color: theme.text }}>
             No recently deleted items
           </p>
         </div>
@@ -433,36 +440,43 @@ export default function RecentlyDeleted({ theme }) {
 
   return (
     <div 
-      className="p-4 rounded-lg space-y-3"
-      style={{ backgroundColor: theme.cardBackground }}
+      className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+      style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium" style={{ color: theme.text }}>
-          Recently Deleted
-        </h4>
-        {deletedItems.length > 0 && (
-          <span 
-            className="px-2 py-0.5 rounded-full text-xs font-semibold"
-            style={{ backgroundColor: theme.warning + '20', color: theme.warning }}
-          >
-            {deletedItems.length}
-          </span>
-        )}
+      <div className="flex items-start gap-4 mb-6">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+          <Trash2 size={18} style={{ color: theme.primary }} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
+              Recently Deleted
+            </div>
+            {deletedItems.length > 0 && (
+              <span 
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                style={{ backgroundColor: theme.warning + '20', color: theme.warning }}
+              >
+                {deletedItems.length}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
+            Items deleted in the last 14 days. Click restore to recover accidentally deleted items.
+          </p>
+        </div>
       </div>
-      <p className="text-xs mb-3" style={{ color: theme.mutedText }}>
-        Items deleted in the last 14 days. Click restore to recover accidentally deleted items.
-      </p>
       
-      <div className="space-y-2">
+      <div className="space-y-3">
         {deletedItems.slice(0, 2).map((item) => {
           const isRestoring = restoring === item.itemId
           return (
             <div
               key={`${item.dataType}-${item.itemId}`}
-              className="flex items-center gap-3 p-3 rounded-lg border transition-all"
+              className="flex items-center gap-3 p-4 rounded-xl border transition-all"
               style={{ 
                 borderColor: theme.border,
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'transparent',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
                 opacity: isRestoring ? 0.6 : 1
               }}
             >
@@ -506,22 +520,14 @@ export default function RecentlyDeleted({ theme }) {
               <button
                 onClick={() => handleRestore(item)}
                 disabled={isRestoring}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
                 style={{
                   backgroundColor: theme.primary,
-                  color: theme.textOnPrimary || '#FFFFFF'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isRestoring) {
-                    e.currentTarget.style.opacity = '0.9'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1'
+                  color: '#FFFFFF'
                 }}
               >
                 <RotateCcw 
-                  size={14} 
+                  size={12} 
                   className={isRestoring ? 'animate-spin' : ''} 
                 />
                 {isRestoring ? 'Restoring...' : 'Restore'}
@@ -532,24 +538,17 @@ export default function RecentlyDeleted({ theme }) {
       </div>
       
       {deletedItems.length > 2 && (
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+        <div className="mt-4">
           <button
             onClick={() => setShowAllModal(true)}
-            className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95"
             style={{
-              backgroundColor: theme.secondary,
-              color: theme.text,
-              border: `1px solid ${theme.border}`
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : theme.primary + '10'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.secondary
+              borderColor: theme.border,
+              color: theme.text
             }}
           >
-            <Eye size={16} />
-            View All Deleted Items ({deletedItems.length})
+            <Eye size={14} />
+            View All ({deletedItems.length})
           </button>
         </div>
       )}
