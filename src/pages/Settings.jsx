@@ -26,17 +26,9 @@ export default function Settings() {
     {
       id: 'preferences',
       title: 'App Preferences',
-      description: 'Language, currency, and app behavior',
+      description: 'Features, privacy, and app behavior',
       icon: SettingsIcon,
       path: '/app/settings/preferences',
-      color: theme.primary
-    },
-    {
-      id: 'privacy',
-      title: 'Privacy',
-      description: 'Control data sharing and preferences',
-      icon: Eye,
-      path: '/app/settings/privacy',
       color: theme.primary
     },
     {
