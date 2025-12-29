@@ -6,7 +6,10 @@ import {
   Layout, 
   ArrowRight,
   Sparkles,
-  Layers
+  Layers,
+  FlaskConical,
+  Boxes,
+  Activity
 } from 'lucide-react';
 
 /**
