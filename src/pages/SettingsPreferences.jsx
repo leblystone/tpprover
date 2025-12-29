@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check } from 'lucide-react'
+import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -120,7 +120,7 @@ export default function SettingsPreferences() {
         </button>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <SettingsIcon size={24} style={{ color: theme.primary }} />
+            <Settings size={24} style={{ color: theme.primary }} />
           </div>
           <div className="flex flex-col gap-0.5">
             <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Preferences</h1>
