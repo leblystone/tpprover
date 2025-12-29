@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen } from 'lucide-react';
+import BetaModal from '../common/BetaModal';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -38,6 +39,7 @@ export default function BottomNavigation({ theme }) {
   const [longPressItem, setLongPressItem] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchClosing, setSearchClosing] = useState(false);
+  const [showBetaModal, setShowBetaModal] = useState(false);
   const longPressTimer = useRef(null);
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
@@ -56,6 +58,7 @@ export default function BottomNavigation({ theme }) {
     more: [
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
+      { action: 'tpp:open-beta', label: 'Beta Program', icon: NotebookPen },
       { action: 'search', label: 'Search', icon: Search }
     ]
   };
@@ -177,6 +180,9 @@ export default function BottomNavigation({ theme }) {
     triggerHaptic('light');
     if (menuItem.action === 'search') {
       setShowSearch(true);
+      setExpandedMenu(null);
+    } else if (menuItem.action === 'tpp:open-beta') {
+      setShowBetaModal(true);
       setExpandedMenu(null);
     } else if (menuItem.external) {
       window.open(menuItem.path, '_blank', 'noopener,noreferrer');
@@ -597,6 +603,15 @@ export default function BottomNavigation({ theme }) {
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
+
+      {/* Beta Modal */}
+      {showBetaModal && (
+        <BetaModal 
+          open={showBetaModal} 
+          onClose={() => setShowBetaModal(false)} 
+          theme={theme} 
+        />
+      )}
     </>
   );
 }

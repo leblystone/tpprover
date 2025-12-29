@@ -77,7 +77,7 @@ const ReconTipsBanner = ({ theme }) => {
         borderColor: theme.border,
         borderTop: 'none',
         maxWidth: '97%',
-        margin: '0.25rem auto 0 auto',
+        margin: '0.25rem auto 1.5rem auto',
         boxSizing: 'border-box'
       }}
     >
