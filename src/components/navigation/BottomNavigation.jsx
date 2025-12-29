@@ -224,7 +224,7 @@ export default function BottomNavigation({ theme }) {
               boxShadow: theme.isDark
                 ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                 : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              animation: 'slideUpBounce 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              animation: 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
               paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)'
             }}
           >
@@ -565,7 +565,7 @@ export default function BottomNavigation({ theme }) {
           }
         }
 
-        @keyframes slideUpFast {
+        @keyframes slideUpSmooth {
           from {
             opacity: 0;
             transform: translateY(100%);
