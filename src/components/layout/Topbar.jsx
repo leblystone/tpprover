@@ -410,7 +410,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-2 pb-3 pt-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
+                className="px-2 pb-4 pt-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
@@ -421,8 +421,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 {/* Active indicator line - below text */}
                 {activeTab === tab.value && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
-                    style={{ backgroundColor: theme.primary }}
+                    className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      height: '3px',
+                      boxShadow: `0 0 8px ${theme.primary}60`
+                    }}
                   />
                 )}
               </button>
@@ -494,7 +498,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-1 pb-3 pt-2 text-xs capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation"
+                className="px-1 pb-4 pt-2 text-xs capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
@@ -505,8 +509,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 {/* Active indicator line - below text */}
                 {activeTab === tab.value && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
-                    style={{ backgroundColor: theme.primary }}
+                    className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      height: '3px',
+                      boxShadow: `0 0 8px ${theme.primary}60`
+                    }}
                   />
                 )}
               </button>

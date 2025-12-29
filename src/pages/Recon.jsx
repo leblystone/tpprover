@@ -747,16 +747,16 @@ export default function Recon() {
 	useEffect(() => {
 		const updateTabs = () => {
 			const isMobile = window.matchMedia('(max-width: 767px)').matches;
-		const tabs = isMobile
-			? [
-				{ value: 'calculator', label: 'Calculator' },
-				{ value: 'reconstituted', label: 'IN USE' },
-				{ value: 'history', label: 'History' }
-			]
-			: [
-				{ value: 'reconstituted', label: 'IN USE' },
-				{ value: 'history', label: 'History' }
-			];
+	const tabs = isMobile
+		? [
+			{ value: 'calculator', label: 'Calculator' },
+			{ value: 'reconstituted', label: 'In Use' },
+			{ value: 'history', label: 'History' }
+		]
+		: [
+			{ value: 'reconstituted', label: 'In Use' },
+			{ value: 'history', label: 'History' }
+		];
 			// Ensure we don't get stuck on a hidden tab on desktop
 			if (!isMobile && activeTab === 'calculator') {
 				setActiveTab('reconstituted');
