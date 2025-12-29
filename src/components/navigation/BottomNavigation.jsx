@@ -212,7 +212,6 @@ export default function BottomNavigation({ theme }) {
     const out = [];
     try {
       const prots = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
-      console.log('🔍 Search: Loading protocols', prots.length);
       prots.forEach(p => {
         const protocolName = p.name || p.protocolName || '';
         if (protocolName) {
@@ -227,11 +226,10 @@ export default function BottomNavigation({ theme }) {
         }
       });
     } catch (e) {
-      console.error('🔍 Search: Error loading protocols', e);
+      console.error('Search: Error loading protocols', e);
     }
     try {
       const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
-      console.log('🔍 Search: Loading orders', orders.length);
       orders.forEach(o => out.push({ 
         key: `ord-${o.id}`, 
         type: 'order', 
@@ -241,11 +239,10 @@ export default function BottomNavigation({ theme }) {
         icon: ShoppingCart
       }));
     } catch (e) {
-      console.error('🔍 Search: Error loading orders', e);
+      console.error('Search: Error loading orders', e);
     }
     try {
       const stock = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
-      console.log('🔍 Search: Loading stockpile', stock.length);
       stock.forEach(s => out.push({ 
         key: `stk-${s.id}`, 
         type: 'stockpile', 
@@ -255,9 +252,8 @@ export default function BottomNavigation({ theme }) {
         icon: Box
       }));
     } catch (e) {
-      console.error('🔍 Search: Error loading stockpile', e);
+      console.error('Search: Error loading stockpile', e);
     }
-    console.log('🔍 Search: Total items loaded', out.length, out.map(i => i.type));
     return out;
   }, [showSearch]); // Re-aggregate when search opens to get fresh data
 
