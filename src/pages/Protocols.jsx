@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
 import Modal from '../components/common/Modal'
@@ -33,6 +33,7 @@ import { Capacitor } from '@capacitor/core';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
+  const location = useLocation()
   const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol, stockpile, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
@@ -97,6 +98,18 @@ export default function Protocols() {
     window.addEventListener('tpp:protocol-autosaved', handleProtocolAutosaved);
     return () => window.removeEventListener('tpp:protocol-autosaved', handleProtocolAutosaved);
   }, [updateProtocol]);
+
+  // Handle direct navigation to specific protocol (from search)
+  useEffect(() => {
+    if (location.state?.openProtocolId) {
+      const protocolToOpen = protocols.find(p => p.id === location.state.openProtocolId);
+      if (protocolToOpen) {
+        setEditing(protocolToOpen);
+        // Clear state after use
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, protocols]);
 
   const endProtocol = (protocolToEnd) => {
     const today = getLocalDateString();

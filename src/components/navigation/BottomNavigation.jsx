@@ -216,7 +216,8 @@ export default function BottomNavigation({ theme }) {
         const protocolName = p.name || p.protocolName || '';
         if (protocolName) {
           out.push({ 
-            key: `prot-${p.id}`, 
+            key: `prot-${p.id}`,
+            id: p.id,
             type: 'protocol', 
             title: protocolName, 
             subtitle: p.purpose || p.category || '', 
@@ -231,7 +232,8 @@ export default function BottomNavigation({ theme }) {
     try {
       const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
       orders.forEach(o => out.push({ 
-        key: `ord-${o.id}`, 
+        key: `ord-${o.id}`,
+        id: o.id,
         type: 'order', 
         title: `${o.peptide} ${o.mg}mg`, 
         subtitle: o.vendor, 
@@ -244,7 +246,8 @@ export default function BottomNavigation({ theme }) {
     try {
       const stock = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
       stock.forEach(s => out.push({ 
-        key: `stk-${s.id}`, 
+        key: `stk-${s.id}`,
+        id: s.id,
         type: 'stockpile', 
         title: s.name, 
         subtitle: `${s.mg}mg • ${s.vendor}`, 
@@ -272,7 +275,19 @@ export default function BottomNavigation({ theme }) {
   // Handle search result click
   const handleSearchResultClick = (result) => {
     triggerHaptic('light');
-    navigate(result.to);
+    
+    // Navigate with state to open specific item
+    const navigationState = {};
+    
+    if (result.type === 'protocol') {
+      navigationState.openProtocolId = result.id;
+    } else if (result.type === 'order') {
+      navigationState.openOrderId = result.id;
+    } else if (result.type === 'stockpile') {
+      navigationState.openStockpileId = result.id;
+    }
+    
+    navigate(result.to, { state: navigationState });
     handleCloseSearch();
   };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useOutletContext, useNavigate } from 'react-router-dom'
+import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -33,6 +33,7 @@ import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/ord
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
+  const location = useLocation();
   const { vendors, addVendor, orders, setOrders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
@@ -51,6 +52,33 @@ export default function Stockpile() {
   const [isPriceUnitDropdownOpen, setIsPriceUnitDropdownOpen] = useState(false)
   const [manageRowDropdowns, setManageRowDropdowns] = useState({}) // { [rowId]: { amountUnit: false, unit: false } }
   
+  // Handle direct navigation to specific stockpile item (from search)
+  useEffect(() => {
+    if (location.state?.openStockpileId) {
+      const itemToOpen = items.find(i => i.id === location.state.openStockpileId);
+      if (itemToOpen) {
+        // Pre-populate form with the item data
+        setForm({
+          name: itemToOpen.name || '',
+          mg: itemToOpen.mg || '',
+          quantity: itemToOpen.quantity || '',
+          vendor: itemToOpen.vendor || '',
+          vendorId: itemToOpen.vendorId || null,
+          purity: itemToOpen.purity || '',
+          capColor: itemToOpen.capColor || '',
+          batchNumber: itemToOpen.batchNumber || '',
+          date: itemToOpen.date || '',
+          cost: itemToOpen.cost || '',
+          priceUnit: itemToOpen.priceUnit || 'vial',
+          documentation: itemToOpen.documentation || []
+        });
+        setOpenAdd(true);
+        // Clear state after use
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, items]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     if (!isAmountUnitDropdownOpen && !isUnitDropdownOpen && !isPriceUnitDropdownOpen && Object.values(manageRowDropdowns).every(v => !v.amountUnit && !v.unit)) return;
