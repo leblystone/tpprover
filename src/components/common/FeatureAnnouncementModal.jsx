@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { Sparkles, Rocket, Palette, Zap, X, PartyPopper } from 'lucide-react';
+import { 
+  Layout, 
+  Activity, 
+  Cpu, 
+  Layers, 
+  ChevronRight, 
+  Microscope,
+  FlaskConical,
+  Boxes
+} from 'lucide-react';
 
 /**
  * Feature Announcement Modal
@@ -54,161 +63,171 @@ export default function FeatureAnnouncementModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="🎉 Exciting Update!"
+      title="Environment Update"
       theme={theme}
       variant="modern"
       maxWidth="max-w-lg"
     >
-      <div className="space-y-5">
-        {/* Hero Section with Gradient */}
+      <div className="space-y-6">
+        {/* Hero Section with Sophisticated Gradient */}
         <div 
-          className="rounded-xl p-8 text-center relative overflow-hidden"
+          className="rounded-xl p-10 text-center relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #7F9E95 0%, #5F7F76 50%, #3d5a52 100%)',
-            color: '#ffffff'
+            background: `linear-gradient(135deg, ${theme?.primaryDark || '#5F7F76'} 0%, ${theme?.primary || '#7F9E95'} 100%)`,
+            color: '#ffffff',
+            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.1)'
           }}
         >
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
+          {/* Subtle geometric background patterns */}
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[150%] rotate-12 bg-white rounded-full" />
+            <div className="absolute bottom-[-50%] right-[-10%] w-[80%] h-[150%] -rotate-12 bg-white rounded-full" />
+          </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Sparkles size={40} className="animate-pulse" />
-              <Palette size={40} />
-              <Rocket size={40} className="animate-bounce" />
+          <div className="relative z-10 flex flex-col items-center">
+            <div 
+              className="p-4 rounded-2xl bg-white/20 backdrop-blur-md mb-6 shadow-xl border border-white/30"
+            >
+              <Boxes size={48} className="text-white" strokeWidth={1.5} />
             </div>
-            <h2 className="text-3xl font-bold mb-3">
-              Fresh New Look!
+            <h2 className="text-4xl font-extrabold mb-3 tracking-tight">
+              Platform Redesign
             </h2>
-            <p className="text-lg opacity-95">
-              <em>The Pep Planner</em> just got a major redesign
+            <p className="text-lg opacity-90 font-medium max-w-sm">
+              Significant enhancements to your research environment are now live.
             </p>
           </div>
         </div>
 
-        {/* What's New Section */}
-        <div 
-          className="rounded-lg p-5 space-y-4"
-          style={{
-            background: theme?.cardBackground || '#f9fafb',
-            border: `1px solid ${theme?.border || '#e5e7eb'}`
-          }}
-        >
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: theme?.text || '#000' }}>
-            <Zap size={20} style={{ color: theme?.primary || '#7F9E95' }} />
-            What's New
+        {/* Feature Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          <h3 
+            className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-1 px-1" 
+            style={{ color: theme?.textLight || '#666' }}
+          >
+            <FlaskConical size={14} />
+            System Improvements
           </h3>
           
           <div className="space-y-3">
-            {/* Feature 1 */}
-            <div className="flex items-start gap-3">
+            {/* Feature 1 - Modern UI */}
+            <div 
+              className="group flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:shadow-sm"
+              style={{ 
+                backgroundColor: theme?.cardBackground || '#FFFFFF',
+                borderColor: theme?.border || '#e5e7eb'
+              }}
+            >
               <div 
-                className="p-2 rounded-lg flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: `${theme?.primary || '#7F9E95'}20` }}
+                className="p-3 rounded-lg flex-shrink-0 transition-colors group-hover:scale-110"
+                style={{ backgroundColor: `${theme?.primary || '#7F9E95'}15` }}
               >
-                <Palette size={18} style={{ color: theme?.primary || '#7F9E95' }} />
+                <Layout size={22} style={{ color: theme?.primary || '#7F9E95' }} strokeWidth={2} />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-1" style={{ color: theme?.text || '#000' }}>
-                  Modern UI Design
+              <div className="flex-1">
+                <h4 className="font-bold text-sm" style={{ color: theme?.text || '#000' }}>
+                  Unified Interface
                 </h4>
-                <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>
-                  Cleaner interface with improved navigation and better visual hierarchy throughout the app.
+                <p className="text-xs leading-relaxed" style={{ color: theme?.textLight || '#666' }}>
+                  Streamlined navigation and refined visual hierarchy for efficient data management.
                 </p>
               </div>
             </div>
 
-            {/* Feature 2 */}
-            <div className="flex items-start gap-3">
+            {/* Feature 2 - UX */}
+            <div 
+              className="group flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:shadow-sm"
+              style={{ 
+                backgroundColor: theme?.cardBackground || '#FFFFFF',
+                borderColor: theme?.border || '#e5e7eb'
+              }}
+            >
               <div 
-                className="p-2 rounded-lg flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: `${theme?.success || '#5FAF8B'}20` }}
+                className="p-3 rounded-lg flex-shrink-0 transition-colors group-hover:scale-110"
+                style={{ backgroundColor: `${theme?.info || '#7CB8B2'}15` }}
               >
-                <Sparkles size={18} style={{ color: theme?.success || '#5FAF8B' }} />
+                <Activity size={22} style={{ color: theme?.info || '#7CB8B2' }} strokeWidth={2} />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-1" style={{ color: theme?.text || '#000' }}>
-                  Enhanced User Experience
+              <div className="flex-1">
+                <h4 className="font-bold text-sm" style={{ color: theme?.text || '#000' }}>
+                  Enhanced Interaction
                 </h4>
-                <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>
-                  Smoother animations, faster load times, and more intuitive workflows for your research planning.
+                <p className="text-xs leading-relaxed" style={{ color: theme?.textLight || '#666' }}>
+                  Optimized workflows and responsive interactions designed for professional research.
                 </p>
               </div>
             </div>
 
-            {/* Feature 3 */}
-            <div className="flex items-start gap-3">
+            {/* Feature 3 - Performance */}
+            <div 
+              className="group flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:shadow-sm"
+              style={{ 
+                backgroundColor: theme?.cardBackground || '#FFFFFF',
+                borderColor: theme?.border || '#e5e7eb'
+              }}
+            >
               <div 
-                className="p-2 rounded-lg flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: `${theme?.info || '#7CB8B2'}20` }}
+                className="p-3 rounded-lg flex-shrink-0 transition-colors group-hover:scale-110"
+                style={{ backgroundColor: `${theme?.success || '#5FAF8B'}15` }}
               >
-                <Rocket size={18} style={{ color: theme?.info || '#7CB8B2' }} />
+                <Cpu size={22} style={{ color: theme?.success || '#5FAF8B' }} strokeWidth={2} />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-1" style={{ color: theme?.text || '#000' }}>
-                  Performance Improvements
+              <div className="flex-1">
+                <h4 className="font-bold text-sm" style={{ color: theme?.text || '#000' }}>
+                  Core Performance
                 </h4>
-                <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>
-                  Faster page transitions and optimized data loading for a snappier experience.
+                <p className="text-xs leading-relaxed" style={{ color: theme?.textLight || '#666' }}>
+                  Architectural updates providing faster load times and improved protocol stability.
                 </p>
               </div>
             </div>
 
-            {/* Feature 4 */}
-            <div className="flex items-start gap-3">
+            {/* Feature 4 - New Foundation */}
+            <div 
+              className="group flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:shadow-sm"
+              style={{ 
+                backgroundColor: theme?.cardBackground || '#FFFFFF',
+                borderColor: theme?.border || '#e5e7eb'
+              }}
+            >
               <div 
-                className="p-2 rounded-lg flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: `${theme?.warning || '#E5A87A'}20` }}
+                className="p-3 rounded-lg flex-shrink-0 transition-colors group-hover:scale-110"
+                style={{ backgroundColor: `${theme?.warning || '#E5A87A'}15` }}
               >
-                <PartyPopper size={18} style={{ color: theme?.warning || '#E5A87A' }} />
+                <Layers size={22} style={{ color: theme?.warning || '#E5A87A' }} strokeWidth={2} />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-1" style={{ color: theme?.text || '#000' }}>
-                  New Features Coming Soon
+              <div className="flex-1">
+                <h4 className="font-bold text-sm" style={{ color: theme?.text || '#000' }}>
+                  Protocol Scalability
                 </h4>
-                <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>
-                  This redesign sets the foundation for exciting new features we're building for you!
+                <p className="text-xs leading-relaxed" style={{ color: theme?.textLight || '#666' }}>
+                  A modernized foundation supporting future expansion of research capabilities.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Friendly Message */}
-        <div 
-          className="rounded-lg p-4 text-center"
-          style={{
-            background: `${theme?.success || '#5FAF8B'}10`,
-            border: `1px solid ${theme?.success || '#5FAF8B'}30`
-          }}
-        >
-          <p className="text-sm font-medium" style={{ color: theme?.text || '#000' }}>
-            💚 We hope you love the new look! As always, we're here to support your research journey.
-          </p>
-        </div>
-
-        {/* Action Button */}
-        <div className="flex flex-col gap-2 pt-2">
+        {/* Action Section */}
+        <div className="flex flex-col gap-3 pt-2">
           <button
             onClick={handleClose}
-            className="w-full px-6 py-3.5 rounded-lg text-white font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full px-6 py-4 rounded-xl text-white font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
             style={{
-              background: 'linear-gradient(135deg, #7F9E95 0%, #5F7F76 100%)'
+              background: `linear-gradient(135deg, ${theme?.primary || '#7F9E95'} 0%, ${theme?.primaryDark || '#5F7F76'} 100%)`
             }}
           >
-            <Sparkles size={20} />
-            Let's Explore!
+            <span>Access Updated Environment</span>
+            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>
+          
+          <p 
+            className="text-[10px] text-center uppercase tracking-widest font-semibold opacity-60"
+            style={{ color: theme?.textLight || '#9ca3af' }}
+          >
+            Configuration logged to local terminal
+          </p>
         </div>
-
-        {/* Footer Note */}
-        <p 
-          className="text-xs text-center leading-relaxed"
-          style={{ color: theme?.textLight || '#9ca3af' }}
-        >
-          Have feedback? We'd love to hear it! Reach out anytime through the support menu.
-        </p>
       </div>
     </Modal>
   );
@@ -243,4 +262,3 @@ export function resetAnnouncement(announcementId) {
     console.error('Error resetting announcement:', error);
   }
 }
-
