@@ -15,7 +15,17 @@ import { SUBSCRIPTION_PLANS } from '../../utils/subscriptionPlans';
 export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [error, setError] = useState(null);
+
+  // Helper to convert hex to rgba
+  const hexToRgba = (hex, alpha) => {
+    if (!hex) return `rgba(127, 158, 149, ${alpha})`; // fallback sage
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   const handleSelectPlan = async (planKey) => {
     const plan = SUBSCRIPTION_PLANS[planKey];
@@ -25,8 +35,12 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
     }
 
     console.log('🚀 GooglePlaySubscriptionModal: Selected plan:', plan);
+    setSelectedPlan(planKey);
     setIsProcessing(true);
     setError(null);
+    
+    // Brief delay to show visual feedback
+    await new Promise(resolve => setTimeout(resolve, 600));
     
     try {
       // Use payment service router (will route to Google Play for Android)
@@ -91,13 +105,17 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: theme.border, 
-              backgroundColor: theme.cardBackground 
+              borderColor: selectedPlan === 'monthly' ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === 'monthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === 'monthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
-              <div className="font-bold text-lg mb-1" style={{ color: theme.text }}>
+              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.monthly.label}
+                {selectedPlan === 'monthly' && (
+                  <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
+                )}
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
                 Flexible monthly billing
@@ -112,7 +130,8 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50 relative"
             style={{ 
               borderColor: theme.primary, 
-              backgroundColor: theme.cardBackground 
+              backgroundColor: selectedPlan === 'annual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
+              boxShadow: selectedPlan === 'annual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
             }}
           >
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -121,8 +140,11 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
               </span>
             </div>
             <div className="text-left">
-              <div className="font-bold text-lg mb-1" style={{ color: theme.text }}>
+              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.annual.label}
+                {selectedPlan === 'annual' && (
+                  <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
+                )}
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
                 Best value - Save with annual billing
@@ -136,13 +158,17 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: theme.border, 
-              backgroundColor: theme.cardBackground 
+              borderColor: selectedPlan === 'lifetime' ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === 'lifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === 'lifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
-              <div className="font-bold text-lg mb-1" style={{ color: theme.text }}>
+              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.lifetime.label}
+                {selectedPlan === 'lifetime' && (
+                  <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
+                )}
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
                 One-time payment, lifetime access

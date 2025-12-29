@@ -18,6 +18,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
   const { user } = useAppContext();
   const founderOffer = useFounderOffer();
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [selectedPlan, setSelectedPlan] = React.useState(null);
   const [showGiftModal, setShowGiftModal] = React.useState(false);
 
   const effectiveDiscount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
@@ -29,6 +30,15 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
   const annualBase = formatCurrency(annualPlan.price);
   const lifetimeBase = formatCurrency(lifetimePlan.price);
 
+  // Helper to convert hex to rgba
+  const hexToRgba = (hex, alpha) => {
+    if (!hex) return `rgba(127, 158, 149, ${alpha})`; // fallback sage
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   const handleSelectPlan = async (planKey) => {
     const plan = SUBSCRIPTION_PLANS[planKey];
     if (!plan) {
@@ -37,7 +47,11 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
     }
 
     console.log('🚀 StripeSubscriptionModal: Selected plan:', plan);
+    setSelectedPlan(planKey);
     setIsProcessing(true);
+    
+    // Brief delay to show visual feedback before redirect
+    await new Promise(resolve => setTimeout(resolve, 600));
     
     try {
       // Close modal before redirecting to Stripe checkout
@@ -112,7 +126,11 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
               {/* Monthly Plan */}
               <div 
                 className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                style={{ 
+                  borderColor: selectedPlan === 'monthly' ? theme.primary : theme.border, 
+                  backgroundColor: selectedPlan === 'monthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+                  boxShadow: selectedPlan === 'monthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+                }}
                 onClick={() => !isProcessing && handleSelectPlan('monthly')}
               >
                 <div className="text-center mb-3 flex-1 flex flex-col justify-center">
@@ -128,14 +146,18 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
+                  {selectedPlan === 'monthly' ? '● Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
                 </button>
               </div>
 
               {/* Annual Plan */}
               <div 
                 className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                style={{ 
+                  borderColor: selectedPlan === 'annual' ? theme.primary : theme.border, 
+                  backgroundColor: selectedPlan === 'annual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
+                  boxShadow: selectedPlan === 'annual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
+                }}
                 onClick={() => !isProcessing && handleSelectPlan('annual')}
               >
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -163,7 +185,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.annual.cta}
+                  {selectedPlan === 'annual' ? '● Processing…' : SUBSCRIPTION_PLANS.annual.cta}
                 </button>
               </div>
             </div>
@@ -171,7 +193,11 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
             {/* Lifetime plan */}
             <div 
               className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              style={{ 
+                borderColor: selectedPlan === 'lifetime' ? theme.primary : theme.border, 
+                backgroundColor: selectedPlan === 'lifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+                boxShadow: selectedPlan === 'lifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+              }}
               onClick={() => !isProcessing && handleSelectPlan('lifetime')}
             >
               <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -198,7 +224,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
+                  {selectedPlan === 'lifetime' ? '● Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
                 </button>
               </div>
             </div>

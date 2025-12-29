@@ -4,8 +4,10 @@ import { getEnvVar } from './appConfig.js';
 // Use Stripe publishable key from environment variables with fallback
 const STRIPE_PUBLISHABLE_KEY = getEnvVar('VITE_STRIPE_PUBLISHABLE_KEY');
 
-// Initialize Stripe with fallback for missing key
-export const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
+// Initialize Stripe with explicit locale to prevent module loading errors
+export const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY, {
+  locale: 'en'
+}) : null;
 
 const STRIPE_MONTHLY_PRICE_ID = getEnvVar('VITE_STRIPE_MONTHLY_PRICE_ID') || 'price_demo_monthly';
 const STRIPE_ANNUAL_PRICE_ID = getEnvVar('VITE_STRIPE_ANNUAL_PRICE_ID') || 'price_demo_annual';

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen, ClipboardList, Box } from 'lucide-react';
 import BetaModal from '../common/BetaModal';
 import logo from '../../assets/tpp_logo.png';
 
@@ -41,6 +41,7 @@ export default function BottomNavigation({ theme }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchClosing, setSearchClosing] = useState(false);
   const [showBetaModal, setShowBetaModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const longPressTimer = useRef(null);
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
@@ -202,7 +203,81 @@ export default function BottomNavigation({ theme }) {
     setTimeout(() => {
       setShowSearch(false);
       setSearchClosing(false);
+      setSearchQuery('');
     }, 300); // Match animation duration
+  };
+
+  // Aggregate search data from localStorage
+  const searchData = useMemo(() => {
+    const out = [];
+    try {
+      const prots = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+      console.log('🔍 Search: Loading protocols', prots.length);
+      prots.forEach(p => {
+        const protocolName = p.name || p.protocolName || '';
+        if (protocolName) {
+          out.push({ 
+            key: `prot-${p.id}`, 
+            type: 'protocol', 
+            title: protocolName, 
+            subtitle: p.purpose || p.category || '', 
+            to: '/app/protocols',
+            icon: ClipboardList
+          });
+        }
+      });
+    } catch (e) {
+      console.error('🔍 Search: Error loading protocols', e);
+    }
+    try {
+      const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
+      console.log('🔍 Search: Loading orders', orders.length);
+      orders.forEach(o => out.push({ 
+        key: `ord-${o.id}`, 
+        type: 'order', 
+        title: `${o.peptide} ${o.mg}mg`, 
+        subtitle: o.vendor, 
+        to: '/app/orders',
+        icon: ShoppingCart
+      }));
+    } catch (e) {
+      console.error('🔍 Search: Error loading orders', e);
+    }
+    try {
+      const stock = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+      console.log('🔍 Search: Loading stockpile', stock.length);
+      stock.forEach(s => out.push({ 
+        key: `stk-${s.id}`, 
+        type: 'stockpile', 
+        title: s.name, 
+        subtitle: `${s.mg}mg • ${s.vendor}`, 
+        to: '/app/stockpile',
+        icon: Box
+      }));
+    } catch (e) {
+      console.error('🔍 Search: Error loading stockpile', e);
+    }
+    console.log('🔍 Search: Total items loaded', out.length, out.map(i => i.type));
+    return out;
+  }, [showSearch]); // Re-aggregate when search opens to get fresh data
+
+  // Filter search results
+  const searchResults = useMemo(() => {
+    const needle = searchQuery.trim().toLowerCase();
+    if (!needle) return [];
+    return searchData
+      .filter(item => 
+        (item.title || '').toLowerCase().includes(needle) || 
+        (item.subtitle || '').toLowerCase().includes(needle)
+      )
+      .slice(0, 20);
+  }, [searchQuery, searchData]);
+
+  // Handle search result click
+  const handleSearchResultClick = (result) => {
+    triggerHaptic('light');
+    navigate(result.to);
+    handleCloseSearch();
   };
 
   return (
@@ -263,6 +338,8 @@ export default function BottomNavigation({ theme }) {
                     type="text"
                     placeholder="Search protocols, inventory, orders..."
                     autoFocus
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
                     style={{
                       backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
@@ -283,9 +360,54 @@ export default function BottomNavigation({ theme }) {
 
             {/* Search results */}
             <div className="flex-1 overflow-auto p-4">
-              <p className="text-sm text-center" style={{ color: theme.textLight }}>
-                Start typing to search...
-              </p>
+              {searchQuery.trim() === '' ? (
+                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
+                  Start typing to search...
+                </p>
+              ) : searchResults.length === 0 ? (
+                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
+                  No results found
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {searchResults.map((result) => {
+                    const Icon = result.icon;
+                    return (
+                      <button
+                        key={result.key}
+                        onClick={() => handleSearchResultClick(result)}
+                        className="w-full p-3 rounded-xl text-left transition-all duration-200 active:scale-[0.98]"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                          border: `1px solid ${theme.border}`
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div 
+                            className="mt-0.5 p-2 rounded-lg"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                              color: theme.primary
+                            }}
+                          >
+                            <Icon size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
+                              {result.title}
+                            </div>
+                            {result.subtitle && (
+                              <div className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
+                                {result.subtitle}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </>
