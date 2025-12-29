@@ -630,10 +630,10 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           <button 
             type="button"
             onClick={() => navigate('/app/account')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
             style={{ 
               color: theme.text,
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Account"
@@ -644,10 +644,10 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           <button 
             type="button"
             onClick={() => navigate('/app/settings')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
             style={{ 
               color: theme.text,
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Settings"
