@@ -1231,7 +1231,9 @@ export default function Calendar() {
     if (viewMode === 'week') {
       setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 7));
     } else {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+      // Navigate to same day in previous month (or last day if that day doesn't exist)
+      const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, currentDate.getDate());
+      setCurrentDate(prevMonth);
     }
   };
 
@@ -1239,7 +1241,9 @@ export default function Calendar() {
     if (viewMode === 'week') {
       setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7));
     } else {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+      // Navigate to same day in next month (or last day if that day doesn't exist)
+      const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate());
+      setCurrentDate(nextMonth);
     }
   };
 

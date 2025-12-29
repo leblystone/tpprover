@@ -216,25 +216,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     )}
                     
                     {/* Delivery Method Editor for Linked Vials */}
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-                        <div 
-                            className="px-3 py-2 rounded-lg flex items-center justify-between mb-2" 
-                            style={{ 
-                                backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-                                borderLeft: '4px solid #e0ded7' 
-                            }}
-                        >
-                            <h4 
-                                className="font-bold text-xs tracking-wider uppercase" 
-                                style={{ 
-                                    color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-                                    letterSpacing: '0.1em' 
-                                }}
-                            >
-                                DELIVERY METHOD
-                            </h4>
-                            <Droplets size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                        </div>
+                    <div className="mt-3">
                         <div className="grid grid-cols-3 gap-2">
                             <button 
                                 onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pipette')}
@@ -510,24 +492,6 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     
                     {/* Delivery Method Selection */}
                     <div>
-                        <div 
-                            className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
-                            style={{ 
-                                backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-                                borderLeft: '4px solid #e0ded7' 
-                            }}
-                        >
-                            <h4 
-                                className="font-bold text-xs tracking-wider uppercase" 
-                                style={{ 
-                                    color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-                                    letterSpacing: '0.1em' 
-                                }}
-                            >
-                                DELIVERY METHOD
-                            </h4>
-                            <Droplets size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                        </div>
                         <div className="grid grid-cols-3 gap-2">
                             <button 
                                 onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pipette')}

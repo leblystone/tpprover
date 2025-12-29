@@ -29,25 +29,25 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
   const monthAbbr = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   
   return (
-    <div className="flex flex-col items-center mb-3">
+    <div className="flex flex-col items-center mb-2">
       {/* Modern Clock-Style Date Display with Navigation Arrows */}
-      <div className="flex items-center gap-3 w-full max-w-md justify-center">
+      <div className="flex items-center gap-2 w-full max-w-md justify-center">
         {/* Previous Button */}
         <button
           onClick={onPrev}
-          className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95"
+          className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95"
           style={{ 
             color: theme.isDark ? theme.textLight : theme.primaryDark,
             backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
             border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
           }}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={18} />
         </button>
 
         {/* Date Display Card */}
         <div 
-          className="flex flex-col items-center justify-center py-3 px-6 rounded-xl flex-1 max-w-xs relative"
+          className="flex flex-col items-center justify-center py-2 px-4 rounded-xl flex-1 max-w-xs relative"
           style={{ 
             backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
             border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
@@ -56,7 +56,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         >
           {/* Day Name - LARGER & BOLDER */}
           <div 
-            className="text-3xl font-extrabold tracking-wider"
+            className="text-2xl font-extrabold tracking-wider"
             style={{ 
               color: theme.isDark ? theme.text : theme.primaryDark,
               textShadow: isToday ? `0 0 20px ${theme.primary}40` : 'none'
@@ -67,7 +67,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           
           {/* Time of Day - COLORED & SLIGHTLY LARGER */}
           <div 
-            className="text-xs font-semibold tracking-widest uppercase mt-0.5"
+            className="text-[10px] font-semibold tracking-widest uppercase"
             style={{ 
               color: isToday ? theme.primary : theme.textLight,
               opacity: isToday ? 0.9 : 0.6
@@ -78,7 +78,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           
           {/* Date Display - ADJUSTED SIZE & BETTER SEPARATOR */}
           <div 
-            className="text-2xl font-bold mt-1 tracking-wide"
+            className="text-xl font-bold mt-0.5 tracking-wide"
             style={{ 
               color: theme.isDark ? theme.text : theme.primaryDark
             }}
@@ -90,19 +90,19 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         {/* Next Button */}
         <button
           onClick={onNext}
-          className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95"
+          className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95"
           style={{ 
             color: theme.isDark ? theme.textLight : theme.primaryDark,
             backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
             border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
           }}
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={18} />
         </button>
       </div>
 
       {/* Modern Unified Glassmorphism Controls */}
-      <div className="flex items-center justify-center gap-3 w-full mt-4">
+      <div className="flex items-center justify-center gap-3 w-full mt-2">
         <div 
           className="flex items-center p-1.5 rounded-2xl backdrop-blur-md"
           style={{ 
