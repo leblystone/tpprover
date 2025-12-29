@@ -1581,7 +1581,14 @@ export default function Recon() {
                     <div>
                         <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                             <button 
-                                onClick={() => updateEditingItem({ deliveryMethod: 'pipette' })}
+                                onClick={() => {
+                                    // Batch updates: change delivery method and revert sprays to mcg if needed
+                                    const updates = { deliveryMethod: 'pipette' };
+                                    if (editingItem?.doseUnit === 'sprays') {
+                                        updates.doseUnit = 'mcg';
+                                    }
+                                    updateEditingItem(updates);
+                                }}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
                                         ? 'text-white shadow-sm' 
@@ -1602,7 +1609,14 @@ export default function Recon() {
                                 <Pipette size={16} /> Syringe
                             </button>
                             <button 
-                                onClick={() => updateEditingItem({ deliveryMethod: 'pen' })}
+                                onClick={() => {
+                                    // Batch updates: change delivery method and revert sprays to mcg if needed
+                                    const updates = { deliveryMethod: 'pen' };
+                                    if (editingItem?.doseUnit === 'sprays') {
+                                        updates.doseUnit = 'mcg';
+                                    }
+                                    updateEditingItem(updates);
+                                }}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'pen' 
                                         ? 'text-white shadow-sm' 
@@ -1623,7 +1637,14 @@ export default function Recon() {
                                 <PenTool size={16} /> Pen
                             </button>
                             <button 
-                                onClick={() => updateEditingItem({ deliveryMethod: 'nasal' })}
+                                onClick={() => {
+                                    // Batch updates: change delivery method and set to sprays for nasal
+                                    const updates = { deliveryMethod: 'nasal' };
+                                    if (editingItem?.doseUnit !== 'sprays') {
+                                        updates.doseUnit = 'sprays';
+                                    }
+                                    updateEditingItem(updates);
+                                }}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'nasal' 
                                         ? 'text-white shadow-sm' 

@@ -163,15 +163,13 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         {viewMode === 'month' && onShowIconKey && (
           <button 
             onClick={onShowIconKey}
-            className="absolute right-4 p-3 rounded-2xl backdrop-blur-md transition-all duration-500 hover:rotate-[360deg] active:scale-90"
+            className="absolute right-2 p-2 rounded-full transition-all duration-500 hover:rotate-[360deg] active:scale-90"
             style={{
-              backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.7)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
               color: theme.primary,
-              boxShadow: theme.isDark ? '0 8px 32px rgba(0, 0, 0, 0.2)' : '0 8px 32px rgba(31, 38, 135, 0.05)'
+              opacity: 0.7
             }}
           >
-            <HelpCircle size={16} strokeWidth={3} />
+            <HelpCircle size={18} strokeWidth={2.5} />
           </button>
         )}
       </div>

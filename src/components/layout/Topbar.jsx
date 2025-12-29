@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, Bell, AlertCircle, MessageCircleReply } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
-import NotificationBell from '../common/NotificationBell';
 import { useAppContext } from '../../context/AppContext.jsx';
 import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
@@ -370,17 +369,26 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   return (
     <>
-      <header className="backdrop-blur border-b h-12 lg:h-16 flex items-center px-3 lg:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
-          {/* Mobile Menu Button - back on left side for consistency */}
+      <header 
+        className="backdrop-blur-xl border-b h-10 lg:h-12 flex items-center px-3 lg:px-6 relative transition-all duration-300" 
+        style={{ 
+          borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+          background: theme.isDark 
+            ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
+            : 'linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%)',
+          boxShadow: theme.isDark
+            ? '0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+            : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+        }}
+      >
+        <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+          {/* Mobile Menu Button */}
           <button 
             type="button"
             onMouseDown={(e) => {
-              // Prevent blur events on mobile
               e.preventDefault();
             }}
             onTouchStart={(e) => {
-              // Prevent blur events on touch devices
               if (e.cancelable) {
                 e.preventDefault();
               }
@@ -390,15 +398,16 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               e.stopPropagation();
               onMenuClick();
             }}
-            className="lg:hidden no-shadow p-2 touch-manipulation" 
+            className="lg:hidden no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95" 
             style={{ 
               color: theme.text,
-              WebkitTapHighlightColor: 'transparent'
+              WebkitTapHighlightColor: 'transparent',
+              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
             }}
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
-            <Menu size={28} className="lg:hidden" />
+            <Menu size={22} className="lg:hidden" />
           </button>
         </div>
           
@@ -694,12 +703,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               />
             </form>
           )}
-          {/* Import feature temporarily hidden - uncomment to re-enable
-          {onDashboard && (
-            <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
-          )}
-          */}
-          <NotificationBell theme={theme} />
+          {/* Notifications removed for cleaner, minimal design */}
           {onDashboard && onDashboardCustomize && (
               <button 
                 type="button"
