@@ -549,6 +549,20 @@ export function AppProvider({ children }) {
                             setScheduledBuys(cloudAppData.scheduledBuys);
                         }
                         
+                        // Protocol history - merge with timestamps
+                        const localProtocolHistory = localStorage.getItem('tpprover_protocol_history');
+                        if (localProtocolHistory) {
+                            const mergedHistory = mergeWithTimestamps(
+                                JSON.parse(localProtocolHistory),
+                                cloudAppData.protocolHistory || [],
+                                'protocolHistory',
+                                mergedDeletionTracking.protocolHistory
+                            );
+                            localStorage.setItem('tpprover_protocol_history', JSON.stringify(mergedHistory));
+                        } else if (cloudAppData.protocolHistory) {
+                            localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
+                        }
+                        
                         // Calendar notes - merge objects
                         const localNotes = localStorage.getItem('tpprover_calendar_notes');
                         if (localNotes) {
@@ -605,6 +619,11 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                         if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                        
+                        // Restore protocol history from cloud
+                        if (cloudAppData.protocolHistory) {
+                            localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
+                        }
                         
                         // Restore task completion data from cloud
                         if (cloudAppData.taskCompletion) {
@@ -689,6 +708,7 @@ export function AppProvider({ children }) {
                     
                     // CRITICAL: Create recovery snapshot BEFORE attempting sync
                     // This preserves data even if sync fails or corrupts something
+                    const savedProtocolHistory = localStorage.getItem('tpprover_protocol_history');
                     const recoveredData = {
                         protocols: localProtocols ? JSON.parse(localProtocols) : [],
                         reconItems: savedRecon ? JSON.parse(savedRecon) : [],
@@ -699,7 +719,8 @@ export function AppProvider({ children }) {
                         vendors: savedVendors ? JSON.parse(savedVendors) : [],
                         calendarNotes: savedNotes ? JSON.parse(savedNotes) : {},
                         stockpile: localStockpile ? JSON.parse(localStockpile) : [],
-                        scheduledBuys: savedScheduledBuys ? JSON.parse(savedScheduledBuys) : []
+                        scheduledBuys: savedScheduledBuys ? JSON.parse(savedScheduledBuys) : [],
+                        protocolHistory: savedProtocolHistory ? JSON.parse(savedProtocolHistory) : []
                     };
                     
                     // Save recovery snapshot with timestamp
@@ -1222,6 +1243,9 @@ export function AppProvider({ children }) {
         // Get deletion tracking to include in sync
         const deletionTracking = getDeletionTracking();
         
+        // Get protocol history from localStorage to include in sync
+        const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
+        
         const userData = {
             protocols,
             reconItems,
@@ -1235,7 +1259,8 @@ export function AppProvider({ children }) {
             scheduledBuys,
             taskCompletion,
             calendarDone,
-            deletionTracking
+            deletionTracking,
+            protocolHistory
         };
         
         // DEBUG: Log scheduledBuys being synced (only in development, and only once per session)
@@ -1580,6 +1605,7 @@ export function AppProvider({ children }) {
         if (firebaseUser) {
             try {
                 const userId = firebaseUser.uid;
+                const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
                 const appData = {
                     protocols: updatedProtocols, // Use updated protocols with deletion
                     reconItems: reconItems || [],
@@ -1590,7 +1616,8 @@ export function AppProvider({ children }) {
                     vendors: vendors || [],
                     calendarNotes: calendarNotes || {},
                     stockpile: stockpile || [],
-                    scheduledBuys: scheduledBuys || []
+                    scheduledBuys: scheduledBuys || [],
+                    protocolHistory: protocolHistory || []
                 };
                 
                 // Force immediate sync with skipMerge to overwrite server data
@@ -2096,6 +2123,11 @@ export function AppProvider({ children }) {
                                         console.log('🔒 Skipping scheduledBuys update from sample data clear - in protection window');
                                     }
                                 }
+                                if (freshData.protocolHistory) {
+                                    // Filter out mock protocol history entries and save to localStorage
+                                    const filtered = freshData.protocolHistory.filter(h => !h.isMock);
+                                    localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
+                                }
                             }
                             
                             setTimeout(() => {
@@ -2201,6 +2233,13 @@ export function AppProvider({ children }) {
                                 } else {
                                     console.log('🔒 Skipping scheduledBuys from remote update - in protection window');
                                 }
+                            }
+                            if (freshData.protocolHistory) {
+                                // Filter out mock protocol history entries and save to localStorage
+                                const filtered = sampleDataCleared 
+                                    ? freshData.protocolHistory.filter(h => !h.isMock)
+                                    : freshData.protocolHistory;
+                                localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
                             }
             }
             

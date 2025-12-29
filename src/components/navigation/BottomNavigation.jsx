@@ -48,7 +48,7 @@ export default function BottomNavigation({ theme }) {
   const menuItems = {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
-      { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator }
+      { path: '/app/recon', label: 'Peptide Calculator', subtitle: 'Formerly Recon', icon: Calculator }
     ],
     inventory: [
       { path: '/app/stockpile', label: 'Stockpile', icon: Package },
@@ -375,12 +375,22 @@ export default function BottomNavigation({ theme }) {
                       <Icon size={36} strokeWidth={2.5} />
                     </div>
                     
-                    <span 
-                      className="text-sm font-semibold text-center leading-tight"
-                      style={{ color: theme.text }}
-                    >
-                      {item.label}
-                    </span>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span 
+                        className="text-sm font-semibold text-center leading-tight"
+                        style={{ color: theme.text }}
+                      >
+                        {item.label}
+                      </span>
+                      {item.subtitle && (
+                        <span 
+                          className="text-xs text-center leading-tight"
+                          style={{ color: theme.textLight, opacity: 0.6 }}
+                        >
+                          {item.subtitle}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}

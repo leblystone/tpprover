@@ -3,7 +3,7 @@ import { useOutletContext, useLocation } from 'react-router-dom'
 import { PlusCircle, Package } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
-import OrdersHelpPanel from '../components/orders/OrdersHelpPanel'
+import OrdersTipsBanner from '../components/orders/OrdersTipsBanner'
 import Tabs from '../components/common/Tabs'
 import ScheduledBuysPanel from '../components/orders/ScheduledBuysPanel'
 import { useAppContext } from '../context/AppContext'
@@ -669,7 +669,7 @@ export default function Orders() {
 
 	return (
 		<section>
-			<OrdersHelpPanel theme={theme} />
+			<OrdersTipsBanner theme={theme} />
 
 			<div className="mt-6">
 				{activeTab === 'groupbuy' ? (

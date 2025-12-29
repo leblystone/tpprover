@@ -8,7 +8,7 @@ import { useAppContext } from '../context/AppContext'
 import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
-import VendorsHelpPanel from '../components/vendors/VendorsHelpPanel'
+import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
@@ -93,7 +93,7 @@ export default function Vendors() {
 
 	return (
 		<>
-			<VendorsHelpPanel theme={theme} />
+			<VendorsTipsBanner theme={theme} />
 			
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (

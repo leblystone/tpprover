@@ -46,7 +46,7 @@ const formatPenType = (penType) => {
     return penTypes[penType] || `🖊️ ${penType}`;
 }
 
-export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false }) {
+export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
@@ -83,6 +83,173 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
     const handleShare = () => {
         setShareModalOpen(true);
     };
+
+    // Compact layout for inactive protocols (mobile only)
+    if (compact && !isActive) {
+        return (
+            <>
+                <div className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover" style={{ backgroundColor: theme.cardBackground }}>
+                    <div className="flex-grow">
+                        <div className="font-semibold text-base mb-2" style={{ color: theme.text }}>
+                            {p.protocolName || 'Unnamed Protocol'}
+                        </div>
+                        
+                        {/* Mobile compact view */}
+                        <div className="md:hidden text-sm mb-3" style={{ color: theme.textLight }}>
+                            <div className="flex items-center gap-1.5">
+                                <Target size={14} className="flex-shrink-0" />
+                                <span className="line-clamp-2">{p.purpose || 'No purpose defined'}</span>
+                            </div>
+                        </div>
+
+                        {/* Desktop full details view */}
+                        <div className="hidden md:block">
+                            <div className="space-y-1 mt-2 text-sm" style={{ color: theme.textLight }}>
+                                <div className="flex items-start gap-2"><Target size={14} className="mt-0.5 flex-shrink-0" /><span>{p.purpose || 'No purpose defined'}</span></div>
+                            </div>
+                            
+                            <hr className="my-3" style={{ borderColor: theme.border }} />
+
+                            {p.peptides && p.peptides.length > 0 && (
+                                <div className="space-y-2">
+                                    {/* Header row */}
+                                    <div className="grid grid-cols-2 gap-3 text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
+                                        <div>Peptides</div>
+                                        <div>Dosage / Frequency</div>
+                                    </div>
+                                    {/* Peptide rows */}
+                                    {p.peptides.map((peptide, index) => (
+                                        <div key={peptide.id || index} className="grid grid-cols-2 gap-3 text-sm">
+                                            <div className="font-medium" style={{color: theme.text}}>
+                                                {peptide.name || 'Unnamed Peptide'}
+                                            </div>
+                                            <div className="space-y-1 text-xs" style={{ color: theme.isDark ? theme.textLight : theme.text }}>
+                                                {peptide.dosage?.amount > 0 && (
+                                                    <div>
+                                                        {peptide.dosage.amount} {peptide.dosage.unit}
+                                                        {peptide.unitValue && ` (${peptide.unitValue} units)`}
+                                                    </div>
+                                                )}
+                                                {peptide.frequency && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <CalendarClock size={12} className="flex-shrink-0" />
+                                                        <span>{formatIndividualFrequency(peptide.frequency)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="space-y-2 mt-3 text-sm" style={{ color: theme.textLight }}>
+                                {p.duration && (
+                                    <div className="flex items-start gap-2">
+                                        <CalendarClock size={14} className="mt-0.5 flex-shrink-0" />
+                                        <span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span>
+                                    </div>
+                                )}
+                                {p.washout?.enabled && p.washout?.count > 0 && (
+                                    <div className="flex items-start gap-2">
+                                        <RotateCw size={14} className="mt-0.5 flex-shrink-0" />
+                                        <span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span>
+                                    </div>
+                                )}
+                                {p.notes && (
+                                    <div className="flex items-start gap-2">
+                                        <FileText size={14} className="mt-0.5 flex-shrink-0" />
+                                        <p className="text-xs italic border-l-2 pl-2 break-words" style={{ borderColor: theme.border, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                            {p.notes}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {!isPublicView && (
+                        <div className="mt-3 flex items-center justify-center gap-1.5">
+                            <button
+                                className="p-2 rounded-md action-button-hover"
+                                aria-label={hasDraftStart ? 'Resume Protocol' : 'Start Protocol'}
+                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                onClick={() => onStartClick(p, { manage: false })}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}40`;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <Play className="h-4 w-4" />
+                            </button>
+                            <button 
+                                onClick={handleShare} 
+                                className="p-2 rounded-md action-button-hover" 
+                                aria-label="Share"
+                                style={{ color: theme.textLight }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                    e.currentTarget.style.color = theme.primary;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = theme.textLight;
+                                }}
+                            >
+                                <Share2 className="h-4 w-4" />
+                            </button>
+                            <button 
+                                className="p-2 rounded-md action-button-hover" 
+                                aria-label="History" 
+                                onClick={() => onHistoryClick(p)}
+                                style={{ color: theme.textLight }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                    e.currentTarget.style.color = theme.primary;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = theme.textLight;
+                                }}
+                            >
+                                <History className="h-4 w-4" />
+                            </button>
+                            <button 
+                                className="p-2 rounded-md action-button-hover" 
+                                aria-label="Edit" 
+                                onClick={() => onEditClick(p)}
+                                style={{ color: theme.textLight }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                    e.currentTarget.style.color = theme.primary;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = theme.textLight;
+                                }}
+                            >
+                                <EditIcon className="h-4 w-4" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <ShareModal
+                    open={isShareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    theme={theme}
+                    title="Protocol"
+                    shareUrl={`${window.location.origin}/rover/protocols/${p.id}`}
+                    CardComponent={ProtocolCard}
+                    cardProps={{ item: p, theme, isPublicView: true }}
+                    shareData={{ ...p, type: 'protocol' }}
+                />
+            </>
+        );
+    }
 
     return (
         <>

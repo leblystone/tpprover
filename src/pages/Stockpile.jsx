@@ -16,7 +16,7 @@ import StockpileGroupCard from '../components/stockpile/StockpileGroupCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
-import StockpileHelpPanel from '../components/stockpile/StockpileHelpPanel'
+import StockpileTipsBanner from '../components/stockpile/StockpileTipsBanner'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import useAutoSave from '../utils/useAutoSave'
@@ -881,7 +881,7 @@ export default function Stockpile() {
 
   return (
     <section className="space-y-4">
-      <StockpileHelpPanel theme={theme} />
+      <StockpileTipsBanner theme={theme} />
       <div className="space-y-6">
         {/* On Hand Tab */}
         {activeTab === 'onhand' && (

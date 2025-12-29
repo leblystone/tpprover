@@ -290,6 +290,7 @@ export async function saveAppData(userId, appData, options = {}) {
       vendors: ensureTimestamps(appData.vendors || []),
       stockpile: ensureTimestamps(appData.stockpile || []),
       scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
+      protocolHistory: ensureTimestamps(appData.protocolHistory || []),
       calendarNotes: appData.calendarNotes || {},
       taskCompletion: appData.taskCompletion || {},
       calendarDone: appData.calendarDone || {},
@@ -315,6 +316,7 @@ export async function saveAppData(userId, appData, options = {}) {
         vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors, 'vendors', mergedDeletionTracking.vendors),
         stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile, 'stockpile', mergedDeletionTracking.stockpile),
         scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys, 'scheduledBuys', mergedDeletionTracking.scheduledBuys),
+        protocolHistory: mergeWithTimestamps(timestampedData.protocolHistory, serverData.protocolHistory || [], 'protocolHistory', mergedDeletionTracking.protocolHistory),
         calendarNotes: timestampedData.calendarNotes, // TODO: Add timestamp merging for calendar notes
         // Merge task completion data - prefer local data (more recent completions)
         taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
@@ -346,6 +348,7 @@ export async function saveAppData(userId, appData, options = {}) {
     calendarNotes: appData.calendarNotes || {},
     stockpile: appData.stockpile || [],
     scheduledBuys: appData.scheduledBuys || [],
+    protocolHistory: appData.protocolHistory || [],
     taskCompletion: appData.taskCompletion || {},
     calendarDone: appData.calendarDone || {},
     deletionTracking: appData.deletionTracking || deletionTracking

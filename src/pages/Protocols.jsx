@@ -52,7 +52,7 @@ export default function Protocols() {
   const [endedProtocolName, setEndedProtocolName] = useState(null);
   const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
   const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
-  const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [protocolFilter, setProtocolFilter] = useState('active'); // 'all' | 'active' | 'inactive'
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -856,7 +856,7 @@ export default function Protocols() {
                         Inactive Protocols
                       </h2>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                       {organizedProtocols.inactive.map(p => (
                         <ProtocolCard 
                           key={p.id}
@@ -867,6 +867,7 @@ export default function Protocols() {
                           onEditClick={handleEditClick}
                           onHistoryClick={setHistoryProtocol}
                           hasDraftStart={hasDraftStart(p.id)}
+                          compact={true}
                         />
                       ))}
                     </div>

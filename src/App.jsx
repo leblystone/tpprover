@@ -133,7 +133,7 @@ function App() {
   useEffect(() => {
     const checkFeatureAnnouncement = () => {
       // Change this ID when you have a new announcement to show
-      const CURRENT_ANNOUNCEMENT_ID = 'redesign-2024';
+      const CURRENT_ANNOUNCEMENT_ID = 'v1.0.11-redesign';
       
       if (shouldShowAnnouncement(CURRENT_ANNOUNCEMENT_ID)) {
         // Show after a slight delay to not overwhelm on first load
@@ -169,7 +169,7 @@ function App() {
     // Utility to reset announcement (for testing)
     window.resetFeatureAnnouncement = async () => {
       const { resetAnnouncement } = await import('./components/common/FeatureAnnouncementModal');
-      resetAnnouncement('redesign-2024');
+      resetAnnouncement('v1.0.11-redesign');
       console.log('✅ Feature announcement reset - refresh to see it again');
     };
   }, [testUpdateModal]);

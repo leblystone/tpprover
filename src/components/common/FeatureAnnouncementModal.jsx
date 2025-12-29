@@ -85,10 +85,10 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Redesigned Interface
+                Modern UI Redesign
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                A cleaner, more intuitive layout that puts your most important tasks front and center.
+                Experience a fresh look with glassmorphic navigation, a slimmed-down top bar, and redesigned stockpile cards.
               </p>
             </div>
           </div>
@@ -99,10 +99,10 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Improved Performance
+                Advanced Navigation
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Faster transitions and optimized data loading for a snappier, more reliable experience.
+                Try long-pressing menu items for quick actions and use the new global search to find anything instantly.
               </p>
             </div>
           </div>
@@ -113,10 +113,10 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Better Navigation
+                Native Experience
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Quickly access your logs and schedules with our refined navigation system.
+                Enjoy haptic feedback on touch, smooth swipe-to-close gestures, and 60fps GPU-accelerated animations.
               </p>
             </div>
           </div>
@@ -127,10 +127,10 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Enhanced Tools
+                Refined Tools
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Updated components and improved data views to help you manage your plans effectively.
+                Renamed "Peptide Calculator" and "Shop Planners" for clarity, plus a new dedicated Beta Program.
               </p>
             </div>
           </div>
