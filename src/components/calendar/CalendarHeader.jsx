@@ -1,21 +1,80 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { HelpCircle } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 
-const getWeekOfMonth = (date) => {
-    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const dayOfMonth = date.getDate();
-    const dayOfWeek = startOfMonth.getDay();
-    return Math.ceil((dayOfMonth + dayOfWeek) / 7);
+const getTimeOfDay = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
 };
 
 export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext, onToday, viewMode, onChangeView, onShowIconKey, theme }) {
-  const monthName = currentDate.toLocaleString('default', { month: 'long' });
-  const year = currentDate.getFullYear();
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+  
+  // Update time of day every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeOfDay(getTimeOfDay());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const today = new Date();
+  const isToday = currentDate.toDateString() === today.toDateString();
+  
+  // Format for modern clock display
+  const dayName = currentDate.toLocaleString('default', { weekday: 'long' }).toUpperCase();
+  const dayNumber = currentDate.getDate();
+  const monthAbbr = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   
   return (
-    <div className="flex items-center justify-between mb-4 flex-wrap">
-      <div className="hidden sm:flex items-center gap-4">
+    <div className="flex flex-col items-center mb-4 gap-3">
+      {/* Modern Clock-Style Date Display */}
+      <div 
+        className="flex flex-col items-center justify-center py-4 px-8 rounded-2xl shadow-lg w-full max-w-xs"
+        style={{ 
+          background: isToday 
+            ? `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+            : theme.isDark ? '#1f2937' : theme.cardBackground,
+          border: !isToday ? `1px solid ${theme.border}` : 'none'
+        }}
+      >
+        {/* Day Name */}
+        <div 
+          className="text-2xl font-bold tracking-wider"
+          style={{ 
+            color: isToday ? theme.textOnPrimary : theme.isDark ? theme.text : theme.primaryDark
+          }}
+        >
+          {dayName}
+        </div>
+        
+        {/* Time of Day */}
+        <div 
+          className="text-xs font-medium tracking-wide mt-1"
+          style={{ 
+            color: isToday ? theme.textOnPrimary : theme.textLight,
+            opacity: 0.8
+          }}
+        >
+          {isToday ? timeOfDay : '\u00A0'}
+        </div>
+        
+        {/* Date Display */}
+        <div 
+          className="text-3xl font-bold mt-2 tracking-tight"
+          style={{ 
+            color: isToday ? theme.textOnPrimary : theme.isDark ? theme.text : theme.primaryDark
+          }}
+        >
+          {dayNumber} <span className="opacity-50">|</span> {monthAbbr}
+        </div>
+      </div>
+
+      {/* View Controls */}
+      <div className="flex items-center justify-center gap-3 w-full">
+        {/* Today Button */}
         <button 
           onClick={onToday} 
           className="px-4 py-2 rounded-lg text-sm font-semibold transition-all text-white shadow-md hover:shadow-lg" 
@@ -33,30 +92,26 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         >
           Today
         </button>
-        <div className="flex items-center gap-3">
-          <button onClick={onPrev} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronLeft className="h-5 w-5" /></button>
-          <h2 className="text-xl font-bold min-w-[180px] text-center" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>{monthName} {year}</h2>
-          <button onClick={onNext} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronRight className="h-5 w-5" /></button>
-        </div>
-      </div>
-      
-      <div className="hidden sm:flex items-center gap-2">
+
+        {/* View Mode Toggles */}
         <div className="inline-flex rounded-lg p-1 shadow-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
-            <button 
-              onClick={() => onChangeView('month')} 
-              className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
-              style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-            >
-              Month
-            </button>
-            <button 
-              onClick={() => onChangeView('week')} 
-              className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
-              style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-            >
-              Week
-            </button>
+          <button 
+            onClick={() => onChangeView('month')} 
+            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
+            style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
+          >
+            Month
+          </button>
+          <button 
+            onClick={() => onChangeView('week')} 
+            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
+            style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
+          >
+            Week
+          </button>
         </div>
+
+        {/* Icon Key Button */}
         {viewMode === 'month' && onShowIconKey && (
           <ModernTooltip text="Icon guide" position="bottom">
             <button onClick={onShowIconKey} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
@@ -65,59 +120,8 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           </ModernTooltip>
         )}
       </div>
-        
-        {/* Mobile-only controls */}
-        <div className="flex sm:hidden items-center justify-between w-full order-1">
-            <button onClick={onPrev} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronLeft className="h-5 w-5" /></button>
-            <h2 className="text-xl font-bold text-center flex-1" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>{monthName} {year}</h2>
-            <button onClick={onNext} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronRight className="h-5 w-5" /></button>
-        </div>
-        <div className="flex sm:hidden items-center justify-between w-full order-3 mt-2">
-             <div className="flex items-center gap-2">
-               <button 
-                 onClick={onToday} 
-                 className="px-4 py-1.5 text-sm font-semibold rounded-lg transition-all text-white shadow-md" 
-                 style={{ 
-                   background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'
-                 }}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                 }}
-               >
-                 Today
-               </button>
-             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1 p-1 rounded-lg shadow-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
-                  <button 
-                    onClick={() => onChangeView('month')} 
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : ''}`} 
-                    style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-                  >
-                    Month
-                  </button>
-                  <button 
-                    onClick={() => onChangeView('week')} 
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'shadow-sm' : ''}`} 
-                    style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-                  >
-                    Week
-                  </button>
-              </div>
-              {viewMode === 'month' && onShowIconKey && (
-                <ModernTooltip text="Icon guide" position="bottom">
-                  <button onClick={onShowIconKey} className="p-1.5 rounded-full border transition-all" style={{ borderColor: theme.border, color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </ModernTooltip>
-              )}
-            </div>
-        </div>
     </div>
   )
- }
+}
 
 

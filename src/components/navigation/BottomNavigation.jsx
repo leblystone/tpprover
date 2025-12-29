@@ -255,7 +255,7 @@ export default function BottomNavigation({ theme }) {
                     <div
                       className="absolute left-1/2 -translate-x-1/2"
                       style={{
-                        top: '4px',
+                        top: '-8px',
                         width: '32px',
                         height: '3px',
                         borderRadius: '0 0 3px 3px',

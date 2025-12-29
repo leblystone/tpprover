@@ -1294,12 +1294,10 @@ export default function Stockpile() {
           )}
           
           {/* VIAL DETAILS Section Header */}
-          <div className="flex items-center gap-4 mb-2">
+          <div className="flex items-center gap-4 mb-3">
             <TestTube size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-base font-black tracking-wide" style={{ color: theme.text }}>
-                Vial Details
-              </h4>
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -1308,7 +1306,6 @@ export default function Stockpile() {
               </div>
             </div>
           </div>
-          <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
           {/* Main form */}
           <div className="space-y-4">
@@ -1752,9 +1749,17 @@ export default function Stockpile() {
           </div>
           
           {/* ORDER DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER DETAILS</h4>
-            <PackageOpen size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+          <div className="flex items-center gap-4 mb-3 pt-1">
+            <PackageOpen size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Purchase Information
+                </span>
+              </div>
+            </div>
           </div>
           
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
