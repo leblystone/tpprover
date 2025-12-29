@@ -266,14 +266,6 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             )}
             <button 
               type="button"
-              onMouseDown={(e) => {
-                // Prevent blur events on mobile
-                e.preventDefault();
-              }}
-              onTouchStart={(e) => {
-                // Prevent blur events on touch devices
-                e.preventDefault();
-              }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -282,7 +274,8 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
               className={`p-1.5 rounded-full transition-colors touch-manipulation ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
               style={{ 
                 color: headerStyle.color,
-                WebkitTapHighlightColor: 'transparent'
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
               }}
             >
               <X size={24} />
