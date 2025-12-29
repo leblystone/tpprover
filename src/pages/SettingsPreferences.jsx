@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check } from 'lucide-react'
+import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings as SettingsIcon } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -118,18 +118,13 @@ export default function SettingsPreferences() {
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <SettingsIcon size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Preferences</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Region & App Behavior
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Preferences</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Region & App Behavior
+            </span>
           </div>
         </div>
       </div>
@@ -355,7 +350,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
           {label}
         </div>
-        <div className="text-base font-black tracking-tight" style={{ color: theme.text }}>
+        <div className="text-base font-black tracking-wide" style={{ color: theme.text }}>
           {checked ? 'Enabled' : 'Disabled'}
         </div>
         <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
@@ -389,7 +384,7 @@ const SettingSelect = ({ label, value, onChange, options, theme, icon: Icon, isL
         </div>
         <div className="relative">
           <select 
-            className="w-full bg-transparent text-sm font-black tracking-tight focus:outline-none appearance-none cursor-pointer pr-8" 
+            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
             value={value} 
             onChange={onChange} 
             style={{ color: theme.text }}
