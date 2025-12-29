@@ -38,19 +38,30 @@ export default function SettingsAppearance() {
   return (
     <section className="max-w-xl mx-auto space-y-8 pb-10">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-3 rounded-2xl transition-all active:scale-95 shadow-sm"
-          style={{ backgroundColor: theme.cardBackground }}
+          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
+          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
         >
-          <ArrowLeft size={22} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Appearance</h1>
-          <p className="text-sm font-medium opacity-60" style={{ color: theme.text }}>Add personality to your research</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
+            <Palette size={24} style={{ color: theme.primary }} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Appearance</h1>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Visual Interface & Themes
+              </span>
+            </div>
+          </div>
         </div>
       </div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       <div className="space-y-8">
         {/* Theme Selection Section */}
