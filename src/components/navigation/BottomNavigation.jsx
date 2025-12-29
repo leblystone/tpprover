@@ -54,8 +54,6 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/vendors', label: 'Vendors', icon: Store }
     ],
     more: [
-      { path: '/app/account', label: 'Account', icon: User },
-      { path: '/app/settings', label: 'Settings', icon: Settings },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
       { action: 'search', label: 'Search', icon: Search }

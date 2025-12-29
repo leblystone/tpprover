@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
 import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
@@ -10,6 +10,7 @@ import AdminMessageModal from '../common/AdminMessageModal';
 
 export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
+  const navigate = useNavigate();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
@@ -703,7 +704,35 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               />
             </form>
           )}
-          {/* Notifications removed for cleaner, minimal design */}
+          {/* Account and Settings icons */}
+          <button 
+            type="button"
+            onClick={() => navigate('/app/account')}
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+            style={{ 
+              color: theme.text,
+              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            aria-label="Account"
+          >
+            <User className="h-5 w-5 lg:h-5 lg:w-5" />
+          </button>
+          
+          <button 
+            type="button"
+            onClick={() => navigate('/app/settings')}
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+            style={{ 
+              color: theme.text,
+              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5 lg:h-5 lg:w-5" />
+          </button>
+          
           {onDashboard && onDashboardCustomize && (
               <button 
                 type="button"
