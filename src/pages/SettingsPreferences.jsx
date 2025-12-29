@@ -347,13 +347,10 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <Icon size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>
           {label}
         </div>
-        <div className="text-base font-black tracking-tight" style={{ color: theme.text }}>
-          {checked ? 'Enabled' : 'Disabled'}
-        </div>
-        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+        <div className="text-xs opacity-60" style={{ color: theme.text }}>
           {description}
         </div>
       </div>
