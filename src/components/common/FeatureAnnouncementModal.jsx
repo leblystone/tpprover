@@ -81,14 +81,14 @@ export default function FeatureAnnouncementModal({
         <div className="space-y-6 px-4 mb-8">
           <div className="flex gap-4 group">
             <div className="flex-shrink-0 mt-0.5">
-              <Layout size={20} style={{ color: theme?.primary }} strokeWidth={2} />
+              <FlaskConical size={20} style={{ color: theme?.primary }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Modern UI Redesign
+                Smart Research Logic
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Experience a fresh look with glassmorphic navigation, a slimmed-down top bar, and redesigned stockpile cards.
+                The app now intelligently switches units (like "sprays" for nasal) based on your delivery method. Dashboard tasks are also better organized by phase.
               </p>
             </div>
           </div>
@@ -99,38 +99,38 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Advanced Navigation
+                Universal Search & Shortcuts
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Try long-pressing menu items for quick actions and use the new global search to find anything instantly.
+                Find anything instantly with the new global search. You can also hold down the navigation icons to trigger quick shortcuts like "Add Protocol."
               </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Monitor size={20} style={{ color: theme?.success }} strokeWidth={2} />
+              <Boxes size={20} style={{ color: theme?.success }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Native Experience
+                Beta Rewards
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Enjoy haptic feedback on touch, smooth swipe-to-close gestures, and 60fps GPU-accelerated animations.
+                Complete our new research survey to help shape the platform and receive automatic Lifetime Access as a thank you for your contribution.
               </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Layers size={20} style={{ color: theme?.warning }} strokeWidth={2} />
+              <Activity size={20} style={{ color: theme?.warning }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Refined Tools
+                Enhanced Feedback
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Renamed "Peptide Calculator" and "Shop Planners" for clarity, plus a new dedicated Beta Program.
+                With 60+ new notifications and physical haptic feedback on mobile, the app now responds instantly to your every action.
               </p>
             </div>
           </div>
