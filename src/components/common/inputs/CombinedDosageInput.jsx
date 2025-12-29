@@ -149,12 +149,12 @@ export default function CombinedDosageInput({
                                                 e.currentTarget.style.backgroundColor = 'transparent';
                                                 e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
                                             }}
-                                        >
-                                            {unit}
-                                        </button>
+                            >
+                                {unit}
+                            </button>
                                     </React.Fragment>
-                                ))}
-                            </div>
+                        ))}
+                    </div>
                         </div>
                     )}
                 </div>
@@ -270,12 +270,12 @@ export default function CombinedDosageInput({
                                             e.currentTarget.style.backgroundColor = 'transparent';
                                             e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
                                         }}
-                                    >
-                                        {unit}
-                                    </button>
+                        >
+                            {unit}
+                        </button>
                                 </React.Fragment>
-                            ))}
-                        </div>
+                    ))}
+                </div>
                     </div>
                 )}
             </div>

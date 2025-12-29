@@ -10,6 +10,7 @@ import DayView from '../components/calendar/DayView'
 import NotesModal from '../components/calendar/NotesModal'
 import CalendarIconKey from '../components/calendar/CalendarIconKey'
 import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
+import DayModal from '../components/calendar/DayModal'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
 import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
@@ -158,6 +159,7 @@ export default function Calendar() {
   const [entries, setEntries] = useState({})
   const [activeDay, setActiveDay] = useState(null)
   const [editingNotesFor, setEditingNotesFor] = useState(null)
+  const [dayModalDate, setDayModalDate] = useState(null) // For day modal in monthly view
   // scheduled structure: { [dateKey]: { peptides: string[], supplements: string[], buys: number } }
   const [scheduled, setScheduled] = useState({})
   const [done, setDone] = useState({})
@@ -1278,17 +1280,8 @@ export default function Calendar() {
             todayPulse={todayPulse}
             onDayClick={(d) => {
               if (!d) return
-              // Check if the day has scheduled tasks - if so, open quick edit
-              const dayKey = toKey(d);
-              const dayScheduled = scheduled[dayKey];
-              if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
-                setQuickEditDate(dayKey);
-                setQuickEditData(dayScheduled);
-              } else {
-                // No tasks, just navigate to week view
-                setCurrentDate(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
-                setViewMode('week')
-              }
+              // Open day modal to show all details like weekly view
+              setDayModalDate(d)
             }}
           />
         ) : (
@@ -1349,6 +1342,21 @@ export default function Calendar() {
         isVisible={showIconKey}
         onClose={() => setShowIconKey(false)}
       />
+
+      {/* Day Modal for monthly view */}
+      {dayModalDate && (
+        <DayModal
+          date={dayModalDate}
+          entries={entries}
+          scheduled={scheduled}
+          theme={theme}
+          onClose={() => setDayModalDate(null)}
+          onNotesClick={setEditingNotesFor}
+          onTaskToggle={handleTaskToggle}
+          onMarkAllDone={handleMarkAllDone}
+          calendarBump={calendarBump}
+        />
+      )}
 
       {/* Injection Site Selector for week view mark all done */}
       <InjectionSiteSelector

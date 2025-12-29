@@ -661,22 +661,22 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                             </div>
                             {!form.duration?.noEnd && (
-                                <div className="relative">
+                            <div className="relative">
                                     {/* Combined Input with Dropdown Selector */}
-                                    <div 
-                                        className="flex items-stretch rounded-lg"
-                                        style={{ 
+                                <div 
+                                    className="flex items-stretch rounded-lg"
+                                    style={{ 
                                             border: `1px solid ${isDurationFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                                             backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                                        }}
-                                    >
-                                        <input 
-                                            type="text"
-                                            id="duration-input"
+                                    }}
+                                >
+                                    <input 
+                                        type="text"
+                                        id="duration-input"
                                             value={form.duration?.count ?? ''}
-                                            onChange={e => handleDurationChange('count', e.target.value)}
-                                            onFocus={() => setIsDurationFocused(true)}
+                                        onChange={e => handleDurationChange('count', e.target.value)}
+                                        onFocus={() => setIsDurationFocused(true)}
                                             onBlur={(e) => {
                                                 setTimeout(() => {
                                                     const relatedTarget = e.relatedTarget || document.activeElement;
@@ -686,17 +686,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                     }
                                                 }, 150);
                                             }}
-                                            placeholder=" "
+                                        placeholder=" "
                                             className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
-                                            style={{ 
-                                                backgroundColor: 'transparent',
-                                                color: theme.isDark ? theme.text : '#181A18',
+                                        style={{ 
+                                            backgroundColor: 'transparent',
+                                            color: theme.isDark ? theme.text : '#181A18',
                                                 border: 'none',
                                                 paddingLeft: '12px',
                                                 paddingRight: '8px'
-                                            }}
-                                        />
-                                        
+                                        }}
+                                    />
+                                    
                                         {/* Unit Dropdown Button */}
                                         <button
                                             type="button"
@@ -705,8 +705,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             onTouchStart={(e) => e.preventDefault()}
                                             className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                             data-dropdown-container
-                                            style={{ 
-                                                borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                        style={{ 
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                                 backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                                 color: theme.isDark ? theme.text : '#181A18',
                                                 minWidth: '90px'
@@ -744,8 +744,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                                     style={{ backgroundColor: theme.border }}
                                                                 />
                                                             )}
-                                                            <button
-                                                                type="button"
+                                            <button 
+                                                type="button"
                                                                 onMouseDown={(e) => e.preventDefault()}
                                                                 onTouchStart={(e) => e.preventDefault()}
                                                                 onClick={(e) => {
@@ -768,31 +768,31 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                                     e.currentTarget.style.backgroundColor = 'transparent';
                                                                     e.currentTarget.style.color = form.duration?.unit === unit ? theme.primary : theme.text;
                                                                 }}
-                                                            >
-                                                                {unit}
-                                                            </button>
+                                            >
+                                                {unit}
+                                            </button>
                                                         </React.Fragment>
-                                                    ))}
-                                                </div>
+                                        ))}
+                                    </div>
                                             </div>
                                         )}
-                                    </div>
-                                    <label 
-                                        htmlFor="duration-input"
-                                        className="absolute pointer-events-none transition-all"
-                                        style={{
+                                </div>
+                                <label 
+                                    htmlFor="duration-input"
+                                    className="absolute pointer-events-none transition-all"
+                                    style={{
                                             fontSize: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '0.75rem' : '0.9375rem',
                                             top: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '-8px' : '14px',
                                             left: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '12px' : '16px',
                                             padding: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '0 4px' : '0',
                                             background: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
                                             color: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? theme.primary : (theme.textLight || theme.text),
-                                            fontWeight: 500
-                                        }}
-                                    >
-                                        Duration
-                                    </label>
-                                </div>
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Duration
+                                </label>
+                            </div>
                             )}
                         </div>
                         
@@ -807,22 +807,22 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                             </div>
                             {form.washout?.enabled && (
-                                <div className="relative">
+                            <div className="relative">
                                     {/* Combined Input with Dropdown Selector */}
-                                    <div 
-                                        className="flex items-stretch rounded-lg"
-                                        style={{ 
+                                <div 
+                                    className="flex items-stretch rounded-lg"
+                                    style={{ 
                                             border: `1px solid ${isWashoutFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                                             backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                                        }}
-                                    >
-                                        <input 
-                                            type="text"
-                                            id="washout-input"
+                                    }}
+                                >
+                                    <input 
+                                        type="text"
+                                        id="washout-input"
                                             value={form.washout?.duration ?? ''}
-                                            onChange={e => handleWashoutChange('duration', e.target.value)}
-                                            onFocus={() => setIsWashoutFocused(true)}
+                                        onChange={e => handleWashoutChange('duration', e.target.value)}
+                                        onFocus={() => setIsWashoutFocused(true)}
                                             onBlur={(e) => {
                                                 setTimeout(() => {
                                                     const relatedTarget = e.relatedTarget || document.activeElement;
@@ -832,17 +832,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                     }
                                                 }, 150);
                                             }}
-                                            placeholder=" "
+                                        placeholder=" "
                                             className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
-                                            style={{ 
-                                                backgroundColor: 'transparent',
-                                                color: theme.isDark ? theme.text : '#181A18',
+                                        style={{ 
+                                            backgroundColor: 'transparent',
+                                            color: theme.isDark ? theme.text : '#181A18',
                                                 border: 'none',
                                                 paddingLeft: '12px',
                                                 paddingRight: '8px'
-                                            }}
-                                        />
-                                        
+                                        }}
+                                    />
+                                    
                                         {/* Unit Dropdown Button */}
                                         <button
                                             type="button"
@@ -851,8 +851,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             onTouchStart={(e) => e.preventDefault()}
                                             className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                             data-dropdown-container
-                                            style={{ 
-                                                borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                        style={{ 
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                                 backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                                 color: theme.isDark ? theme.text : '#181A18',
                                                 minWidth: '90px'
@@ -890,8 +890,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                                     style={{ backgroundColor: theme.border }}
                                                                 />
                                                             )}
-                                                            <button
-                                                                type="button"
+                                            <button 
+                                                type="button"
                                                                 onMouseDown={(e) => e.preventDefault()}
                                                                 onTouchStart={(e) => e.preventDefault()}
                                                                 onClick={(e) => {
@@ -914,31 +914,31 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                                     e.currentTarget.style.backgroundColor = 'transparent';
                                                                     e.currentTarget.style.color = form.washout?.unit === unit ? theme.primary : theme.text;
                                                                 }}
-                                                            >
-                                                                {unit}
-                                                            </button>
+                                            >
+                                                {unit}
+                                            </button>
                                                         </React.Fragment>
-                                                    ))}
-                                                </div>
+                                        ))}
+                                    </div>
                                             </div>
                                         )}
-                                    </div>
-                                    <label 
-                                        htmlFor="washout-input"
-                                        className="absolute pointer-events-none transition-all"
-                                        style={{
+                                </div>
+                                <label 
+                                    htmlFor="washout-input"
+                                    className="absolute pointer-events-none transition-all"
+                                    style={{
                                             fontSize: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '0.75rem' : '0.9375rem',
                                             top: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '-8px' : '14px',
                                             left: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '12px' : '16px',
                                             padding: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '0 4px' : '0',
                                             background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
                                             color: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? theme.primary : (theme.textLight || theme.text),
-                                            fontWeight: 500
-                                        }}
-                                    >
-                                        Washout Period
-                                    </label>
-                                </div>
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Washout Period
+                                </label>
+                            </div>
                             )}
                         </div>
                     </div>

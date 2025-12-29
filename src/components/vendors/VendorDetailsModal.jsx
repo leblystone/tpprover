@@ -233,16 +233,76 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               />
             </div>
             <div className="flex flex-col gap-2">
+              <style>{`
+                @keyframes starPulse {
+                  0%, 100% { transform: scale(1); }
+                  50% { transform: scale(1.2); }
+                }
+                @keyframes starFadeIn {
+                  0% { opacity: 0; transform: scale(0.5) rotate(-15deg); }
+                  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+                }
+                .star-rating-btn {
+                  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                  position: relative;
+                }
+                .star-rating-btn:hover {
+                  transform: scale(1.15);
+                }
+                .star-rating-btn:active {
+                  transform: scale(0.95);
+                }
+                .star-icon {
+                  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                  filter: drop-shadow(0 0 0 transparent);
+                }
+                .star-icon.filled {
+                  animation: starFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+                }
+                .star-icon.just-clicked {
+                  animation: starPulse 0.6s ease-out;
+                }
+                .star-rating-btn:hover .star-icon {
+                  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+                }
+              `}</style>
               <div className="flex items-center justify-around w-full rounded-md p-1" style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                 border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
               }} aria-label="Rating">
-                {[1,2,3,4,5].map(n => (
-                  <button key={n} type="button" className="p-2" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border)} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                  </button>
-                ))}
+                {[1,2,3,4,5].map((n) => {
+                  const isFilled = form.rating >= n;
+                  return (
+                    <button 
+                      key={n} 
+                      type="button" 
+                      className="star-rating-btn p-2" 
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, rating: n }));
+                        // Add pulse animation to clicked star and filled stars
+                        const stars = document.querySelectorAll('.star-icon');
+                        stars.forEach((star, i) => {
+                          if (i < n) {
+                            star.classList.add('just-clicked');
+                            setTimeout(() => star.classList.remove('just-clicked'), 600);
+                          }
+                        });
+                      }}
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        viewBox="0 0 24 24" 
+                        fill={isFilled ? theme.primary : 'none'} 
+                        stroke={isFilled ? theme.primary : (theme.isDark ? '#4b5563' : theme.border)} 
+                        className={`w-6 h-6 star-icon ${isFilled ? 'filled' : ''}`}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                      </svg>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -299,8 +359,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         <div>
           <div className="space-y-3">
             {form.contacts.map((c, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="flex-1 relative">
+              <div key={idx} className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 relative">
                   <div 
                     className="flex items-stretch rounded-lg"
                     style={{ 
@@ -453,11 +513,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   </label>
                 </div>
                 <button 
-                  className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95 flex-shrink-0 flex items-center justify-center" 
+                  type="button"
+                  className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95 flex-shrink-0 flex items-center justify-center" 
                   style={{ 
                     background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
                     color: '#ffffff',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                    width: '32px',
+                    height: '32px'
                   }} 
                   onClick={() => removeContact(idx)}
                   onMouseEnter={(e) => {
@@ -466,8 +529,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                   }}
+                  aria-label="Remove contact"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
             ))}

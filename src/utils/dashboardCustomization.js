@@ -144,7 +144,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'dont_forget',
     type: WIDGET_TYPES.DONT_FORGET,
-    title: "Don't Forget",
+    title: "Action Items",
     size: WIDGET_SIZES.SMALL,
     position: { x: 3, y: 2 },
     enabled: true,
@@ -267,9 +267,9 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.DONT_FORGET]: {
-    title: "Don't Forget",
-    description: 'Tasks needing attention: incomplete vendors, protocol follow-ups',
-    icon: 'AlertCircle',
+    title: "Action Items",
+    description: 'Stay organized with auto-generated reminders for incomplete profiles and protocol follow-ups',
+    icon: 'ClipboardList',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: []
   },
@@ -462,7 +462,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.8'; // UPDATED: Added Don't Forget widget and fixed position conflicts
+    const currentVersion = '3.8'; // UPDATED: Added Action Items widget and fixed position conflicts
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -505,7 +505,7 @@ export const loadDashboardLayout = () => {
         }
       }
       
-      // Ensure Don't Forget widget is present (for users upgrading to version 3.8+)
+      // Ensure Action Items widget is present (for users upgrading to version 3.8+)
       const hasDontForget = filtered.some(w => w.id === 'dont_forget' || w.type === WIDGET_TYPES.DONT_FORGET);
       if (!hasDontForget) {
         const dontForgetWidget = DEFAULT_WIDGETS.find(w => w.id === 'dont_forget');

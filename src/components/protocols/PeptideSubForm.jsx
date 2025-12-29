@@ -122,38 +122,38 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     
                     <div className="grid grid-cols-3 gap-3 items-end">
                         <div className="col-span-2">
-                            <CombinedDosageInput
-                                value={item.dosage || { amount: '', unit: 'mcg' }}
-                                onChange={(newDosage) => {
-                                    // Update only dosage, do NOT sync to units text box
-                                    onChange({ 
-                                        ...item, 
-                                        dosage: newDosage
-                                    });
-                                }}
-                                theme={theme}
-                                deliveryMethod={item.deliveryMethod}
-                                placeholder="250"
-                                outlined={true}
-                                customTextColor={theme.isDark ? null : "#181A18"}
-                                customShadow
-                            />
-                        </div>
-                        
-                        <div className="col-span-1">
-                            <TextInput
-                                label="Units"
-                                value={item.unitValue || ''}
-                                onChange={v => onChange({ 
+                        <CombinedDosageInput
+                            value={item.dosage || { amount: '', unit: 'mcg' }}
+                            onChange={(newDosage) => {
+                                // Update only dosage, do NOT sync to units text box
+                                onChange({ 
                                     ...item, 
-                                    unitValue: v
-                                })}
-                                placeholder="10"
-                                theme={theme}
-                                outlined={true}
-                                customTextColor={theme.isDark ? null : "#181A18"}
-                                customShadow
-                            />
+                                    dosage: newDosage
+                                });
+                            }}
+                            theme={theme}
+                            deliveryMethod={item.deliveryMethod}
+                            placeholder="250"
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
+                    
+                        <div className="col-span-1">
+                        <TextInput
+                            label="Units"
+                            value={item.unitValue || ''}
+                            onChange={v => onChange({ 
+                                ...item, 
+                                unitValue: v
+                            })}
+                            placeholder="10"
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
                         </div>
                     </div>
                 </div>

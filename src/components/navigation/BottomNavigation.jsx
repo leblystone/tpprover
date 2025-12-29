@@ -173,16 +173,16 @@ export default function BottomNavigation({ theme }) {
                       }}
                     />
 
+                    {/* Icon - standalone with theme color */}
                     <div
-                      className="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-2.5 transition-all duration-300 group-hover:scale-110 group-active:scale-95"
+                      className="relative flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-active:scale-95"
                       style={{
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-                        boxShadow: `0 4px 16px ${theme.primary}40, inset 0 1px 0 rgba(255, 255, 255, 0.2)`,
-                        color: theme.textOnPrimary
+                        color: theme.primary
                       }}
                     >
-                      <Icon size={26} strokeWidth={2.5} />
+                      <Icon size={36} strokeWidth={2.5} />
                     </div>
+                    
                     <span 
                       className="text-sm font-semibold text-center leading-tight"
                       style={{ color: theme.text }}
@@ -244,32 +244,35 @@ export default function BottomNavigation({ theme }) {
                   />
                 )}
 
-                {/* Active background pill */}
-                {(active || isExpanded) && (
-                  <div
-                    className="absolute inset-x-2 inset-y-2 rounded-2xl transition-all duration-300"
-                    style={{
-                      backgroundColor: theme.isDark 
-                        ? `${theme.primary}15` 
-                        : `${theme.primary}10`,
-                      boxShadow: `inset 0 0 0 1px ${theme.primary}30`
-                    }}
-                  />
-                )}
-
                 <div
                   className="relative flex flex-col items-center justify-center transition-all duration-300"
                   style={{
-                    transform: active || isExpanded ? 'scale(1.1) translateY(-2px)' : 'scale(1)'
+                    transform: active || isExpanded ? 'scale(1.05)' : 'scale(1)'
                   }}
                 >
+                  {/* Floating line indicator with spacing */}
+                  {(active || isExpanded) && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2"
+                      style={{
+                        top: '4px',
+                        width: '32px',
+                        height: '3px',
+                        borderRadius: '0 0 3px 3px',
+                        backgroundColor: theme.primary,
+                        boxShadow: `0 1px 4px ${theme.primary}30`,
+                        animation: 'slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    />
+                  )}
+
                   <Icon
                     size={24}
                     strokeWidth={active || isExpanded ? 2.8 : 2.2}
                     className="mb-1 transition-all duration-300"
                     style={{
                       filter: active || isExpanded 
-                        ? `drop-shadow(0 2px 4px ${theme.primary}40)` 
+                        ? `drop-shadow(0 1px 2px ${theme.primary}20)` 
                         : 'none'
                     }}
                   />
@@ -348,6 +351,17 @@ export default function BottomNavigation({ theme }) {
           100% {
             transform: translate(-50%, -50%) scale(2);
             opacity: 0;
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
           }
         }
 

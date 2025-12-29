@@ -16,9 +16,10 @@ export const WIDGET_TOOLTIPS = {
   
   pending_vendors: `[BookAlert] Complete new vendors profile that were added during a protocol, order, or stockpile`,
   
-  dont_forget: `[AlertCircle] Incomplete vendor profiles that need your attention
-[AlertCircle] Protocols that ended without follow-up assessments
-[AlertCircle] Click any task to complete it`,
+  dont_forget: `[ClipboardList] Stay organized with auto-generated action items
+[ClipboardList] Complete vendor profiles that were created during orders
+[ClipboardList] Add follow-up assessments for completed protocols
+[ClipboardList] Click any item to take action`,
   
   analytics: `[BarChart3] View comprehensive analytics including research compliance rates, spending trends, and inventory levels. Get insights into your research patterns`,
   
