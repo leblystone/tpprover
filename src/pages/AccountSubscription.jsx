@@ -64,7 +64,38 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
-      await createPortalSession()
+      // Check if subscription is from Google Play
+      if (sub?.paymentProvider === 'googleplay' || sub?.source === 'google_play') {
+        // Redirect to Google Play subscription management
+        const googlePlayUrl = 'https://play.google.com/store/account/subscriptions'
+        window.open(googlePlayUrl, '_blank')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Opening Google Play subscription management...', type: 'info' } 
+        }))
+        return
+      }
+
+      // Check if subscription is from Apple
+      if (sub?.paymentProvider === 'apple' || sub?.source === 'apple') {
+        // Redirect to Apple subscription management
+        const appleUrl = 'https://apps.apple.com/account/subscriptions'
+        window.open(appleUrl, '_blank')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Opening Apple subscription management...', type: 'info' } 
+        }))
+        return
+      }
+
+      // For Stripe subscriptions, open the portal
+      if (sub?.stripeCustomerId) {
+        await createPortalSession(sub.stripeCustomerId)
+        return
+      }
+
+      // No subscription or unknown provider
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'No active subscription found.', type: 'error' } 
+      }))
     } catch (error) {
       console.error('Portal error:', error)
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -224,7 +255,7 @@ export default function AccountSubscription() {
                 }}
               >
                 <div 
-                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter"
+                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
@@ -273,7 +304,7 @@ export default function AccountSubscription() {
                 }}
               >
                 <div 
-                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter"
+                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
