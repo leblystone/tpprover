@@ -11,6 +11,7 @@ import {
   Boxes,
   Activity
 } from 'lucide-react';
+import logo from '../../assets/tpp_logo.png';
 
 /**
  * Feature Announcement Modal
@@ -66,12 +67,6 @@ export default function FeatureAnnouncementModal({
       <div className="py-2">
         {/* Minimal Header */}
         <div className="mb-8 text-center px-4">
-          <div 
-            className="inline-flex items-center justify-center p-3 rounded-2xl mb-4"
-            style={{ backgroundColor: `${theme?.primary}10` }}
-          >
-            <Sparkles size={28} style={{ color: theme?.primary }} strokeWidth={1.5} />
-          </div>
           <h2 className="text-2xl font-semibold tracking-tight mb-2" style={{ color: theme?.text }}>
             A Fresh Experience
           </h2>
@@ -139,18 +134,34 @@ export default function FeatureAnnouncementModal({
           </div>
         </div>
 
+        {/* Logo Sign-off */}
+        <div className="flex items-center justify-center gap-3 px-4 mb-6">
+          <div className="h-px flex-1" style={{ backgroundColor: `${theme?.border}80` }} />
+          <img 
+            src={logo} 
+            alt="The Pep Planner" 
+            className="h-8 w-8 rounded-full object-contain opacity-80"
+            style={{
+              imageRendering: 'auto',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)'
+            }}
+          />
+          <div className="h-px flex-1" style={{ backgroundColor: `${theme?.border}80` }} />
+        </div>
+
         {/* Clean Primary Button */}
         <div className="px-4">
           <button
             onClick={handleClose}
-            className="w-full h-12 rounded-xl text-white font-medium transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full py-2.5 px-5 rounded-lg text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98] hover:opacity-90"
             style={{
               backgroundColor: theme?.primary,
-              boxShadow: `0 4px 12px ${theme?.primary}40`
+              boxShadow: `0 2px 8px ${theme?.primary}30`
             }}
           >
             <span>Happy Researching!</span>
-            <ArrowRight size={18} />
+            <ArrowRight size={16} />
           </button>
         </div>
       </div>
