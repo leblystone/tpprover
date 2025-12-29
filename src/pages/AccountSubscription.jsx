@@ -154,9 +154,9 @@ export default function AccountSubscription() {
                 <CreditCard size={22} style={{ color: theme.text, opacity: 0.6 }} />
               </div>
               <div>
-                <h3 className="text-lg font-black mb-0.5" style={{ color: theme.text }}>{status.label}</h3>
+                <h3 className="text-lg font-black mb-1" style={{ color: theme.text }}>{status.label}</h3>
                 {getSource() && (
-                  <p className="text-xs font-bold uppercase tracking-wide mt-1" style={{ color: theme.primary }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.6 }}>
                     {getSource()}
                   </p>
                 )}
