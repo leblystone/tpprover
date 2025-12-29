@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { User, TrendingUp, Shield, FileText, Crown, Gift, Settings, LogOut } from 'lucide-react'
+import { User, TrendingUp, FileText, LogOut, ChevronRight } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 
 export default function Account() {
@@ -11,7 +11,7 @@ export default function Account() {
   const accountSections = [
     {
       title: 'Profile',
-      description: 'Manage account information and settings',
+      description: 'Manage account, password, and security',
       icon: User,
       path: '/app/account/profile',
       color: theme.primary
@@ -24,13 +24,6 @@ export default function Account() {
       color: theme.accent
     },
     {
-      title: 'Security',
-      description: 'Password and two-factor authentication',
-      icon: Shield,
-      path: '/app/account/security',
-      color: theme.secondary
-    },
-    {
       title: 'Legal & Agreements',
       description: 'View agreement history and legal documents',
       icon: FileText,
@@ -40,9 +33,9 @@ export default function Account() {
   ]
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
           <User size={32} style={{ color: theme.primary }} />
         </div>
@@ -51,15 +44,15 @@ export default function Account() {
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Profile & Subscription
+              Profile, Subscription & Legal
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Account Sections */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {accountSections.map((section, index) => {
           const Icon = section.icon
           return (
@@ -77,7 +70,7 @@ export default function Account() {
                   console.error('❌ Navigate failed:', error);
                 }
               }}
-              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
               style={{
                 backgroundColor: theme.cardBackground,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
@@ -100,8 +93,8 @@ export default function Account() {
                     </p>
                   </div>
                 </div>
-                <div className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" style={{ color: theme.text }}>
-                  ›
+                <div className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                  <ChevronRight size={24} style={{ color: theme.text }} />
                 </div>
               </div>
             </button>
@@ -110,10 +103,10 @@ export default function Account() {
       </div>
 
       {/* Logout Section */}
-      <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.isDark ? '#374151' : theme.border }}>
+      <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.isDark ? '#374151' : theme.border }}>
         <button
           onClick={logout}
-          className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+          className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
           style={{
             backgroundColor: theme.error + '10',
             border: `1px solid ${theme.error}30`,
@@ -137,8 +130,8 @@ export default function Account() {
                 </p>
               </div>
             </div>
-            <div className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" style={{ color: theme.error }}>
-              ›
+            <div className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+              <ChevronRight size={24} style={{ color: theme.error }} />
             </div>
           </div>
         </button>

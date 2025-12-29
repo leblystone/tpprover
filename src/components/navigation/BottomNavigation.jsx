@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen } from 'lucide-react';
 import BetaModal from '../common/BetaModal';
+import logo from '../../assets/tpp_logo.png';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -73,9 +74,9 @@ export default function BottomNavigation({ theme }) {
 
   // Bottom nav items
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
     { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon'] },
+    { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
   ];
@@ -413,13 +414,114 @@ export default function BottomNavigation({ theme }) {
             : '0 -4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
         }}
       >
-        <div className="flex items-center justify-around h-16 px-2">
-          {navItems.map((item) => {
+        <div className="flex items-center justify-around h-16 px-2 relative">
+          {navItems.map((item, index) => {
             const Icon = item.icon;
             const active = isActive(item);
             const isExpanded = expandedMenu === item.id;
             const hasRipple = rippleEffect?.id === item.id;
+            const isHomeButton = item.id === 'home';
 
+            // For home button (center), render with logo instead of icon
+            if (isHomeButton) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={(e) => handleNavClick(item, e)}
+                  onTouchStart={(e) => handleTouchStart(item, e)}
+                  onTouchEnd={() => handleTouchEnd(item)}
+                  onTouchMove={handleTouchMove}
+                  className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
+                  style={{
+                    color: active || isExpanded ? theme.primary : theme.textLight,
+                    WebkitTapHighlightColor: 'transparent',
+                    transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
+                  }}
+                >
+                  {/* Ripple effect */}
+                  {hasRipple && (
+                    <div
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        left: rippleEffect.x,
+                        top: rippleEffect.y,
+                        width: '100px',
+                        height: '100px',
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: `${theme.primary}30`,
+                        animation: 'ripple 600ms ease-out'
+                      }}
+                    />
+                  )}
+
+                  <div
+                    className="relative flex flex-col items-center justify-center transition-all duration-300"
+                    style={{
+                      transform: active || isExpanded ? 'scale(1.05)' : 'scale(1)'
+                    }}
+                  >
+                    {/* Floating line indicator with spacing */}
+                    {(active || isExpanded) && (
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          top: '-8px',
+                          width: '32px',
+                          height: '3px',
+                          borderRadius: '0 0 3px 3px',
+                          backgroundColor: theme.primary,
+                          boxShadow: `0 1px 4px ${theme.primary}30`,
+                          animation: 'slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                      />
+                    )}
+
+                    {/* Long-press tooltip */}
+                    {longPressItem === item.id && quickActions[item.id] && (
+                      <div
+                        className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap z-10"
+                        style={{
+                          backgroundColor: theme.primary,
+                          color: theme.textOnPrimary,
+                          boxShadow: `0 4px 12px ${theme.primary}40`,
+                          animation: 'popIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                        }}
+                      >
+                        {quickActions[item.id].label}
+                      </div>
+                    )}
+
+                    {/* Logo */}
+                    <img 
+                      src={logo} 
+                      alt="The Pep Planner" 
+                      className="mb-1 transition-all duration-300"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+                        opacity: active ? 1 : 0.75,
+                        transform: 'translateY(-1px)'
+                      }}
+                    />
+
+                    {/* Label */}
+                    <span
+                      className="text-xs transition-all duration-300"
+                      style={{
+                        fontWeight: active || isExpanded ? 700 : 500,
+                        letterSpacing: active || isExpanded ? '0.02em' : '0'
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+
+            // For other buttons, render normally
             return (
               <button
                 key={item.id}

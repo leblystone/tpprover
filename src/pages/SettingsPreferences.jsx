@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings } from 'lucide-react'
+import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings, Shield, Eye, Database, Info } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -43,6 +43,10 @@ export default function SettingsPreferences() {
       orders: {
         ...defaultSettings.orders,
         ...(loadedSettings?.orders || {})
+      },
+      privacy: {
+        ...defaultSettings.privacy,
+        ...(loadedSettings?.privacy || {})
       }
     }
   })
@@ -225,6 +229,48 @@ export default function SettingsPreferences() {
               description="Include shipping in vial/mg price averages" 
               theme={theme} 
               icon={CircleDollarSign}
+              isLast={true}
+            />
+          </div>
+        </div>
+
+        {/* Privacy Settings */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Shield size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Privacy & Data
+            </h4>
+          </div>
+
+          <div 
+            className="px-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.privacy?.functional ?? true} 
+              onChange={v => update('privacy.functional', v)} 
+              label="Functional Cookies" 
+              description="Required for the app to work correctly" 
+              theme={theme} 
+              disabled
+              icon={Database}
+            />
+            <SettingToggle 
+              checked={settings.privacy?.analytics ?? true} 
+              onChange={v => update('privacy.analytics', v)} 
+              label="Analytics Cookies" 
+              description="Help improve the app with usage data" 
+              theme={theme} 
+              icon={Eye}
+            />
+            <SettingToggle 
+              checked={settings.privacy?.dataSharing ?? true} 
+              onChange={v => update('privacy.dataSharing', v)} 
+              label="Anonymous Usage Metrics" 
+              description="Share anonymous data to help improve the app" 
+              theme={theme} 
+              icon={Info}
               isLast={true}
             />
           </div>

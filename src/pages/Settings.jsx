@@ -50,9 +50,9 @@ export default function Settings() {
   ]
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
           <SettingsIcon size={32} style={{ color: theme.primary }} />
         </div>
@@ -66,10 +66,10 @@ export default function Settings() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Navigation Sections */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {settingsSections.map((section, index) => {
           const Icon = section.icon
           return (
@@ -77,7 +77,7 @@ export default function Settings() {
               key={index}
               type="button"
               onClick={() => navigate(section.path)}
-              className="group w-full p-5 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
               style={{
                 backgroundColor: theme.cardBackground,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
@@ -101,8 +101,8 @@ export default function Settings() {
                   </div>
                 </div>
                 <ChevronRight 
-                  size={18} 
-                  className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
+                  size={24} 
+                  className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
                   style={{ color: theme.text }} 
                 />
               </div>

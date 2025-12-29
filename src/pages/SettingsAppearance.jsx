@@ -36,9 +36,9 @@ export default function SettingsAppearance() {
   };
 
   return (
-    <section className="max-w-xl mx-auto space-y-8 pb-10">
+    <section className="max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
           className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
@@ -46,26 +46,21 @@ export default function SettingsAppearance() {
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <Palette size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Appearance</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Visual Interface & Themes
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Appearance</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Visual Interface & Themes
+            </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Theme Selection Section */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Palette size={16} style={{ color: theme.primary }} />
             <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -73,7 +68,7 @@ export default function SettingsAppearance() {
             </h4>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.keys(themes)
               // Only showing Sage and Dark for now as requested/implied by "ugly" selection
               .filter(themeKey => !['mauve', 'taupe', 'beekeeper'].includes(themeKey)) 
@@ -85,7 +80,7 @@ export default function SettingsAppearance() {
                   <button
                     key={themeKey}
                     onClick={() => handleThemeChange(themeKey)}
-                    className="group relative flex flex-col p-5 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
+                    className="group relative flex flex-col p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
                     style={{
                       backgroundColor: theme.cardBackground,
                       borderColor: isSelected ? theme.primary : 'transparent',
@@ -152,7 +147,7 @@ export default function SettingsAppearance() {
             
             {/* "More Coming" Placeholder Card */}
             <div 
-              className="flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-dashed opacity-40"
+              className="flex flex-col items-center justify-center p-4 rounded-[2rem] border-2 border-dashed opacity-40"
               style={{ borderColor: theme.border }}
             >
               <Sparkles size={24} style={{ color: theme.textLight }} className="mb-2" />
