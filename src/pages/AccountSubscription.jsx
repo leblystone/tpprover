@@ -86,10 +86,12 @@ export default function AccountSubscription() {
   const status = getStatus()
 
   const getSource = () => {
-    if (sub?.source === 'google_play') return 'Via Google Play'
-    if (sub?.source === 'apple') return 'Via Apple'
-    if (sub?.source === 'stripe' || sub?.paymentMethodId) return 'Via Stripe'
-    if (sub?.interval === 'lifetime' && !sub?.paymentMethodId) return 'Lifetime Kit Redemption (Upgrade)'
+    if (!sub) return ''
+    console.log('Subscription data:', sub) // Debug log
+    if (sub.source === 'google_play') return 'VIA GOOGLE PLAY'
+    if (sub.source === 'apple') return 'VIA APPLE'
+    if (sub.source === 'stripe' || sub.paymentMethodId) return 'VIA STRIPE'
+    if (sub.interval === 'lifetime' && !sub.paymentMethodId) return 'LIFETIME KIT REDEMPTION'
     return ''
   }
 
@@ -325,7 +327,9 @@ export default function AccountSubscription() {
             </div>
             <div>
               <div className="font-bold text-base" style={{ color: theme.text }}>Manage Billing</div>
-              <div className="text-xs opacity-60" style={{ color: theme.text }}>via Google Play</div>
+              {getSource() && (
+                <div className="text-xs opacity-60" style={{ color: theme.text }}>{getSource()}</div>
+              )}
             </div>
           </div>
           <ExternalLink size={16} className="opacity-40" style={{ color: theme.text }} />
