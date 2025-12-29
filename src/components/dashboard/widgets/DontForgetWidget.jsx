@@ -54,38 +54,45 @@ const DontForgetWidget = ({
     }
   }, []);
 
-  // Combine all tasks
-  const allTasks = useMemo(() => {
-    const tasks = [];
+  // Group tasks by type
+  const groupedTasks = useMemo(() => {
+    const groups = [];
     
-    // Add pending vendors
-    pendingVendors.forEach(vendor => {
-      tasks.push({
-        id: `vendor-${vendor.id}`,
-        type: 'vendor',
-        title: vendor.name,
-        subtitle: 'Complete vendor profile',
-        icon: Building2,
-        data: vendor,
-        priority: 1 // Vendors are medium priority
-      });
-    });
-    
-    // Add protocols needing follow-up
-    protocolsNeedingFollowUp.forEach(protocol => {
-      tasks.push({
-        id: `protocol-${protocol.id}`,
+    // Add protocol follow-ups group (higher priority)
+    if (protocolsNeedingFollowUp.length > 0) {
+      groups.push({
         type: 'protocol',
-        title: protocol.name,
-        subtitle: 'Add follow-up assessment',
+        title: 'Protocol Assessments',
         icon: ClipboardCheck,
-        data: protocol,
-        priority: 0 // Protocol follow-ups are higher priority
+        items: protocolsNeedingFollowUp.map(protocol => ({
+          id: `protocol-${protocol.id}`,
+          type: 'protocol',
+          title: protocol.name,
+          subtitle: 'Add follow-up assessment',
+          icon: ClipboardCheck,
+          data: protocol
+        }))
       });
-    });
+    }
     
-    // Sort by priority (lower number = higher priority)
-    return tasks.sort((a, b) => a.priority - b.priority);
+    // Add pending vendors group
+    if (pendingVendors.length > 0) {
+      groups.push({
+        type: 'vendor',
+        title: 'Vendor Profiles',
+        icon: Building2,
+        items: pendingVendors.map(vendor => ({
+          id: `vendor-${vendor.id}`,
+          type: 'vendor',
+          title: vendor.name,
+          subtitle: 'Complete vendor profile',
+          icon: Building2,
+          data: vendor
+        }))
+      });
+    }
+    
+    return groups;
   }, [pendingVendors, protocolsNeedingFollowUp]);
 
   const handleTaskClick = (task) => {
@@ -109,7 +116,8 @@ const DontForgetWidget = ({
   };
 
   // Don't render if no tasks
-  if (allTasks.length === 0) {
+  const totalTasks = groupedTasks.reduce((sum, group) => sum + group.items.length, 0);
+  if (totalTasks === 0) {
     return null;
   }
 
@@ -127,80 +135,113 @@ const DontForgetWidget = ({
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-y-auto min-h-0 space-y-2.5">
-        {allTasks.slice(0, 5).map((task) => {
-          const IconComponent = task.icon;
+      <div className="flex-1 p-4 overflow-y-auto min-h-0 space-y-4">
+        {groupedTasks.map((group, groupIndex) => {
+          const GroupIcon = group.icon;
+          const displayItems = group.items.slice(0, 5);
+          
           return (
-            <button
-              key={task.id}
-              onClick={() => handleTaskClick(task)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left group"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
-                e.currentTarget.style.borderColor = theme.primary;
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
-                e.currentTarget.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div 
-                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ 
-                  backgroundColor: task.type === 'vendor' 
-                    ? (theme.isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)')
-                    : (theme.isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.1)')
-                }}
-              >
-                <IconComponent 
-                  size={18} 
-                  style={{ 
-                    color: task.type === 'vendor'
-                      ? (theme.isDark ? '#60a5fa' : '#3b82f6')
-                      : (theme.isDark ? '#c084fc' : '#a855f7'),
-                    opacity: 0.85
-                  }} 
+            <div key={group.type} className="space-y-2">
+              {/* Group Header */}
+              <div className="flex items-center gap-2 px-1">
+                <GroupIcon 
+                  size={14} 
+                  style={{ color: theme.primary, opacity: 0.7 }} 
                 />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div 
-                  className="font-medium text-sm truncate"
-                  style={{ color: theme.text }}
-                  title={task.title}
+                <h4 
+                  className="text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: theme.textLight, opacity: 0.7 }}
                 >
-                  {task.title}
-                </div>
-                <div 
-                  className="text-xs truncate mt-0.5"
-                  style={{ color: theme.textLight, opacity: 0.8 }}
-                  title={task.subtitle}
+                  {group.title}
+                </h4>
+                <span 
+                  className="text-xs font-medium px-1.5 py-0.5 rounded"
+                  style={{ 
+                    color: theme.primary,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+                  }}
                 >
-                  {task.subtitle}
-                </div>
+                  {group.items.length}
+                </span>
               </div>
-              <ChevronRight 
-                size={16} 
-                className="flex-shrink-0 opacity-0 group-hover:opacity-70 transition-opacity"
-                style={{ color: theme.primary }} 
-              />
-            </button>
+              
+              {/* Group Items */}
+              <div className="space-y-2">
+                {displayItems.map((task) => {
+                  const IconComponent = task.icon;
+                  return (
+                    <button
+                      key={task.id}
+                      onClick={() => handleTaskClick(task)}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left group"
+                      style={{ 
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+                        e.currentTarget.style.borderColor = theme.primary;
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
+                        e.currentTarget.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <div 
+                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ 
+                          backgroundColor: theme.isDark 
+                            ? 'rgba(255,255,255,0.08)' 
+                            : 'rgba(0,0,0,0.04)'
+                        }}
+                      >
+                        <IconComponent 
+                          size={18} 
+                          style={{ 
+                            color: theme.primary,
+                            opacity: 0.85
+                          }} 
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div 
+                          className="font-medium text-sm truncate"
+                          style={{ color: theme.text }}
+                          title={task.title}
+                        >
+                          {task.title}
+                        </div>
+                        <div 
+                          className="text-xs truncate mt-0.5"
+                          style={{ color: theme.textLight, opacity: 0.8 }}
+                          title={task.subtitle}
+                        >
+                          {task.subtitle}
+                        </div>
+                      </div>
+                      <ChevronRight 
+                        size={16} 
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-70 transition-opacity"
+                        style={{ color: theme.primary }} 
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
       
-      {allTasks.length > 5 && (
+      {totalTasks > 5 && (
         <button 
           onClick={onViewAllVendors}
           className="px-4 pb-3 pt-1 text-xs text-center hover:underline transition-all duration-200"
           style={{ color: theme.primary, opacity: 0.8 }}
         >
-          View all {allTasks.length} items
+          View all {totalTasks} items
         </button>
       )}
     </div>
