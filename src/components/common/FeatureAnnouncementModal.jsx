@@ -58,7 +58,7 @@ export default function FeatureAnnouncementModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Release Notes"
+      title="Update"
       theme={theme}
       variant="modern"
       maxWidth="max-w-md"
@@ -76,7 +76,7 @@ export default function FeatureAnnouncementModal({
             A Fresh Experience
           </h2>
           <p className="text-sm opacity-60 leading-relaxed" style={{ color: theme?.text }}>
-            We've updated The Pep Planner with a focus on speed, clarity, and ease of use.
+            We've made The Pep Planner faster, smarter, and easier to use with helpful new features throughout.
           </p>
         </div>
 
@@ -84,14 +84,14 @@ export default function FeatureAnnouncementModal({
         <div className="space-y-6 px-4 mb-8">
           <div className="flex gap-4 group">
             <div className="flex-shrink-0 mt-0.5">
-              <FlaskConical size={20} style={{ color: theme?.primary }} strokeWidth={2} />
+              <Sparkles size={20} style={{ color: theme?.primary }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Smart Research Logic
+                Smarter Tracking
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                The app now intelligently switches units (like "sprays" for nasal) based on your delivery method. Dashboard tasks are also better organized by phase.
+                Units now change automatically based on what you pick—switch to nasal and it converts to "sprays." Your tasks are also grouped by day to keep you organized.
               </p>
             </div>
           </div>
@@ -102,38 +102,38 @@ export default function FeatureAnnouncementModal({
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Universal Search & Shortcuts
+                Find Anything Fast
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Find anything instantly with the new global search. You can also hold down the navigation icons to trigger quick shortcuts like "Add Protocol."
+                Use the new search bar to find logs, inventory, or orders in seconds. Hold down any menu icon for quick shortcuts too.
               </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Boxes size={20} style={{ color: theme?.success }} strokeWidth={2} />
+              <Monitor size={20} style={{ color: theme?.success }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Beta Rewards
+                Better Notifications
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Complete our new research survey to help shape the platform and receive automatic Lifetime Access as a thank you for your contribution.
+                Every action now gives you instant feedback. Plus, mobile users get subtle vibrations when tapping buttons or opening menus.
               </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Activity size={20} style={{ color: theme?.warning }} strokeWidth={2} />
+              <Layout size={20} style={{ color: theme?.warning }} strokeWidth={2} />
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Enhanced Feedback
+                Stay Updated
               </h4>
               <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                With 60+ new notifications and physical haptic feedback on mobile, the app now responds instantly to your every action.
+                We'll let you know when a new version is ready so you always have the latest features and improvements at your fingertips.
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function FeatureAnnouncementModal({
               boxShadow: `0 4px 12px ${theme?.primary}40`
             }}
           >
-            <span>Start Exploring</span>
+            <span>Happy Researching!</span>
             <ArrowRight size={18} />
           </button>
         </div>
