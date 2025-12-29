@@ -85,17 +85,6 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           >
             {dayNumber} <span className="opacity-50 mx-1">|</span> {monthAbbr}
           </div>
-
-          {/* Today Accent Line */}
-          {isToday && (
-            <div 
-              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 rounded-full"
-              style={{ 
-                backgroundColor: theme.primary,
-                boxShadow: `0 0 8px ${theme.primary}`
-              }}
-            />
-          )}
         </div>
 
         {/* Next Button */}

@@ -351,7 +351,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                 {/* Washout indicator - only show if enabled in settings */}
                                 {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
                                     <div className="mt-1">
-                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
+                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
                                             W
                                         </span>
                                     </div>

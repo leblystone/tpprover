@@ -53,6 +53,7 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/vendors', label: 'Vendors', icon: Store }
     ],
     more: [
+      { action: 'search', label: 'Search', icon: Search },
       { path: '/app/account', label: 'Account', icon: User },
       { path: '/app/settings', label: 'Settings', icon: Settings },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
@@ -68,10 +69,10 @@ export default function BottomNavigation({ theme }) {
     calendar: { action: () => navigate('/app/calendar'), label: 'Jump to Today', icon: Calendar }
   };
 
-  // Bottom nav items (now includes search)
+  // Bottom nav items
   const navItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
-    { id: 'search', label: 'Search', icon: Search, type: 'search' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
     { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon'] },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -110,9 +111,6 @@ export default function BottomNavigation({ theme }) {
       triggerHaptic('medium');
       // Toggle menu
       setExpandedMenu(expandedMenu === item.id ? null : item.id);
-    } else if (item.type === 'search') {
-      setShowSearch(true);
-      setExpandedMenu(null);
     }
   };
 
@@ -178,14 +176,18 @@ export default function BottomNavigation({ theme }) {
 
   const handleMenuItemClick = (menuItem) => {
     triggerHaptic('light');
-    if (menuItem.external) {
+    if (menuItem.action === 'search') {
+      setShowSearch(true);
+      setExpandedMenu(null);
+    } else if (menuItem.external) {
       window.open(menuItem.path, '_blank', 'noopener,noreferrer');
     } else if (menuItem.action) {
       window.dispatchEvent(new CustomEvent(menuItem.action));
+      setExpandedMenu(null);
     } else {
       navigate(menuItem.path);
+      setExpandedMenu(null);
     }
-    setExpandedMenu(null);
   };
 
   // Close search modal
@@ -195,43 +197,86 @@ export default function BottomNavigation({ theme }) {
 
   return (
     <>
-      {/* Search Modal */}
+      {/* Search Modal - Half Screen */}
       {showSearch && (
-        <div
-          className="lg:hidden fixed inset-0 z-[10000] flex flex-col"
-          style={{
-            backgroundColor: theme.background,
-            animation: 'slideUpFast 250ms ease-out'
-          }}
-        >
-          <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCloseSearch}
-                className="p-2 rounded-lg"
-                style={{ color: theme.text }}
-              >
-                ✕
-              </button>
-              <input
-                type="text"
-                placeholder="Search protocols, inventory, orders..."
-                autoFocus
-                className="flex-1 px-4 py-2 rounded-lg text-sm"
-                style={{
-                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
+        <>
+          {/* Backdrop */}
+          <div
+            className="lg:hidden fixed inset-0 z-[10000]"
+            onClick={handleCloseSearch}
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              animation: 'fadeIn 250ms ease-out'
+            }}
+          />
+          
+          {/* Half-screen search modal */}
+          <div
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-[10001] rounded-t-3xl shadow-2xl backdrop-blur-xl"
+            style={{
+              height: '50vh',
+              background: theme.isDark 
+                ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%)'
+                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%)',
+              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+              boxShadow: theme.isDark
+                ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+              animation: 'slideUpBounce 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)'
+            }}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+              <div 
+                className="w-10 h-1 rounded-full"
+                style={{ 
+                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)'
                 }}
               />
             </div>
+
+            {/* Search header */}
+            <div className="px-4 pb-4 border-b" style={{ borderColor: theme.border }}>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative">
+                  <Search 
+                    size={18} 
+                    className="absolute left-3 top-1/2 -translate-y-1/2"
+                    style={{ color: theme.textLight }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search protocols, inventory, orders..."
+                    autoFocus
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                      color: theme.text,
+                      border: `1px solid ${theme.border}`
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={handleCloseSearch}
+                  className="p-2 rounded-lg font-semibold text-sm"
+                  style={{ color: theme.primary }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+
+            {/* Search results */}
+            <div className="flex-1 overflow-auto p-4">
+              <p className="text-sm text-center" style={{ color: theme.textLight }}>
+                Start typing to search...
+              </p>
+            </div>
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            <p className="text-sm" style={{ color: theme.textLight }}>
-              Start typing to search...
-            </p>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Backdrop - click to close expanded menu */}
