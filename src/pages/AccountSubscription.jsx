@@ -195,13 +195,13 @@ export default function AccountSubscription() {
 
           {/* Beta Pricing Banner - Always show for beta users */}
           <div 
-            className="p-6 rounded-2xl text-center"
+            className="p-4 rounded-2xl text-center"
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
               border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`
             }}
           >
-            <div className="flex items-center justify-center gap-2.5 mb-2">
+            <div className="flex items-center justify-center gap-2.5 mb-1.5">
               <Lock size={20} style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' }} />
               <h3 className="text-base font-bold tracking-wide" style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)' }}>
                 BETA PRICING LOCKED
