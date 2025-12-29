@@ -382,8 +382,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
         }}
       >
+        {/* Left section - removed hamburger menu for mobile */}
         <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
-          {/* Mobile Menu Button */}
+          {/* Desktop: Keep hamburger for sidebar toggle */}
           <button 
             type="button"
             onMouseDown={(e) => {
@@ -399,7 +400,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               e.stopPropagation();
               onMenuClick();
             }}
-            className="lg:hidden no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95" 
+            className="hidden lg:block no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95" 
             style={{ 
               color: theme.text,
               WebkitTapHighlightColor: 'transparent',
@@ -408,23 +409,18 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
-            <Menu size={22} className="lg:hidden" />
+            <Menu size={22} />
           </button>
         </div>
           
-        {/* Tabs in Topbar - Center position */}
+        {/* Tabs in Topbar - Center position - Desktop */}
         {tabs && tabs.length > 0 && (
-          <div className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="hidden lg:flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2">
             {tabs.map(tab => (
               <button
                 key={tab.value}
                 type="button"
                 onMouseDown={(e) => {
-                  // Prevent blur events on mobile
-                  e.preventDefault();
-                }}
-                onTouchStart={(e) => {
-                  // Prevent blur events on touch devices
                   e.preventDefault();
                 }}
                 onClick={(e) => {
@@ -432,23 +428,18 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className={`px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg transition-all duration-200 relative whitespace-nowrap touch-manipulation ${
-                  activeTab === tab.value 
-                    ? 'shadow-sm' 
-                    : 'hover:bg-gray-800 hover:text-white hover:shadow'
-                }`}
+                className="px-2 py-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
                 style={{
-                  backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
-                  color: activeTab === tab.value ? theme.primary : theme.textLight,
+                  color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
                   WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
-                {/* Active indicator line */}
+                {/* Active indicator line - below text */}
                 {activeTab === tab.value && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
                     style={{ backgroundColor: theme.primary }}
                   />
                 )}
@@ -456,7 +447,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             ))}
             {onActionClick && (
               <div 
-                className="h-6 md:h-7 w-px mx-1 md:mx-2" 
+                className="h-6 w-px mx-2" 
                 style={{ backgroundColor: theme.border }}
               />
             )}
@@ -464,11 +455,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               <button 
                 type="button"
                 onMouseDown={(e) => {
-                  // Prevent blur events on mobile
-                  e.preventDefault();
-                }}
-                onTouchStart={(e) => {
-                  // Prevent blur events on touch devices
                   e.preventDefault();
                 }}
                 onClick={(e) => {
@@ -476,7 +462,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onActionClick();
                 }}
-                className="p-1.5 md:p-2 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 touch-manipulation" 
+                className="p-1.5 rounded-lg hover:opacity-90 transition-all duration-200 touch-manipulation" 
                 style={{ 
                   color: actionDisabled ? theme.textLight : '#ffffff', 
                   backgroundColor: actionDisabled ? theme.textLight : theme.primary,
@@ -487,7 +473,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 disabled={actionDisabled}
                 title="Add New"
               >
-                <Plus className="h-4 w-4 md:h-4 md:w-4" />
+                <Plus className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -496,15 +482,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Spacer to push icons to the right when no tabs */}
         {(!tabs || tabs.length === 0) && <div className="flex-1" />}
         
-        {/* Mobile tabs - show all tabs with scrollable container */}
+        {/* Mobile tabs - minimal underline style */}
         {tabs && tabs.length > 0 && (
           <div 
-            className="lg:hidden flex items-center gap-0.5 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2 overflow-x-auto mobile-tabs-container" 
+            className="lg:hidden flex items-center gap-3 absolute left-3 overflow-x-auto mobile-tabs-container" 
             style={{ 
-              backgroundColor: `${theme.primary}08`, 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
-              maxWidth: isSearchActive ? 'calc(100vw - 180px)' : 'calc(100vw - 80px)',
+              maxWidth: isSearchActive ? 'calc(100vw - 200px)' : 'calc(100vw - 120px)',
               transition: 'max-width 0.3s ease',
               willChange: 'max-width'
             }}
@@ -519,11 +504,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 key={tab.value}
                 type="button"
                 onMouseDown={(e) => {
-                  // Prevent blur events on mobile
                   e.preventDefault();
                 }}
                 onTouchStart={(e) => {
-                  // Prevent blur events on touch devices
                   e.preventDefault();
                 }}
                 onClick={(e) => {
@@ -531,23 +514,18 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className={`px-1.5 py-0.5 text-[10px] uppercase tracking-tighter rounded-lg transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation ${
-                  activeTab === tab.value 
-                    ? 'shadow-sm' 
-                    : 'hover:opacity-80'
-                }`}
+                className="px-1 py-2 text-xs capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation"
                 style={{
-                  backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
-                  color: activeTab === tab.value ? theme.primary : theme.textLight,
+                  color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
                   WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
-                {/* Active indicator line */}
+                {/* Active indicator line - below text */}
                 {activeTab === tab.value && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
                     style={{ backgroundColor: theme.primary }}
                   />
                 )}
