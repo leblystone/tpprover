@@ -12,6 +12,7 @@ import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
 import ImagePreviewModal from '../components/common/ImagePreviewModal'
 import StockpileCard from '../components/stockpile/StockpileCard'
+import StockpileGroupCard from '../components/stockpile/StockpileGroupCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
@@ -918,315 +919,89 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {groups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (items with empty/null names)
                     const isUnknownGroup = (g.name === 'Unknown' || !g.name || g.name.trim() === '');
                     
                     return (
-                    <div 
-                        key={g.name} 
-                        className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between cursor-pointer" 
-                        style={{ backgroundColor: theme.cardBackground }}
-                        onClick={() => {
-                            if (isReadOnly) {
-                                setShowUpgradeModal(true);
-                                return;
-                            }
-                            openManage(g.name);
+                      <StockpileGroupCard
+                        key={g.name}
+                        group={g}
+                        theme={theme}
+                        isUnknownGroup={isUnknownGroup}
+                        vendorMap={vendorMap}
+                        isReadOnly={isReadOnly}
+                        onCardClick={() => {
+                          if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          openManage(g.name);
                         }}
-                    >
-                        <div>
-                                {/* Unknown Group Alert Banner */}
-                                {isUnknownGroup && (
-                                    <div className="mb-3 p-2 rounded-lg text-center" style={{ 
-                                        backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                                        border: theme.isDark ? '1px solid #4b5563' : '1px solid #e5e7eb'
-                                    }}>
-                                        <p className="text-xs" style={{ color: theme.textLight }}>
-                                            Unnamed items - merge or delete to organize
-                                        </p>
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between mb-2">
-                                <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
-                                <div className="px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1" style={{ backgroundColor: isUnknownGroup ? '#c87a5c' : theme.primary, color: '#ffffff' }}>
-                                  {isUnknownGroup && <PenTool size={12} />}
-                                  {g.totalMg > 0 ? `${g.totalMg} ${g.unit || 'mg'}` : `${g.totalVials} ${g.totalVials === 1 ? 'vial' : 'vials'}`}
-                                </div>
-                            </div>
-                            <div className="space-y-3">
-                                {Object.values(g.variants).sort((a, b) => String(a.mg).localeCompare(String(b.mg))).map(v => (
-                                    <div key={v.mg} className="rounded-md shadow-sm p-3" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb' }}>
-                                        <div className="flex items-center justify-between text-sm mb-2">
-                                            <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
-                                            <div className="text-xs font-semibold">{v.totalVials} vials</div>
-                                        </div>
-                                        <ul className="mt-1 text-xs space-y-3">
-                                            {v.items.map(item => (
-                                                <li key={item.id} className="space-y-1">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 font-medium"><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
-                                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                                            {isUnknownGroup && (
-                                                                <>
-                                                                    <button 
-                                                                        title="Merge into another peptide" 
-                                                                        className="p-1 rounded-md transition-colors" 
-                                                                        style={{ color: theme.primary }} 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (isReadOnly) {
-                                                                                setShowUpgradeModal(true);
-                                                                                return;
-                                                                            }
-                                                                            handleMergeIndividualItem(item);
-                                                                        }}
-                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                    >
-                                                                        <Merge size={14} />
-                                                                    </button>
-                                                                    <button 
-                                                                        title="Delete this item" 
-                                                                        className="p-1 rounded-md transition-colors" 
-                                                                        style={{ color: '#c87a5c' }} 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (isReadOnly) {
-                                                                                setShowUpgradeModal(true);
-                                                                                return;
-                                                                            }
-                                                                            // Record deletion with item snapshot for restore functionality
-                                                                            recordDeletion('stockpile', item.id, item);
-                                                                            
-                                                                            // Delete the item directly
-                                                                            const updatedItems = items.filter(i => i.id !== item.id);
-                                                                            setItems(updatedItems);
-                                                                            
-                                                                            // Sync to cloud
-                                                                            if (firebaseUser) {
-                                                                                try {
-                                                                                    const userId = firebaseUser.uid;
-                                                                                    const appData = {
-                                                                                        protocols: protocols || [],
-                                                                                        reconItems: reconItems || [],
-                                                                                        reconHistory: reconHistory || [],
-                                                                                        supplements: supplements || [],
-                                                                                        orders: orders || [],
-                                                                                        metrics: metrics || [],
-                                                                                        vendors: vendors || [],
-                                                                                        calendarNotes: calendarNotes || {},
-                                                                                        stockpile: updatedItems,
-                                                                                        scheduledBuys: scheduledBuys || []
-                                                                                    };
-                                                                                    saveAppData(userId, appData, { skipMerge: true });
-                                                                                } catch (e) {
-                                                                                    console.error('Failed to sync deleted item to cloud:', e);
-                                                                                }
-                                                                            }
-                                                                            
-                                                                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                                                                detail: { 
-                                                                                    message: 'Item deleted', 
-                                                                                    type: 'success' 
-                                                                                } 
-                                                                            }));
-                                                                        }}
-                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#7c2d12' : '#fef3c7'}
-                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                    >
-                                                                        <X size={14} />
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            {item.orderId && (
-                                                                <button 
-                                                                    title="View Source Order" 
-                                                                    className="p-1 rounded-md transition-colors" 
-                                                                    style={{ color: theme.primary }} 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        navigate(`/app/orders`, { state: { openOrderId: item.orderId } });
-                                                                    }}
-                                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                >
-                                                                    <ShoppingCart size={14} />
-                                                                </button>
-                                                            )}
-                                                            {!isUnknownGroup && (
-                                                                <button 
-                                                                    title="Send to Recon Calculator" 
-                                                                    className="p-1 rounded-md transition-colors" 
-                                                                    style={{ color: theme.primary }} 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        try {
-                                                                            // Cost is already per vial in stockpile, so use it directly
-                                                                            const payload = { 
-                                                                                peptide: g.name, 
-                                                                                mg: String(item.mg), 
-                                                                                mgUnit: item.mgUnit || 'mg', // Include mgUnit to preserve unit context
-                                                                                vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
-                                                                                vendorId: item.vendorId || null, // Include vendorId for proper vendor linking
-                                                                                cost: item.cost || '',
-                                                                                costPerMg: item.costPerMg || '', // Include costPerMg if available (may be cost per mg/g/ml/iu)
-                                                                                stockpileId: item.id,
-                                                                                quantity: item.quantity,
-                                                                                unit: item.unit,
-                                                                                quantityUsed: 1
-                                                                            };
-                                                                            localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                                            navigate('/app/recon');
-                                                                        } catch { }
-                                                                    }}
-                                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                >
-                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {item.date && <div className="text-xs text-gray-400 pl-5">Acquired: {new Date(item.date).toLocaleDateString()}</div>}
-                                                    {item.useByDate && (
-                                                        (() => {
-                                                            const useByStatus = getUseByStatus(item.useByDate);
-                                                            return (
-                                                                <div className={`text-xs pl-5 px-2 py-1 rounded-md inline-block ${useByStatus ? `${useByStatus.color} ${useByStatus.bgColor}` : 'text-gray-400'}`}>
-                                                                    Use By: {new Date(item.useByDate).toLocaleDateString()}
-                                                                    {useByStatus?.status === 'expired' && ' (EXPIRED)'}
-                                                                    {useByStatus?.status === 'expiring' && ' (Expiring Soon)'}
-                                                                </div>
-                                                            );
-                                                        })()
-                                                    )}
-                                                    {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
-                                                    {item.documentation && item.documentation.length > 0 && (
-                                                        <div className="text-xs pl-5 mt-1 space-y-1">
-                                                                    {item.documentation.map((doc, index) => (
-                                                                <div key={index} className="flex items-center gap-1.5">
-                                                                    {doc.type === 'image' ? (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setPreviewImage(doc);
-                                                                            }}
-                                                                            className="flex items-center gap-1.5 p-1 rounded hover:bg-opacity-20 transition-all"
-                                                                            style={{ 
-                                                                                color: theme.primary
-                                                                            }}
-                                                                            title={`View ${doc.title}`}
-                                                                        >
-                                                                            <ImageIcon size={12} />
-                                                                            <span className="text-xs hover:underline">{doc.title}</span>
-                                                                        </button>
-                                                                    ) : (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleCopyLink(doc.url, doc.title);
-                                                                            }}
-                                                                            className="flex items-center gap-1.5 p-1 rounded hover:bg-opacity-20 transition-all"
-                                                                            style={{ 
-                                                                                color: theme.primary
-                                                                            }}
-                                                                            title={`Copy ${doc.title} link`}
-                                                                        >
-                                                                            <LinkIcon size={12} />
-                                                                            <span className="text-xs hover:underline">{doc.title}</span>
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    <>
-                                                        <div className="flex items-center gap-2 pl-5">
-                                                            <Hash size={12} />
-                                                            <span>{item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'} {Number(item.quantity) <= 2 && <span className="text-red-500 font-semibold ml-1">Low</span>}</span>
-                                                        </div>
-                                                        {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
-                                                            <div className="flex items-center gap-2 pl-5">
-                                                                <DollarSign size={12} />
-                                                                <span>{formatCurrency(Number(item.cost) / Number(item.mg))} / {item.mgUnit || 'mg'}</span>
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                    {item.notes && (
-                                                        <div className="flex items-start gap-2 pl-5 mt-1 text-gray-500">
-                                                            <FileText size={12} className="mt-0.5" />
-                                                            <p className="text-xs italic">{item.notes}</p>
-                                                        </div>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="mt-4 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                            {/* For Unknown groups, no merge button (each item has its own); for others, show icon button */}
-                            {!isUnknownGroup && (
-                                <>
-                                    <button 
-                                      className="p-1 rounded-md transition-colors" 
-                                      style={{ 
-                                        color: theme.primary,
-                                        opacity: isReadOnly ? 0.6 : 1,
-                                        cursor: isReadOnly ? 'not-allowed' : 'pointer'
-                                      }} 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isReadOnly) {
-                                          setShowUpgradeModal(true);
-                                          return;
-                                        }
-                                        // Find another group to merge with (show selection modal)
-                                        const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0);
-                                        if (otherGroups.length > 0) {
-                                          setMergeSourceGroup(g);
-                                          setShowMergeSelectionModal(true);
-                                        } else {
-                                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                            detail: { 
-                                              message: 'No other groups available to merge with', 
-                                              type: 'info' 
-                                            } 
-                                          }));
-                                        }
-                                      }}
-                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      title="Merge with another group"
-                                    >
-                                        <Merge size={16} />
-                                    </button>
-                                    <button 
-                                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" 
-                                      style={{ 
-                                        backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
-                                        color: theme.textOnPrimary,
-                                        opacity: isReadOnly ? 0.6 : 1,
-                                        cursor: isReadOnly ? 'not-allowed' : 'pointer'
-                                      }} 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isReadOnly) {
-                                          setShowUpgradeModal(true);
-                                          return;
-                                        }
-                                        openManage(g.name);
-                                      }}
-                                    >
-                                        <Edit size={14} /> Manage
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                        onMergeIndividualItem={handleMergeIndividualItem}
+                        onDeleteItem={(item) => {
+                          // Record deletion with item snapshot for restore functionality
+                          recordDeletion('stockpile', item.id, item);
+                          
+                          // Delete the item directly
+                          const updatedItems = items.filter(i => i.id !== item.id);
+                          setItems(updatedItems);
+                          
+                          // Sync to cloud
+                          if (firebaseUser) {
+                            try {
+                              const userId = firebaseUser.uid;
+                              const appData = {
+                                protocols: protocols || [],
+                                reconItems: reconItems || [],
+                                reconHistory: reconHistory || [],
+                                supplements: supplements || [],
+                                orders: orders || [],
+                                metrics: metrics || [],
+                                vendors: vendors || [],
+                                calendarNotes: calendarNotes || {},
+                                stockpile: updatedItems,
+                                scheduledBuys: scheduledBuys || []
+                              };
+                              saveAppData(userId, appData, { skipMerge: true });
+                            } catch (e) {
+                              console.error('Failed to sync deleted item to cloud:', e);
+                            }
+                          }
+                          
+                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                            detail: { 
+                              message: 'Item deleted', 
+                              type: 'success' 
+                            } 
+                          }));
+                        }}
+                        onViewOrder={(orderId) => {
+                          navigate(`/app/orders`, { state: { openOrderId: orderId } });
+                        }}
+                        onSendToRecon={(item, group) => {
+                          try {
+                            const payload = { 
+                              peptide: group.name, 
+                              mg: String(item.mg), 
+                              mgUnit: item.mgUnit || 'mg',
+                              vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
+                              vendorId: item.vendorId || null,
+                              cost: item.cost || '',
+                              costPerMg: item.costPerMg || '',
+                              stockpileId: item.id,
+                              quantity: item.quantity,
+                              unit: item.unit,
+                              quantityUsed: 1
+                            };
+                            localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
+                            navigate('/app/recon');
+                          } catch { }
+                        }}
+                        onPreviewImage={setPreviewImage}
+                        getUseByStatus={getUseByStatus}
+                      />
                     );
                 })}
             </div>

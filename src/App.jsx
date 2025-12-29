@@ -2,6 +2,7 @@ import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
+import BottomNavigation from './components/navigation/BottomNavigation'
 import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
@@ -391,6 +392,9 @@ function App() {
             </SubscriptionGuard>
           </Suspense>
         </main>
+        
+        {/* Bottom Navigation - Mobile & Tablet Only */}
+        <BottomNavigation theme={theme} />
       </div>
       <MobileNav 
         theme={theme} 

@@ -106,8 +106,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     return (
         <div className="space-y-4">
                 {/* Peptide Information - Horizontal Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
-                    <div className="lg:col-span-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-end">
+                    <div>
                         <TextInput 
                             label="Peptide Name" 
                             value={item.name || ''} 
@@ -120,39 +120,41 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         />
                     </div>
                     
-                    <div className="lg:col-span-4">
-                        <CombinedDosageInput
-                            value={item.dosage || { amount: '', unit: 'mcg' }}
-                            onChange={(newDosage) => {
-                                // Update only dosage, do NOT sync to units text box
-                                onChange({ 
+                    <div className="grid grid-cols-3 gap-3 items-end">
+                        <div className="col-span-2">
+                            <CombinedDosageInput
+                                value={item.dosage || { amount: '', unit: 'mcg' }}
+                                onChange={(newDosage) => {
+                                    // Update only dosage, do NOT sync to units text box
+                                    onChange({ 
+                                        ...item, 
+                                        dosage: newDosage
+                                    });
+                                }}
+                                theme={theme}
+                                deliveryMethod={item.deliveryMethod}
+                                placeholder="250"
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow
+                            />
+                        </div>
+                        
+                        <div className="col-span-1">
+                            <TextInput
+                                label="Units"
+                                value={item.unitValue || ''}
+                                onChange={v => onChange({ 
                                     ...item, 
-                                    dosage: newDosage
-                                });
-                            }}
-                            theme={theme}
-                            deliveryMethod={item.deliveryMethod}
-                            placeholder="250"
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
-                    
-                    <div className="lg:col-span-2">
-                        <TextInput
-                            label="Units"
-                            value={item.unitValue || ''}
-                            onChange={v => onChange({ 
-                                ...item, 
-                                unitValue: v
-                            })}
-                            placeholder="10"
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
+                                    unitValue: v
+                                })}
+                                placeholder="10"
+                                theme={theme}
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -173,9 +175,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     <button 
                                         type="button"
                                         onClick={() => {
-                                            handleChange('deliveryMethod', 'pipette');
-                                            if (!item.injectionType) handleChange('injectionType', 'SubQ');
-                                            if (item.dosage?.unit === 'sprays') handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                            // Batch all changes into a single state update to prevent lag
+                                            const updates = { 
+                                                ...item, 
+                                                deliveryMethod: 'pipette'
+                                            };
+                                            if (!item.injectionType) updates.injectionType = 'SubQ';
+                                            if (item.dosage?.unit === 'sprays') {
+                                                updates.dosage = { ...item.dosage, unit: 'mcg' };
+                                            }
+                                            onChange(updates);
                                         }}
                                         className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
                                         style={{
@@ -189,8 +198,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     <button 
                                         type="button"
                                         onClick={() => {
-                                            handleChange('deliveryMethod', 'pen');
-                                            if (item.dosage?.unit === 'sprays') handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                            // Batch all changes into a single state update to prevent lag
+                                            const updates = { 
+                                                ...item, 
+                                                deliveryMethod: 'pen'
+                                            };
+                                            if (item.dosage?.unit === 'sprays') {
+                                                updates.dosage = { ...item.dosage, unit: 'mcg' };
+                                            }
+                                            onChange(updates);
                                         }}
                                         className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
                                         style={{
@@ -204,8 +220,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     <button 
                                         type="button"
                                         onClick={() => {
-                                            handleChange('deliveryMethod', 'nasal');
-                                            if (!item.dosage || item.dosage.unit !== 'sprays') handleChange('dosage', { ...item.dosage, unit: 'sprays' });
+                                            // Batch all changes into a single state update to prevent lag
+                                            const updates = { 
+                                                ...item, 
+                                                deliveryMethod: 'nasal'
+                                            };
+                                            if (!item.dosage || item.dosage.unit !== 'sprays') {
+                                                updates.dosage = { ...item.dosage, unit: 'sprays' };
+                                            }
+                                            onChange(updates);
                                         }}
                                         className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
                                         style={{

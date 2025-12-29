@@ -25,6 +25,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [saveError, setSaveError] = useState(null);
     const [isDurationFocused, setIsDurationFocused] = useState(false);
     const [isWashoutFocused, setIsWashoutFocused] = useState(false);
+    const [isDurationUnitDropdownOpen, setIsDurationUnitDropdownOpen] = useState(false);
+    const [isWashoutUnitDropdownOpen, setIsWashoutUnitDropdownOpen] = useState(false);
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -658,76 +660,140 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <span className="text-sm" style={{ color: theme.text }}>No end date</span>
                                 </div>
                             </div>
-                            <div className="relative">
-                                {/* Combined Input with Pill Selector - Outlined Style */}
-                                <div 
-                                    className="flex items-stretch rounded-lg"
-                                    style={{ 
-                                        border: `1px solid #f0eee7`,
-                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                        opacity: form.duration?.noEnd ? 0.5 : 1
-                                    }}
-                                >
-                                    <input 
-                                        type="text"
-                                        id="duration-input"
-                                        value={form.duration?.noEnd ? '' : (form.duration?.count ?? '')}
-                                        onChange={e => handleDurationChange('count', e.target.value)}
-                                        onFocus={() => setIsDurationFocused(true)}
-                                        onBlur={() => setIsDurationFocused(false)}
-                                        placeholder=" "
-                                        disabled={form.duration?.noEnd}
-                                        className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
-                                        style={{ 
-                                            backgroundColor: 'transparent',
-                                            color: theme.isDark ? theme.text : '#181A18',
-                                            border: 'none'
-                                        }}
-                                    />
-                                    
-                                    {/* Unit Selector Pills */}
+                            {!form.duration?.noEnd && (
+                                <div className="relative">
+                                    {/* Combined Input with Dropdown Selector */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                                        className="flex items-stretch rounded-lg"
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                                            border: `1px solid ${isDurationFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                                         }}
                                     >
-                                        {['Day', 'Week', 'Month'].map(unit => (
-                                            <button 
-                                                key={unit}
-                                                type="button"
-                                                onClick={() => !form.duration?.noEnd && handleDurationChange('unit', unit)}
-                                                disabled={form.duration?.noEnd}
-                                                className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                                    (form.duration?.unit === unit && !form.duration?.noEnd)
-                                                        ? 'text-white shadow-sm'
-                                                        : 'text-gray-600 hover:bg-gray-200'
-                                                }`}
-                                                style={(form.duration?.unit === unit && !form.duration?.noEnd) ? { backgroundColor: theme.primary } : {}}
-                                            >
-                                                {unit}
-                                            </button>
-                                        ))}
+                                        <input 
+                                            type="text"
+                                            id="duration-input"
+                                            value={form.duration?.count ?? ''}
+                                            onChange={e => handleDurationChange('count', e.target.value)}
+                                            onFocus={() => setIsDurationFocused(true)}
+                                            onBlur={(e) => {
+                                                setTimeout(() => {
+                                                    const relatedTarget = e.relatedTarget || document.activeElement;
+                                                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]');
+                                                    if (!isClickingDropdown && !isDurationUnitDropdownOpen) {
+                                                        setIsDurationFocused(false);
+                                                    }
+                                                }, 150);
+                                            }}
+                                            placeholder=" "
+                                            className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                            style={{ 
+                                                backgroundColor: 'transparent',
+                                                color: theme.isDark ? theme.text : '#181A18',
+                                                border: 'none',
+                                                paddingLeft: '12px',
+                                                paddingRight: '8px'
+                                            }}
+                                        />
+                                        
+                                        {/* Unit Dropdown Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDurationUnitDropdownOpen(!isDurationUnitDropdownOpen)}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onTouchStart={(e) => e.preventDefault()}
+                                            className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                            data-dropdown-container
+                                            style={{ 
+                                                borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                                backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                                color: theme.isDark ? theme.text : '#181A18',
+                                                minWidth: '90px'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                            }}
+                                        >
+                                            <span className="text-sm font-semibold">
+                                                {form.duration?.unit || 'Week'}
+                                            </span>
+                                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                        </button>
+                                        {isDurationUnitDropdownOpen && (
+                                            <div className="relative" data-dropdown-container>
+                                                <div 
+                                                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                                    style={{
+                                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                        borderColor: theme.border,
+                                                        minWidth: '100px',
+                                                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                    }}
+                                                >
+                                                    {['Day', 'Week', 'Month'].map((unit, idx) => (
+                                                        <React.Fragment key={unit}>
+                                                            {idx > 0 && (
+                                                                <div 
+                                                                    className="h-px mx-2"
+                                                                    style={{ backgroundColor: theme.border }}
+                                                                />
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onTouchStart={(e) => e.preventDefault()}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    handleDurationChange('unit', unit);
+                                                                    setIsDurationUnitDropdownOpen(false);
+                                                                }}
+                                                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                                style={{
+                                                                    color: form.duration?.unit === unit ? theme.primary : theme.text,
+                                                                    backgroundColor: 'transparent',
+                                                                    WebkitTapHighlightColor: 'transparent'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                    e.currentTarget.style.color = theme.primary;
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                                    e.currentTarget.style.color = form.duration?.unit === unit ? theme.primary : theme.text;
+                                                                }}
+                                                            >
+                                                                {unit}
+                                                            </button>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    <label 
+                                        htmlFor="duration-input"
+                                        className="absolute pointer-events-none transition-all"
+                                        style={{
+                                            fontSize: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '0.75rem' : '0.9375rem',
+                                            top: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '-8px' : '14px',
+                                            left: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '12px' : '16px',
+                                            padding: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '0 4px' : '0',
+                                            background: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                            color: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? theme.primary : (theme.textLight || theme.text),
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        Duration
+                                    </label>
                                 </div>
-                                <label 
-                                    htmlFor="duration-input"
-                                    className="absolute pointer-events-none transition-all"
-                                    style={{
-                                        fontSize: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '0.75rem' : '0.9375rem',
-                                        top: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '-8px' : '14px',
-                                        left: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '12px' : '16px',
-                                        padding: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '0 4px' : '0',
-                                        background: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                                        color: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? theme.primary : (theme.textLight || theme.text),
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    Duration
-                                </label>
-                            </div>
+                            )}
                         </div>
                         
                         <div className="space-y-3">
@@ -740,76 +806,140 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
                                 </div>
                             </div>
-                            <div className="relative">
-                                {/* Combined Input with Pill Selector - Outlined Style */}
-                                <div 
-                                    className="flex items-stretch rounded-lg"
-                                    style={{ 
-                                        border: `1px solid #f0eee7`,
-                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                        opacity: !form.washout?.enabled ? 0.5 : 1
-                                    }}
-                                >
-                                    <input 
-                                        type="text"
-                                        id="washout-input"
-                                        value={form.washout?.enabled ? (form.washout?.duration ?? '') : ''}
-                                        onChange={e => handleWashoutChange('duration', e.target.value)}
-                                        onFocus={() => setIsWashoutFocused(true)}
-                                        onBlur={() => setIsWashoutFocused(false)}
-                                        placeholder=" "
-                                        disabled={!form.washout?.enabled}
-                                        className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
-                                        style={{ 
-                                            backgroundColor: 'transparent',
-                                            color: theme.isDark ? theme.text : '#181A18',
-                                            border: 'none'
-                                        }}
-                                    />
-                                    
-                                    {/* Unit Selector Pills */}
+                            {form.washout?.enabled && (
+                                <div className="relative">
+                                    {/* Combined Input with Dropdown Selector */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                                        className="flex items-stretch rounded-lg"
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                                            border: `1px solid ${isWashoutFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                                         }}
                                     >
-                                        {['Day', 'Week', 'Month'].map(unit => (
-                                            <button 
-                                                key={unit}
-                                                type="button"
-                                                onClick={() => form.washout?.enabled && handleWashoutChange('unit', unit)}
-                                                disabled={!form.washout?.enabled}
-                                                className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                                    (form.washout?.unit === unit && form.washout?.enabled)
-                                                        ? 'text-white shadow-sm'
-                                                        : 'text-gray-600 hover:bg-gray-200'
-                                                }`}
-                                                style={(form.washout?.unit === unit && form.washout?.enabled) ? { backgroundColor: theme.primary } : {}}
-                                            >
-                                                {unit}
-                                            </button>
-                                        ))}
+                                        <input 
+                                            type="text"
+                                            id="washout-input"
+                                            value={form.washout?.duration ?? ''}
+                                            onChange={e => handleWashoutChange('duration', e.target.value)}
+                                            onFocus={() => setIsWashoutFocused(true)}
+                                            onBlur={(e) => {
+                                                setTimeout(() => {
+                                                    const relatedTarget = e.relatedTarget || document.activeElement;
+                                                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]');
+                                                    if (!isClickingDropdown && !isWashoutUnitDropdownOpen) {
+                                                        setIsWashoutFocused(false);
+                                                    }
+                                                }, 150);
+                                            }}
+                                            placeholder=" "
+                                            className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                            style={{ 
+                                                backgroundColor: 'transparent',
+                                                color: theme.isDark ? theme.text : '#181A18',
+                                                border: 'none',
+                                                paddingLeft: '12px',
+                                                paddingRight: '8px'
+                                            }}
+                                        />
+                                        
+                                        {/* Unit Dropdown Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsWashoutUnitDropdownOpen(!isWashoutUnitDropdownOpen)}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onTouchStart={(e) => e.preventDefault()}
+                                            className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                            data-dropdown-container
+                                            style={{ 
+                                                borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                                backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                                color: theme.isDark ? theme.text : '#181A18',
+                                                minWidth: '90px'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                            }}
+                                        >
+                                            <span className="text-sm font-semibold">
+                                                {form.washout?.unit || 'Week'}
+                                            </span>
+                                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                        </button>
+                                        {isWashoutUnitDropdownOpen && (
+                                            <div className="relative" data-dropdown-container>
+                                                <div 
+                                                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                                    style={{
+                                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                        borderColor: theme.border,
+                                                        minWidth: '100px',
+                                                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                    }}
+                                                >
+                                                    {['Day', 'Week', 'Month'].map((unit, idx) => (
+                                                        <React.Fragment key={unit}>
+                                                            {idx > 0 && (
+                                                                <div 
+                                                                    className="h-px mx-2"
+                                                                    style={{ backgroundColor: theme.border }}
+                                                                />
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onTouchStart={(e) => e.preventDefault()}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    handleWashoutChange('unit', unit);
+                                                                    setIsWashoutUnitDropdownOpen(false);
+                                                                }}
+                                                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                                style={{
+                                                                    color: form.washout?.unit === unit ? theme.primary : theme.text,
+                                                                    backgroundColor: 'transparent',
+                                                                    WebkitTapHighlightColor: 'transparent'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                    e.currentTarget.style.color = theme.primary;
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                                    e.currentTarget.style.color = form.washout?.unit === unit ? theme.primary : theme.text;
+                                                                }}
+                                                            >
+                                                                {unit}
+                                                            </button>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    <label 
+                                        htmlFor="washout-input"
+                                        className="absolute pointer-events-none transition-all"
+                                        style={{
+                                            fontSize: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '0.75rem' : '0.9375rem',
+                                            top: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '-8px' : '14px',
+                                            left: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '12px' : '16px',
+                                            padding: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '0 4px' : '0',
+                                            background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                            color: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? theme.primary : (theme.textLight || theme.text),
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        Washout Period
+                                    </label>
                                 </div>
-                                <label 
-                                    htmlFor="washout-input"
-                                    className="absolute pointer-events-none transition-all"
-                                    style={{
-                                        fontSize: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '0.75rem' : '0.9375rem',
-                                        top: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '-8px' : '14px',
-                                        left: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '12px' : '16px',
-                                        padding: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '0 4px' : '0',
-                                        background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                                        color: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? theme.primary : (theme.textLight || theme.text),
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    Washout Period
-                                </label>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>

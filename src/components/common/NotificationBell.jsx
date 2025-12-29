@@ -34,6 +34,7 @@ export default function NotificationBell({ theme }) {
   const [buttonPosition, setButtonPosition] = useState({ top: 0, right: 0 });
   const notificationRef = useRef(null);
   const buttonRef = useRef(null);
+  const panelRef = useRef(null);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -123,7 +124,11 @@ export default function NotificationBell({ theme }) {
   // Handle click outside to close notifications panel
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      // Check if click is outside both the button AND the panel
+      const isOutsideButton = notificationRef.current && !notificationRef.current.contains(event.target);
+      const isOutsidePanel = panelRef.current && !panelRef.current.contains(event.target);
+      
+      if (isOutsideButton && isOutsidePanel) {
         setShowNotifications(false);
       }
     };
@@ -370,18 +375,19 @@ export default function NotificationBell({ theme }) {
       {showNotifications && createPortal(
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0" style={{ zIndex: 2147483646 }} onClick={() => setShowNotifications(false)} />
           <div 
-            className="notification-overlay w-80 max-h-96 rounded-lg border shadow-xl ring-1 ring-black/10"
+            className="fixed inset-0" 
+            style={{ zIndex: 2147483646 }} 
+          />
+          <div 
+            ref={panelRef}
+            className="notification-overlay fixed w-80 max-h-96 rounded-lg border shadow-xl ring-1 ring-black/10"
             style={{ 
               backgroundColor: theme.cardBackground, 
               borderColor: theme.border,
               top: `${buttonPosition.top}px`,
-              right: `${buttonPosition.right}px`
-            }}
-            onClick={(e) => {
-              // Only stop propagation to prevent closing, but allow internal clicks
-              e.stopPropagation();
+              right: `${buttonPosition.right}px`,
+              zIndex: 2147483647
             }}
           >
         {/* Header with tabs */}
