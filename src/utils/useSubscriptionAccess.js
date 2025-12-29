@@ -13,6 +13,8 @@ export function useSubscriptionAccess() {
   const [isLoading, setIsLoading] = useState(true); // Track if we're still loading subscription data
   const [hasCheckedLifetime, setHasCheckedLifetime] = useState(false); // Track if we've checked lifetime access
   const lifetimeCheckStarted = useRef(false); // Track if check has started
+  const lastProcessedSubscriptionRef = useRef(null); // Track last processed subscription to prevent re-processing
+  const isProcessingRef = useRef(false); // Prevent concurrent processing
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
@@ -137,7 +139,15 @@ export function useSubscriptionAccess() {
 
   useEffect(() => {
     const checkSubscriptionAccess = async () => {
+      // Prevent concurrent processing
+      if (isProcessingRef.current) {
+        console.log('⏸️ Already processing subscription - skipping duplicate check');
+        return;
+      }
+      
       try {
+        isProcessingRef.current = true;
+        
         // CRITICAL: Don't show trial expired during signup flow
         const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
         if (signupInProgress === 'true') {
@@ -148,6 +158,21 @@ export function useSubscriptionAccess() {
 
         // Use subscription from cloud storage (via AppContext), with localStorage fallback
         let effectiveSubscription = subscription;
+        
+        // STABILITY: Skip re-processing if subscription hasn't changed
+        const subKey = effectiveSubscription ? JSON.stringify({
+          status: effectiveSubscription.status,
+          interval: effectiveSubscription.interval,
+          plan: effectiveSubscription.plan,
+          currentPeriodEnd: effectiveSubscription.currentPeriodEnd,
+          hasLifetimeAccess: effectiveSubscription.hasLifetimeAccess
+        }) : 'null';
+        
+        if (lastProcessedSubscriptionRef.current === subKey) {
+          console.log('✓ Subscription unchanged - skipping re-process');
+          isProcessingRef.current = false;
+          return;
+        }
         
         console.log('🔍 Checking subscription access...');
         console.log('  - Cloud subscription:', subscription);
@@ -170,6 +195,9 @@ export function useSubscriptionAccess() {
         // Mark loading as complete - we have data to work with (or confirmed there is none)
         setIsLoading(false);
         console.log('  - Loading complete, processing subscription...');
+        
+        // Store that we've processed this subscription
+        lastProcessedSubscriptionRef.current = subKey;
         
         // If no subscription found after checking all sources
         if (!effectiveSubscription) {
@@ -313,33 +341,39 @@ export function useSubscriptionAccess() {
           subscriptionStatus: 'error',
           subscriptionInterval: null,
         });
+      } finally {
+        isProcessingRef.current = false;
       }
     };
 
     // Check immediately
     checkSubscriptionAccess();
     
-    // Also check after a short delay to catch subscriptions that load after initial render
+    // Also check after a longer delay to catch subscriptions that load after initial render
+    // Increased from 500ms to 2000ms to reduce excessive checking
     const delayedCheck = setTimeout(() => {
       checkSubscriptionAccess();
-    }, 500);
+    }, 2000);
 
     // Listen for subscription updates
     const handleSubscriptionUpdate = () => {
+      // Reset the last processed key so it will re-process
+      lastProcessedSubscriptionRef.current = null;
       checkSubscriptionAccess();
     };
 
     window.addEventListener('subscription:updated', handleSubscriptionUpdate);
 
-    // Check every minute for trial expiration
-    const interval = setInterval(checkSubscriptionAccess, 60000);
+    // Check every 5 minutes for trial expiration (reduced from 1 minute)
+    // Less frequent checks reduce console spam and unnecessary processing
+    const interval = setInterval(checkSubscriptionAccess, 300000);
 
     return () => {
       clearTimeout(delayedCheck);
       window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
       clearInterval(interval);
     };
-  }, [subscription, isLoading, firebaseUser, hasCheckedLifetime]); // CRITICAL: Add hasCheckedLifetime so it re-runs when check completes!
+  }, [subscription, firebaseUser, hasCheckedLifetime]); // Removed isLoading from deps to prevent re-triggering
 
   return { ...accessInfo, isLoading };
 }
