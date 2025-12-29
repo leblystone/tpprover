@@ -448,18 +448,19 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onActionClick();
                 }}
-                className="p-1.5 rounded-lg hover:opacity-90 transition-all duration-200 touch-manipulation" 
+                className="p-1.5 rounded-lg hover:scale-110 active:scale-95 hover:opacity-80 transition-all duration-200 touch-manipulation" 
                 style={{ 
-                  color: actionDisabled ? theme.textLight : '#ffffff', 
-                  backgroundColor: actionDisabled ? theme.textLight : theme.primary,
-                  opacity: actionDisabled ? 0.6 : 1,
+                  color: actionDisabled ? theme.textLight : theme.primary, 
+                  backgroundColor: actionDisabled ? 'transparent' : `${theme.primary}10`,
+                  border: `1.5px solid ${actionDisabled ? theme.border : theme.primary}`,
+                  opacity: actionDisabled ? 0.4 : 1,
                   cursor: actionDisabled ? 'not-allowed' : 'pointer',
                   WebkitTapHighlightColor: 'transparent'
                 }} 
                 disabled={actionDisabled}
                 title="Add New"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -540,18 +541,19 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 e.stopPropagation();
                 onActionClick();
               }}
-              className="lg:hidden p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0 touch-manipulation" 
+              className="lg:hidden p-1.5 rounded-lg hover:scale-110 active:scale-95 transition-all duration-200 flex-shrink-0 touch-manipulation" 
               style={{ 
-                color: actionDisabled ? theme.textLight : '#ffffff', 
-                backgroundColor: actionDisabled ? theme.textLight : theme.primary,
-                opacity: actionDisabled ? 0.6 : 1,
+                color: actionDisabled ? theme.textLight : theme.primary, 
+                backgroundColor: actionDisabled ? 'transparent' : `${theme.primary}10`,
+                border: `1.5px solid ${actionDisabled ? theme.border : theme.primary}`,
+                opacity: actionDisabled ? 0.4 : 1,
                 cursor: actionDisabled ? 'not-allowed' : 'pointer',
                 WebkitTapHighlightColor: 'transparent'
               }} 
               disabled={actionDisabled}
               title="Add New"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
             </button>
           )}
           {/* Auto Save Indicator */}

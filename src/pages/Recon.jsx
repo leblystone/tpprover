@@ -1097,20 +1097,9 @@ export default function Recon() {
 						</div>
 					)}
 
-					{activeTab === 'history' && (
-						<div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Reconstitution history</div>
-                                <button
-                                    onClick={() => setShowHistoryFilters(v => !v)}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold action-button-hover"
-                                    style={{ backgroundColor: theme.secondary, color: theme.text }}
-                                >
-                                    <Filter size={14} /> {showHistoryFilters ? 'Hide Filters' : 'Filters'}
-                                </button>
-                            </div>
-
-							{sortedHistory.length === 0 ? (
+				{activeTab === 'history' && (
+					<div className="space-y-3">
+						{sortedHistory.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
 									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 										<History size={32} style={{ color: theme.primary }} />
