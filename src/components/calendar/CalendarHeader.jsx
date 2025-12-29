@@ -29,22 +29,14 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
   const monthAbbr = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   
   return (
-    <div className="flex flex-col items-center mb-4 gap-3">
-      {/* Modern Clock-Style Date Display */}
-      <div 
-        className="flex flex-col items-center justify-center py-4 px-8 rounded-2xl shadow-lg w-full max-w-xs"
-        style={{ 
-          background: isToday 
-            ? `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
-            : theme.isDark ? '#1f2937' : theme.cardBackground,
-          border: !isToday ? `1px solid ${theme.border}` : 'none'
-        }}
-      >
+    <div className="flex flex-col items-center mb-4">
+      {/* Modern Clock-Style Date Display - No Card Wrap */}
+      <div className="flex flex-col items-center justify-center py-2 w-full">
         {/* Day Name */}
         <div 
           className="text-2xl font-bold tracking-wider"
           style={{ 
-            color: isToday ? theme.textOnPrimary : theme.isDark ? theme.text : theme.primaryDark
+            color: theme.isDark ? theme.text : theme.primaryDark
           }}
         >
           {dayName}
@@ -52,10 +44,10 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         
         {/* Time of Day */}
         <div 
-          className="text-xs font-medium tracking-wide mt-1"
+          className="text-[10px] font-medium tracking-wide uppercase"
           style={{ 
-            color: isToday ? theme.textOnPrimary : theme.textLight,
-            opacity: 0.8
+            color: theme.textLight,
+            opacity: 0.7
           }}
         >
           {isToday ? timeOfDay : '\u00A0'}
@@ -63,38 +55,26 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         
         {/* Date Display */}
         <div 
-          className="text-3xl font-bold mt-2 tracking-tight"
+          className="text-3xl font-bold mt-1 tracking-tight"
           style={{ 
-            color: isToday ? theme.textOnPrimary : theme.isDark ? theme.text : theme.primaryDark
+            color: theme.isDark ? theme.text : theme.primaryDark
           }}
         >
-          {dayNumber} <span className="opacity-50">|</span> {monthAbbr}
+          {dayNumber} <span className="opacity-30">|</span> {monthAbbr}
         </div>
       </div>
 
-      {/* View Controls */}
-      <div className="flex items-center justify-center gap-3 w-full">
-        {/* Today Button */}
-        <button 
-          onClick={onToday} 
-          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all text-white shadow-md hover:shadow-lg" 
-          style={{ 
-            background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-        >
-          Today
-        </button>
-
-        {/* View Mode Toggles */}
-        <div className="inline-flex rounded-lg p-1 shadow-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
+      {/* View Controls - All Together */}
+      <div className="flex items-center justify-center gap-2 mt-2 w-full">
+        <div className="inline-flex rounded-xl p-1 shadow-sm border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
+          <button 
+            onClick={onToday} 
+            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${isToday ? 'shadow-sm' : 'hover:bg-opacity-20'}`}
+            style={isToday ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
+          >
+            Today
+          </button>
+          <div className="w-[1px] my-1 mx-0.5 opacity-20" style={{ backgroundColor: theme.textLight }}></div>
           <button 
             onClick={() => onChangeView('month')} 
             className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
@@ -114,7 +94,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         {/* Icon Key Button */}
         {viewMode === 'month' && onShowIconKey && (
           <ModernTooltip text="Icon guide" position="bottom">
-            <button onClick={onShowIconKey} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+            <button onClick={onShowIconKey} className="p-2 rounded-full transition-all border" style={{ borderColor: theme.border, color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
               <HelpCircle className="h-5 w-5" />
             </button>
           </ModernTooltip>
