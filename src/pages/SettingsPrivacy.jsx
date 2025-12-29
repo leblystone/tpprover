@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Shield, Eye, Database, Info } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 
 export default function SettingsPrivacy() {
@@ -39,43 +39,31 @@ export default function SettingsPrivacy() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="p-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ backgroundColor: theme.secondary }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} />
         </button>
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Privacy</h1>
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Data Protection & cookies
-            </span>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Privacy</h1>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Control data collection and usage</p>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Privacy Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Cookie Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Shield size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Cookie Preferences
-            </h4>
-          </div>
-
-          <div 
-            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Cookie Preferences</h4>
+          <div className="space-y-2">
             <SettingToggle 
               checked={settings.privacy.functional} 
               onChange={v => update('privacy.functional', v)} 
@@ -83,7 +71,6 @@ export default function SettingsPrivacy() {
               description="Required for the app to work correctly" 
               theme={theme} 
               disabled 
-              icon={Database}
             />
             <SettingToggle 
               checked={settings.privacy.analytics} 
@@ -91,33 +78,23 @@ export default function SettingsPrivacy() {
               label="Analytics Cookies" 
               description="Help improve the app with usage data" 
               theme={theme} 
-              icon={Eye}
-              isLast={true}
             />
           </div>
         </div>
 
         {/* Data Sharing */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Info size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Data Sharing
-            </h4>
-          </div>
-
-          <div 
-            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Data Sharing</h4>
+          <div className="space-y-2">
             <SettingToggle 
               checked={settings.privacy.dataSharing} 
               onChange={v => update('privacy.dataSharing', v)} 
               label="Anonymous Usage Metrics" 
               description="Share anonymous data to help improve the app" 
               theme={theme} 
-              icon={Info}
-              isLast={true}
             />
           </div>
         </div>
@@ -126,25 +103,16 @@ export default function SettingsPrivacy() {
   )
 }
 
-const SettingToggle = ({ checked, onChange, label, description, theme, disabled, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
-    <div className="flex items-center gap-4">
-      <div 
-        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-        style={{ backgroundColor: theme.secondary }}
-      >
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div>
-        <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
-          {description}
-        </div>
-      </div>
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled }) => (
+  <div 
+    className="flex items-start justify-between p-3 rounded-lg"
+    style={{ backgroundColor: theme.secondary }}
+  >
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{label}</div>
+      <div className="text-xs" style={{ color: theme.mutedText }}>{description}</div>
     </div>
-    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
       <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
            style={{ 
@@ -154,3 +122,5 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
     </label>
   </div>
 )
+
+

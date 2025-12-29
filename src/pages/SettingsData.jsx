@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, RotateCcw, Database, AlertCircle, Trash2, Download } from 'lucide-react'
+import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { exportToCSV } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { useFirebase } from '../context/FirebaseContext'
@@ -451,51 +451,43 @@ export default function SettingsData() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="p-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ backgroundColor: theme.secondary }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} />
         </button>
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Data Management</h1>
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Backup, Recovery & Exports
-            </span>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Data Management</h1>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Recover and manage your app data</p>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Data Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Deletion Request Chip */}
         {hasDeletionRequest && (
           <div 
-            className="p-5 rounded-[2rem] border-2 flex items-center gap-4 animate-pulse"
+            className="p-3 rounded-lg border flex items-center gap-3"
             style={{ 
-              backgroundColor: '#991B1B08',
-              borderColor: '#991B1B20'
+              backgroundColor: theme?.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
+              borderColor: '#dc2626'
             }}
           >
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: '#991B1B15' }}
-            >
-              <AlertCircle size={20} style={{ color: '#991B1B' }} />
-            </div>
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: '#dc2626' }}
+            />
             <div className="flex-1">
-              <p className="text-sm font-black tracking-wide" style={{ color: '#991B1B' }}>
-                Account Deletion Pending
+              <p className="text-sm font-medium" style={{ color: '#dc2626' }}>
+                Account Deletion Request Submitted
               </p>
-              <p className="text-[10px] opacity-60" style={{ color: '#991B1B' }}>
-                Your account will be permanently deleted within 48 hours.
+              <p className="text-xs mt-0.5" style={{ color: theme?.textLight }}>
+                Your account will be deleted within 48 hours. A confirmation email will be sent upon completion.
               </p>
             </div>
           </div>
@@ -505,275 +497,83 @@ export default function SettingsData() {
         <RecentlyDeleted theme={theme} />
 
         {/* Recovery Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <Database size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Recovery & Backups
-            </h4>
-          </div>
-
-          <div 
-            className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                <RotateCcw size={18} style={{ color: theme.primary }} />
-              </div>
-              <div>
-                <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>
-                  Cloud Data Recovery
-                </div>
-                <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
-                  Restores your research protocols and inventory from the latest cloud backup.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Data Recovery</h4>
+          <p className="text-xs mb-3" style={{ color: theme.mutedText }}>
+            If your research data isn't showing up, this will check for any saved backups and restore them to your account. Your data will be synced across all your devices.
+          </p>
+          <div className="space-y-2">
+            <button 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg" 
+              style={{ 
+                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', 
+                color: '#ffffff' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+              }}
+              onClick={recoverFromSnapshot}
+              disabled={recoveryStatus === 'restoring' || recoveryStatus === 'syncing'}
+            >
+              <RotateCcw size={16} className={recoveryStatus === 'restoring' || recoveryStatus === 'syncing' ? 'animate-spin' : ''} />
+              {recoveryStatus === 'checking' && 'Checking...'}
+              {recoveryStatus === 'restoring' && 'Restoring...'}
+              {recoveryStatus === 'syncing' && 'Syncing...'}
+              {recoveryStatus === 'success' && 'Recovered!'}
+              {!recoveryStatus && 'Recover Data'}
+            </button>
+            {pwaPrompted && (
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 disabled:opacity-50" 
-                style={{ 
-                  backgroundColor: theme.primary, 
-                  color: '#ffffff' 
-                }}
-                onClick={recoverFromSnapshot}
-                disabled={recoveryStatus === 'restoring' || recoveryStatus === 'syncing'}
+                className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
+                style={{ backgroundColor: theme.accent, color: theme.accentText }} 
+                onClick={handleInstall}
               >
-                <RotateCcw size={14} className={recoveryStatus === 'restoring' || recoveryStatus === 'syncing' ? 'animate-spin' : ''} />
-                {recoveryStatus === 'checking' && 'Checking...'}
-                {recoveryStatus === 'restoring' && 'Restoring...'}
-                {recoveryStatus === 'syncing' && 'Syncing...'}
-                {recoveryStatus === 'success' && 'Recovered!'}
-                {!recoveryStatus && 'Initialize Recovery'}
+                Install App
               </button>
-              
-              {pwaPrompted && (
-                <button 
-                  className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border active:scale-95" 
-                  style={{ borderColor: theme.border, color: theme.text }} 
-                  onClick={handleInstall}
-                >
-                  Install Local App
-                </button>
-              )}
-
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
-                style={{ borderColor: theme.border, color: theme.text }}
-                onClick={exportAll}
-              >
-                <Download size={14} />
-                Export CSV Backup
-              </button>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Danger Zone Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1 text-red-800">
-            <Trash2 size={14} />
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">
-              Danger Zone
-            </h4>
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground, borderColor: '#8B1A1A', borderWidth: '1px', borderStyle: 'solid' }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: '#8B1A1A' }}>Danger Zone</h4>
+          <div className="space-y-2">
+            <button 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium transition-all"
+              style={{ backgroundColor: theme.secondary, color: theme.text }}
+              onClick={clearSessionOnly}
+            >
+              Clear Session Only
+            </button>
+            <button 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white transition-all" 
+              style={{ backgroundColor: '#8B1A1A' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A1515'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B1A1A'}
+              onClick={clearAllData}
+            >
+              Clear ALL Data
+            </button>
+            <button 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white transition-all" 
+              style={{ backgroundColor: '#8B1A1A' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A1515'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B1A1A'}
+              onClick={() => setShowDeleteAccountModal(true)}
+            >
+              Delete Account Permanently
+            </button>
           </div>
-
-          <div 
-            className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: '#991B1B20' }}
-          >
-            <div className="space-y-3">
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 bg-black/5 hover:bg-black/10 active:scale-95"
-                style={{ color: theme.text }}
-                onClick={clearSessionOnly}
-              >
-                Clear Cache & Session
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
-                onClick={clearAllData}
-              >
-                Wipe Local Device Data
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-                onClick={() => setShowDeleteAccountModal(true)}
-              >
-                Permanently Delete Account
-              </button>
-            </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
-              Action cannot be undone. "Wipe Local" clears browser data.<br/>
-              "Delete Account" removes everything from our research servers.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        open={showDeleteAccountModal}
-        onClose={() => setShowDeleteAccountModal(false)}
-        theme={theme}
-      />
-    </section>
-  )
-}
-
-
-                onClick={clearSessionOnly}
-              >
-                Clear Cache & Session
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
-                onClick={clearAllData}
-              >
-                Wipe Local Device Data
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-                onClick={() => setShowDeleteAccountModal(true)}
-              >
-                Permanently Delete Account
-              </button>
-            </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
-              Action cannot be undone. "Wipe Local" clears browser data.<br/>
-              "Delete Account" removes everything from our research servers.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        open={showDeleteAccountModal}
-        onClose={() => setShowDeleteAccountModal(false)}
-        theme={theme}
-      />
-    </section>
-  )
-}
-
-
-                onClick={clearSessionOnly}
-              >
-                Clear Cache & Session
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
-                onClick={clearAllData}
-              >
-                Wipe Local Device Data
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-                onClick={() => setShowDeleteAccountModal(true)}
-              >
-                Permanently Delete Account
-              </button>
-            </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
-              Action cannot be undone. "Wipe Local" clears browser data.<br/>
-              "Delete Account" removes everything from our research servers.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        open={showDeleteAccountModal}
-        onClose={() => setShowDeleteAccountModal(false)}
-        theme={theme}
-      />
-    </section>
-  )
-}
-
-
-                onClick={clearSessionOnly}
-              >
-                Clear Cache & Session
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
-                onClick={clearAllData}
-              >
-                Wipe Local Device Data
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-                onClick={() => setShowDeleteAccountModal(true)}
-              >
-                Permanently Delete Account
-              </button>
-            </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
-              Action cannot be undone. "Wipe Local" clears browser data.<br/>
-              "Delete Account" removes everything from our research servers.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        open={showDeleteAccountModal}
-        onClose={() => setShowDeleteAccountModal(false)}
-        theme={theme}
-      />
-    </section>
-  )
-}
-
-
-                onClick={clearSessionOnly}
-              >
-                Clear Cache & Session
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
-                onClick={clearAllData}
-              >
-                Wipe Local Device Data
-              </button>
-              
-              <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
-                style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
-                onClick={() => setShowDeleteAccountModal(true)}
-              >
-                Permanently Delete Account
-              </button>
-            </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
-              Action cannot be undone. "Wipe Local" clears browser data.<br/>
-              "Delete Account" removes everything from our research servers.
-            </p>
-          </div>
+          <p className="text-xs mt-2" style={{ color: '#8B1A1A' }}>"Clear ALL" will permanently wipe all data in this browser. "Delete Account" will permanently delete your account and all associated data from our servers.</p>
         </div>
       </div>
 

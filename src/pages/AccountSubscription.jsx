@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, Calendar, Siren, Microscope, Check, BookOpenCheck } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, CreditCard, Calendar, Siren } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
-// ... (imports remain same)
 import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import { STRIPE_CONFIG } from '../config/stripe'
@@ -12,20 +11,6 @@ import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
 import { formatCurrency } from '../utils/currencyUtils'
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans'
-import { subscribe } from '../services/payment/paymentService'
-import { isAndroid } from '../utils/platform'
-import { 
-  getBillingManagementInstructions, 
-  getSubscriptionPlatform, 
-  getPlatformDisplayName,
-  detectCurrentPlatform 
-} from '../utils/subscriptionPlatform'
-import { 
-  formatRenewalDisplay, 
-  getRenewalDate,
-  getRenewalDateColor 
-} from '../utils/renewalDate'
-// Note: Google Play Billing is now implemented, so payment buttons are shown on all platforms
 
 // Load subscription from cloud storage ONLY (no localStorage)
 async function loadSubscription(firebaseUser, forceRefresh = false) { 
@@ -224,15 +209,26 @@ export default function AccountSubscription() {
     setIsCheckoutProcessing(true)
 
     try {
-      // Use platform-aware payment service (routes to Stripe on web, Google Play on Android, etc.)
-      await subscribe(planKey, {
-        userEmail: firebaseUser?.email || 'demo@example.com',
-        userId: firebaseUser?.uid || 'demo_user',
-        plan: plan,
-        founderOffer: founderOffer
-      })
+      let priceId = STRIPE_CONFIG.prices[planKey] || ''
+
+      if (planKey === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
+        priceId = STRIPE_CONFIG.founder.lifetimePrice
+      }
+
+      if (!priceId) {
+        throw new Error(`Stripe price ID missing for plan ${planKey}`)
+      }
+
+      await createCheckoutSession(
+        priceId,
+        firebaseUser?.email || 'demo@example.com',
+        firebaseUser?.uid || 'demo_user',
+        null,
+        false,
+        { planName: plan.label }
+      )
     } catch (error) {
-      console.error('❌ AccountSubscription: Subscription error:', error)
+      console.error('❌ AccountSubscription: Stripe checkout error:', error)
 
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: error.message || 'Failed to start checkout. Please try again.', type: 'error' } 
@@ -243,86 +239,28 @@ export default function AccountSubscription() {
   }
 
   const handleManageBilling = async () => {
-    // Get platform-specific billing management instructions
-    const billingInfo = getBillingManagementInstructions(sub);
-    
-    // If user can't manage on current platform, show helpful message
-    if (!billingInfo.canManage) {
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { 
-          message: billingInfo.reason, 
-          type: 'info' 
-        } 
-      }));
+    try {
+      // Check if Stripe is properly configured
+      await verifyStripeConfig();
+      const session = await createPortalSession(firebaseUser?.uid);
       
-      // If there's a redirect URL, show option to open it
-      if (billingInfo.redirectUrl) {
-        // Show a longer toast with instructions
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { 
-              message: `Subscription purchased via ${billingInfo.platformDisplay}. Visit the original platform to manage.`, 
-              type: 'info' 
-            } 
-          }));
-        }, 2000);
+      if (session?.url) {
+        window.open(session.url, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
       }
-      return;
-    }
-
-    // Platform-specific management
-    const platform = getSubscriptionPlatform(sub);
-    
-    if (platform === 'googleplay') {
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Opening Google Play Store subscriptions...', type: 'info' } 
-      }));
-      window.open('https://play.google.com/store/account/subscriptions', '_blank');
-      return;
-    }
-
-    if (platform === 'apple') {
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Opening App Store subscriptions...', type: 'info' } 
-      }));
-      window.open('https://apps.apple.com/account/subscriptions', '_blank');
-      return;
-    }
-
-    // Stripe (web) - original implementation
-    if (platform === 'stripe') {
-      try {
-        // Check if Stripe is properly configured
-        await verifyStripeConfig();
-        const session = await createPortalSession(firebaseUser?.uid);
+    } catch (error) {
+      console.error('Error creating portal session:', error);
+      
+      // Show a more helpful error message
+      const errorMessage = error.message?.includes('INTERNAL') 
+        ? 'Billing portal is temporarily unavailable. Please try again later or contact support.'
+        : 'Failed to open billing portal. Please check your subscription status.';
         
-        if (session?.url) {
-          window.open(session.url, '_blank');
-        } else {
-          throw new Error('No portal URL returned');
-        }
-      } catch (error) {
-        console.error('Error creating portal session:', error);
-        
-        // Show a more helpful error message
-        const errorMessage = error.message?.includes('INTERNAL') 
-          ? 'Billing portal is temporarily unavailable. Please try again later or contact support.'
-          : 'Failed to open billing portal. Please check your subscription status.';
-          
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: errorMessage, type: 'error' } 
-        }));
-      }
-      return;
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: errorMessage, type: 'error' } 
+      }));
     }
-
-    // Unknown platform
-    window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { 
-        message: 'Unable to determine subscription platform. Please contact support.', 
-        type: 'error' 
-      } 
-    }));
   };
 
   const handleCancelSubscription = async () => {
@@ -345,12 +283,10 @@ export default function AccountSubscription() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return theme.primary;
-      case 'trialing': return theme.primary;
-      case 'past_due': return '#c87a5c';
-      case 'cancelled': return '#c87a5c';
-      case 'expired': return '#c87a5c';
-      case 'inactive': return '#c87a5c';
+      case 'active': return '#10B981';
+      case 'trialing': return '#3B82F6';
+      case 'past_due': return '#F59E0B';
+      case 'cancelled': return '#EF4444';
       default: return theme.mutedText;
     }
   };
@@ -367,144 +303,149 @@ export default function AccountSubscription() {
 
   const accentColor = theme.accent || '#2F3B3A'
 
-  const PlanGrid = ({ showMonthly = true, showAnnual = true, showLifetime = true }) => {
-    return (
-      <div className="space-y-6">
-        {/* Beta Pricing Notice */}
-        <div 
-          className="relative rounded-[2rem] p-6 border-2 border-dashed transition-all"
-          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground + '50' }}
-        >
-          <div className="flex flex-col items-center text-center">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={18} style={{ color: theme.primary }} />
-              <h4 className="text-sm font-bold uppercase tracking-wider" style={{ color: theme.text }}>
-                Beta Pricing Locked
-              </h4>
-            </div>
-            <p className="text-xs leading-relaxed opacity-70 max-w-sm" style={{ color: theme.text }}>
-              Early adopters are grandfathered in at these rates forever.
-            </p>
+  const PlanGrid = ({ showMonthly = true, showAnnual = true, showLifetime = true }) => (
+    <div className="space-y-4">
+      {/* Beta Pricing Notice */}
+      <div className="text-center mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+            <Crown size={12} className="text-white" />
+          </div>
+          <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+            Beta Pricing
           </div>
         </div>
+        <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
+          You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
+        </p>
+      </div>
 
-        <div className="space-y-4">
+      {(showMonthly || showAnnual) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {showMonthly && (
-            <button
+            <div
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
               onClick={() => !isCheckoutProcessing && handleSelectPlan('monthly')}
-              className={`group relative flex flex-col p-5 rounded-[2rem] transition-all border-2 text-left overflow-hidden w-full ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-md hover:translate-y-[-1px]'}`}
-              style={{
-                backgroundColor: theme.cardBackground,
-                borderColor: 'transparent',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-              }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50" style={{ backgroundColor: theme.secondary }}>
-                    <Calendar size={18} style={{ color: theme.primary }} />
-                  </div>
-                  <div>
-                    <span className="font-bold text-lg block" style={{ color: theme.text }}>Monthly Protocol</span>
-                    <span className="text-xs opacity-50 block" style={{ color: theme.text }}>Flexible research access</span>
-                  </div>
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.monthly.base}</span>
+                      <span>{planPricing.monthly.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.monthly.base
+                  )}
                 </div>
-                <div className="text-right">
-                  <div className="flex items-baseline justify-end gap-1">
-                    <span className="text-2xl font-black" style={{ color: theme.text }}>
-                      {discountActive ? planPricing.monthly.founder : planPricing.monthly.base}
-                    </span>
-                    <span className="text-xs opacity-50" style={{ color: theme.text }}>/mo</span>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
+                {discountActive && (
+                  <div className="text-xs mt-2 font-medium" style={{ color: accentColor }}>
+                    Save {planPricing.monthly.savings} / mo
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.primary }}>
-                    {isCheckoutProcessing ? '...' : 'Select Plan'}
+                )}
+              </div>
+              <button
+                className="py-1.5 px-6 rounded-lg font-medium text-sm transition-all hover:opacity-90 w-auto mx-auto block"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
+              >
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
+              </button>
+            </div>
+          )}
+
+          {showAnnual && (
+            <div
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              onClick={() => !isCheckoutProcessing && handleSelectPlan('annual')}
+            >
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
+                  {founderOffer.isFounder ? 'Founder Locked' : 'Same Price as Our Physical Planners'}
+                </div>
+              </div>
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.annual.base}</span>
+                      <span>{planPricing.annual.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.annual.base
+                  )}
+                </div>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
+                <div className="text-center mt-1">
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
+                    {discountActive ? `Save ${planPricing.annual.savings} / yr` : 'Save $17.89'}
                   </span>
                 </div>
               </div>
-            </button>
+              <button
+                className="py-1.5 px-6 rounded-lg font-medium text-sm transition-all hover:opacity-90 w-auto mx-auto block"
+                style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
+              >
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.annual.cta}
+              </button>
+            </div>
           )}
+        </div>
+      )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {showAnnual && (
+      {showLifetime && (
+        <div
+          className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg'}`}
+          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+          onClick={() => !isCheckoutProcessing && handleSelectPlan('lifetime')}
+        >
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+            <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+              Limited Offer
+            </div>
+          </div>
+          <div className="flex items-center justify-between min-h-[80px]">
+            <div className="flex items-center gap-5">
+              <div className="space-y-1">
+                <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{planPricing.lifetime.base}</span>
+                      <span>{planPricing.lifetime.founder}</span>
+                    </>
+                  ) : (
+                    planPricing.lifetime.base
+                  )}
+                </div>
+                {discountActive && (
+                  <div className="text-xs font-semibold" style={{ color: accentColor }}>
+                    Save {planPricing.lifetime.savings} one-time
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
               <button
-                onClick={() => !isCheckoutProcessing && handleSelectPlan('annual')}
-                className={`group relative flex flex-col p-6 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg hover:translate-y-[-2px]'}`}
-                style={{
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.primary,
-                  boxShadow: `0 20px 40px ${theme.primary}10, 0 8px 16px ${theme.primary}05`
-                }}
+                className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isCheckoutProcessing}
               >
-                <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: theme.primary }}>
-                  Best Value
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-lg" style={{ color: theme.text }}>Annual Access</span>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                      <Crown size={14} style={{ color: theme.primary }} />
-                    </div>
-                  </div>
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-2xl font-black" style={{ color: theme.text }}>
-                      {discountActive ? planPricing.annual.founder : planPricing.annual.base}
-                    </span>
-                    <span className="text-xs opacity-50" style={{ color: theme.text }}>/year</span>
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.primary }}>
-                    {discountActive ? `Save ${planPricing.annual.savings}` : 'Save $17.89'}
-                  </p>
-                </div>
-                <div className="mt-4 pt-4 border-t w-full" style={{ borderColor: theme.border }}>
-                  <span className="text-sm font-bold" style={{ color: theme.primary }}>
-                    {isCheckoutProcessing ? '...' : 'Select Annual'}
-                  </span>
-                </div>
+                {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
               </button>
-            )}
-
-            {showLifetime && (
-              <button
-                onClick={() => !isCheckoutProcessing && handleSelectPlan('lifetime')}
-                className={`group relative flex flex-col p-6 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:shadow-lg hover:translate-y-[-2px]'}`}
-                style={{
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.primary,
-                  boxShadow: `0 20px 40px ${theme.primary}10, 0 8px 16px ${theme.primary}05`
-                }}
-              >
-                <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: theme.primary }}>
-                  Limited Time
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</span>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: theme.primary + '20' }}>
-                      <TrendingUp size={14} style={{ color: theme.primary }} />
-                    </div>
-                  </div>
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-2xl font-black" style={{ color: theme.text }}>
-                      {discountActive ? planPricing.lifetime.founder : planPricing.lifetime.base}
-                    </span>
-                    <span className="text-xs opacity-50" style={{ color: theme.text }}>once</span>
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.primary }}>
-                    {discountActive ? `Save ${planPricing.lifetime.savings}` : 'One-time cost'}
-                  </p>
-                </div>
-                <div className="mt-4 pt-4 border-t w-full" style={{ borderColor: theme.border }}>
-                  <span className="text-sm font-bold" style={{ color: theme.primary }}>
-                    {isCheckoutProcessing ? '...' : 'Select Lifetime'}
-                  </span>
-                </div>
-              </button>
-            )}
+              <div className="text-sm text-center mt-2" style={{ color: theme.textLight }}>Never pay again</div>
+            </div>
           </div>
         </div>
-      </div>
-    )
-  }
+      )}
+    </div>
+  )
 
   if (isLoading) {
     return (
@@ -512,14 +453,14 @@ export default function AccountSubscription() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => navigate('/app/account')}
-            className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-            style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+            className="p-2 rounded-lg hover:opacity-80 transition-all"
+            style={{ backgroundColor: theme.secondary }}
           >
-            <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft size={20} style={{ color: theme.text }} />
           </button>
           <div>
-            <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Subscription</h1>
-            <p className="text-sm opacity-50" style={{ color: theme.text }}>Loading subscription details...</p>
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Research Subscription</h1>
+            <p className="text-sm" style={{ color: theme.mutedText }}>Loading subscription details...</p>
           </div>
         </div>
         <div 
@@ -636,325 +577,393 @@ export default function AccountSubscription() {
   };
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-8">
+    <section className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/app/account')}
+            className="p-2 rounded-lg hover:opacity-80 transition-all"
+            style={{ backgroundColor: theme.secondary }}
+          >
+            <ArrowLeft size={20} style={{ color: theme.text }} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Research Subscription</h1>
+            <p className="text-sm" style={{ color: theme.mutedText }}>Manage subscription and billing</p>
+          </div>
+        </div>
+        
+        {/* Refresh Button */}
         <button
-          onClick={() => navigate('/app/account')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          onClick={handleRefreshSubscription}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ 
+            backgroundColor: theme.secondary,
+            opacity: isLoading ? 0.5 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer'
+          }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <RefreshCw size={16} style={{ color: theme.text }} className={isLoading ? 'animate-spin' : ''} />
+          <span className="text-sm font-medium" style={{ color: theme.text }}>Refresh</span>
         </button>
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Subscription</h1>
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Research Access & Billing
-            </span>
+      </div>
+
+      {/* Subscription Status Card - Always Show */}
+      <div className="flex justify-center">
+        <div 
+          className="relative rounded-xl border-2 max-w-md w-full overflow-hidden shadow-sm"
+          style={{ 
+            backgroundColor: theme.cardBackground,
+            borderColor: '#c87a5c'
+          }}
+        >
+          {/* Decorative top bar */}
+          <div 
+            className="h-1.5"
+            style={{ 
+              background: 'linear-gradient(90deg, #c87a5c 0%, #b5684a 50%, #c87a5c 100%)',
+              opacity: 0.8
+            }}
+          />
+          
+          <div className="p-5">
+            {/* Header with status badge */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                Current Status
+              </div>
+              <div 
+                className="px-3 py-1 rounded-lg"
+                style={{ 
+                  background: 'linear-gradient(135deg, #c87a5c15 0%, #b5684a15 100%)',
+                  border: '1px solid #c87a5c30'
+                }}
+              >
+                <div 
+                  className="text-sm font-bold tracking-tight"
+                  style={{ color: '#c87a5c' }}
+                >
+                  {subscriptionState.label}
+                </div>
+              </div>
+            </div>
+
+            {/* Trial timer badge (if active) */}
+            {sub?.status === 'trialing' && subscriptionState.type === 'trialing' && timeLeft && (
+              <div className="flex justify-end mb-2">
+                <div 
+                  className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={{ 
+                    backgroundColor: '#c87a5c20',
+                    color: '#c87a5c',
+                    border: '1px solid #c87a5c40'
+                  }}
+                >
+                  {timeLeft.days}d {timeLeft.hours}h left
+                </div>
+              </div>
+            )}
+
+            {/* Status Details with divider */}
+            <div 
+              className="pt-3 border-t"
+              style={{ borderColor: theme.border }}
+            >
+              {subscriptionState.type === 'expired_trial' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  Your trial period has ended. <span className="font-semibold" style={{ color: theme.text }}>Choose a plan below</span> to continue using The Pep Planner.
+                </p>
+              )}
+              {subscriptionState.type === 'trialing' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  You're in your trial period. <span className="font-semibold" style={{ color: theme.text }}>Lock in your access</span> with a plan below.
+                </p>
+              )}
+              {subscriptionState.type === 'monthly' && (
+                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                  Currently on <span className="font-semibold" style={{ color: theme.text }}>Monthly Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Annual</span> and save!
+                </p>
+              )}
+              {subscriptionState.type === 'annual' && (
+                <div className="space-y-1">
+                  <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                    Currently on <span className="font-semibold" style={{ color: theme.text }}>Annual Plan</span>. <span className="font-semibold" style={{ color: '#c87a5c' }}>Upgrade to Lifetime</span> and never pay again!
+                  </p>
+                  {sub?.currentPeriodEnd && (
+                    <p className="text-xs" style={{ color: theme.textLight }}>
+                      Access valid until: <span className="font-semibold" style={{ color: theme.text }}>
+                        {new Date(sub.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+              {subscriptionState.type === 'lifetime' && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: '#c87a5c' }} />
+                  <p className="text-xs font-semibold" style={{ color: '#c87a5c' }}>
+                    Lifetime Access Unlocked
+                  </p>
+                  <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: '#c87a5c' }} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
-      <div className="space-y-6">
-        {/* Current Status Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Microscope size={14} style={{ color: theme.primary }} />
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-                Subscription Status
-              </h4>
-            </div>
-            {sub && (
-              <button
-                onClick={handleRefreshSubscription}
-                className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity"
-              >
-                <RefreshCw size={10} className={isLoading ? 'animate-spin' : ''} />
-                <span className="text-[9px] font-bold uppercase tracking-wider">Sync</span>
-              </button>
-            )}
-          </div>
-
+      {/* Current Subscription Details - For Active Subs */}
+      {sub && (
+        <div className="space-y-6">
+          {/* Subscription Status */}
           <div 
-            className="p-4 rounded-[2rem] border-2 transition-all overflow-hidden"
-            style={{ 
-              backgroundColor: theme.cardBackground,
-              borderColor: 'transparent',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}
+            className="p-6 rounded-lg"
+            style={{ backgroundColor: theme.cardBackground }}
           >
-            <div className="flex items-start justify-between mb-4">
+            {sub.status === 'trialing' && sub.startedAt && sub.currentPeriodEnd && (
+              <TrialProgressBar 
+                theme={theme} 
+                startDate={sub.startedAt} 
+                endDate={sub.currentPeriodEnd} 
+              />
+            )}
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: theme.primary + '10' }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme.accent + '20' }}
                 >
-                  <BookOpenCheck size={24} style={{ color: theme.primary }} />
+                  <Crown size={24} style={{ color: theme.accent }} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
-                    {subscriptionState.label}
+                  <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                    {sub.plan?.name || 'Research Subscription'}
+                    {/* Special display for lifetime granted accounts */}
+                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId && (
+                      <Gift size={18} style={{ color: '#A3B18A' }} />
+                    )}
                   </h3>
-                  <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
-                    {sub?.interval === 'lifetime' ? 'Unlimited Lab Access' : 'Current Research Plan'}
+                  <div 
+                    className="text-sm font-medium flex items-center gap-1"
+                    style={{ color: getStatusColor(sub.status) }}
+                  >
+                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId ? (
+                      <>
+                        <Gift size={14} style={{ color: '#A3B18A' }} />
+                        <span>Lifetime Granted ({sub.lifetimeReason})</span>
+                      </>
+                    ) : (
+                      getStatusText(sub.status)
+                    )}
+                  </div>
+                </div>
+              </div>
+              {sub.status === 'trialing' && timeLeft && (
+                <div className="text-right">
+                  <div className="text-sm" style={{ color: theme.mutedText }}>Trial ends in</div>
+                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+                    {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
+                  </div>
+                </div>
+              )}
+              {/* Annual subscription expiration display */}
+              {sub.interval === 'year' && sub.currentPeriodEnd && sub.status === 'active' && (
+                <div className="text-right">
+                  <div className="text-sm" style={{ color: theme.mutedText }}>Access until</div>
+                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+                    {new Date(sub.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Special section for Lifetime Granted accounts */}
+          {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId && (
+            <div 
+              className="p-6 rounded-lg border-2"
+              style={{ 
+                backgroundColor: theme.cardBackground,
+                borderColor: '#A3B18A',
+                background: 'linear-gradient(135deg, #F0FDF4 0%, #D4D7CD 100%)'
+              }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#A3B18A30' }}>
+                  <Gift size={24} style={{ color: '#344E41' }} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold" style={{ color: '#344E41' }}>
+                    Lifetime Granted Account
+                  </h3>
+                  <p className="text-sm" style={{ color: '#3A5A40' }}>
+                    You have special lifetime access - no payment required!
                   </p>
-                  {/* Platform indicator */}
-                  {sub && (
-                    <p className="text-[9px] font-bold uppercase tracking-wider mt-0.5" style={{ color: theme.mutedText, opacity: 0.6 }}>
-                      via {getPlatformDisplayName(getSubscriptionPlatform(sub))}
-                    </p>
-                  )}
-                  {/* Renewal date preview - DEBUG */}
-                  {sub && (() => {
-                    console.log('🔍 Subscription object:', sub);
-                    console.log('🔍 currentPeriodEnd:', sub.currentPeriodEnd);
-                    console.log('🔍 interval:', sub.interval);
-                    console.log('🔍 hasLifetimeAccess:', sub.hasLifetimeAccess);
-                    
-                    const renewalInfo = getRenewalDate(sub);
-                    console.log('🔍 Renewal info:', renewalInfo);
-                    
-                    // Don't show for lifetime
-                    if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) {
-                      return null;
-                    }
-                    
-                    if (renewalInfo.formattedDate && renewalInfo.daysUntil !== null) {
-                      if (sub.cancelAtPeriodEnd) {
-                        return (
-                          <p className="text-[10px] font-bold mt-1.5" style={{ color: '#F59E0B' }}>
-                            Access ends {renewalInfo.formattedDate}
-                          </p>
-                        );
-                      }
-                      if (renewalInfo.daysUntil < 0) {
-                        return (
-                          <p className="text-[10px] font-bold mt-1.5" style={{ color: '#EF4444' }}>
-                            Expired {renewalInfo.formattedDate}
-                          </p>
-                        );
-                      }
-                      return (
-                        <p className="text-[10px] font-bold mt-1.5" style={{ color: getRenewalDateColor(sub, theme) }}>
-                          Renews {renewalInfo.formattedDate}
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
               
-              <div 
-                className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm"
-                style={{ 
-                  backgroundColor: getStatusColor(sub?.status || 'expired') + '15',
-                  color: getStatusColor(sub?.status || 'expired'),
-                  border: `1px solid ${getStatusColor(sub?.status || 'expired')}30`
-                }}
-              >
-                {getStatusText(sub?.status || 'inactive')}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} style={{ color: '#3A5A40' }} />
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Reason:</strong> {sub.lifetimeReason}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Lock size={16} style={{ color: '#3A5A40' }} />
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Access Level:</strong> Full platform access - forever
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CreditCard size={16} style={{ color: '#3A5A40' }} />
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Payment Method:</strong> None required - completely free!
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} style={{ color: '#3A5A40' }} />
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Expires:</strong> Never!
+                  </span>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Status-specific details */}
-            <div className="space-y-3">
-              {sub?.status === 'trialing' && sub.startedAt && sub.currentPeriodEnd && (
-                <TrialProgressBar 
-                  theme={theme} 
-                  startDate={sub.startedAt} 
-                  endDate={sub.currentPeriodEnd} 
-                />
-              )}
+          {/* Subscription Plans - Show based on subscription status */}
+          {subscriptionState.showUpgrade && sub && (
+            <div 
+              className="p-6 rounded-lg"
+              style={{ backgroundColor: theme.cardBackground }}
+            >
+              <h3 className="text-lg font-bold mb-4" style={{ color: theme.text }}>
+                {subscriptionState.type === 'trialing' ? 'Available Plans' : 'Upgrade Options'}
+              </h3>
+              <PlanGrid 
+                showMonthly={subscriptionState.type === 'trialing' || subscriptionState.type === 'expired_trial'}
+                showAnnual={subscriptionState.type === 'trialing' || subscriptionState.type === 'monthly' || subscriptionState.type === 'expired_trial'}
+                showLifetime={subscriptionState.type !== 'lifetime'}
+              />
 
-              <div className="pt-3 border-t" style={{ borderColor: theme.border }}>
-                {subscriptionState.type === 'expired_trial' && (
-                  <p className="text-xs leading-relaxed opacity-70" style={{ color: theme.text }}>
-                    Your evaluation period has concluded. Select a plan below to continue.
-                  </p>
-                )}
-                {subscriptionState.type === 'trialing' && (
-                  <p className="text-xs leading-relaxed opacity-70" style={{ color: theme.text }}>
-                    Currently in the evaluation phase. Lock in your access now.
-                  </p>
-                )}
-                {subscriptionState.type === 'monthly' && (
-                  <div className="space-y-1">
-                    {(() => {
-                      const renewalInfo = getRenewalDate(sub);
-                      if (renewalInfo.formattedDate && renewalInfo.daysUntil !== null) {
-                        // Show cancellation warning if subscription is cancelled
-                        if (sub.cancelAtPeriodEnd) {
-                          return (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: '#FEF3C7' }}>
-                                <span className="text-base">⚠️</span>
-                                <p className="text-[10px] font-bold text-amber-800">
-                                  Subscription cancelled - Access ends {renewalInfo.formattedDate}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return (
-                          <div className="space-y-0.5">
-                            <p className="text-[13px] font-bold" style={{ color: getRenewalDateColor(sub, theme) }}>
-                              Next renewal: {renewalInfo.formattedDate}
-                            </p>
-                            {renewalInfo.daysUntil >= 0 && renewalInfo.daysUntil <= 30 && (
-                              <p className="text-[9px] opacity-60" style={{ color: theme.text }}>
-                                {renewalInfo.daysUntil} day{renewalInfo.daysUntil === 1 ? '' : 's'} remaining
-                              </p>
-                            )}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
-                {subscriptionState.type === 'annual' && (
-                  <div className="space-y-1">
-                    {(() => {
-                      const renewalInfo = getRenewalDate(sub);
-                      if (renewalInfo.formattedDate && renewalInfo.daysUntil !== null) {
-                        // Show cancellation warning if subscription is cancelled
-                        if (sub.cancelAtPeriodEnd) {
-                          return (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: '#FEF3C7' }}>
-                                <span className="text-base">⚠️</span>
-                                <p className="text-[10px] font-bold text-amber-800">
-                                  Subscription cancelled - Access ends {renewalInfo.formattedDate}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return (
-                          <div className="space-y-0.5">
-                            <p className="text-[13px] font-bold" style={{ color: getRenewalDateColor(sub, theme) }}>
-                              Next renewal: {renewalInfo.formattedDate}
-                            </p>
-                            {renewalInfo.daysUntil >= 0 && renewalInfo.daysUntil <= 60 && (
-                              <p className="text-[9px] opacity-60" style={{ color: theme.text }}>
-                                {renewalInfo.daysUntil} day{renewalInfo.daysUntil === 1 ? '' : 's'} remaining
-                              </p>
-                            )}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
-                {subscriptionState.type === 'lifetime' && (
-                  <div className="flex items-center gap-2 py-0.5">
-                    <Check size={14} className="text-green-500" />
-                    <p className="text-xs font-bold text-green-600">
-                      Lifetime research access is fully unlocked.
-                    </p>
-                  </div>
-                )}
+              {/* Gift Access Button */}
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                <div className="text-center">
+                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+                  <button
+                    onClick={() => setShowGiftModal(true)}
+                    className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90 flex items-center gap-2 mx-auto"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+                    }}
+                  >
+                    <Gift size={18} />
+                    Give a Gift
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Upgrade Options Section */}
-        {subscriptionState.showUpgrade && (
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 px-1">
-              <TrendingUp size={14} style={{ color: theme.primary }} />
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-                Upgrade Options
-              </h4>
-            </div>
-
-            <PlanGrid 
-              showMonthly={subscriptionState.type === 'trialing' || subscriptionState.type === 'expired_trial'}
-              showAnnual={subscriptionState.type === 'trialing' || subscriptionState.type === 'monthly' || subscriptionState.type === 'expired_trial'}
-              showLifetime={subscriptionState.type !== 'lifetime'}
-            />
-          </div>
-        )}
-
-        {/* Management & Gifts Section */}
-        <div className="pt-4 border-t border-dashed space-y-3" style={{ borderColor: theme.border }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Subscription Management - Only show if user can manage */}
-            {sub && (() => {
-              const platform = getSubscriptionPlatform(sub);
-              const canShow = platform !== 'admin' && !(sub?.interval === 'lifetime' && platform === 'admin');
-              return canShow ? (
+          {/* Actions - Only show for paid subscriptions, not for lifetime granted accounts */}
+          {!(sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId) && (
+            <div 
+              className="p-4 rounded-lg space-y-3"
+              style={{ backgroundColor: theme.cardBackground }}
+            >
+              <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Subscription Management</h4>
+              <div className="space-y-2">
                 <button
                   onClick={handleManageBilling}
-                  className="flex items-center justify-between p-4 rounded-[1.5rem] transition-all hover:translate-y-[-1px] shadow-sm"
-                  style={{ backgroundColor: theme.cardBackground }}
+                  className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
+                  style={{ backgroundColor: theme.secondary }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50" style={{ backgroundColor: theme.secondary }}>
-                      <Settings size={18} style={{ color: theme.primary }} />
-                    </div>
-                    <div className="text-left">
-                      <span className="font-bold text-[13px] block" style={{ color: theme.text }}>Manage Billing</span>
-                      <span className="text-[9px] opacity-50" style={{ color: theme.text }}>
-                        {platform === 'stripe' ? 'Portal via Stripe' : 
-                         platform === 'googleplay' ? 'Via Google Play' : 
-                         platform === 'apple' ? 'Via App Store' : 'Manage subscription'}
-                      </span>
-                    </div>
+                    <Settings size={20} style={{ color: theme.accent }} />
+                    <span className="font-medium" style={{ color: theme.text }}>Manage Billing</span>
                   </div>
-                  <ExternalLink size={14} style={{ color: theme.mutedText }} />
+                  <ExternalLink size={16} style={{ color: theme.mutedText }} />
                 </button>
-              ) : null;
-            })()}
-
-            {/* Gift Access */}
-            {!isAndroid() && (
-              <button
-                onClick={() => setShowGiftModal(true)}
-                className="flex items-center justify-between p-4 rounded-[1.5rem] transition-all hover:translate-y-[-1px] shadow-sm"
-                style={{ backgroundColor: theme.cardBackground }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50" style={{ backgroundColor: theme.secondary }}>
-                    <Gift size={18} style={{ color: theme.primary }} />
-                  </div>
-                  <div className="text-left">
-                    <span className="font-bold text-[13px] block" style={{ color: theme.text }}>Give a Gift</span>
-                    <span className="text-[9px] opacity-50" style={{ color: theme.text }}>Share research tools</span>
-                  </div>
-                </div>
-                <ArrowLeft size={14} className="rotate-180" style={{ color: theme.mutedText }} />
-              </button>
-            )}
-          </div>
-
-          {/* Cancel Option (Secondary) - Only for Stripe subscriptions */}
-          {sub?.status === 'active' && getSubscriptionPlatform(sub) === 'stripe' && (
-            <div className="pt-1 flex justify-center">
-              <button
-                onClick={handleCancelSubscription}
-                className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 hover:opacity-100 transition-opacity p-1.5"
-                style={{ color: '#991B1B' }}
-              >
-                cancel subscription
-              </button>
+                
+                {sub.status === 'active' && (
+                  <button
+                    onClick={handleCancelSubscription}
+                    className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
+                    style={{ backgroundColor: theme.secondary }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <X size={20} style={{ color: '#EF4444' }} />
+                      <span className="font-medium" style={{ color: '#EF4444' }}>Cancel Subscription</span>
+                    </div>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* Pricing Error Message */}
+      {pricingError && (
+        <div 
+          className="p-4 rounded-lg border-2"
+          style={{ 
+            backgroundColor: '#FEF2F2', 
+            borderColor: '#FCA5A5',
+            marginBottom: '1rem'
+          }}
+        >
+          <p className="text-sm font-medium flex items-center gap-1" style={{ color: '#991B1B' }}>
+            <Siren size={16} style={{ color: '#991B1B' }} />
+            Pricing information temporarily unavailable. Please refresh the page or try again in a moment.
+          </p>
+        </div>
+      )}
+
+      {/* Subscription Plans - Show for users without active subscription */}
+      {!sub && (
+        <div 
+          className="p-6 rounded-lg"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h3 className="text-lg font-bold mb-4" style={{ color: theme.text }}>
+            Choose Your Plan
+          </h3>
+          <PlanGrid 
+            showMonthly={true}
+            showAnnual={true}
+            showLifetime={true}
+          />
+          
+          {/* Gift Access Button */}
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+            <div className="text-center">
+              <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+              <button
+                onClick={() => setShowGiftModal(true)}
+                className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90 flex items-center gap-2 mx-auto"
+                style={{ 
+                  background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+                }}
+              >
+                <Gift size={18} />
+                Give a Gift
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <GiftPurchaseModal 
         isOpen={showGiftModal} 
         onClose={() => setShowGiftModal(false)} 
         theme={theme}
       />
+
     </section>
   )
 }
@@ -977,37 +986,34 @@ const TrialProgressBar = ({ theme, startDate, endDate }) => {
 
       const remaining = end.getTime() - now.getTime();
       if (remaining <= 0) {
-        setTimeLeft('Trial Expired');
+        setTimeLeft('Trial ended');
       } else {
         const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
         const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        setTimeLeft(`${days}d ${hours}h remaining`);
+        setTimeLeft(`${days}d ${hours}h left`);
       }
     };
 
     calculateProgress();
-    const interval = setInterval(calculateProgress, 60000);
+    const interval = setInterval(calculateProgress, 60000); // Update every minute
     return () => clearInterval(interval);
   }, [startDate, endDate]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center px-1">
-        <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-          Trial Progress
-        </h4>
-        <span className="text-[10px] font-black" style={{ color: theme.primary }}>
-          {timeLeft}
-        </span>
+    <div className="mb-4">
+      <div className="flex justify-between items-center text-sm mb-1">
+        <span className="font-semibold" style={{ color: theme.text }}>Trial Status</span>
+        <span className="text-xs font-medium" style={{ color: theme.mutedText }}>{timeLeft}</span>
       </div>
-      <div className="w-full h-1.5 rounded-full overflow-hidden bg-black/5" style={{ backgroundColor: theme.primary + '10' }}>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
         <div
-          className="h-full rounded-full transition-all duration-1000 ease-out"
+          className="h-2.5 rounded-full"
           style={{
             width: `${progress}%`,
             backgroundColor: theme.primary,
+            transition: 'width 0.5s ease-in-out'
           }}
-        />
+        ></div>
       </div>
     </div>
   );

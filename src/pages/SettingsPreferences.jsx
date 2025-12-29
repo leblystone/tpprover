@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings as SettingsIcon } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -108,50 +108,37 @@ export default function SettingsPreferences() {
   };
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="p-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ backgroundColor: theme.secondary }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} />
         </button>
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-wide" style={{ color: theme.text }}>Preferences</h1>
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              App Behavior
-            </span>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>App Preferences</h1>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Make it work the way you want</p>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Preference Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Features */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <FlaskConical size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Features
-            </h4>
-          </div>
-
-          <div 
-            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Features</h4>
+          <div className="space-y-2">
             <SettingToggle 
               checked={settings.tracking?.injectionSites ?? true} 
               onChange={v => update('tracking.injectionSites', v)} 
               label="Injection Site Tracking" 
-              description="Track sites for rotation" 
+              description="Track injection sites for rotation tracking" 
               theme={theme} 
-              icon={LayoutGrid}
             />
             <SettingToggle 
               checked={settings.features?.groupBuys ?? true} 
@@ -159,56 +146,57 @@ export default function SettingsPreferences() {
               label="Group Buy Features" 
               description="Enable group buy functionality" 
               theme={theme} 
-              icon={CircleDollarSign}
             />
             <SettingToggle 
               checked={settings.features?.analytics ?? true} 
               onChange={v => update('features.analytics', v)} 
               label="Analytics" 
-              description="Dashboard consistency and spending charts" 
+              description="Display Research Consistency, Spending, and Average Delivery Time in Dashboard" 
               theme={theme} 
-              icon={Globe}
             />
             <SettingToggle 
               checked={settings.features?.toastNotifications ?? true} 
               onChange={v => update('features.toastNotifications', v)} 
               label="In-App Notifications" 
-              description="Show in-app notification toasts" 
+              description="Show in-app notifications" 
               theme={theme} 
-              icon={Globe}
             />
             <SettingToggle 
               checked={settings.features?.showWashoutIcons ?? true} 
               onChange={v => update('features.showWashoutIcons', v)} 
-              label="Washout Icons"
-              description="Show 'W' icons on monthly calendar"
+              label={
+                <span>
+                  Washout Icons{' '}
+                  <span style={{ color: theme.mutedText, opacity: 0.7 }}>(Monthly View Only)</span>
+                </span>
+              }
+              description={
+                <span className="flex items-center gap-1.5">
+                  Show washout period 
+                  <span className="px-1 py-0.5 text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold">
+                    W
+                  </span>
+                  on monthly calendar view
+                </span>
+              }
               theme={theme} 
-              icon={CalendarIcon}
-              isLast={true}
             />
           </div>
         </div>
 
         {/* Orders & Inventory */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Package size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Orders & Inventory
-            </h4>
-          </div>
-
-          <div 
-            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Orders & Inventory</h4>
+          <div className="space-y-2">
             <SettingToggle 
               checked={settings.orders?.autoStockpileUpdate ?? true} 
               onChange={v => update('orders.autoStockpileUpdate', v)} 
-              label="Auto Update Stockpile" 
-              description="Add delivered orders to stockpile automatically" 
+              label="Automatically Update Stockpile" 
+              description="Automatically add delivered orders to stockpile. Enabled feature will increase inventory when an order is marked as delivered." 
               theme={theme} 
-              icon={Package}
             />
             <SettingToggle 
               checked={settings.orders?.lowStockAlerts ?? true} 
@@ -216,33 +204,24 @@ export default function SettingsPreferences() {
               label="Low Stock Alerts" 
               description="Alerts when inventory is running low" 
               theme={theme} 
-              icon={Package}
             />
             <SettingToggle 
               checked={settings.orders?.includeShippingInCosts ?? true} 
               onChange={v => handleShippingCostToggle(v)} 
-              label="Shipping in Total Spent" 
-              description="Include shipping in vial/mg price averages" 
+              label="Shipping Costs in Total Spent" 
+              description="Include shipping costs when averaging price per vial/mg" 
               theme={theme} 
-              icon={CircleDollarSign}
-              isLast={true}
             />
           </div>
         </div>
 
         {/* Regional Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Globe size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Regional
-            </h4>
-          </div>
-
-          <div 
-            className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Regional Settings</h4>
+          <div className="space-y-3">
             <SettingSelect 
               label="Language" 
               value={settings.region.language} 
@@ -253,7 +232,6 @@ export default function SettingsPreferences() {
                 { value: 'es-ES', label: 'Español (ES)' }
               ]} 
               theme={theme} 
-              icon={Languages}
             />
             <SettingSelect 
               label="Currency" 
@@ -261,7 +239,6 @@ export default function SettingsPreferences() {
               onChange={e => update('region.currency', e.target.value)} 
               options={currencyOptions} 
               theme={theme} 
-              icon={CircleDollarSign}
             />
             <SettingSelect 
               label="Time Zone" 
@@ -269,22 +246,17 @@ export default function SettingsPreferences() {
               onChange={e => handleTimezoneChange(e.target.value)} 
               options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))} 
               theme={theme} 
-              icon={Clock}
-              isLast={true}
             />
           </div>
         </div>
 
         {/* Calendar Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <CalendarIcon size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Calendar
-            </h4>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3">
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Calendar Settings</h4>
+          <div className="space-y-3">
             <SegmentedControl
               label="Week Starts On"
               value={settings.region.weekStartsOn}
@@ -337,25 +309,16 @@ export default function SettingsPreferences() {
   )
 }
 
-const SettingToggle = ({ checked, onChange, label, description, theme, disabled, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
-    <div className="flex items-center gap-4">
-      <div 
-        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-        style={{ backgroundColor: theme.secondary }}
-      >
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div>
-        <div className="text-sm font-black tracking-wide" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
-          {description}
-        </div>
-      </div>
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled }) => (
+  <div 
+    className="flex items-start justify-between p-3 rounded-lg"
+    style={{ backgroundColor: theme.secondary }}
+  >
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{typeof label === 'string' ? label : label}</div>
+      <div className="text-xs" style={{ color: theme.mutedText }}>{typeof description === 'string' ? description : description}</div>
     </div>
-    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
       <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
            style={{ 
@@ -366,277 +329,39 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
   </div>
 )
 
-const SettingSelect = ({ label, value, onChange, options, theme, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-2.5 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
-    <div className="flex items-center gap-4 flex-1">
-      <div 
-        className="w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{ backgroundColor: theme.secondary }}
-      >
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-0.5" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
+const SettingSelect = ({ label, value, onChange, options, theme }) => (
+  <div>
+    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</label>
+    <select 
+      className="w-full p-3 rounded-lg border" 
+      value={value} 
+      onChange={onChange} 
+      style={{ 
+        borderColor: theme.border, 
+        backgroundColor: theme.secondary, 
+        color: theme.text 
+      }}
+    >
+      {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
   </div>
 )
 
 const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
+  <div>
+    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</label>
+    <div className="grid grid-cols-2 gap-2">
       {options.map(option => {
         const isSelected = value === option.value
         return (
           <button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
+            className="p-3 rounded-lg text-sm font-medium transition-all hover:opacity-90"
             style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
-              opacity: isSelected ? 1 : 0.6
-            }}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  </div>
-)
-
-
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-0.5" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)
-
-const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
-      {options.map(option => {
-        const isSelected = value === option.value
-        return (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
-            style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
-              opacity: isSelected ? 1 : 0.6
-            }}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  </div>
-)
-
-
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-0.5" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)
-
-const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
-      {options.map(option => {
-        const isSelected = value === option.value
-        return (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
-            style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
-              opacity: isSelected ? 1 : 0.6
-            }}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  </div>
-)
-
-
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-0.5" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)
-
-const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
-      {options.map(option => {
-        const isSelected = value === option.value
-        return (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
-            style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
-              opacity: isSelected ? 1 : 0.6
-            }}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  </div>
-)
-
-
-        <Icon size={18} style={{ color: theme.text }} className="opacity-40" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-0.5" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-wide focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)
-
-const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-3 px-5 rounded-[2rem] border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
-      {options.map(option => {
-        const isSelected = value === option.value
-        return (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
-            style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
-              opacity: isSelected ? 1 : 0.6
+              backgroundColor: isSelected ? theme.accent : theme.secondary,
+              color: isSelected ? theme.accentText : theme.text,
+              border: isSelected ? `2px solid ${theme.accent}` : '2px solid transparent'
             }}
           >
             {option.label}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileText, Shield, ChevronRight } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFirebase } from '../context/FirebaseContext'
@@ -104,62 +104,44 @@ export default function SettingsLegal() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-1 mb-2">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/app/settings')}
-            className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
-          >
-            <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
-          </button>
-          <div className="flex items-center gap-2">
-            <FileText size={20} style={{ color: theme.primary }} />
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Legal</h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 ml-14">
-          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-            Policies & Agreements
-          </span>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate('/app/settings')}
+          className="p-2 rounded-lg hover:opacity-80 transition-all"
+          style={{ backgroundColor: theme.secondary }}
+        >
+          <ArrowLeft size={20} style={{ color: theme.text }} />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Legal & Privacy</h1>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Review agreements and legal documents</p>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Legal Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Legal Documents */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <FileText size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Research Agreements
-            </h4>
-          </div>
-
-          <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
-          >
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Legal Documents</h4>
+          <div className="space-y-3">
             <LegalDocumentCard
               title="Terms of Service"
               agreement={agreementData.termsAgreement}
               onAction={() => setShowTerms(true)}
-              actionText={agreementData.termsAgreement ? 'Review' : 'Agree'}
+              actionText={agreementData.termsAgreement ? 'View' : 'Agree'}
               theme={theme}
-              icon={FileText}
             />
             <LegalDocumentCard
               title="Privacy Policy"
               agreement={agreementData.privacyAgreement}
               onAction={() => setShowPrivacy(true)}
-              actionText={agreementData.privacyAgreement ? 'Review' : 'Agree'}
+              actionText={agreementData.privacyAgreement ? 'View' : 'Agree'}
               theme={theme}
-              icon={Shield}
-              isLast={true}
             />
           </div>
         </div>
@@ -180,160 +162,28 @@ export default function SettingsLegal() {
   )
 }
 
-const LegalDocumentCard = ({ title, agreement, onAction, actionText, theme, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-6 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
-    <div className="flex items-center gap-4">
-      <div 
-        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-        style={{ backgroundColor: theme.primary + '15' }}
-      >
-        <Icon size={18} style={{ color: theme.primary }} />
-      </div>
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
-          {title}
+const LegalDocumentCard = ({ title, agreement, onAction, actionText, theme }) => (
+  <div 
+    className="flex items-center justify-between p-3 rounded-lg"
+    style={{ backgroundColor: theme.secondary }}
+  >
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
+      {agreement ? (
+        <div className="text-xs" style={{ color: theme.mutedText }}>
+          Agreed on {new Date(agreement.timestamp).toLocaleDateString()}
         </div>
-        <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
-          {agreement ? 'Agreed' : 'Pending'}
-        </div>
-        {agreement && (
-          <div className="text-[10px] opacity-50" style={{ color: theme.text }}>
-            Signed {new Date(agreement.timestamp).toLocaleDateString()}
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="text-xs text-red-500">Agreement required - please review and agree</div>
+      )}
     </div>
-    <button
+    <button 
       onClick={onAction}
-      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 border"
-      style={{ 
-        backgroundColor: theme.primary + '15',
-        borderColor: theme.primary + '30',
-        color: theme.primary
-      }}
+      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+      style={{ backgroundColor: theme.accent, color: theme.accentText }}
     >
       {actionText}
     </button>
-  </div>
-)
-
-const LegalDocumentLink = ({ title, description, onAction, theme }) => (
-  <div 
-    className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:opacity-80 transition-all"
-    style={{ backgroundColor: theme.secondary }}
-    onClick={onAction}
-  >
-    <div className="flex-1 pr-4">
-      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>
-        {description}
-      </div>
-    </div>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation()
-        onAction()
-      }}
-      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-    >
-      View
-    </button>
-  </div>
-)
-
-
-
-  </div>
-)
-
-const LegalDocumentLink = ({ title, description, onAction, theme }) => (
-  <div 
-    className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:opacity-80 transition-all"
-    style={{ backgroundColor: theme.secondary }}
-    onClick={onAction}
-  >
-    <div className="flex-1 pr-4">
-      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>
-        {description}
-      </div>
-    </div>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation()
-        onAction()
-      }}
-      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-    >
-      View
-    </button>
-  </div>
-)
-
-
-
-  </div>
-)
-
-const LegalDocumentLink = ({ title, description, onAction, theme }) => (
-  <div 
-    className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:opacity-80 transition-all"
-    style={{ backgroundColor: theme.secondary }}
-    onClick={onAction}
-  >
-    <div className="flex-1 pr-4">
-      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>
-        {description}
-      </div>
-    </div>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation()
-        onAction()
-      }}
-      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-    >
-      View
-    </button>
-  </div>
-)
-
-
-
-  </div>
-)
-
-const LegalDocumentLink = ({ title, description, onAction, theme }) => (
-  <div 
-    className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:opacity-80 transition-all"
-    style={{ backgroundColor: theme.secondary }}
-    onClick={onAction}
-  >
-    <div className="flex-1 pr-4">
-      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>
-        {description}
-      </div>
-    </div>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation()
-        onAction()
-      }}
-      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-    >
-      View
-    </button>
-  </div>
-)
-
-
-
   </div>
 )
 
