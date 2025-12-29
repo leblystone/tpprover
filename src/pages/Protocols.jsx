@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -1731,8 +1731,17 @@ export default function Protocols() {
         >
           <div className="space-y-4">
             {/* PROTOCOL SETTINGS Section Header */}
-            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>PROTOCOL SETTINGS</h4>
+            <div className="flex items-center gap-4 mb-3">
+              <Settings size={32} style={{ color: theme.primary }} />
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Settings</h4>
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    Schedule Configuration
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -1751,10 +1760,17 @@ export default function Protocols() {
             {/* Edit Vials and Delivery Methods Section */}
             {manageConfirm?.active && manageConfirm?.linkedItems && (
                 <>
-                    <div className="border-t" style={{ borderColor: theme.border }}></div>
-                    
-                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIALS & DELIVERY METHODS</h4>
+                    <div className="flex items-center gap-4 mb-3 pt-1">
+                      <TestTubes size={32} style={{ color: theme.primary }} />
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            Active Inventory
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     <EditActiveProtocolVials
@@ -1803,18 +1819,20 @@ export default function Protocols() {
             <div className="border-t" style={{ borderColor: theme.border }}></div>
 
             <div className="p-3 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
-                <div className="flex flex-col items-center text-center">
-                    <div className="text-sm font-medium mb-0.5" style={{ color: '#dc2626' }}>End Protocol Early</div>
-                    <div className="text-xs mb-2" style={{ color: '#991b1b' }}>This will end the protocol as of today and start any washout period.</div>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <div className="text-sm font-semibold mb-0.5" style={{ color: '#dc2626' }}>End protocol early?</div>
+                        <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period if applicable.</div>
+                    </div>
                     <button
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
                         style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
                         onClick={() => {
                             endProtocol(manageConfirm);
                             setManageConfirm(null);
                         }}
                     >
-                        End Protocol Now
+                        End Now
                     </button>
                 </div>
             </div>

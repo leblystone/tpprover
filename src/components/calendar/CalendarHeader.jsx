@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 
 const getTimeOfDay = () => {
@@ -29,44 +29,100 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
   const monthAbbr = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   
   return (
-    <div className="flex flex-col items-center mb-4">
-      {/* Modern Clock-Style Date Display - No Card Wrap */}
-      <div className="flex flex-col items-center justify-center py-2 w-full">
-        {/* Day Name */}
-        <div 
-          className="text-2xl font-bold tracking-wider"
+    <div className="flex flex-col items-center mb-3">
+      {/* Modern Clock-Style Date Display with Navigation Arrows */}
+      <div className="flex items-center gap-3 w-full max-w-md justify-center">
+        {/* Previous Button */}
+        <button
+          onClick={onPrev}
+          className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95"
           style={{ 
-            color: theme.isDark ? theme.text : theme.primaryDark
+            color: theme.isDark ? theme.textLight : theme.primaryDark,
+            backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
           }}
         >
-          {dayName}
-        </div>
-        
-        {/* Time of Day */}
+          <ChevronLeft size={20} />
+        </button>
+
+        {/* Date Display Card */}
         <div 
-          className="text-[10px] font-medium tracking-wide uppercase"
+          className="flex flex-col items-center justify-center py-3 px-6 rounded-xl flex-1 max-w-xs relative"
           style={{ 
-            color: theme.textLight,
-            opacity: 0.7
+            backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
+            boxShadow: theme.isDark ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
           }}
         >
-          {isToday ? timeOfDay : '\u00A0'}
+          {/* Day Name - LARGER & BOLDER */}
+          <div 
+            className="text-3xl font-extrabold tracking-wider"
+            style={{ 
+              color: theme.isDark ? theme.text : theme.primaryDark,
+              textShadow: isToday ? `0 0 20px ${theme.primary}40` : 'none'
+            }}
+          >
+            {dayName}
+          </div>
+          
+          {/* Time of Day - COLORED & SLIGHTLY LARGER */}
+          <div 
+            className="text-xs font-semibold tracking-widest uppercase mt-0.5"
+            style={{ 
+              color: isToday ? theme.primary : theme.textLight,
+              opacity: isToday ? 0.9 : 0.6
+            }}
+          >
+            {isToday ? timeOfDay : '\u00A0'}
+          </div>
+          
+          {/* Date Display - ADJUSTED SIZE & BETTER SEPARATOR */}
+          <div 
+            className="text-2xl font-bold mt-1 tracking-wide"
+            style={{ 
+              color: theme.isDark ? theme.text : theme.primaryDark
+            }}
+          >
+            {dayNumber} <span className="opacity-50 mx-1">|</span> {monthAbbr}
+          </div>
+
+          {/* Today Accent Line */}
+          {isToday && (
+            <div 
+              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 rounded-full"
+              style={{ 
+                backgroundColor: theme.primary,
+                boxShadow: `0 0 8px ${theme.primary}`
+              }}
+            />
+          )}
         </div>
-        
-        {/* Date Display */}
-        <div 
-          className="text-3xl font-bold mt-1 tracking-tight"
+
+        {/* Next Button */}
+        <button
+          onClick={onNext}
+          className="p-2 rounded-lg transition-all hover:scale-110 active:scale-95"
           style={{ 
-            color: theme.isDark ? theme.text : theme.primaryDark
+            color: theme.isDark ? theme.textLight : theme.primaryDark,
+            backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
           }}
         >
-          {dayNumber} <span className="opacity-30">|</span> {monthAbbr}
-        </div>
+          <ChevronRight size={20} />
+        </button>
       </div>
 
-      {/* View Controls - All Together */}
-      <div className="flex items-center justify-center gap-2 mt-2 w-full">
-        <div className="inline-flex rounded-xl p-1 shadow-sm border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
+      {/* Subtle Gradient Divider */}
+      <div 
+        className="w-24 h-px my-2"
+        style={{ 
+          background: `linear-gradient(90deg, transparent, ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}, transparent)`
+        }}
+      />
+
+      {/* View Controls - TIGHTER INTEGRATION */}
+      <div className="flex items-center justify-center gap-2 w-full">
+        <div className="inline-flex rounded-xl p-1 shadow-md border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
           <button 
             onClick={onToday} 
             className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${isToday ? 'shadow-sm' : 'hover:bg-opacity-20'}`}
