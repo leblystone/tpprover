@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -16,7 +16,7 @@ import { formatCurrency } from '../utils/currencyUtils'
 import ProtocolCard from '../components/protocols/ProtocolCard'
 import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
-import ProtocolsHelpPanel from '../components/protocols/ProtocolsHelpPanel';
+import ProtocolsTipsBanner from '../components/protocols/ProtocolsTipsBanner';
 import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
 import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
 import { useAppContext } from '../context/AppContext';
@@ -52,6 +52,7 @@ export default function Protocols() {
   const [endedProtocolName, setEndedProtocolName] = useState(null);
   const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
   const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
+  const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -743,13 +744,44 @@ export default function Protocols() {
 
   return (
     <>
-      <ProtocolsHelpPanel theme={theme} />
+      <ProtocolsTipsBanner theme={theme} />
       
       <div className="space-y-4">
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
           <div>
+            {/* Filter Dropdown */}
+            {protocols.length > 0 && (
+              <div className="mb-6">
+                <CustomDropdown
+                  value={protocolFilter}
+                  onChange={setProtocolFilter}
+                  options={[
+                    { 
+                      value: 'all', 
+                      label: `All Protocols (${organizedProtocols.active.length + organizedProtocols.inactive.length})`,
+                      icon: <List size={16} style={{ color: theme.textLight }} />
+                    },
+                    { 
+                      value: 'active', 
+                      label: `Active Only (${organizedProtocols.active.length})`,
+                      icon: <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+                    },
+                    { 
+                      value: 'inactive', 
+                      label: `Inactive Only (${organizedProtocols.inactive.length})`,
+                      icon: <XCircle size={16} style={{ color: '#6b7280' }} />
+                    }
+                  ]}
+                  theme={theme}
+                  placeholder="Filter protocols..."
+                  outlined={true}
+                  customShadow={true}
+                />
+              </div>
+            )}
+
             {filteredProtocols.length === 0 ? (
               searchQuery ? (
                 <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
@@ -786,14 +818,16 @@ export default function Protocols() {
             ) : (
               <div className="space-y-6">
                 {/* Active Protocols Section */}
-                {organizedProtocols.active.length > 0 && (
+                {(protocolFilter === 'all' || protocolFilter === 'active') && organizedProtocols.active.length > 0 && (
                   <div className="space-y-4">
-                    <h2 
-                      className="text-sm font-semibold uppercase tracking-wider px-1"
-                      style={{ color: theme.textLight }}
-                    >
-                      Active Protocols
-                    </h2>
+                    {protocolFilter === 'all' && (
+                      <h2 
+                        className="text-sm font-semibold uppercase tracking-wider px-1"
+                        style={{ color: theme.textLight }}
+                      >
+                        Active Protocols
+                      </h2>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {organizedProtocols.active.map(p => (
                         <ProtocolCard 
@@ -812,9 +846,9 @@ export default function Protocols() {
                 )}
 
                 {/* Inactive Protocols Section */}
-                {organizedProtocols.inactive.length > 0 && (
+                {(protocolFilter === 'all' || protocolFilter === 'inactive') && organizedProtocols.inactive.length > 0 && (
                   <div className="space-y-4">
-                    {organizedProtocols.active.length > 0 && (
+                    {protocolFilter === 'all' && organizedProtocols.active.length > 0 && (
                       <h2 
                         className="text-sm font-semibold uppercase tracking-wider px-1"
                         style={{ color: theme.textLight }}
@@ -836,6 +870,24 @@ export default function Protocols() {
                         />
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* No results based on filter */}
+                {((protocolFilter === 'active' && organizedProtocols.active.length === 0) ||
+                  (protocolFilter === 'inactive' && organizedProtocols.inactive.length === 0)) && (
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                      <FileText size={32} style={{ color: theme.primary }} />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                      No {protocolFilter === 'active' ? 'Active' : 'Inactive'} Protocols
+                    </h3>
+                    <p className="text-sm" style={{ color: theme.textLight }}>
+                      {protocolFilter === 'active' 
+                        ? 'Start a protocol to see it here.' 
+                        : 'Inactive protocols will appear here once you end them.'}
+                    </p>
                   </div>
                 )}
               </div>
