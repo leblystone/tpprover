@@ -88,10 +88,15 @@ export default function AccountSubscription() {
   const getSource = () => {
     if (!sub) return ''
     console.log('Subscription data:', sub) // Debug log
+    // Check paymentProvider field (used by backend)
+    if (sub.paymentProvider === 'googleplay') return 'VIA GOOGLE PLAY'
+    if (sub.paymentProvider === 'apple') return 'VIA APPLE'
+    if (sub.paymentProvider === 'stripe') return 'VIA STRIPE'
+    // Fallback checks for older data
     if (sub.source === 'google_play') return 'VIA GOOGLE PLAY'
     if (sub.source === 'apple') return 'VIA APPLE'
     if (sub.source === 'stripe' || sub.paymentMethodId) return 'VIA STRIPE'
-    if (sub.interval === 'lifetime' && !sub.paymentMethodId) return 'LIFETIME KIT REDEMPTION'
+    if (sub.interval === 'lifetime' && !sub.paymentMethodId && !sub.paymentProvider) return 'LIFETIME KIT REDEMPTION'
     return ''
   }
 
