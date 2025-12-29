@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History } from 'lucide-react';
+
+// Haptic feedback helper (works on Capacitor apps)
+const triggerHaptic = (style = 'light') => {
+  try {
+    if (window.Capacitor?.Plugins?.Haptics) {
+      if (style === 'light') {
+        window.Capacitor.Plugins.Haptics.impact({ style: 'LIGHT' });
+      } else if (style === 'medium') {
+        window.Capacitor.Plugins.Haptics.impact({ style: 'MEDIUM' });
+      } else if (style === 'success') {
+        window.Capacitor.Plugins.Haptics.notification({ type: 'SUCCESS' });
+      }
+    }
+  } catch (e) {
+    // Haptics not available (web/PWA)
+  }
+};
 
 /**
  * BottomNavigation Component
  * Native app-style bottom navigation with smooth animations
  * Features:
  * - Glassmorphic design
- * - Smooth haptic-style feedback
- * - Floating action buttons in expanded menu
+ * - Haptic feedback
+ * - Long-press quick actions
+ * - Swipe gestures
+ * - Search functionality
  * - iOS/Android native feel
  */
 export default function BottomNavigation({ theme }) {
@@ -16,6 +35,11 @@ export default function BottomNavigation({ theme }) {
   const location = useLocation();
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [rippleEffect, setRippleEffect] = useState(null);
+  const [longPressItem, setLongPressItem] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const longPressTimer = useRef(null);
+  const touchStartY = useRef(null);
+  const menuRef = useRef(null);
 
   // Menu configurations
   const menuItems = {
@@ -36,10 +60,18 @@ export default function BottomNavigation({ theme }) {
     ]
   };
 
-  // Bottom nav items
+  // Long-press quick actions
+  const quickActions = {
+    home: { action: () => navigate('/app/protocols?new=true'), label: 'Quick Add Protocol', icon: Plus },
+    research: { action: () => navigate('/app/protocols'), label: 'Recent Protocol', icon: History },
+    inventory: { action: () => navigate('/app/stockpile?new=true'), label: 'Quick Add to Stockpile', icon: Plus },
+    calendar: { action: () => navigate('/app/calendar'), label: 'Jump to Today', icon: Calendar }
+  };
+
+  // Bottom nav items (now includes search)
   const navItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
+    { id: 'search', label: 'Search', icon: Search, type: 'search' },
     { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon'] },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -58,6 +90,9 @@ export default function BottomNavigation({ theme }) {
   };
 
   const handleNavClick = (item, event) => {
+    // Haptic feedback - light tap
+    triggerHaptic('light');
+
     // Create ripple effect
     if (event) {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -71,8 +106,61 @@ export default function BottomNavigation({ theme }) {
       navigate(item.path);
       setExpandedMenu(null);
     } else if (item.type === 'menu') {
+      // Medium haptic for menu open
+      triggerHaptic('medium');
       // Toggle menu
       setExpandedMenu(expandedMenu === item.id ? null : item.id);
+    } else if (item.type === 'search') {
+      setShowSearch(true);
+      setExpandedMenu(null);
+    }
+  };
+
+  // Long-press handlers
+  const handleTouchStart = (item, event) => {
+    if (quickActions[item.id]) {
+      touchStartY.current = event.touches[0].clientY;
+      longPressTimer.current = setTimeout(() => {
+        triggerHaptic('medium');
+        setLongPressItem(item.id);
+      }, 500); // 500ms long-press
+    }
+  };
+
+  const handleTouchEnd = (item) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+    if (longPressItem === item.id) {
+      // Execute quick action
+      triggerHaptic('success');
+      quickActions[item.id].action();
+      setLongPressItem(null);
+    }
+  };
+
+  const handleTouchMove = () => {
+    // Cancel long-press if finger moves
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
+  // Swipe down to close menu
+  const handleMenuTouchStart = (event) => {
+    touchStartY.current = event.touches[0].clientY;
+  };
+
+  const handleMenuTouchMove = (event) => {
+    if (!touchStartY.current) return;
+    
+    const touchY = event.touches[0].clientY;
+    const deltaY = touchY - touchStartY.current;
+    
+    // Swipe down threshold (50px)
+    if (deltaY > 50) {
+      setExpandedMenu(null);
+      touchStartY.current = null;
     }
   };
 
@@ -89,6 +177,7 @@ export default function BottomNavigation({ theme }) {
   }, [expandedMenu]);
 
   const handleMenuItemClick = (menuItem) => {
+    triggerHaptic('light');
     if (menuItem.external) {
       window.open(menuItem.path, '_blank', 'noopener,noreferrer');
     } else if (menuItem.action) {
@@ -99,13 +188,57 @@ export default function BottomNavigation({ theme }) {
     setExpandedMenu(null);
   };
 
+  // Close search modal
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+  };
+
   return (
     <>
+      {/* Search Modal */}
+      {showSearch && (
+        <div
+          className="lg:hidden fixed inset-0 z-[10000] flex flex-col"
+          style={{
+            backgroundColor: theme.background,
+            animation: 'slideUpFast 250ms ease-out'
+          }}
+        >
+          <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCloseSearch}
+                className="p-2 rounded-lg"
+                style={{ color: theme.text }}
+              >
+                ✕
+              </button>
+              <input
+                type="text"
+                placeholder="Search protocols, inventory, orders..."
+                autoFocus
+                className="flex-1 px-4 py-2 rounded-lg text-sm"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            <p className="text-sm" style={{ color: theme.textLight }}>
+              Start typing to search...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Backdrop - click to close expanded menu */}
       {expandedMenu && (
         <div
           className="lg:hidden fixed inset-0 z-[9998]"
-          onClick={() => setExpandedMenu(null)}
+          onClick={() => { setExpandedMenu(null); triggerHaptic('light'); }}
           style={{
             backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
             backdropFilter: 'blur(8px)',
@@ -115,10 +248,13 @@ export default function BottomNavigation({ theme }) {
         />
       )}
 
-      {/* Expanded Menu (appears above bottom nav) */}
+      {/* Expanded Menu (appears above bottom nav) - with swipe support */}
       {expandedMenu && (
         <div
+          ref={menuRef}
           className="lg:hidden fixed bottom-16 left-0 right-0 z-[9999] px-3"
+          onTouchStart={handleMenuTouchStart}
+          onTouchMove={handleMenuTouchMove}
           style={{
             paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
             animation: 'slideUpBounce 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
@@ -136,8 +272,8 @@ export default function BottomNavigation({ theme }) {
                 : '0 20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
             }}
           >
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-2">
+            {/* Handle bar - for swipe affordance */}
+            <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
               <div 
                 className="w-10 h-1 rounded-full"
                 style={{ 
@@ -222,10 +358,14 @@ export default function BottomNavigation({ theme }) {
               <button
                 key={item.id}
                 onClick={(e) => handleNavClick(item, e)}
+                onTouchStart={(e) => handleTouchStart(item, e)}
+                onTouchEnd={() => handleTouchEnd(item)}
+                onTouchMove={handleTouchMove}
                 className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
                 style={{
                   color: active || isExpanded ? theme.primary : theme.textLight,
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
                 }}
               >
                 {/* Ripple effect */}
@@ -264,6 +404,21 @@ export default function BottomNavigation({ theme }) {
                         animation: 'slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1)'
                       }}
                     />
+                  )}
+
+                  {/* Long-press tooltip */}
+                  {longPressItem === item.id && quickActions[item.id] && (
+                    <div
+                      className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap"
+                      style={{
+                        backgroundColor: theme.primary,
+                        color: theme.textOnPrimary,
+                        boxShadow: `0 4px 12px ${theme.primary}40`,
+                        animation: 'popIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                      }}
+                    >
+                      {quickActions[item.id].label}
+                    </div>
                   )}
 
                   <Icon
@@ -362,6 +517,17 @@ export default function BottomNavigation({ theme }) {
           to {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+          }
+        }
+
+        @keyframes slideUpFast {
+          from {
+            opacity: 0;
+            transform: translateY(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
 

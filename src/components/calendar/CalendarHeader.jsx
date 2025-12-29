@@ -112,48 +112,78 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         </button>
       </div>
 
-      {/* Subtle Gradient Divider */}
-      <div 
-        className="w-24 h-px my-2"
-        style={{ 
-          background: `linear-gradient(90deg, transparent, ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}, transparent)`
-        }}
-      />
+      {/* Modern Unified Glassmorphism Controls */}
+      <div className="flex items-center justify-center gap-3 w-full mt-4">
+        <div 
+          className="flex items-center p-1.5 rounded-2xl backdrop-blur-md"
+          style={{ 
+            backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.7)',
+            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
+            boxShadow: theme.isDark ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 32px rgba(31, 38, 135, 0.07)'
+          }}
+        >
+          {/* Today Button - Integrated Action */}
+          <button 
+            onClick={onToday}
+            className="relative px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl overflow-hidden group"
+            style={{
+              color: isToday ? theme.textOnPrimary : (theme.isDark ? theme.text : theme.primaryDark),
+              backgroundColor: isToday ? theme.primary : 'transparent',
+              boxShadow: isToday ? `0 4px 15px ${theme.primary}60` : 'none'
+            }}
+          >
+            {isToday && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 translate-x-[-100%] animate-[shimmer_2s_infinite]"></span>
+            )}
+            <span className="relative z-10">Today</span>
+          </button>
 
-      {/* View Controls - TIGHTER INTEGRATION */}
-      <div className="flex items-center justify-center gap-2 w-full">
-        <div className="inline-flex rounded-xl p-1 shadow-md border" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
-          <button 
-            onClick={onToday} 
-            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${isToday ? 'shadow-sm' : 'hover:bg-opacity-20'}`}
-            style={isToday ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-          >
-            Today
-          </button>
-          <div className="w-[1px] my-1 mx-0.5 opacity-20" style={{ backgroundColor: theme.textLight }}></div>
-          <button 
-            onClick={() => onChangeView('month')} 
-            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
-            style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-          >
-            Month
-          </button>
-          <button 
-            onClick={() => onChangeView('week')} 
-            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'week' ? 'shadow-sm' : 'hover:bg-opacity-20'}`} 
-            style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}
-          >
-            Week
-          </button>
+          {/* Minimal Aesthetic Divider */}
+          <div className="w-px h-4 mx-2 opacity-20" style={{ backgroundColor: theme.textLight }}></div>
+
+          {/* View Mode Segmented Control */}
+          <div className="flex gap-1">
+            <button 
+              onClick={() => onChangeView('month')}
+              className="px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
+              style={{
+                backgroundColor: viewMode === 'month' ? theme.primary : 'transparent',
+                color: viewMode === 'month' ? theme.textOnPrimary : (theme.isDark ? theme.textLight : '#6b7280'),
+                boxShadow: viewMode === 'month' ? `0 4px 15px ${theme.primary}60` : 'none',
+                opacity: viewMode === 'month' ? 1 : 0.6
+              }}
+            >
+              Month
+            </button>
+            <button 
+              onClick={() => onChangeView('week')}
+              className="px-5 py-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 rounded-xl"
+              style={{
+                backgroundColor: viewMode === 'week' ? theme.primary : 'transparent',
+                color: viewMode === 'week' ? theme.textOnPrimary : (theme.isDark ? theme.textLight : '#6b7280'),
+                boxShadow: viewMode === 'week' ? `0 4px 15px ${theme.primary}60` : 'none',
+                opacity: viewMode === 'week' ? 1 : 0.6
+              }}
+            >
+              Week
+            </button>
+          </div>
         </div>
 
-        {/* Icon Key Button */}
+        {/* Info Button - Matching Aesthetic */}
         {viewMode === 'month' && onShowIconKey && (
-          <ModernTooltip text="Icon guide" position="bottom">
-            <button onClick={onShowIconKey} className="p-2 rounded-full transition-all border" style={{ borderColor: theme.border, color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-              <HelpCircle className="h-5 w-5" />
-            </button>
-          </ModernTooltip>
+          <button 
+            onClick={onShowIconKey}
+            className="p-3 rounded-2xl backdrop-blur-md transition-all duration-500 hover:rotate-[360deg] active:scale-90"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.7)',
+              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
+              color: theme.primary,
+              boxShadow: theme.isDark ? '0 8px 32px rgba(0, 0, 0, 0.2)' : '0 8px 32px rgba(31, 38, 135, 0.05)'
+            }}
+          >
+            <HelpCircle size={16} strokeWidth={3} />
+          </button>
         )}
       </div>
     </div>
