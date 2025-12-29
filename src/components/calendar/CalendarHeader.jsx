@@ -102,7 +102,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
       </div>
 
       {/* Modern Unified Glassmorphism Controls */}
-      <div className="flex items-center justify-center gap-3 w-full mt-2">
+      <div className="relative flex items-center justify-center w-full mt-2">
         <div 
           className="flex items-center p-1.5 rounded-2xl backdrop-blur-md"
           style={{ 
@@ -159,11 +159,11 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           </div>
         </div>
 
-        {/* Info Button - Matching Aesthetic */}
+        {/* Info Button - Positioned Absolutely Right */}
         {viewMode === 'month' && onShowIconKey && (
           <button 
             onClick={onShowIconKey}
-            className="p-3 rounded-2xl backdrop-blur-md transition-all duration-500 hover:rotate-[360deg] active:scale-90"
+            className="absolute right-4 p-3 rounded-2xl backdrop-blur-md transition-all duration-500 hover:rotate-[360deg] active:scale-90"
             style={{
               backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.7)',
               border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,

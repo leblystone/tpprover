@@ -37,6 +37,7 @@ export default function BottomNavigation({ theme }) {
   const [rippleEffect, setRippleEffect] = useState(null);
   const [longPressItem, setLongPressItem] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [searchClosing, setSearchClosing] = useState(false);
   const longPressTimer = useRef(null);
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
@@ -190,9 +191,13 @@ export default function BottomNavigation({ theme }) {
     }
   };
 
-  // Close search modal
+  // Close search modal with animation
   const handleCloseSearch = () => {
-    setShowSearch(false);
+    setSearchClosing(true);
+    setTimeout(() => {
+      setShowSearch(false);
+      setSearchClosing(false);
+    }, 300); // Match animation duration
   };
 
   return (
@@ -224,7 +229,9 @@ export default function BottomNavigation({ theme }) {
               boxShadow: theme.isDark
                 ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                 : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              animation: 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              animation: searchClosing 
+                ? 'slideDownSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                : 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
               paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)'
             }}
           >
@@ -573,6 +580,17 @@ export default function BottomNavigation({ theme }) {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+
+        @keyframes slideDownSmooth {
+          from {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(100%);
           }
         }
 

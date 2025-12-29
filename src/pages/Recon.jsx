@@ -1565,23 +1565,17 @@ export default function Recon() {
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
-                            <div 
-                        className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
-                                style={{ 
-                            backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-                            borderLeft: '4px solid #e0ded7' 
-                        }}
-                    >
-                        <h4 
-                            className="font-bold text-sm tracking-wider uppercase" 
-                            style={{ 
-                                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-                                letterSpacing: '0.1em' 
-                                        }}
-                                    >
-                            DELIVERY METHOD
-                        </h4>
-                        <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                    <div className="flex items-center gap-4 mb-3 pt-1">
+                        <Droplets size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Administration Mode
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
