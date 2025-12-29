@@ -3353,19 +3353,34 @@ function Admin() {
                     </div>
 
                     {/* Search Input */}
-                    <div className="mt-4">
+                    <div className="mt-4 relative">
                       <input
                         type="text"
                         placeholder="Search by ticket # (e.g., Z005), email, or UID..."
                         value={ticketSearchQuery}
                         onChange={(e) => setTicketSearchQuery(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border text-sm"
+                        className="w-full px-4 py-2 pr-10 rounded-lg border text-sm"
                         style={{
                           borderColor: theme.border,
                           backgroundColor: theme.background,
                           color: theme.text
                         }}
                       />
+                      {ticketSearchQuery && (
+                        <button
+                          onClick={() => setTicketSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-opacity-10 hover:bg-gray-500"
+                          style={{ color: theme.textLight }}
+                          title="Clear search"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                      {ticketSearchQuery && (
+                        <div className="mt-2 text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+                          <strong>Active search filter:</strong> "{ticketSearchQuery}" - Clear to see all tickets
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -3385,14 +3400,7 @@ function Admin() {
                       </div>
                     ) : (
                       (() => {
-                        console.log('🎫 Rendering tickets:', {
-                          total: tickets.length,
-                          supportView,
-                          tickets: tickets.map(t => ({ id: t.id.substring(0, 8), status: t.status, ticketNumber: t.ticketNumber }))
-                        });
-                        return tickets;
-                      })()
-                        .filter(ticket => {
+                        const filteredTickets = tickets.filter(ticket => {
                           // Filter by tab (open vs closed)
                           if (supportView === 'open-tickets') {
                             if (ticket.status !== 'new' && ticket.status !== 'in-progress') return false;
@@ -3409,8 +3417,56 @@ function Admin() {
                             if (!matchesNumber && !matchesEmail && !matchesUserId) return false;
                           }
                           return true;
-                        })
-                        .map((ticket) => (
+                        });
+                        
+                        console.log('🎫 Ticket Filtering Debug:', {
+                          totalTickets: tickets.length,
+                          supportView,
+                          searchQuery: ticketSearchQuery,
+                          filteredCount: filteredTickets.length,
+                          allTickets: tickets.map(t => ({ 
+                            number: t.ticketNumber, 
+                            status: t.status, 
+                            email: t.userEmail 
+                          })),
+                          filteredTickets: filteredTickets.map(t => ({ 
+                            number: t.ticketNumber, 
+                            status: t.status 
+                          }))
+                        });
+                        
+                        if (filteredTickets.length === 0) {
+                          return (
+                            <div className="p-8 text-center">
+                              <Search size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+                              <h3 className="font-semibold" style={{ color: theme.primaryDark }}>
+                                {ticketSearchQuery ? 'No matching tickets' : `No ${supportView === 'open-tickets' ? 'open' : 'closed'} tickets`}
+                              </h3>
+                              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                                {ticketSearchQuery 
+                                  ? `No tickets match "${ticketSearchQuery}". Try clearing the search filter.`
+                                  : supportView === 'open-tickets' 
+                                    ? 'All tickets have been closed or resolved'
+                                    : 'No tickets have been closed yet'
+                                }
+                              </p>
+                              {ticketSearchQuery && (
+                                <button
+                                  onClick={() => setTicketSearchQuery('')}
+                                  className="mt-4 px-4 py-2 rounded-lg font-medium hover:opacity-90"
+                                  style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.white
+                                  }}
+                                >
+                                  Clear Search Filter
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return filteredTickets.map((ticket) => (
                           <div
                             key={ticket.id}
                             className="p-4 hover:bg-opacity-50 transition-colors cursor-pointer"
@@ -3469,7 +3525,8 @@ function Admin() {
                               {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleString() : 'Recently'}
                             </div>
                           </div>
-                        ))
+                        ));
+                      })()
                     )}
                   </div>
                 </div>
