@@ -1021,7 +1021,8 @@ export default function Stockpile() {
                               stockpileId: item.id,
                               quantity: item.quantity,
                               unit: item.unit,
-                              quantityUsed: 1
+                              quantityUsed: 1,
+                              dateAcquired: item.date || ''
                             };
                             localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
                             navigate('/app/recon');

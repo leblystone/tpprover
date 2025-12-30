@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -15,6 +16,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     vendorId: null, 
     water: '', 
     cost: '',
+    dateAcquired: '',
     peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] 
   });
   const form = formData !== undefined ? formData : internalForm;
@@ -122,6 +124,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           vendor: vendors,
           vendorId: firstVendorId,
           cost: costValue,
+          dateAcquired: prefill.dateAcquired || prev.dateAcquired || '',
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 
             id: pep.id || index + 1, 
@@ -155,6 +158,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           vendor: prefill.vendor || '', 
           vendorId: prefill.vendorId || null, // Include vendorId from prefill
           cost: costValue,
+          dateAcquired: prefill.dateAcquired || prev.dateAcquired || '',
           peptides: [p] 
         }));
       }
@@ -169,7 +173,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           administrationRoute: prefill.administrationRoute || prev.administrationRoute,
           penType: prefill.penType || prev.penType,
           penColor: prefill.penColor || prev.penColor,
-          cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : prev.cost
+          cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : prev.cost,
+          dateAcquired: prefill.dateAcquired !== undefined ? prefill.dateAcquired : prev.dateAcquired
         }));
       }
 
@@ -787,6 +792,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 outlined={true}
                 customTextColor={theme.isDark ? null : "#181A18"}
                 customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+              />
+              
+              {/* Date Acquired */}
+              <GlassmorphismDatePicker
+                value={form.dateAcquired || ''}
+                onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
+                theme={theme}
+                placeholder="Date Acquired"
               />
               
               {/* Cost */}
@@ -1862,7 +1875,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
               penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
               penColor: penColorName || form.penColor, 
-              cost: form.cost || ''
+              cost: form.cost || '',
+              dateAcquired: form.dateAcquired || ''
             };
             
             console.log('💾 Saving recon calculation with peptides:', peptidesWithStockpile.map(p => ({
@@ -1920,7 +1934,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
                 penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
                 penColor: penColorName || form.penColor, 
-                cost: form.cost || ''
+                cost: form.cost || '',
+                dateAcquired: form.dateAcquired || ''
               };
               
               onSaveDraft(dataToSave);

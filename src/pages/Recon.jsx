@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
+import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
 import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
@@ -481,6 +482,7 @@ export default function Recon() {
             penColor: data.penColor,
             cost: data.cost,
             date: now,
+            dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
             notes: '',
             createdAt: now,
@@ -589,6 +591,7 @@ export default function Recon() {
             penColor: data.penColor || '',
             cost: data.cost || '',
             date: now,
+            dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
             notes: '',
             isDraft: true,
@@ -927,16 +930,17 @@ export default function Recon() {
 													quantityUsed: 1
 												}];
 											
-											setPrefill({
-												peptides: draftPeptides,
-												vendor: item.vendor || '',
-												water: item.water || 2,
-												deliveryMethod: item.deliveryMethod || 'pipette',
-												administrationRoute: item.administrationRoute || 'subq',
-												penType: item.penType || '',
-												penColor: item.penColor || '',
-												cost: item.cost || ''
-											});
+                                                            setPrefill({
+                                                                peptides: draftPeptides,
+                                                                vendor: item.vendor || '',
+                                                                water: item.water || 2,
+                                                                deliveryMethod: item.deliveryMethod || 'pipette',
+                                                                administrationRoute: item.administrationRoute || 'subq',
+                                                                penType: item.penType || '',
+                                                                penColor: item.penColor || '',
+                                                                cost: item.cost || '',
+                                                                dateAcquired: item.dateAcquired || ''
+                                                            });
 											setDraftIdToRemove(item.id); // Track which draft to remove when saving
 											setActiveTab('calculator');
 											// Draft will be removed when user saves the calculation
@@ -954,6 +958,11 @@ export default function Recon() {
 														)}
 													</div>
 													<div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}><Package size={14} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
+													{item.dateAcquired && (
+														<div className="text-xs flex items-center gap-1 mt-1" style={{ color: theme.textLight }}>
+															<Calendar size={12} /> Acquired: {formatMMDDYYYY(item.dateAcquired)}
+														</div>
+													)}
 												</div>
 												<div className="text-xs text-gray-500">{formatMMDDYYYY(item.date)}</div>
 											</div>
@@ -1064,7 +1073,8 @@ export default function Recon() {
                                                                 administrationRoute: item.administrationRoute || 'subq',
                                                                 penType: item.penType || '',
                                                                 penColor: item.penColor || '',
-                                                                cost: item.cost || ''
+                                                                cost: item.cost || '',
+                                                                dateAcquired: item.dateAcquired || ''
                                                             });
                                                             setDraftIdToRemove(item.id); // Track which draft to remove when saving
                                                             setActiveTab('calculator');
@@ -1856,6 +1866,16 @@ export default function Recon() {
 
                     {/* Page Break */}
                     <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                    <GlassmorphismDatePicker
+                        value={editingItem?.dateAcquired || draft.dateAcquired || ''}
+                        onChange={(dateString) => {
+                            updateEditingItem({ dateAcquired: dateString });
+                            updateFormData({ dateAcquired: dateString });
+                        }}
+                        theme={theme}
+                        placeholder="Date Acquired"
+                    />
 
                     <TextInput 
                         label="Notes" 
