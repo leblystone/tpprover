@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '../common/Modal';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -487,8 +487,22 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             .filter(item => linkedData[item.peptideId]?.status === 'skipped');
         
         return (
-            <div>
-                <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
+            <div className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center gap-4 mb-2">
+                    <TestTubes size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Link Peptides</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Connect to Stockpile
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p className="text-sm mb-3 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
                 <div className="space-y-3">
                     {protocol.peptides.map((p, index) => {
                         // Ensure we have a unique identifier - use index as fallback if ID is missing
@@ -535,7 +549,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         </button>
                         
                         {isSkippedQuestionsOpen && (
-                            <div className="mt-3 space-y-4 p-4 rounded-lg" style={{ 
+                            <div className="mt-2 space-y-3 p-3 rounded-lg" style={{ 
                                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 border: `1px solid ${theme.border}`
                             }}>
@@ -877,8 +891,22 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     const renderReconStrategyStep = () => {
         return (
-            <div>
-                <p className="text-sm text-center italic mb-4" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
+            <div className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center gap-4 mb-2">
+                    <Beaker size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Reconstitution Strategy</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Preparation Method
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p className="text-sm text-center italic mb-3" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
                     You've linked {linkedPeptides.length} peptide(s). How would you like to <span style={{ whiteSpace: 'nowrap' }}>reconstitute</span> them?
                 </p>
                 <div className="mt-6 grid grid-cols-2 lg:grid-cols-1 gap-2">
@@ -969,8 +997,22 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             reconStrategy: reconStrategy
         };
         return (
-             <div>
-                <p className="text-sm italic text-center mb-4" style={{ color: theme.textLight }}>
+             <div className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center gap-4 mb-2">
+                    <Beaker size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Reconstitute Vials</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Calculate & Prepare
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p className="text-sm italic text-center mb-3" style={{ color: theme.textLight }}>
                     Confirm your vial(s) for the {reconStrategy === 'separate' ? 'separate' : 'blended'} protocol.
                 </p>
                 <div className="mt-4">
@@ -1041,9 +1083,22 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
      const renderConfirmStep = () => {
         return (
-             <div className="space-y-6">
-                {/* Header */}
-                <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
+             <div className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center gap-4 mb-2">
+                    <Calendar size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Confirm & Start</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Final Review
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p className="text-sm mb-3 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
 
                 {/* Start Date Input with Glassmorphism Date Picker */}
                 <div className="relative">
@@ -1058,16 +1113,24 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 {/* Protocol Summary Card */}
                 <div>
                     {/* Section Header */}
-                    <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-                        <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL SUMMARY</h4>
-                        <ClipboardList size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                    <div className="flex items-center gap-4 mb-2">
+                        <ClipboardList size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Summary</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Ready to Begin
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="p-4 rounded-lg" style={{ 
+                    <div className="p-3 rounded-lg" style={{ 
                         border: `1px solid #f0eee7`,
                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                         backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground
                     }}>
-                        <div className="space-y-3 text-xs" style={{ color: theme.textLight }}>
+                        <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
                         <div className="flex justify-between">
                             <span>Protocol Name:</span>
                             <span className="font-semibold" style={{ color: theme.text }}>{protocol.protocolName}</span>
@@ -1081,7 +1144,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             </div>
                         )}
                         <div>
-                            <div className="mb-2 font-medium" style={{ color: theme.text }}>Compounds ({protocol.peptides?.length || 0}):</div>
+                            <div className="mb-2 font-medium" style={{ color: theme.text }}>Peptide(s):</div>
                             <div className="space-y-2 ml-2">
                                 {protocol.peptides?.map((peptide, index) => {
                                     const peptideId = peptide.id || `confirm-peptide-${index}`;
@@ -1122,44 +1185,55 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 </div>
 
-                {/* What Happens Next */}
-                <div className="p-4 rounded-lg" style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                {/* What Happens Next - Enhanced Horizontal View */}
+                <div className="relative overflow-hidden rounded-xl border p-3" style={{ 
+                    backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+                    borderColor: theme.border,
+                    backdropFilter: 'blur(8px)'
                 }}>
-                    <div className="text-sm font-medium mb-4" style={{ color: theme.text }}>What Happens Next</div>
-                    <div className="grid grid-cols-1 gap-3">
-                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Dashboard Integration</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Daily research will appear on your Dashboard</div>
-                            </div>
+                    {/* Subtle Background Accent */}
+                    <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-5 pointer-events-none">
+                        <Zap size={80} style={{ color: theme.primary }} />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="flex items-center gap-2 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                            <Zap size={10} fill="currentColor" />
+                            Next Steps
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
+                        
+                        <div className="flex-1 grid grid-cols-3 gap-2 w-full">
+                            {/* Feature 1 */}
+                            <div className="flex flex-col items-center text-center gap-1 group">
+                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                    <LayoutDashboard size={14} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Dashboard</span>
+                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Today's Research</span>
+                                </div>
                             </div>
-                            <div>
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Calendar Schedule</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Research schedule will be visible in your Calendar</div>
+
+                            {/* Feature 2 */}
+                            <div className="flex flex-col items-center text-center gap-1 group">
+                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                    <Calendar size={14} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Calendar</span>
+                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Fully Schedualed</span>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Progress Tracking</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>Track progress by marking research complete</div>
+
+                            {/* Feature 3 */}
+                            <div className="flex flex-col items-center text-center gap-1 group">
+                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                    <Activity size={14} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Tracking</span>
+                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Progress Notes</span>
+                                </div>
                             </div>
                         </div>
                     </div>

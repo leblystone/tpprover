@@ -316,8 +316,8 @@ function ItemStrip({
           <DataPoint icon={Calendar} label="Use By" value={item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'} theme={theme} />
           {item.notes && (
             <div className="col-span-2 mt-0.5 pt-1.5 border-t border-black/5 dark:border-white/5">
-              <div className="flex items-start gap-2 text-[9px]" style={{ color: theme.textLight }}>
-                <Info size={9} className="mt-0.5" />
+              <div className="flex items-start gap-2 text-[10px]" style={{ color: theme.textLight }}>
+                <Info size={10} className="mt-0.5" />
                 <span className="italic">{item.notes}</span>
               </div>
             </div>
@@ -328,10 +328,10 @@ function ItemStrip({
                 <button
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); if (doc.type === 'image') onPreviewImage(doc); }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
                   style={{ color: theme.primary }}
                 >
-                  <FileImage size={9} strokeWidth={2.5} />
+                  <FileImage size={10} strokeWidth={2.5} />
                   View Lab Document
                 </button>
               ))}
@@ -360,7 +360,7 @@ function MenuAction({ icon: Icon, label, onClick, theme, color }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="w-full text-left px-4 py-2.5 text-xs hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-3 transition-colors font-medium"
+      className="w-full text-left px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-3 transition-colors font-medium"
       style={{ color: color || theme.text }}
     >
       <Icon size={14} style={{ color: color || '#8ca68c' }} />
