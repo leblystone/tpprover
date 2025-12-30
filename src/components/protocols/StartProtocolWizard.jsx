@@ -937,19 +937,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     })}
                 </div>
                  <div className="mt-3 text-center">
-                    <div className="flex justify-between items-center">
-                        <button 
-                            onClick={handleBack}
-                            className="px-4 py-2 rounded-md text-sm flex items-center gap-2"
-                            style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
-                        >
-                            <ChevronLeft size={16} />
-                            Back
-                        </button>
-                        <button onClick={() => setStage('confirm')} className="text-sm text-gray-500 hover:underline">
-                            Skip reconstitution
-                        </button>
-                    </div>
+                    <button onClick={() => setStage('confirm')} className="text-sm text-gray-500 hover:underline">
+                        Skip reconstitution
+                    </button>
                 </div>
             </div>
         );
@@ -1053,18 +1043,6 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         }}
                     />
                 </div>
-                {canGoBack() && (
-                    <div className="mt-2 flex justify-start">
-                        <button 
-                            onClick={handleBack}
-                            className="px-4 py-2 rounded-md text-sm flex items-center gap-2"
-                            style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
-                        >
-                            <ChevronLeft size={16} />
-                            Back
-                        </button>
-                    </div>
-                )}
             </div>
         );
     };
@@ -1228,19 +1206,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-between gap-2 pt-1">
-                    <div>
-                        {canGoBack() && (
-                            <button 
-                                onClick={handleBack}
-                                className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
-                                style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
-                            >
-                                <ChevronLeft size={16} />
-                                Back
-                            </button>
-                        )}
-                    </div>
+                <div className="flex justify-end gap-2 pt-1">
                     <div className="flex gap-2">
                         <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}>
                             Cancel
@@ -1370,6 +1336,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         <Modal
             open={open}
             onClose={onClose}
+            onBack={canGoBack() ? handleBack : undefined}
             title="Start Protocol"
             theme={theme}
             variant="modern"

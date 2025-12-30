@@ -425,31 +425,32 @@ export default function BottomNavigation({ theme }) {
       )}
 
       {/* Backdrop - click to close expanded menu */}
-      {expandedMenu && (
-        <div
-          className="lg:hidden fixed inset-0 z-[9998]"
-          onClick={() => { setExpandedMenu(null); triggerHaptic('light'); }}
-          style={{
-            backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            animation: 'fadeIn 250ms ease-out'
-          }}
-        />
-      )}
+      <div
+        className="lg:hidden fixed inset-0 z-[9998] transition-all duration-300 ease-in-out"
+        onClick={() => { setExpandedMenu(null); triggerHaptic('light'); }}
+        style={{
+          backgroundColor: expandedMenu ? (theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)') : 'transparent',
+          backdropFilter: expandedMenu ? 'blur(8px)' : 'none',
+          WebkitBackdropFilter: expandedMenu ? 'blur(8px)' : 'none',
+          opacity: expandedMenu ? 1 : 0,
+          pointerEvents: expandedMenu ? 'auto' : 'none'
+        }}
+      />
 
       {/* Expanded Menu (appears above bottom nav) - with swipe support */}
-      {expandedMenu && (
-        <div
-          ref={menuRef}
-          className="lg:hidden fixed bottom-16 left-0 right-0 z-[9999] px-3"
-          onTouchStart={handleMenuTouchStart}
-          onTouchMove={handleMenuTouchMove}
-          style={{
-            paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
-            animation: 'slideUpBounce 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
-          }}
-        >
+      <div
+        ref={menuRef}
+        className="lg:hidden fixed bottom-16 left-0 right-0 z-[9999] px-3 transition-all duration-300 ease-in-out"
+        onTouchStart={handleMenuTouchStart}
+        onTouchMove={handleMenuTouchMove}
+        style={{
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
+          maxHeight: expandedMenu ? '600px' : '0',
+          opacity: expandedMenu ? 1 : 0,
+          transform: expandedMenu ? 'translateY(0)' : 'translateY(20px)',
+          pointerEvents: expandedMenu ? 'auto' : 'none'
+        }}
+      >
           <div
             className="rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
             style={{
@@ -531,7 +532,6 @@ export default function BottomNavigation({ theme }) {
             </div>
           </div>
         </div>
-      )}
 
       {/* Bottom Navigation Bar */}
       <nav

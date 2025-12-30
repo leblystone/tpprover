@@ -142,7 +142,6 @@ export default function SearchableDropdown({
                         )}
                     </ul>
                 </div>
-            </div>
         </div>
     );
 }

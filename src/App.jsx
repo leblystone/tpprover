@@ -9,6 +9,7 @@ import './styles/App.css';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import WelcomeModal from './components/onboarding/WelcomeModal';
+import SwipeableIntro from './components/onboarding/SwipeableIntro';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
 import SuccessModal from './components/ui/SuccessModal';
@@ -116,6 +117,7 @@ function App() {
     updateStatusBar();
   }, [theme]);
   const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading } = useSubscriptionAccess();
+  const [showIntro, setShowIntro] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -278,6 +280,10 @@ function App() {
   // App is now live - no beta restrictions
 
   useEffect(() => {
+    // Force intro if query param is present
+    if (searchParams.get('testIntro') === 'true') {
+      setShowIntro(true);
+    }
     // Force welcome modal if query param is present
     if (searchParams.get('testWelcome') === 'true') {
       setShowWelcome(true);
@@ -337,6 +343,7 @@ function App() {
         if (user?.uid) {
           const userState = await loadUserState(user.uid);
           const hasOnboarded = userState?.hasOnboarded || false;
+          const hasSeenIntro = userState?.hasSeenIntro || false;
           const sampleDataCleared = userState?.sampleDataCleared || false;
           
           // For users who have already onboarded, respect sessionStorage flag
@@ -355,17 +362,22 @@ function App() {
           // Clear any stale sessionStorage flag (from previous test sessions)
           // This ensures the modal can show even after page refreshes during testing
           sessionStorage.removeItem('tpp_welcome_shown');
+          sessionStorage.removeItem('tpp_intro_shown');
           
-          // Show welcome for new users:
+          // Show intro first if user hasn't seen it, then welcome modal
           // 1. User hasn't onboarded AND
           // 2. User is a Firebase user (authenticated) AND
           // 3. Sample data hasn't been explicitly cleared
           if (!hasOnboarded && isFirebaseUser && !sampleDataCleared) {
-            console.log('✅ New user detected - showing welcome modal');
-            // Don't set session flag here - let the modal component set it when actually displayed
-            setShowWelcome(true);
+            if (!hasSeenIntro) {
+              console.log('✨ New user detected - showing intro screens first');
+              setShowIntro(true);
+            } else {
+              console.log('✅ New user detected - showing welcome modal');
+              setShowWelcome(true);
+            }
           } else {
-            console.log('ℹ️ Welcome modal conditions not met:', { hasOnboarded, isFirebaseUser, sampleDataCleared });
+            console.log('ℹ️ Welcome modal conditions not met:', { hasOnboarded, hasSeenIntro, isFirebaseUser, sampleDataCleared });
           }
         }
       } catch (error) {
@@ -444,6 +456,25 @@ function App() {
       window.removeEventListener('tpp:open-support', handleOpenSupport);
     };
   }, []);
+
+  const handleIntroComplete = async () => {
+    setShowIntro(false);
+    // Save hasSeenIntro to cloud storage
+    if (user?.uid) {
+      try {
+        const { saveUserState, loadUserState } = await import('./services/cloudStorage');
+        const currentState = await loadUserState(user.uid) || {};
+        await saveUserState(user.uid, { ...currentState, hasSeenIntro: true });
+        console.log('✨ Saved intro completion to cloud');
+      } catch (error) {
+        console.error('❌ Failed to save intro state:', error);
+      }
+    }
+    // Show welcome modal after intro
+    setTimeout(() => {
+      setShowWelcome(true);
+    }, 300); // Small delay for smooth transition
+  };
 
   const handleCloseWelcome = async () => {
     setShowWelcome(false);
@@ -538,6 +569,11 @@ function App() {
           setMobileMenuOpen(false);
           setShowBetaModal(true);
         }}
+      />
+      <SwipeableIntro
+        open={showIntro}
+        onComplete={handleIntroComplete}
+        theme={theme}
       />
       <WelcomeModal
         open={showWelcome}
