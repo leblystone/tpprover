@@ -11,6 +11,7 @@
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { db } from '../config/firebase.js';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
 
 class PWANotificationService {
   constructor() {
@@ -19,21 +20,39 @@ class PWANotificationService {
     this.serviceWorkerRegistration = null;
     this.pushSubscription = null;
     this.messaging = null;
+    this.isNative = Capacitor.isNativePlatform();
     
-    this.init();
+    // Only initialize on web/PWA platforms, not native
+    if (!this.isNative) {
+      this.init();
+    } else {
+      console.log('📱 PWA notifications skipped: running on native platform');
+    }
   }
 
   async init() {
+    // Skip on native platforms (use Capacitor LocalNotifications instead)
+    if (this.isNative) {
+      this.isSupported = false;
+      return;
+    }
+
     // Check if notifications are supported
-    this.isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+    this.isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
     
     if (!this.isSupported) {
       console.warn('PWA notifications not supported in this browser');
       return;
     }
 
-    // Get current permission status
-    this.permissionStatus = Notification.permission;
+    // Get current permission status (with safety check)
+    if ('Notification' in window && typeof Notification !== 'undefined') {
+      this.permissionStatus = Notification.permission;
+    } else {
+      this.permissionStatus = 'denied';
+      this.isSupported = false;
+      return;
+    }
     
     // Get service worker registration
     try {
@@ -87,6 +106,11 @@ class PWANotificationService {
       throw new Error('Notifications not supported in this browser');
     }
 
+    // Safety check: ensure Notification API is actually available
+    if (typeof window === 'undefined' || !('Notification' in window) || typeof Notification === 'undefined') {
+      throw new Error('Notification API not available in this environment');
+    }
+
     // Always check current browser permission status (not cached)
     const currentPermission = Notification.permission;
     this.permissionStatus = currentPermission; // Update cached status
@@ -122,6 +146,11 @@ class PWANotificationService {
 
     // Permission is 'default' - we can request it
     try {
+      // Safety check before requesting
+      if (typeof window === 'undefined' || !('Notification' in window) || typeof Notification === 'undefined') {
+        throw new Error('Notification API not available');
+      }
+      
       // Request permission
       const permission = await Notification.requestPermission();
       this.permissionStatus = permission; // Update cached status
@@ -237,6 +266,12 @@ class PWANotificationService {
       return null;
     }
 
+    // Safety check: ensure Notification API is actually available
+    if (typeof window === 'undefined' || !('Notification' in window) || typeof Notification === 'undefined') {
+      console.warn('Cannot show notification: Notification API not available');
+      return null;
+    }
+
     // Check user notification preferences
     const userSettings = await this.getUserNotificationSettings();
     if (!userSettings.push) {
@@ -260,7 +295,8 @@ class PWANotificationService {
       timestamp: Date.now()
     };
 
-    const notification = new Notification(title, { ...defaultOptions, ...options });
+    try {
+      const notification = new Notification(title, { ...defaultOptions, ...options });
 
     // Handle notification click
     notification.onclick = () => {
@@ -273,12 +309,16 @@ class PWANotificationService {
       }
     };
 
-    // Auto-close after 5 seconds if not interacted with
-    setTimeout(() => {
-      notification.close();
-    }, 5000);
+      // Auto-close after 5 seconds if not interacted with
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
 
-    return notification;
+      return notification;
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+      return null;
+    }
   }
 
   /**
@@ -420,7 +460,31 @@ class PWANotificationService {
    * Get current notification status
    */
   getStatus() {
+    // Return safe defaults on native platforms
+    if (this.isNative) {
+      return {
+        supported: false,
+        permission: 'denied',
+        enabled: false,
+        serviceWorker: false,
+        firebase: false,
+        pushToken: null
+      };
+    }
+
     // Always check current browser permission (not cached)
+    // Safety check first
+    if (typeof window === 'undefined' || !('Notification' in window) || typeof Notification === 'undefined') {
+      return {
+        supported: false,
+        permission: 'denied',
+        enabled: false,
+        serviceWorker: !!this.serviceWorkerRegistration,
+        firebase: !!this.messaging,
+        pushToken: this.pushSubscription?.token
+      };
+    }
+    
     const currentPermission = Notification.permission;
     this.permissionStatus = currentPermission; // Update cached status
     
@@ -438,8 +502,10 @@ class PWANotificationService {
    * Refresh permission status from browser
    */
   refreshPermissionStatus() {
-    if (this.isSupported) {
+    if (this.isSupported && typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
       this.permissionStatus = Notification.permission;
+    } else {
+      this.permissionStatus = 'denied';
     }
     return this.permissionStatus;
   }

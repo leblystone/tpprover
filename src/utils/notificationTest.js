@@ -95,19 +95,26 @@ export async function testPWANotifications() {
  */
 async function testNotificationDisplay() {
   return new Promise((resolve, reject) => {
+    // Safety check for Notification API
+    if (typeof window === 'undefined' || !('Notification' in window) || typeof Notification === 'undefined') {
+      reject(new Error('Notification API not available'));
+      return;
+    }
+
     if (Notification.permission !== 'granted') {
       reject(new Error('Notification permission not granted'));
       return;
     }
 
-    const notification = new Notification('PWA Test Notification', {
-      body: 'This is a test notification from The Pep Planner PWA',
-      icon: '/tpp_logo.png',
-      badge: '/tpp_logo.png',
-      tag: 'pwa-test',
-      requireInteraction: false,
-      silent: false
-    });
+    try {
+      const notification = new Notification('PWA Test Notification', {
+        body: 'This is a test notification from The Pep Planner PWA',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
+        tag: 'pwa-test',
+        requireInteraction: false,
+        silent: false
+      });
 
     notification.onclick = () => {
       window.focus();

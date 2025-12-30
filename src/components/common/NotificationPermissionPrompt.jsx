@@ -30,15 +30,27 @@ export default function NotificationPermissionPrompt({ theme }) {
           return permission.display === 'granted';
         } catch (e) {
           // Fallback to browser permission if Capacitor check fails
-          return Notification.permission === 'granted';
+          // Safety check for Notification API
+          if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
+            return Notification.permission === 'granted';
+          }
+          return false;
         }
       } else {
         // For PWA/web, check browser permission
-        return Notification.permission === 'granted';
+        // Safety check for Notification API
+        if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
+          return Notification.permission === 'granted';
+        }
+        return false;
       }
     } catch (e) {
       console.error('Error checking permission status:', e);
-      return Notification.permission === 'granted';
+      // Safety check for Notification API
+      if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
+        return Notification.permission === 'granted';
+      }
+      return false;
     }
   };
 
