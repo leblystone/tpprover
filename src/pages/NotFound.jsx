@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isValidRoute, clearCacheAndReload, hasAttemptedCacheClear, markCacheClearAttempt } from '../utils/routeCacheHelper'
+import { isNative } from '../utils/platform'
 
 export default function NotFound() {
   const location = useLocation()
@@ -11,6 +12,14 @@ export default function NotFound() {
 
   useEffect(() => {
     const pathname = location.pathname
+    
+    // Skip auto-cache-clear logic for native apps - they don't use service workers
+    // and cache clearing doesn't help with lazy loading issues on native
+    if (isNative()) {
+      console.log('📱 Native app detected - skipping auto-cache-clear logic')
+      setShouldAutoClear(false)
+      return
+    }
     
     // Check if this is a valid route that should exist (likely a cache issue)
     if (isValidRoute(pathname)) {
