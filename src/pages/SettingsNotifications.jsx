@@ -141,15 +141,35 @@ export default function SettingsNotifications() {
         const { PushNotifications } = await import('@capacitor/push-notifications');
         
         if (enabled) {
-          PushNotifications.addListener('registration', async (token) => {
+          // Add listener BEFORE requesting permissions to catch token immediately
+          const registrationListener = PushNotifications.addListener('registration', async (token) => {
+            console.log('📱 FCM token received:', token.value);
             await savePushTokenToFirestore(token.value);
           });
           
-          const result = await PushNotifications.requestPermissions();
-          if (result.receive === 'granted') {
-            await PushNotifications.register();
-          } else {
-            throw new Error('Push notification permission denied');
+          // Check if already registered (token might already exist)
+          try {
+            const registrationResult = await PushNotifications.checkPermissions();
+            if (registrationResult.receive === 'granted') {
+              // Already has permission, register to get token
+              await PushNotifications.register();
+            } else {
+              // Request permission first
+              const result = await PushNotifications.requestPermissions();
+              if (result.receive === 'granted') {
+                await PushNotifications.register();
+              } else {
+                throw new Error('Push notification permission denied');
+              }
+            }
+          } catch (error) {
+            console.error('Error checking/requesting push permissions:', error);
+            // Try to register anyway (might already have permission)
+            try {
+              await PushNotifications.register();
+            } catch (regError) {
+              throw new Error('Push notification permission denied');
+            }
           }
         }
       } else {

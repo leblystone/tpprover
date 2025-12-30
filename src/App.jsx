@@ -147,6 +147,67 @@ function App() {
     checkFeatureAnnouncement();
   }, []);
 
+  // Initialize push notifications on app start (if user is logged in and permissions granted)
+  useEffect(() => {
+    if (!user) return; // Wait for user to load
+    
+    const initializePushNotifications = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        
+        // Only initialize for native Android/iOS apps
+        if (!Capacitor.isNativePlatform()) return;
+        
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        
+        // Check if permissions are already granted
+        const permissionResult = await PushNotifications.checkPermissions();
+        
+        if (permissionResult.receive === 'granted') {
+          console.log('📱 Push notifications already granted, registering for token...');
+          
+          // Set up listener BEFORE registering to catch token immediately
+          PushNotifications.addListener('registration', async (token) => {
+            console.log('📱 FCM token received on app start:', token.value);
+            
+            try {
+              const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+              const { db } = await import('./config/firebase');
+              const storedUser = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+              const userId = storedUser?.uid || storedUser?.email?.toLowerCase();
+              
+              if (userId) {
+                const userRef = doc(db, 'users', userId);
+                await setDoc(userRef, {
+                  fcmToken: token.value,
+                  pushToken: token.value, // Backward compatibility
+                  deviceInfo: {
+                    platform: Capacitor.getPlatform(),
+                    isNative: true,
+                    lastUpdated: serverTimestamp()
+                  }
+                }, { merge: true });
+                console.log('✅ FCM token saved to Firestore on app start');
+              }
+            } catch (error) {
+              console.error('❌ Failed to save FCM token on app start:', error);
+            }
+          });
+          
+          // Register to get/refresh token
+          await PushNotifications.register();
+        }
+      } catch (error) {
+        // Silently fail - push notifications might not be available
+        console.warn('Push notifications initialization skipped:', error.message);
+      }
+    };
+    
+    // Initialize after a short delay to not interfere with app startup
+    const timeoutId = setTimeout(initializePushNotifications, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [user]);
+
   // Test function to trigger update modal
   const testUpdateModal = useCallback((type = 'recommended') => {
     const mockData = mockUpdates[type] || mockUpdates.recommended;

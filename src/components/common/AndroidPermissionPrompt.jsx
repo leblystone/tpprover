@@ -90,6 +90,38 @@ export default function AndroidPermissionPrompt({ theme }) {
         // Try to initialize push notifications if available
         try {
           const { PushNotifications } = await import('@capacitor/push-notifications');
+          
+          // Add listener BEFORE registering to catch token immediately
+          PushNotifications.addListener('registration', async (token) => {
+            try {
+              const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+              const { db } = await import('../../config/firebase');
+              const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+              const userId = user.uid || user.email?.toLowerCase();
+              
+              if (userId) {
+                const userRef = doc(db, 'users', userId);
+                await setDoc(userRef, {
+                  fcmToken: token.value,
+                  pushToken: token.value, // Backward compatibility
+                  notificationSettings: {
+                    push: true,
+                    pushEnabled: true,
+                    lastUpdated: serverTimestamp()
+                  },
+                  deviceInfo: {
+                    platform: Capacitor.getPlatform(),
+                    isNative: true,
+                    lastUpdated: serverTimestamp()
+                  }
+                }, { merge: true });
+                console.log('✅ FCM token saved to Firestore from Android prompt');
+              }
+            } catch (error) {
+              console.error('Failed to save FCM token:', error);
+            }
+          });
+          
           const pushPermission = await PushNotifications.requestPermissions();
           if (pushPermission.receive === 'granted') {
             await PushNotifications.register();

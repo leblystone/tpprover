@@ -525,44 +525,45 @@ export default function Protocols() {
             // Also request push notification permissions if available
             try {
               const { PushNotifications } = await import('@capacitor/push-notifications');
+              
+              // Add listener BEFORE registering to catch token immediately
+              PushNotifications.addListener('registration', async (token) => {
+                try {
+                  const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                  const { db } = await import('../config/firebase');
+                  const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+                  const userId = user.uid || user.email?.toLowerCase();
+                  
+                  if (userId) {
+                    const userRef = doc(db, 'users', userId);
+                    await setDoc(userRef, {
+                      fcmToken: token.value,
+                      pushToken: token.value, // Backward compatibility
+                      notificationSettings: {
+                        push: true,
+                        pushEnabled: true,
+                        researchRemindersAM: reminderSettings.amEnabled,
+                        researchReminderTimeAM: reminderSettings.amTime,
+                        researchRemindersPM: reminderSettings.pmEnabled,
+                        researchReminderTimePM: reminderSettings.pmTime,
+                        lastUpdated: serverTimestamp()
+                      },
+                      deviceInfo: {
+                        platform: Capacitor.getPlatform(),
+                        isNative: true,
+                        lastUpdated: serverTimestamp()
+                      }
+                    }, { merge: true });
+                    console.log('✅ FCM token saved to Firestore');
+                  }
+                } catch (error) {
+                  console.error('Failed to save FCM token:', error);
+                }
+              });
+              
               const pushResult = await PushNotifications.requestPermissions();
               if (pushResult.receive === 'granted') {
                 await PushNotifications.register();
-                
-                // Add listener for when token is received
-                PushNotifications.addListener('registration', async (token) => {
-                  try {
-                    const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                    const { db } = await import('../config/firebase');
-                    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-                    const userId = user.uid || user.email?.toLowerCase();
-                    
-                    if (userId) {
-                      const userRef = doc(db, 'users', userId);
-                      await setDoc(userRef, {
-                        fcmToken: token.value,
-                        pushToken: token.value, // Backward compatibility
-                        notificationSettings: {
-                          push: true,
-                          pushEnabled: true,
-                          researchRemindersAM: reminderSettings.amEnabled,
-                          researchReminderTimeAM: reminderSettings.amTime,
-                          researchRemindersPM: reminderSettings.pmEnabled,
-                          researchReminderTimePM: reminderSettings.pmTime,
-                          lastUpdated: serverTimestamp()
-                        },
-                        deviceInfo: {
-                          platform: Capacitor.getPlatform(),
-                          isNative: true,
-                          lastUpdated: serverTimestamp()
-                        }
-                      }, { merge: true });
-                      console.log('✅ FCM token saved to Firestore');
-                    }
-                  } catch (error) {
-                    console.error('Failed to save FCM token:', error);
-                  }
-                });
               }
             } catch (e) {
               console.warn('Push notifications not available:', e);
