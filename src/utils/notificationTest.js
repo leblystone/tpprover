@@ -116,21 +116,24 @@ async function testNotificationDisplay() {
         silent: false
       });
 
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-      resolve();
-    };
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+        resolve();
+      };
 
-    notification.onerror = (error) => {
+      notification.onerror = (error) => {
+        reject(error);
+      };
+
+      // Auto-resolve after 3 seconds if no interaction
+      setTimeout(() => {
+        notification.close();
+        resolve();
+      }, 3000);
+    } catch (error) {
       reject(error);
-    };
-
-    // Auto-resolve after 3 seconds if no interaction
-    setTimeout(() => {
-      notification.close();
-      resolve();
-    }, 3000);
+    }
   });
 }
 
