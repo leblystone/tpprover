@@ -3,6 +3,8 @@
  * Detects if a 404 is likely due to cache issues and auto-clears cache
  */
 
+import { safeReload } from './safeReload';
+
 // List of valid routes that should always exist
 // These match the routes defined in src/routes.jsx
 const VALID_APP_ROUTES = [
@@ -69,6 +71,22 @@ export function isValidRoute(pathname) {
 }
 
 /**
+ * Get user ID from localStorage
+ */
+function getUserId() {
+  try {
+    const savedUser = localStorage.getItem('tpprover_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      return user.uid || user.id;
+    }
+  } catch (error) {
+    console.warn('Could not get user ID for safe reload:', error);
+  }
+  return null;
+}
+
+/**
  * Clear all caches and reload the page
  * Returns a promise that resolves when cache is cleared
  */
@@ -76,35 +94,44 @@ export async function clearCacheAndReload() {
   try {
     console.log('🔄 Detected cache issue - clearing caches automatically...');
     
-    // Clear all cache storage
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map(cacheName => {
-          console.log(`🗑️ Deleting cache: ${cacheName}`);
-          return caches.delete(cacheName);
-        })
-      );
-    }
-
-    // Unregister service workers
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        console.log('🗑️ Unregistering service worker');
-        await registration.unregister();
+    // Get user ID for safe reload
+    const userId = getUserId();
+    
+    if (userId) {
+      // Use safe reload to sync data before clearing cache and reloading
+      await safeReload(userId, 'route-cache-clear', true);
+    } else {
+      // No user logged in, proceed with manual cache clear
+      // Clear all cache storage
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log(`🗑️ Deleting cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          })
+        );
       }
-    }
 
-    console.log('✅ Cache cleared, reloading...');
-    
-    // Force reload with cache bypass by adding a timestamp query param
-    const url = new URL(window.location.href);
-    url.searchParams.set('_cache_clear', Date.now().toString());
-    
-    setTimeout(() => {
-      window.location.replace(url.toString());
-    }, 500);
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          console.log('🗑️ Unregistering service worker');
+          await registration.unregister();
+        }
+      }
+
+      console.log('✅ Cache cleared, reloading...');
+      
+      // Force reload with cache bypass by adding a timestamp query param
+      const url = new URL(window.location.href);
+      url.searchParams.set('_cache_clear', Date.now().toString());
+      
+      setTimeout(() => {
+        window.location.replace(url.toString());
+      }, 500);
+    }
     
     return true;
   } catch (error) {

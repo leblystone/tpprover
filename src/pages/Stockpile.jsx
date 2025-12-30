@@ -43,7 +43,10 @@ export default function Stockpile() {
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] })
+  const [viewingGroup, setViewingGroup] = useState(null) // For view modal
+  const [previewImage, setPreviewImage] = useState(null)
+  const [deleteOutOfStockGroup, setDeleteOutOfStockGroup] = useState(null) // For delete confirmation
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' })
   const [isAmountFocused, setIsAmountFocused] = useState(false)
   const [isQuantityFocused, setIsQuantityFocused] = useState(false)
   const [isPriceFocused, setIsPriceFocused] = useState(false)
@@ -181,9 +184,6 @@ export default function Stockpile() {
     }
   }, [items]) // Reload when items change (after cloud sync)
   
-  // Documentation preview state
-  const [previewImage, setPreviewImage] = useState(null)
-  
   const vendorMap = useMemo(() => (vendors || []).reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
   
   // Copy link to clipboard
@@ -233,7 +233,8 @@ export default function Stockpile() {
   const groups = useMemo(() => {
     const map = new Map()
     for (const it of filtered) {
-      const name = it.name || 'Unknown'
+      // Only treat as Unknown if name is truly empty/null/undefined (not the string "Unknown")
+      const name = (!it.name || it.name.trim() === '') ? 'Unknown' : it.name
       const mg = String(it.mg || '')
       const mgUnit = it.mgUnit || 'mg'
       const qty = Number(it.quantity) || 0
@@ -269,7 +270,12 @@ export default function Stockpile() {
       v.totalVials += qty
       v.items.push(it)
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
+    return Array.from(map.values()).sort((a, b) => {
+      // Sort Unknown groups to the end
+      if (a.name === 'Unknown' && b.name !== 'Unknown') return 1
+      if (b.name === 'Unknown' && a.name !== 'Unknown') return -1
+      return a.name.localeCompare(b.name)
+    })
   }, [filtered])
 
   const incomingGroups = useMemo(() => {
@@ -707,7 +713,8 @@ export default function Stockpile() {
   useEffect(() => {
     const tabs = [
       { value: 'onhand', label: 'On Hand' },
-      { value: 'incoming', label: 'Incoming' }
+      { value: 'incoming', label: 'Incoming' },
+      { value: 'outofstock', label: 'Out of Stock' }
     ];
     
     const handleAddClick = () => {
@@ -949,8 +956,8 @@ export default function Stockpile() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {groups.filter(g => g.totalVials > 0).map(g => {
-                    // Check if this is an "Unknown" group (items with empty/null names)
-                    const isUnknownGroup = (g.name === 'Unknown' || !g.name || g.name.trim() === '');
+                    // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
+                    const isUnknownGroup = (!g.name || g.name.trim() === '');
                     
                     return (
                       <StockpileGroupCard
@@ -961,49 +968,76 @@ export default function Stockpile() {
                         vendorMap={vendorMap}
                         isReadOnly={isReadOnly}
                         onCardClick={() => {
+                          // Open view modal first
+                          setViewingGroup(g);
+                        }}
+                        onViewDetails={() => {
                           if (isReadOnly) {
                             setShowUpgradeModal(true);
                             return;
                           }
+                          setViewingGroup(null);
                           openManage(g.name);
                         }}
                         onMergeIndividualItem={handleMergeIndividualItem}
-                        onDeleteItem={(item) => {
-                          // Record deletion with item snapshot for restore functionality
-                          recordDeletion('stockpile', item.id, item);
-                          
-                          // Delete the item directly
-                          const updatedItems = items.filter(i => i.id !== item.id);
-                          setItems(updatedItems);
-                          
-                          // Sync to cloud
-                          if (firebaseUser) {
-                            try {
-                              const userId = firebaseUser.uid;
-                              const appData = {
-                                protocols: protocols || [],
-                                reconItems: reconItems || [],
-                                reconHistory: reconHistory || [],
-                                supplements: supplements || [],
-                                orders: orders || [],
-                                metrics: metrics || [],
-                                vendors: vendors || [],
-                                calendarNotes: calendarNotes || {},
-                                stockpile: updatedItems,
-                                scheduledBuys: scheduledBuys || []
-                              };
-                              saveAppData(userId, appData, { skipMerge: true });
-                            } catch (e) {
-                              console.error('Failed to sync deleted item to cloud:', e);
-                            }
+                        onDeleteItem={async (item) => {
+                          // Show confirmation dialog
+                          if (!window.confirm(`Are you sure you want to delete this item?\n\n${item.name || 'Unknown'} - ${item.mg}${item.mgUnit || 'mg'} from ${item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown'}`)) {
+                            return;
                           }
-                          
-                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                            detail: { 
-                              message: 'Item deleted', 
-                              type: 'success' 
-                            } 
-                          }));
+
+                          try {
+                            // Record deletion with item snapshot for restore functionality
+                            recordDeletion('stockpile', item.id, item);
+                            
+                            // Delete the item directly
+                            const updatedItems = items.filter(i => i.id !== item.id);
+                            setItems(updatedItems);
+                            
+                            // Sync to cloud
+                            if (firebaseUser) {
+                              try {
+                                const userId = firebaseUser.uid;
+                                const appData = {
+                                  protocols: protocols || [],
+                                  reconItems: reconItems || [],
+                                  reconHistory: reconHistory || [],
+                                  supplements: supplements || [],
+                                  orders: orders || [],
+                                  metrics: metrics || [],
+                                  vendors: vendors || [],
+                                  calendarNotes: calendarNotes || {},
+                                  stockpile: updatedItems,
+                                  scheduledBuys: scheduledBuys || []
+                                };
+                                await saveAppData(userId, appData, { skipMerge: true });
+                              } catch (e) {
+                                console.error('Failed to sync deleted item to cloud:', e);
+                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                  detail: { 
+                                    message: 'Item deleted locally but failed to sync to cloud', 
+                                    type: 'warning' 
+                                  } 
+                                }));
+                                return;
+                              }
+                            }
+                            
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { 
+                                message: 'Item deleted successfully', 
+                                type: 'success' 
+                              } 
+                            }));
+                          } catch (error) {
+                            console.error('Error deleting item:', error);
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { 
+                                message: 'Failed to delete item. Please try again.', 
+                                type: 'error' 
+                              } 
+                            }));
+                          }
                         }}
                         onViewOrder={(orderId) => {
                           navigate(`/app/orders`, { state: { openOrderId: orderId } });
@@ -1030,6 +1064,57 @@ export default function Stockpile() {
                         }}
                         onPreviewImage={setPreviewImage}
                         getUseByStatus={getUseByStatus}
+                        onViewDetails={() => {
+                          if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          setViewingGroup(null);
+                          openManage(g.name);
+                        }}
+                        onCompleteEntry={(item) => {
+                          // Pre-fill form with item data and open add modal
+                          setForm({
+                            name: '',
+                            mg: item.mg || '',
+                            quantity: item.quantity || '',
+                            vendor: item.vendor || '',
+                            vendorId: item.vendorId || null,
+                            purity: item.purity || '',
+                            capColor: item.capColor || '',
+                            batchNumber: item.batchNumber || '',
+                            date: item.date || '',
+                            cost: item.cost || '',
+                            priceUnit: item.priceUnit || 'vial',
+                            documentation: item.documentation || [],
+                            mgUnit: item.mgUnit || 'mg',
+                            unit: item.unit || 'vial'
+                          });
+                          setOpenAdd(true);
+                          // Delete the incomplete item after opening form
+                          const updatedItems = items.filter(i => i.id !== item.id);
+                          setItems(updatedItems);
+                          if (firebaseUser) {
+                            try {
+                              const userId = firebaseUser.uid;
+                              const appData = {
+                                protocols: protocols || [],
+                                reconItems: reconItems || [],
+                                reconHistory: reconHistory || [],
+                                supplements: supplements || [],
+                                orders: orders || [],
+                                metrics: metrics || [],
+                                vendors: vendors || [],
+                                calendarNotes: calendarNotes || {},
+                                stockpile: updatedItems,
+                                scheduledBuys: scheduledBuys || []
+                              };
+                              saveAppData(userId, appData, { skipMerge: true });
+                            } catch (e) {
+                              console.error('Failed to sync to cloud:', e);
+                            }
+                          }
+                        }}
                       />
                     );
                 })}
@@ -1136,53 +1221,101 @@ export default function Stockpile() {
         )}
       </div>
 
-      {/* Used / Depleted section - show on On Hand tab only */}
-      {activeTab === 'onhand' && (
-        <div className="space-y-6">
-      {groups.some(g => g.totalVials <= 0) && (
-              <>
-                <div className="font-semibold" style={{ color: theme.primaryDark }}>Out of Stock</div>
-                <hr className="mb-2" style={{ borderColor: theme.border }} />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
-                  {groups.filter(g => g.totalVials <= 0).map(g => (
-                    <div key={`oos-${g.name}`} className="relative p-3 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow" style={{ 
-                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                      backgroundColor: theme.cardBackground,
-                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
-                    }}>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div style={{ fontSize: '64px', color: 'rgba(185,28,28,0.10)', fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
+        {/* Out of Stock Tab */}
+        {activeTab === 'outofstock' && (
+          <div>
+            {groups.filter(g => g.totalVials <= 0).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                  <Package size={32} style={{ color: theme.primary }} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Out of Stock Items</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                  Items that have been depleted will appear here. You can restore them by adding new inventory.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {groups.filter(g => g.totalVials <= 0).map(g => {
+                  const isUnknownGroup = (!g.name || g.name.trim() === '');
+                  
+                  // Get all items in this group
+                  const groupItems = Object.values(g.variants).flatMap(v => v.items);
+                  
+                  return (
+                    <div 
+                      key={`oos-${g.name}`} 
+                      className="relative p-4 rounded-2xl content-card shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                        backgroundColor: theme.cardBackground,
+                        boxShadow: theme.isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 2px 16px rgba(0, 0, 0, 0.06)',
+                        opacity: 0.7
+                      }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
                       </div>
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
-                          <div className="flex items-center gap-1">
-                            <div className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Out of Stock</div>
+                          <h3 
+                            className="font-bold text-base cursor-pointer flex-1"
+                            style={{ color: theme.text }}
+                            onClick={() => {
+                              if (isReadOnly) {
+                                setShowUpgradeModal(true);
+                                return;
+                              }
+                              setOutOfStockModalName(g.name);
+                            }}
+                          >
+                            {g.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <div className="px-2.5 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)',
+                                color: theme.isDark ? '#f87171' : '#dc2626'
+                              }}
+                            >
+                              Out of Stock
+                            </div>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (isReadOnly) {
                                   setShowUpgradeModal(true);
                                   return;
                                 }
-                                setOutOfStockModalName(g.name);
+                                // Store the group to delete and open confirmation modal
+                                setDeleteOutOfStockGroup(g);
                               }}
-                              className="p-1 rounded hover:bg-gray-200 transition-colors"
-                              style={{ color: theme.primary }}
-                              title="Restore/Manage"
+                              className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95"
+                              style={{
+                                color: theme.isDark ? '#f87171' : '#dc2626',
+                                backgroundColor: 'transparent'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
+                              title="Delete this out of stock item"
                             >
-                              <Edit size={14} />
+                              <X size={18} strokeWidth={2.5} />
                             </button>
                           </div>
                         </div>
-                        <div className="text-sm text-gray-500">No vials on hand.</div>
+                        <div className="text-sm" style={{ color: theme.textLight }}>No vials on hand.</div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+                  );
+                })}
+              </div>
             )}
-        </div>
-      )}
+          </div>
+        )}
 
       <Modal 
         open={openAdd} 
@@ -1264,7 +1397,7 @@ export default function Stockpile() {
                 markAsSubmitted(); // Clear auto-save data
                 
                 // Reset form first
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [] });
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
                 
                 // Show success notification
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -2525,6 +2658,150 @@ export default function Stockpile() {
         theme={theme}
       />
 
+      {/* View Group Modal - Read-only overview */}
+      {viewingGroup && (
+        <Modal
+          open={!!viewingGroup}
+          onClose={() => setViewingGroup(null)}
+          title={viewingGroup.name}
+          theme={theme}
+          variant="modern"
+          maxWidth="max-w-3xl"
+          footer={(
+            <div className="w-full flex items-center justify-between">
+              <button
+                onClick={() => setViewingGroup(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                  color: theme.text,
+                  border: 'none'
+                }}
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  if (isReadOnly) {
+                    setShowUpgradeModal(true);
+                    return;
+                  }
+                  setViewingGroup(null);
+                  openManage(viewingGroup.name);
+                }}
+                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                style={{
+                  background: getPrimaryActionGradient(false),
+                  color: theme?.textOnPrimary || '#ffffff',
+                  border: 'none',
+                  boxShadow: primaryActionDefaultShadow
+                }}
+              >
+                Edit
+              </button>
+            </div>
+          )}
+        >
+          <div className="space-y-4">
+            {/* Summary */}
+            <div className="p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)' }}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Total Amount</div>
+                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+                    {viewingGroup.totalMg > 0 
+                      ? `${viewingGroup.totalMg} ${viewingGroup.unit || 'mg'}` 
+                      : `${viewingGroup.totalVials} ${viewingGroup.totalVials === 1 ? 'vial' : 'vials'}`
+                    }
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Variants</div>
+                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+                    {Object.keys(viewingGroup.variants).length} variant{Object.keys(viewingGroup.variants).length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Variants */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Variants</h4>
+              {Object.values(viewingGroup.variants)
+                .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
+                .map(variant => (
+                  <div
+                    key={variant.mg}
+                    className="p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.015)',
+                      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 font-semibold" style={{ color: theme.text }}>
+                        <Beaker size={16} style={{ color: theme.primary }} />
+                        {variant.mg} {variant.unit || 'mg'} • {variant.totalVials} {variant.totalVials === 1 ? 'vial' : 'vials'}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {variant.items.map(item => (
+                        <div
+                          key={item.id}
+                          className="p-2 rounded text-xs"
+                          style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)' }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Package size={12} style={{ color: theme.primary }} />
+                            <span className="font-medium" style={{ color: theme.text }}>
+                              {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="space-y-1" style={{ color: theme.textLight }}>
+                            {item.date && (
+                              <div>Acquired: {new Date(item.date).toLocaleDateString()}</div>
+                            )}
+                            {item.useByDate && (() => {
+                              const useByStatus = getUseByStatus(item.useByDate);
+                              return (
+                                <div 
+                                  className="inline-block px-2 py-0.5 rounded text-xs"
+                                  style={{
+                                    backgroundColor: useByStatus?.status === 'expired' 
+                                      ? 'rgba(239, 68, 68, 0.15)'
+                                      : useByStatus?.status === 'expiring'
+                                      ? 'rgba(251, 191, 36, 0.15)'
+                                      : 'transparent',
+                                    color: useByStatus?.status === 'expired'
+                                      ? '#ef4444'
+                                      : useByStatus?.status === 'expiring'
+                                      ? '#f59e0b'
+                                      : theme.textLight
+                                  }}
+                                >
+                                  Use By: {new Date(item.useByDate).toLocaleDateString()}
+                                  {useByStatus?.status === 'expired' && ' (EXPIRED)'}
+                                  {useByStatus?.status === 'expiring' && ' (Expiring Soon)'}
+                                </div>
+                              );
+                            })()}
+                            {item.purity && (
+                              <div className="flex items-center gap-1">
+                                <Percent size={12} style={{ color: theme.primary }} />
+                                {item.purity}% Purity
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Image Preview Modal */}
       <ImagePreviewModal
         image={previewImage}
@@ -2544,6 +2821,100 @@ export default function Stockpile() {
         confirmText="Close Without Saving"
         cancelText="Cancel"
         type="warning"
+        theme={theme}
+      />
+
+      {/* Delete Out of Stock Confirmation Modal */}
+      <ConfirmationModal
+        open={!!deleteOutOfStockGroup}
+        onClose={() => setDeleteOutOfStockGroup(null)}
+        onConfirm={async () => {
+          if (!deleteOutOfStockGroup) return;
+
+          const g = deleteOutOfStockGroup;
+          const groupItems = Object.values(g.variants).flatMap(v => v.items);
+          const itemCount = groupItems.length;
+
+          try {
+            // Record deletions for all items in the group
+            groupItems.forEach(item => {
+              recordDeletion('stockpile', item.id, item);
+            });
+
+            // Delete all items in this group
+            const updatedItems = items.filter(i => {
+              // Check if this item belongs to the group
+              const itemName = i.name || '';
+              const itemMgUnit = i.mgUnit || 'mg';
+              const groupKey = `${g.name}__${g.unit}`;
+              const itemKey = `${itemName}__${itemMgUnit}`;
+              return itemKey !== groupKey;
+            });
+
+            setItems(updatedItems);
+
+            // Sync to cloud
+            if (firebaseUser) {
+              try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                  protocols: protocols || [],
+                  reconItems: reconItems || [],
+                  reconHistory: reconHistory || [],
+                  supplements: supplements || [],
+                  orders: orders || [],
+                  metrics: metrics || [],
+                  vendors: vendors || [],
+                  calendarNotes: calendarNotes || {},
+                  stockpile: updatedItems,
+                  scheduledBuys: scheduledBuys || []
+                };
+                await saveAppData(userId, appData, { skipMerge: true });
+              } catch (e) {
+                console.error('Failed to sync deleted items to cloud:', e);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                  detail: { 
+                    message: 'Items deleted locally but failed to sync to cloud', 
+                    type: 'warning' 
+                  } 
+                }));
+                setDeleteOutOfStockGroup(null);
+                return;
+              }
+            }
+
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { 
+                message: itemCount === 1 
+                  ? 'Item deleted successfully' 
+                  : `${itemCount} items deleted successfully`, 
+                type: 'success' 
+              } 
+            }));
+            setDeleteOutOfStockGroup(null);
+          } catch (error) {
+            console.error('Error deleting out of stock items:', error);
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { 
+                message: 'Failed to delete items. Please try again.', 
+                type: 'error' 
+              } 
+            }));
+            setDeleteOutOfStockGroup(null);
+          }
+        }}
+        title="Delete Out of Stock Item"
+        message={deleteOutOfStockGroup ? (
+          (() => {
+            const itemCount = Object.values(deleteOutOfStockGroup.variants).flatMap(v => v.items).length;
+            return itemCount === 1
+              ? `Are you sure you want to delete this out of stock item?\n\n${deleteOutOfStockGroup.name}`
+              : `Are you sure you want to delete all ${itemCount} out of stock items for ${deleteOutOfStockGroup.name}?`;
+          })()
+        ) : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
         theme={theme}
       />
 

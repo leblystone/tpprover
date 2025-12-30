@@ -2,6 +2,7 @@ import React from 'react';
 import { FlaskConicalOff, RefreshCw } from 'lucide-react';
 import { themes } from '../../theme/themes';
 import SupportModal from './SupportModal';
+import { safeReload } from '../../utils/safeReload';
 
 /**
  * Error Boundary for Chunk Loading Failures
@@ -44,10 +45,33 @@ class ChunkErrorBoundary extends React.Component {
     });
   }
 
-  handleReload = () => {
-    // Clear the force refresh flag and reload
+  getUserId = () => {
+    try {
+      const savedUser = localStorage.getItem('tpprover_user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        return user.uid || user.id;
+      }
+    } catch (error) {
+      console.warn('Could not get user ID for safe reload:', error);
+    }
+    return null;
+  };
+
+  handleReload = async () => {
+    // Clear the force refresh flag
     window.sessionStorage.removeItem('page_has_been_force_refreshed');
-    window.location.reload();
+    
+    // Get user ID for safe reload
+    const userId = this.getUserId();
+    
+    if (userId) {
+      // Use safe reload to sync data first
+      await safeReload(userId, 'chunk-error-boundary-refresh', false);
+    } else {
+      // No user logged in, safe to reload immediately
+      window.location.reload();
+    }
   };
 
   handleOpenSupport = () => {
@@ -60,37 +84,46 @@ class ChunkErrorBoundary extends React.Component {
 
   handleClearCacheAndReload = async () => {
     try {
-      console.log('🧹 Clearing all caches...');
+      // Get user ID for safe reload
+      const userId = this.getUserId();
       
-      // Clear all cache storage
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => {
-            console.log(`🗑️ Deleting cache: ${cacheName}`);
-            return caches.delete(cacheName);
-          })
-        );
-      }
-
-      // Unregister service workers
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          console.log('🗑️ Unregistering service worker');
-          await registration.unregister();
+      // Use safe reload with cache clearing
+      if (userId) {
+        await safeReload(userId, 'chunk-error-boundary-cache-clear', true);
+      } else {
+        // No user, clear caches manually and reload
+        console.log('🧹 Clearing all caches...');
+        
+        // Clear all cache storage
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => {
+              console.log(`🗑️ Deleting cache: ${cacheName}`);
+              return caches.delete(cacheName);
+            })
+          );
         }
+
+        // Unregister service workers
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            console.log('🗑️ Unregistering service worker');
+            await registration.unregister();
+          }
+        }
+
+        // Clear session storage flag
+        window.sessionStorage.removeItem('page_has_been_force_refreshed');
+
+        console.log('✅ Cache cleared, reloading...');
+        window.location.reload();
       }
-
-      // Clear session storage flag
-      window.sessionStorage.removeItem('page_has_been_force_refreshed');
-
-      console.log('✅ Cache cleared, reloading...');
-      window.location.reload();
     } catch (error) {
       console.error('❌ Error clearing cache:', error);
       // Fallback to simple reload
-      this.handleReload();
+      window.location.reload();
     }
   };
 

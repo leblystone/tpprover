@@ -137,14 +137,20 @@ export async function fetchVersionConfig() {
 /**
  * Main version check function
  * @returns {Promise<object|null>} - Update info if update available, null otherwise
+ * 
+ * IMPORTANT: This function ONLY checks for updates on native apps (Android/iOS)
+ * - Native apps: Returns update info if new version available → Shows UpdatePromptModal
+ * - PWA users: Returns null → Never shows UpdatePromptModal (they get automatic updates)
+ * - PWA users only see FeatureAnnouncementModal (What's New style modal)
  */
 export async function checkForUpdates() {
   try {
-    // Only check for updates on native apps (Android/iOS)
-    // PWA users get instant updates automatically, so no need to check
+    // CRITICAL: Only check for updates on native apps (Android/iOS)
+    // PWA users get instant updates automatically via service worker, so no need to check
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
     if (!isNative) {
-      return null;
+      console.log('ℹ️ PWA user detected - no update check needed (automatic updates enabled)');
+      return null; // PWA users NEVER see UpdatePromptModal
     }
     
     // Skip if recently dismissed

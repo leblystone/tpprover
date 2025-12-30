@@ -5,6 +5,7 @@
 
 import { lazy } from 'react';
 import { isNative } from './platform';
+import { safeReload } from './safeReload';
 
 /**
  * Track failed chunk loads to avoid infinite reload loops
@@ -117,9 +118,14 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
                     The Pep Planner has been updated. Please refresh your browser to load the latest version.
                   </p>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       window.sessionStorage.removeItem('page_has_been_force_refreshed');
-                      window.location.reload();
+                      const userId = getUserId();
+                      if (userId) {
+                        await safeReload(userId, 'manual-refresh-after-chunk-error', false);
+                      } else {
+                        window.location.reload();
+                      }
                     }}
                     style={{
                       padding: '0.75rem 2rem',
@@ -151,38 +157,63 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
 }
 
 /**
+ * Get user ID from localStorage
+ */
+function getUserId() {
+  try {
+    const savedUser = localStorage.getItem('tpprover_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      return user.uid || user.id;
+    }
+  } catch (error) {
+    console.warn('Could not get user ID for safe reload:', error);
+  }
+  return null;
+}
+
+/**
  * Clear all caches and reload the page
  */
 async function clearCacheAndReload() {
   try {
     console.log('🧹 Clearing caches...');
     
-    // Clear all cache storage
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map(cacheName => {
-          console.log(`🗑️ Deleting cache: ${cacheName}`);
-          return caches.delete(cacheName);
-        })
-      );
-    }
-
-    // Unregister service workers
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        console.log('🗑️ Unregistering service worker');
-        await registration.unregister();
-      }
-    }
-
-    console.log('✅ Cache cleared, reloading...');
+    // Get user ID for safe reload
+    const userId = getUserId();
     
-    // Force reload with cache bypass
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    if (userId) {
+      // Use safe reload to sync data before clearing cache and reloading
+      await safeReload(userId, 'lazy-chunk-load-failure', true);
+    } else {
+      // No user logged in, proceed with manual cache clear
+      // Clear all cache storage
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log(`🗑️ Deleting cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          })
+        );
+      }
+
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          console.log('🗑️ Unregistering service worker');
+          await registration.unregister();
+        }
+      }
+
+      console.log('✅ Cache cleared, reloading...');
+      
+      // Force reload with cache bypass
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    }
   } catch (error) {
     console.error('❌ Error clearing cache:', error);
     // Fallback to simple reload

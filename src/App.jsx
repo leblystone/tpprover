@@ -6,6 +6,7 @@ import BottomNavigation from './components/navigation/BottomNavigation'
 import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
+import { Capacitor } from '@capacitor/core';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
@@ -110,12 +111,23 @@ function App() {
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
 
-  // Check for app updates on launch
+  // Check for app updates on launch (NATIVE APPS ONLY - not PWA)
+  // PWA users get instant updates automatically via service worker
+  // They only see the FeatureAnnouncementModal (What's New modal)
   useEffect(() => {
     const performUpdateCheck = async () => {
       try {
+        // SAFETY CHECK: Only check for updates on native apps (Android/iOS)
+        // checkForUpdates() returns null for PWA, but double-check here for clarity
+        const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        if (!isNative) {
+          console.log('ℹ️ PWA detected - skipping update prompt (users get automatic updates)');
+          return; // PWA users never see UpdatePromptModal
+        }
+        
         const update = await checkForUpdates();
         if (update) {
+          console.log('📱 Native app update available - showing update prompt');
           setUpdateInfo(update);
           setShowUpdatePrompt(true);
         }
@@ -453,8 +465,8 @@ function App() {
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
       <div className="flex-1 flex flex-col lg:ml-24 min-w-0 w-full max-w-full overflow-x-hidden" style={{
         boxSizing: 'border-box',
-        // Add padding for mobile status bar - only for native apps (not PWA)
-        paddingTop: window.innerWidth < 1024 && !window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
+        // Add padding for mobile status bar - only for native apps (not PWA/web)
+        paddingTop: Capacitor.isNativePlatform() && window.innerWidth < 1024 ? 'var(--safe-area-top, 0px)' : '0px'
       }}>
         <Topbar 
           theme={theme} 
@@ -484,8 +496,10 @@ function App() {
           </Suspense>
         </main>
         
-        {/* Bottom Navigation - Mobile & Tablet Only */}
-        <BottomNavigation theme={theme} />
+        {/* Bottom Navigation - Mobile & Tablet Only - Only show on protected /app routes */}
+        {location.pathname.startsWith('/app') && (
+          <BottomNavigation theme={theme} />
+        )}
       </div>
       <MobileNav 
         theme={theme} 
@@ -550,12 +564,18 @@ function App() {
         onClose={() => setShowBetaModal(false)}
         theme={theme}
       />
+      
+      {/* NATIVE APPS ONLY: Update prompt modal for App Store/Play Store updates */}
+      {/* PWA users never see this - they get automatic updates via service worker */}
       <UpdatePromptModal
         open={showUpdatePrompt}
         onClose={() => setShowUpdatePrompt(false)}
         updateInfo={updateInfo}
         theme={theme}
       />
+      
+      {/* ALL USERS: Feature announcement modal (What's New style) */}
+      {/* This is the ONLY update-related modal PWA users see */}
       <FeatureAnnouncementModal
         open={showFeatureAnnouncement}
         onClose={() => setShowFeatureAnnouncement(false)}

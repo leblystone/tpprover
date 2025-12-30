@@ -7,6 +7,7 @@ import { useAppContext } from '../../context/AppContext.jsx';
 import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
+import { Capacitor } from '@capacitor/core';
 
 export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
@@ -350,11 +351,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     }
   };
 
+  // Only apply safe area padding for native apps (Android/iOS), not PWA/web
+  const isNative = Capacitor.isNativePlatform();
+  
   return (
     <>
       <header 
-        className="backdrop-blur-xl border-b h-10 lg:h-12 flex items-center px-3 lg:px-6 relative transition-all duration-300" 
+        className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header" 
         style={{ 
+          paddingTop: isNative ? 'var(--safe-area-top, 0px)' : '0px',
           borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
           background: theme.isDark 
             ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
@@ -716,6 +721,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
       )}
 
       <style>{`
+        .topbar-header {
+          min-height: 2.5rem; /* h-10 for mobile - padding-top adds extra space for native apps */
+        }
+        @media (min-width: 1024px) {
+          .topbar-header {
+            min-height: 3rem; /* lg:h-12 for desktop - padding-top adds extra space for native apps */
+          }
+        }
         @keyframes sway {
           0%, 100% { transform: rotate(0deg); }
           25% { transform: rotate(-3deg); }

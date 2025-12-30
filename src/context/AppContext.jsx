@@ -15,6 +15,7 @@ import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData'
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
+import { registerAppDataGetter } from '../utils/safeReload';
 
 const AppContext = createContext();
 
@@ -2535,6 +2536,45 @@ export function AppProvider({ children }) {
         }, 1000);
         
     }, [protocols, vendors, stockpile, reconItems, orders, supplements]);
+
+    // Register data getter for safe reload utility
+    useEffect(() => {
+        // Get task completion data from localStorage
+        const getTaskCompletionData = () => {
+            try {
+                return {
+                    taskCompletion: JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}'),
+                    calendarDone: JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}'),
+                    protocolHistory: JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]')
+                };
+            } catch {
+                return { taskCompletion: {}, calendarDone: {}, protocolHistory: [] };
+            }
+        };
+
+        // Register function that returns all current app data
+        registerAppDataGetter(() => {
+            const { taskCompletion, calendarDone, protocolHistory } = getTaskCompletionData();
+            const deletionTracking = getDeletionTracking();
+
+            return {
+                protocols: protocols || [],
+                reconItems: reconItems || [],
+                reconHistory: reconHistory || [],
+                supplements: supplements || [],
+                orders: orders || [],
+                metrics: metrics || [],
+                vendors: vendors || [],
+                calendarNotes: calendarNotes || {},
+                stockpile: stockpile || [],
+                scheduledBuys: scheduledBuys || [],
+                taskCompletion,
+                calendarDone,
+                protocolHistory,
+                deletionTracking
+            };
+        });
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]);
 
     // Listen for subscription changes and save to cloud storage
     useEffect(() => {
