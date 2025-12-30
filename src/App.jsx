@@ -7,6 +7,7 @@ import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
 import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
@@ -87,6 +88,33 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
+
+  // Update status bar style based on theme (mobile apps only)
+  useEffect(() => {
+    const updateStatusBar = async () => {
+      // Only update on native mobile platforms (not PWA/web)
+      if (!Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      try {
+        const isDarkTheme = theme.isDark;
+        // Style.Dark = light text/icons (for dark backgrounds)
+        // Style.Light = dark text/icons (for light backgrounds)
+        const statusBarStyle = isDarkTheme ? Style.Dark : Style.Light;
+        const statusBarBgColor = theme.background;
+
+        await StatusBar.setStyle({ style: statusBarStyle });
+        // Android also allows setting background color
+        await StatusBar.setBackgroundColor({ color: statusBarBgColor });
+      } catch (error) {
+        // Silently fail - status bar might not be available or plugin might not be ready
+        console.warn('Status bar update skipped:', error.message);
+      }
+    };
+
+    updateStatusBar();
+  }, [theme]);
   const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

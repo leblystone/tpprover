@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -25,6 +25,18 @@ import UpgradeModal from '../components/common/UpgradeModal'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import { recordDeletion } from '../utils/deletionTracking'
+
+function DataPoint({ icon: Icon, label, value, theme }) {
+	return (
+		<div className="flex items-center gap-2 overflow-hidden">
+			<Icon size={12} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
+			<div className="flex flex-col min-w-0">
+				<span className="text-[8px] uppercase tracking-widest opacity-50 font-black" style={{ color: theme.text }}>{label}</span>
+				<span className="text-[10px] font-bold truncate" style={{ color: theme.text }}>{value}</span>
+			</div>
+		</div>
+	);
+}
 
 export default function Recon() {
 	const { theme } = useOutletContext()
@@ -903,16 +915,15 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
-										className={`rounded-2xl p-3 content-card flex flex-col justify-between transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${item.isDraft ? 'cursor-pointer hover:shadow-xl' : 'hover:shadow-lg'}`} 
+										className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl ${item.isDraft ? 'cursor-pointer' : ''}`} 
 										style={{ 
 											background: theme.isDark 
 												? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
 												: `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
 											boxShadow: theme.isDark
-												? '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-												: '0 2px 12px rgba(0, 0, 0, 0.05), 0 6px 24px rgba(0, 0, 0, 0.03)',
-											border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
-											borderLeft: item.isDraft ? `3px solid ${theme.primary}` : undefined
+												? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+												: '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+											border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
 										}}
 										onClick={item.isDraft ? () => {
 											// Open calculator tab with draft data
@@ -955,88 +966,86 @@ export default function Recon() {
 											// Draft will be removed when user saves the calculation
 										} : undefined}
 									>
-										<div>
-											<div className="flex justify-between items-start mb-2">
-												<div className="flex-1 min-w-0">
-													<div className="flex items-center gap-2 flex-wrap">
-														<div className="font-bold text-base truncate" style={{ color: theme.text }}>{item.name || item.peptide}</div>
-														{item.isDraft && (
-															<span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-																Draft
-															</span>
-														)}
-													</div>
-													<div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: theme.textLight }}><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
-												</div>
-												<div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2">
-													<div className="text-[9px] font-bold uppercase tracking-widest opacity-60" style={{ color: theme.text }}>{formatMMDDYYYY(item.date)}</div>
-													{item.dateAcquired && (
-														<div className="text-[9px] flex items-center gap-1" style={{ color: theme.textLight }}>
-															<Calendar size={9} /> {formatMMDDYYYY(item.dateAcquired)}
-														</div>
-													)}
-												</div>
-											</div>
-											
-                                            {Array.isArray(item.peptides) && item.peptides.length > 0 ? (
-                                                <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-                                                    {item.peptides.map((p, idx) => (
-                                                        <div key={idx} className="text-[10px] flex justify-between items-center py-0.5">
-                                                            <span className="font-medium" style={{ color: theme.text }}>• {p.name}</span>
-                                                            <span className="font-bold text-[9px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
-                                                        </div>
-                                                    ))}
+                                        {/* Hover Border Glow */}
+                                        <div 
+                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl"
+                                            style={{
+                                                boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
+                                            }}
+                                        />
+
+                                        {/* Header Section */}
+                                        <div className="relative flex items-start justify-between mb-3 gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
+                                                    {item.name || item.peptide}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                                                    <Package size={10} style={{ color: '#8ca68c' }} />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                        {item.vendorId ? (vendorMap && vendorMap[item.vendorId]) : item.vendor || 'Unknown Source'}
+                                                    </span>
                                                 </div>
-                                            ) : null}
+                                            </div>
+                                            
+                                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                {item.isDraft ? (
+                                                    <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                                                        Draft
+                                                    </div>
+                                                ) : (
+                                                    <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm" style={{ backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: '#6b8e6b' }}>
+                                                        Active
+                                                    </div>
+                                                )}
+                                                <div className="text-[9px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                    {formatMMDDYYYY(item.date)}
+                                                </div>
+                                            </div>
+                                        </div>
+											
+                                            {/* Peptides List (for Blends) */}
+                                        {Array.isArray(item.peptides) && item.peptides.length > 0 && (
+                                            <div className="relative mb-3 space-y-1">
+                                                {item.peptides.map((p, idx) => (
+                                                    <div key={idx} className="relative pl-3 flex items-center justify-between">
+                                                        <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                        <span className="text-[10px] font-bold truncate" style={{ color: theme.text }}>{p.name}</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
 
-											<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-												<div className="text-xs space-y-1.5" style={{ color: theme.textLight }}>
-													<div className="flex items-center gap-1.5"><Beaker size={12} style={{ color: '#8ca68c' }} /> {totalMg} mg</div>
-													<div className="flex items-center gap-1.5"><Droplet size={12} style={{ color: '#8ca68c' }} /> {item.water} mL water</div>
-													<div className="flex items-center gap-1.5"><Droplet size={12} style={{ color: '#8ca68c' }} /> {displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit} dose` : '-'}</div>
-												</div>
-												<div className="text-xs space-y-1.5" style={{ color: theme.textLight }}>
-													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</span> units/dose</div>
-													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{calc.dosesPerVial || '-'}</span> doses/vial</div>
-													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{costPerDose || '-'}</span> / dose</div>
-												</div>
-											</div>
-										</div>
+                                        {/* Data Grid - Icon Driven to reduce text heaviness */}
+                                        <div className="relative grid grid-cols-2 gap-x-4 gap-y-3 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 mb-3">
+                                            <DataPoint icon={Beaker} label="Amount" value={`${totalMg} mg`} theme={theme} />
+                                            <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />
+                                            <DataPoint icon={Pipette} label="Dose" value={displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit}` : 'N/A'} theme={theme} />
+                                            <DataPoint icon={Hash} label="Units/Dose" value={calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : 'N/A'} theme={theme} />
+                                            <DataPoint icon={Info} label="Doses/Vial" value={calc.dosesPerVial || 'N/A'} theme={theme} />
+                                            <DataPoint icon={Tag} label="Cost/Dose" value={costPerDose || 'N/A'} theme={theme} />
+                                        </div>
 
-										<div className="flex justify-between items-center mt-2 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                        {/* Footer Actions */}
+										<div className="relative flex justify-between items-center pt-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
 											<div className="flex items-center gap-1.5">
-									{item.deliveryMethod === 'pen' && item.penColor ? (
+									            {item.deliveryMethod === 'pen' && item.penColor ? (
 													<div className="flex items-center gap-1.5">
 														<div 
-                                                        className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm" 
-                                                        style={{ 
-                                                            background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
-                                                            color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
-                                                        }}
-                                                    >
+                                                            className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm" 
+                                                            style={{ 
+                                                                background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
+                                                                color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
+                                                            }}
+                                                        >
 															<PenTool size={10} strokeWidth={2.5} />
 															<span>{
-                                                                // Handle both name format ("Light Blue") and hex format ("#ADD8E6")
                                                                 item.penColor.startsWith('#') 
                                                                     ? Object.keys(PEN_COLORS).find(name => PEN_COLORS[name] === item.penColor) || 'Custom'
                                                                     : item.penColor
-                                                            } Pen</span>
+                                                            }</span>
 														</div>
-														{item.penType && (
-															<div className="text-[9px] font-bold px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
-																{item.penType === 'other' ? 'Other' : 
-																	item.penType === 'savvio' ? 'Savvio' :
-																	item.penType === 'novo' ? 'Novo' :
-																	item.penType === 'v1' ? 'V1' :
-																	item.penType === 'v2' ? 'V2' :
-																	item.penType === 'v3' ? 'V3' :
-																	item.penType === 'bird-pen' ? 'Bird Pen' :
-																	item.penType === 'luxura' ? 'Luxura' :
-																	item.penType === 'gansulin' ? 'Gansulin' :
-																	item.penType
-																}
-															</div>
-														)}
 													</div>
 												) : (
                                                     <div className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
@@ -1045,39 +1054,16 @@ export default function Recon() {
                                                     </div>
                                                 )}
 											</div>
+
                                             <div className="flex items-center gap-1">
 											    {item.isDraft ? (
                                                     <button 
-                                                        className="px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all hover:opacity-80" 
-                                                        style={{ color: theme.primary, backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' }} 
+                                                        className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-105" 
+                                                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
                                                         onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent card click
-                                                            // Prefill calculator with draft data
-                                                            // Ensure peptides array is properly formatted
-                                                            const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
-                                                                ? item.peptides.map(p => ({
-                                                                    id: p.id || generateId(),
-                                                                    name: p.name || '',
-                                                                    mg: p.mg || '',
-                                                                    dose: p.dose || '',
-                                                                    doseUnit: p.doseUnit || 'mcg',
-                                                                    vendor: p.vendor || item.vendor || '',
-                                                                    stockpileId: p.stockpileId || null,
-                                                                    quantityUsed: p.quantityUsed || 1
-                                                                }))
-                                                                : [{ 
-                                                                    id: generateId(),
-                                                                    name: item.peptide || '', 
-                                                                    mg: item.mg || '', 
-                                                                    dose: item.dose || '', 
-                                                                    doseUnit: item.doseUnit || 'mcg',
-                                                                    vendor: item.vendor || '',
-                                                                    stockpileId: null,
-                                                                    quantityUsed: 1
-                                                                }];
-                                                            
+                                                            e.stopPropagation();
                                                             setPrefill({
-                                                                peptides: draftPeptides,
+                                                                peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
                                                                 vendor: item.vendor || '',
                                                                 water: item.water || 2,
                                                                 deliveryMethod: item.deliveryMethod || 'pipette',
@@ -1087,28 +1073,46 @@ export default function Recon() {
                                                                 cost: item.cost || '',
                                                                 dateAcquired: item.dateAcquired || ''
                                                             });
-                                                            setDraftIdToRemove(item.id); // Track which draft to remove when saving
+                                                            setDraftIdToRemove(item.id);
                                                             setActiveTab('calculator');
-                                                            // Draft will be removed when user saves the calculation
                                                         }}
                                                     >
-                                                        <Calculator size={12} strokeWidth={2.5} /> <span>Continue Draft</span>
+                                                        <Calculator size={12} strokeWidth={2.5} />
+                                                        <span>Resume</span>
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        <button className="px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all hover:opacity-80" style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }} onClick={() => handleMarkAsUsed(item)}>
-                                                            <CheckCircle size={12} strokeWidth={2.5} /> <span>Finished</span>
+                                                        <button 
+                                                            className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all hover:bg-black/5 dark:hover:bg-white/10" 
+                                                            style={{ color: '#dc2626' }} 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleMarkAsUsed(item);
+                                                            }}
+                                                        >
+                                                            <CheckCircle size={12} strokeWidth={2.5} />
+                                                            <span>Finish</span>
                                                         </button>
-                                                        <button className="p-1.5 rounded-lg transition-all hover:bg-black/10 dark:hover:bg-white/10" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-3.5 w-3.5" strokeWidth={2.5} /></button>
+                                                        <button 
+                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10" 
+                                                            style={{ color: theme.primary }} 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation();
+                                                                setEditingItem(item); 
+                                                                setShowEditModal(true);
+                                                            }}
+                                                        >
+                                                            <Edit size={14} strokeWidth={2.5} />
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>
 										</div>
 
 										{item.notes && (
-											<div className="mt-2 pt-2 border-t text-[10px] flex items-start gap-1.5" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
-												<FileText size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
-												<p className="italic">{item.notes}</p>
+											<div className="relative mt-3 pt-3 border-t text-[10px] flex items-start gap-2" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
+												<Info size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
+												<p className="italic leading-relaxed">{item.notes}</p>
 											</div>
 										)}
 									</div>
@@ -1148,51 +1152,89 @@ export default function Recon() {
                                         return (
                                             <div
                                                 key={`h-${item.id}`}
-                                                className="p-4 rounded-lg shadow-sm flex items-center gap-3 justify-between cursor-pointer widget-card-hover"
-                                                style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}
+                                                className="group relative overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl cursor-pointer mb-3"
+                                                style={{ 
+                                                    background: theme.isDark 
+                                                        ? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
+                                                        : `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
+                                                    boxShadow: theme.isDark
+                                                        ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                                                        : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+                                                    border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+                                                }}
                                                 onClick={() => setViewItem(item)}
                                             >
-                                                <div className="flex-1 space-y-2">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <div className="font-semibold text-base" style={{ color: theme.text }}>
+                                                {/* Hover Border Glow */}
+                                                <div 
+                                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl"
+                                                    style={{
+                                                        boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
+                                                    }}
+                                                />
+
+                                                {/* Header Section */}
+                                                <div className="relative flex items-start justify-between mb-3 gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
                                                             {item.peptide || 'Unnamed research vial'}
-                                                        </div>
-                                                        {vendorName ? (
-                                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                                                                {vendorName}
+                                                        </h3>
+                                                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                                                            <Package size={10} style={{ color: '#8ca68c' }} />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                                {vendorName || 'Unknown Source'}
                                                             </span>
-                                                        ) : null}
-                                                    </div>
-                                                    <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: theme.textLight }}>
-                                                        <span className="flex items-center gap-1"><Calendar size={14} /> {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}</span>
-                                                        <span className="flex items-center gap-1"><Beaker size={14} /> {item.mg} mg</span>
-                                                        {item.water ? <span className="flex items-center gap-1"><Droplet size={14} /> {item.water} mL</span> : null}
-                                                        {item.dose ? <span className="flex items-center gap-1"><Pipette size={14} /> {item.dose} {item.doseUnit || 'mcg'}</span> : null}
-                                                    </div>
-                                                    {item.notes ? (
-                                                        <div className="text-xs line-clamp-2" style={{ color: theme.textLight }}>
-                                                            {item.notes}
                                                         </div>
-                                                    ) : null}
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                        <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.textLight }}>
+                                                            Archived
+                                                        </div>
+                                                        <div className="text-[9px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                            {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        className="p-2 rounded-md action-button-hover"
-                                                        style={{ color: theme.textLight }}
-                                                        onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                        title="View details"
-                                                    >
-                                                        <Eye className="h-4 w-4 icon-hover" />
-                                                    </button>
-                                                    <button
-                                                        className="p-2 rounded-md action-button-hover"
-                                                        style={{ color: theme.primary }}
-                                                        onClick={(e) => { e.stopPropagation(); setHistoryToDelete(item); }}
-                                                        title="Delete entry"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 icon-hover" />
-                                                    </button>
+
+                                                {/* Data Grid - Icon Driven */}
+                                                <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                                                    <DataPoint icon={Beaker} label="Amount" value={`${item.mg} mg`} theme={theme} />
+                                                    {item.water && <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />}
+                                                    {item.dose && <DataPoint icon={Pipette} label="Dose" value={`${item.dose} ${item.doseUnit || 'mcg'}`} theme={theme} />}
+                                                    <DataPoint icon={Calendar} label="Finished" value={usedDate ? formatMMDDYYYY(usedDate) : 'N/A'} theme={theme} />
                                                 </div>
+
+                                                {/* Footer Actions */}
+                                                <div className="relative flex justify-between items-center mt-3 pt-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                                    <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                        Historical Record
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10"
+                                                            style={{ color: theme.textLight }}
+                                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                            title="View details"
+                                                        >
+                                                            <Eye size={14} strokeWidth={2.5} />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10"
+                                                            style={{ color: '#dc2626' }}
+                                                            onClick={(e) => { e.stopPropagation(); setHistoryToDelete(item); }}
+                                                            title="Delete entry"
+                                                        >
+                                                            <Trash2 size={14} strokeWidth={2.5} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {item.notes && (
+                                                    <div className="relative mt-3 pt-3 border-t text-[10px] flex items-start gap-2" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
+                                                        <Info size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
+                                                        <p className="italic leading-relaxed line-clamp-2">{item.notes}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )
                                     })}

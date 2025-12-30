@@ -111,6 +111,37 @@ export default function Protocols() {
     }
   }, [location.state, protocols]);
 
+  // Check for pending follow-ups when page loads
+  useEffect(() => {
+    const checkPendingFollowUps = () => {
+      try {
+        const pending = JSON.parse(localStorage.getItem('tpprover_pending_followups') || '[]');
+        if (pending.length > 0 && !followUpProtocol) {
+          // Show the first pending follow-up
+          const firstPending = pending[0];
+          const protocol = protocols.find(p => p.id === firstPending.protocolId);
+          if (protocol) {
+            setFollowUpProtocol(protocol);
+            setFollowUpHistoryId(firstPending.historyId);
+            // Remove this one from the queue
+            const remaining = pending.slice(1);
+            localStorage.setItem('tpprover_pending_followups', JSON.stringify(remaining));
+          } else {
+            // Protocol not found, remove from queue
+            const remaining = pending.slice(1);
+            localStorage.setItem('tpprover_pending_followups', JSON.stringify(remaining));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to check pending follow-ups:', e);
+      }
+    };
+
+    // Check after a short delay to allow page to load
+    const timer = setTimeout(checkPendingFollowUps, 500);
+    return () => clearTimeout(timer);
+  }, [protocols, followUpProtocol]);
+
   const endProtocol = (protocolToEnd) => {
     const today = getLocalDateString();
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
@@ -193,6 +224,7 @@ export default function Protocols() {
     
     const todayOnly = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     let hasUpdates = false;
+    const autoCompletedProtocols = [];
     
     protocols.forEach(p => {
       // Skip if already ended or doesn't have startDate
@@ -222,6 +254,44 @@ export default function Protocols() {
           const endDateString = getLocalDateString(calculatedEndDate);
           updateProtocol({ ...p, active: false, endDate: endDateString, endType: 'completed' });
           hasUpdates = true;
+          
+          // Update history entry for this protocol
+          const activeHistoryEntry = findActiveProtocolHistoryEntry(p.id);
+          if (activeHistoryEntry) {
+            // Update protocolData with current linkedItems to preserve all data
+            const linkedItems = p.linkedItems || {};
+            const updatedProtocolData = {
+              ...(activeHistoryEntry.protocolData || {}),
+              linkedItems: linkedItems
+            };
+            
+            // Capture skipped reconstitution data
+            const skippedReconstitution = {};
+            Object.entries(linkedItems).forEach(([peptideId, item]) => {
+              if (item.status === 'skipped' && item.deliveryMethod) {
+                const peptide = p.peptides?.find(pep => (pep.id || `peptide-${p.peptides.indexOf(pep)}`) === peptideId);
+                skippedReconstitution[peptideId] = {
+                  peptideName: peptide?.name || 'Unknown',
+                  deliveryMethod: item.deliveryMethod
+                };
+              }
+            });
+            
+            updateProtocolHistoryEntry(activeHistoryEntry.id, {
+              endDate: endDateString,
+              completionStatus: 'completed',
+              endType: 'completed',
+              protocolData: updatedProtocolData,
+              skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+            });
+            
+            // Track this protocol for follow-up
+            autoCompletedProtocols.push({
+              protocolId: p.id,
+              historyId: activeHistoryEntry.id,
+              protocolName: p.protocolName || 'Unnamed Protocol'
+            });
+          }
         }
       }
     });
@@ -229,6 +299,14 @@ export default function Protocols() {
     // Mark that we've checked today
     if (hasUpdates || !lastCheck) {
       localStorage.setItem(checkKey, today);
+      
+      // Store auto-completed protocols for follow-up prompts
+      if (autoCompletedProtocols.length > 0) {
+        const existingPending = JSON.parse(localStorage.getItem('tpprover_pending_followups') || '[]');
+        const updated = [...existingPending, ...autoCompletedProtocols];
+        localStorage.setItem('tpprover_pending_followups', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+      }
     }
   }, [protocols, updateProtocol]);
 
@@ -390,15 +468,15 @@ export default function Protocols() {
     setOpenAdd(true);
   }, [isReadOnly]);
 
-  const handleEditClick = (protocol) => {
+  const handleEditClick = useCallback((protocol) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
       return;
     }
     setEditing(protocol);
-  };
+  }, [isReadOnly]);
 
-  const handleStartClick = (protocol, opts) => {
+  const handleStartClick = useCallback((protocol, opts) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
       return;
@@ -409,7 +487,7 @@ export default function Protocols() {
       setStartConfirm(protocol);
       setStartDate(protocol.startDate || getLocalDateString());
     }
-  };
+  }, [isReadOnly]);
 
   // Allow deletion in read-only mode - users can manage their sensitive data
   const handleDeleteClick = (protocol) => {

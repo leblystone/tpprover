@@ -123,7 +123,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           ...prev,
           vendor: vendors,
           vendorId: firstVendorId,
-          cost: costValue,
+          cost: prefill.cost || (totalCost > 0 ? totalCost.toString() : ''),
           dateAcquired: prefill.dateAcquired || prev.dateAcquired || '',
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 

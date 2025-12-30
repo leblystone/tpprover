@@ -28,11 +28,14 @@ export default function StockpileGroupCard({
   // Calculate status badge
   const hasLowStock = Object.values(group.variants).some(v => v.totalVials <= 2);
   const statusBadge = hasLowStock ? 'low' : 'in';
+  
+  // Track which menu is open (only one at a time)
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   return (
     <div
       onClick={onCardClick}
-      className="group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl"
+      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl"
       style={{
         background: theme.isDark 
           ? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
@@ -45,7 +48,7 @@ export default function StockpileGroupCard({
     >
       {/* Hover Border Glow - Makes it clear the card is interactive */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl overflow-hidden"
         style={{
           boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
         }}
@@ -53,14 +56,14 @@ export default function StockpileGroupCard({
       
       {/* Decorative gradient overlay */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden rounded-2xl"
         style={{
           background: `radial-gradient(circle at top right, ${theme.primary}15 0%, transparent 60%)`
         }}
       />
 
       {/* Content */}
-      <div className="relative p-4">
+      <div className="relative p-3">
         {/* Unknown Group Alert Banner */}
         {isUnknownGroup && (
           <div 
@@ -116,14 +119,14 @@ export default function StockpileGroupCard({
             >
               {statusBadge === 'low' ? 'Low' : 'Well Stocked'}
             </div>
-            <div className="text-[9px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
-              {group.totalVials} Total Vials
+            <div className="text-[10px] font-bold opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
+              {group.totalVials} Vials • {group.totalMg} {group.unit || 'mg'}
             </div>
           </div>
         </div>
 
         {/* Flat List of Variants */}
-        <div className="space-y-3 mt-3">
+        <div className="space-y-2 mt-2">
           {Object.values(group.variants)
             .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
             .map((variant, index, array) => (
@@ -135,7 +138,7 @@ export default function StockpileGroupCard({
                 />
                 
                 {/* Variant Header Label */}
-                <div className="text-[9px] font-black uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text }}>
+                <div className="text-[10px] font-black uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text }}>
                   <div className="flex items-center gap-1.5">
                     <Beaker size={10} style={{ color: '#8ca68c' }} />
                     {variant.mg} {variant.unit || 'mg'} Vials
@@ -161,6 +164,8 @@ export default function StockpileGroupCard({
                       onPreviewImage={onPreviewImage}
                       getUseByStatus={getUseByStatus}
                       isLast={itemIdx === variant.items.length - 1}
+                      openMenuId={openMenuId}
+                      setOpenMenuId={setOpenMenuId}
                     />
                   ))}
                 </div>
@@ -169,10 +174,10 @@ export default function StockpileGroupCard({
         </div>
 
         {/* Tap to Open Indicator - Bottom Center */}
-        <div className="flex justify-center mt-4 pt-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+        <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
           <div className="flex items-center gap-2 opacity-50 group-hover:opacity-80 transition-opacity">
-            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: theme.text }}>
-              Tap to View Details
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.text }}>
+              View Stock
             </span>
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-y-0.5 transition-transform" />
           </div>
@@ -188,10 +193,11 @@ export default function StockpileGroupCard({
  */
 function ItemStrip({ 
   item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
-  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, getUseByStatus, isLast 
+  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, getUseByStatus, isLast,
+  openMenuId, setOpenMenuId
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showActionMenu, setShowActionMenu] = useState(false);
+  const showActionMenu = openMenuId === item.id;
   const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor';
   const useByStatus = item.useByDate ? getUseByStatus(item.useByDate) : null;
 
@@ -204,7 +210,7 @@ function ItemStrip({
       }}
     >
       {/* Main Strip */}
-      <div className={`flex items-center justify-between py-2 px-3 -mx-2 rounded-lg transition-all duration-150 cursor-pointer ${!isLast && !isExpanded ? 'border-b border-black/[0.03] dark:border-white/[0.03]' : ''}`}
+      <div className={`flex items-center justify-between py-1.5 px-3 -mx-2 rounded-lg transition-all duration-150 cursor-pointer ${!isLast && !isExpanded ? 'border-b border-black/[0.03] dark:border-white/[0.03]' : ''}`}
         style={{
           backgroundColor: isExpanded 
             ? (theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)')
@@ -231,12 +237,12 @@ function ItemStrip({
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
           </div>
           
-          <div className="text-[11px] font-bold truncate" style={{ color: theme.text }}>
+          <div className="text-[12px] font-bold truncate" style={{ color: theme.text }}>
             {vendorName}
           </div>
           {item.date && (
-            <div className="flex items-center gap-1 text-[9px] opacity-60 flex-shrink-0" style={{ color: theme.text }}>
-              <Calendar size={9} />
+            <div className="flex items-center gap-1 text-[10px] opacity-60 flex-shrink-0" style={{ color: theme.text }}>
+              <Calendar size={10} />
               {new Date(item.date).toLocaleDateString(undefined, { month: 'numeric', year: '2-digit' })}
             </div>
           )}
@@ -250,12 +256,12 @@ function ItemStrip({
         </div>
 
         <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
-          <div className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+          <div className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
             {item.quantity} {item.quantity === 1 ? 'vial' : 'vials'}
           </div>
           
-          {/* Action Row - Visible on Hover or when expanded */}
-          <div className={`flex items-center gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-0 group-hover/strip:opacity-100'}`}>
+          {/* Action Row - Always visible on mobile, hover on desktop */}
+          <div className={`flex items-center gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover/strip:opacity-100'}`}>
             {!isUnknownGroup && (
               <button
                 onClick={(e) => { e.stopPropagation(); onSendToRecon(item, group); }}
@@ -269,7 +275,10 @@ function ItemStrip({
             
             <div className="relative">
               <button
-                onClick={(e) => { e.stopPropagation(); setShowActionMenu(!showActionMenu); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setOpenMenuId(showActionMenu ? null : item.id);
+                }}
                 className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
                 style={{ color: theme.textLight }}
               >
@@ -278,9 +287,9 @@ function ItemStrip({
               
               {showActionMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowActionMenu(false)} />
+                  <div className="fixed inset-0 z-[100]" onClick={() => setOpenMenuId(null)} />
                   <div 
-                    className="absolute right-0 top-full mt-1 z-50 rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
+                    className="absolute right-0 top-full mt-1 z-[101] rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
                     style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border }}
                   >
                     {isUnknownGroup && (
@@ -340,8 +349,8 @@ function DataPoint({ icon: Icon, label, value, theme }) {
     <div className="flex items-center gap-2 overflow-hidden">
       <Icon size={12} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
       <div className="flex flex-col min-w-0">
-        <span className="text-[8px] uppercase tracking-widest opacity-50 font-black" style={{ color: theme.text }}>{label}</span>
-        <span className="text-[10px] font-bold truncate" style={{ color: theme.text }}>{value}</span>
+        <span className="text-[9px] uppercase tracking-widest opacity-50 font-black" style={{ color: theme.text }}>{label}</span>
+        <span className="text-[11px] font-bold truncate" style={{ color: theme.text }}>{value}</span>
       </div>
     </div>
   );

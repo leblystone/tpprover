@@ -46,7 +46,7 @@ const formatPenType = (penType) => {
     return penTypes[penType] || `🖊️ ${penType}`;
 }
 
-export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false }) {
+const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
@@ -532,7 +532,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
             )}
         </>
     );
-}
+});
 
 function renderDateRange(p, isActive) {
     if (!p?.startDate) {
@@ -582,3 +582,5 @@ function renderDateRange(p, isActive) {
     const endStr = formatMMDDYYYY(displayEnd)
     return `${startStr} - ${endStr}`
 }
+
+export default ProtocolCard;
