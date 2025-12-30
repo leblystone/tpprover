@@ -1780,7 +1780,6 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
                 )}
               </div>
               )}
-            </div>
           </div>
         );
       })}

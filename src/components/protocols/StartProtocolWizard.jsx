@@ -161,6 +161,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [isSkippedQuestionsOpen, setIsSkippedQuestionsOpen] = useState(false);
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState({}); // Track which peptide's dropdown is open
     const penTypeDropdownRefs = useRef({});
+    const [animationDirection, setAnimationDirection] = useState('forward'); // 'forward' | 'backward'
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const previousStageRef = useRef('linking');
 
     // Close dropdowns when clicking outside (supports both mouse and touch)
     useEffect(() => {
@@ -466,12 +469,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         
         // Only show recon strategy if there are multiple different peptide names
         if (allUniqueNames.size > 1) {
-            setStage('recon_strategy');
+            setStageWithAnimation('recon_strategy');
         } else if (linkedPeptides.length === 1) {
             setReconStrategy('separate'); // Implicit strategy for one peptide
-            setStage('reconstituting');
+            setStageWithAnimation('reconstituting');
         } else {
-            setStage('confirm');
+            setStageWithAnimation('confirm');
         }
     };
 
@@ -906,7 +909,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             <button
                                 key={option.key}
                                 type="button"
-                                onClick={() => { setReconStrategy(option.key); setStage('reconstituting'); }}
+                                onClick={() => { setReconStrategy(option.key); setStageWithAnimation('reconstituting'); }}
                                 className="flex flex-col items-center justify-center p-1 rounded-lg transition-all"
                                 style={{
                                     backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
@@ -937,7 +940,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     })}
                 </div>
                  <div className="mt-3 text-center">
-                    <button onClick={() => setStage('confirm')} className="text-sm text-gray-500 hover:underline">
+                    <button onClick={() => setStageWithAnimation('confirm')} className="text-sm text-gray-500 hover:underline">
                         Skip reconstitution
                     </button>
                 </div>
@@ -1039,7 +1042,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 updatedLinkedData[peptideId] = { ...updatedLinkedData[peptideId], reconId: newReconId };
                             });
                             setLinkedData(updatedLinkedData);
-                            setStage('confirm');
+                            setStageWithAnimation('confirm');
                         }}
                     />
                 </div>
@@ -1256,8 +1259,30 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const handleBack = () => {
         const currentIndex = getCurrentStageIndex();
         if (currentIndex > 0) {
-            setStage(stages[currentIndex - 1].id);
+            const newStage = stages[currentIndex - 1].id;
+            setAnimationDirection('backward');
+            setIsTransitioning(true);
+            setTimeout(() => {
+                setStage(newStage);
+                previousStageRef.current = newStage;
+                setTimeout(() => setIsTransitioning(false), 300);
+            }, 10);
         }
+    };
+
+    // Enhanced setStage with animation
+    const setStageWithAnimation = (newStage) => {
+        const currentIndex = getCurrentStageIndex();
+        const newIndex = stages.findIndex(s => s.id === newStage);
+        const direction = newIndex > currentIndex ? 'forward' : 'backward';
+        
+        setAnimationDirection(direction);
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setStage(newStage);
+            previousStageRef.current = newStage;
+            setTimeout(() => setIsTransitioning(false), 300);
+        }, 10);
     };
 
     const renderProgressIndicator = () => {
@@ -1274,7 +1299,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             <React.Fragment key={s.id}>
                                 <div className="flex flex-col items-center flex-1">
                                     <button
-                                        onClick={() => isClickable && setStage(s.id)}
+                                        onClick={() => isClickable && setStageWithAnimation(s.id)}
                                         disabled={!isClickable}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                                             isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-default'
@@ -1322,11 +1347,31 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     };
 
     const renderContent = () => {
-        if (stage === 'linking') return renderLinkingStep();
-        if (stage === 'recon_strategy') return renderReconStrategyStep();
-        if (stage === 'reconstituting') return renderReconstitutingStep();
-        if (stage === 'confirm') return renderConfirmStep();
-        return <div>Unknown stage</div>;
+        const getContent = () => {
+            if (stage === 'linking') return renderLinkingStep();
+            if (stage === 'recon_strategy') return renderReconStrategyStep();
+            if (stage === 'reconstituting') return renderReconstitutingStep();
+            if (stage === 'confirm') return renderConfirmStep();
+            return <div>Unknown stage</div>;
+        };
+
+        return (
+            <div className="relative overflow-hidden" style={{ minHeight: '200px' }}>
+                <div
+                    key={stage}
+                    className="transition-all duration-300 ease-in-out"
+                    style={{
+                        transform: isTransitioning
+                            ? `translateX(${animationDirection === 'forward' ? '-20px' : '20px'})`
+                            : 'translateX(0)',
+                        opacity: isTransitioning ? 0 : 1,
+                        willChange: 'transform, opacity'
+                    }}
+                >
+                    {getContent()}
+                </div>
+            </div>
+        );
     };
     
     // Safeguard from original code
