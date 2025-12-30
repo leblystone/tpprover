@@ -549,8 +549,8 @@ export default function EmailHistory({ theme }) {
                       )}
                     </div>
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
             );
           })}
         </div>

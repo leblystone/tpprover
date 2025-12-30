@@ -1017,8 +1017,16 @@ function SubscriptionDebugSection({ user, theme }) {
           </div>
         </button>
         
-        {isExpanded && (
-          <div className="space-y-3">
+        <div 
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{
+            maxHeight: isExpanded ? '2000px' : '0',
+            opacity: isExpanded ? 1 : 0,
+            transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
+          {isExpanded && (
+            <div className="space-y-3">
             {/* Status Overview */}
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background + '60', border: `2px solid ${getStatusColor()}30` }}>
               <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>STATUS ANALYSIS:</div>

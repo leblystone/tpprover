@@ -1937,8 +1937,16 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                       </div>
                     </button>
                   
-                    {expandedCategories.has(category) && (
-                      <div className="border-t p-4 space-y-2" style={{ 
+                    <div 
+                      className="overflow-hidden transition-all duration-300 ease-in-out"
+                      style={{
+                        maxHeight: expandedCategories.has(category) ? '2000px' : '0',
+                        opacity: expandedCategories.has(category) ? 1 : 0,
+                        transform: expandedCategories.has(category) ? 'translateY(0)' : 'translateY(-10px)'
+                      }}
+                    >
+                      {expandedCategories.has(category) && (
+                        <div className="border-t p-4 space-y-2" style={{ 
                         borderColor: colors.border,
                         backgroundColor: colors.bg + '30'
                       }}>
