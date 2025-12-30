@@ -38,7 +38,6 @@ function validateEmail(email) {
   if (!email) {
     return { valid: false, error: 'Email is required.' };
   }
-  
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { 
       valid: false, 
