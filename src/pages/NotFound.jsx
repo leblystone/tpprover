@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isValidRoute, clearCacheAndReload, hasAttemptedCacheClear, markCacheClearAttempt } from '../utils/routeCacheHelper'
-import { isNative } from '../utils/platform'
+import { isNative, isIOS, isIOSBrowser, isIOSPWAInstalled } from '../utils/platform'
 
 export default function NotFound() {
   const location = useLocation()
@@ -70,6 +70,8 @@ export default function NotFound() {
 
   // Show fallback if cache clear was attempted but failed
   if (cacheClearFailed && shouldAutoClear) {
+    // Check if user is on iOS (Safari PWA or native)
+    const isIOSDevice = isIOS() || isIOSBrowser() || isIOSPWAInstalled()
     return (
       <div className="text-center py-24">
         <h2 className="text-2xl font-semibold mb-2">Page not loading</h2>
@@ -83,23 +85,45 @@ export default function NotFound() {
           >
             Refresh Page
           </button>
-          <Link
-            className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-            to="/app"
-          >
-            Go to App
-          </Link>
+          {!isIOSDevice && (
+            <Link
+              className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+              to="/app"
+            >
+              Go to App
+            </Link>
+          )}
+          {isIOSDevice && (
+            <button
+              onClick={() => navigate('/app')}
+              className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Go to Dashboard
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
   // Normal 404 page for invalid routes
+  // Check if user is on iOS (Safari PWA or native)
+  const isIOSDevice = isIOS() || isIOSBrowser() || isIOSPWAInstalled()
   return (
     <div className="text-center py-24">
       <h2 className="text-2xl font-semibold mb-2">Page not found</h2>
       <p className="text-gray-600 mb-6">The page you are looking for does not exist.</p>
-      <Link className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white" to="/app">Go to App</Link>
+      {!isIOSDevice && (
+        <Link className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white" to="/app">Go to App</Link>
+      )}
+      {isIOSDevice && (
+        <button
+          onClick={() => navigate('/app')}
+          className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white hover:bg-gray-800"
+        >
+          Go to Dashboard
+        </button>
+      )}
     </div>
   )
 }

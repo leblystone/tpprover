@@ -73,7 +73,7 @@ export const DEFAULT_WIDGETS = [
     position: { x: 4, y: 0 },
     enabled: true,
     settings: {
-      maxItems: 3
+      // No maxItems limit - show all active protocols
     }
   },
   // Row 1 - Supplements before Incoming Orders

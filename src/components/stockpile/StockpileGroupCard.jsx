@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info, List } from 'lucide-react';
+import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
 
 /**
  * StockpileGroupCard Component - Flattened Hierarchy Redesign
@@ -28,12 +28,6 @@ export default function StockpileGroupCard({
   // Calculate status badge
   const hasLowStock = Object.values(group.variants).some(v => v.totalVials <= 2);
   const statusBadge = hasLowStock ? 'low' : 'in';
-
-  // Calculate variant summary for header
-  const variantSummary = Object.values(group.variants)
-    .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
-    .map(v => `${v.mg}${v.unit || 'mg'} (${v.totalVials})`)
-    .join(' • ');
 
   return (
     <div
@@ -103,13 +97,9 @@ export default function StockpileGroupCard({
         {/* Header Section */}
         <div className="flex items-start justify-between mb-2 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold truncate mb-0.5" style={{ color: theme.text }}>
+            <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
               {group.name}
             </h3>
-            <div className="flex items-center gap-2 text-[10px] font-medium" style={{ color: theme.textLight }}>
-              <List size={10} style={{ color: '#8ca68c' }} />
-              <span>{variantSummary}</span>
-            </div>
           </div>
           
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -148,7 +138,7 @@ export default function StockpileGroupCard({
                 <div className="text-[9px] font-black uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text }}>
                   <div className="flex items-center gap-1.5">
                     <Beaker size={10} style={{ color: '#8ca68c' }} />
-                    {variant.mg} {variant.unit || 'mg'} Series
+                    {variant.mg} {variant.unit || 'mg'} Vials
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
                 </div>
@@ -214,8 +204,33 @@ function ItemStrip({
       }}
     >
       {/* Main Strip */}
-      <div className={`flex items-center justify-between py-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 px-2 -mx-2 transition-all duration-150 cursor-pointer ${!isLast && !isExpanded ? 'border-b border-black/[0.03] dark:border-white/[0.03]' : ''}`}>
+      <div className={`flex items-center justify-between py-2 px-3 -mx-2 rounded-lg transition-all duration-150 cursor-pointer ${!isLast && !isExpanded ? 'border-b border-black/[0.03] dark:border-white/[0.03]' : ''}`}
+        style={{
+          backgroundColor: isExpanded 
+            ? (theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)')
+            : 'transparent'
+        }}
+        onMouseEnter={(e) => {
+          if (!isExpanded) {
+            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
+            e.currentTarget.style.boxShadow = theme.isDark 
+              ? `inset 0 0 0 1px rgba(255, 255, 255, 0.1)`
+              : `inset 0 0 0 1px rgba(0, 0, 0, 0.05)`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isExpanded) {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.boxShadow = 'none';
+          }
+        }}
+      >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          {/* Expand/Collapse Chevron */}
+          <div className="flex-shrink-0 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
+          </div>
+          
           <div className="text-[11px] font-bold truncate" style={{ color: theme.text }}>
             {vendorName}
           </div>

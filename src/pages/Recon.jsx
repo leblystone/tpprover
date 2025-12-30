@@ -828,7 +828,7 @@ export default function Recon() {
 			<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
 				
 				{activeTab === 'reconstituted' && (
-						<div className="space-y-3">
+						<div className="space-y-4">
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
@@ -903,8 +903,17 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
-										className={`rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover ${item.isDraft ? 'cursor-pointer' : ''}`} 
-										style={{ backgroundColor: theme.cardBackground, borderLeft: item.isDraft ? `4px solid ${theme.primary}80` : undefined }}
+										className={`rounded-2xl p-3 content-card flex flex-col justify-between transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${item.isDraft ? 'cursor-pointer hover:shadow-xl' : 'hover:shadow-lg'}`} 
+										style={{ 
+											background: theme.isDark 
+												? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
+												: `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
+											boxShadow: theme.isDark
+												? '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+												: '0 2px 12px rgba(0, 0, 0, 0.05), 0 6px 24px rgba(0, 0, 0, 0.03)',
+											border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+											borderLeft: item.isDraft ? `3px solid ${theme.primary}` : undefined
+										}}
 										onClick={item.isDraft ? () => {
 											// Open calculator tab with draft data
 											// Ensure peptides array is properly formatted
@@ -947,63 +956,65 @@ export default function Recon() {
 										} : undefined}
 									>
 										<div>
-											<div className="flex justify-between items-start">
-												<div>
-													<div className="flex items-center gap-2">
-														<div className="font-semibold text-base" style={{ color: theme.text }}>{item.name || item.peptide}</div>
+											<div className="flex justify-between items-start mb-2">
+												<div className="flex-1 min-w-0">
+													<div className="flex items-center gap-2 flex-wrap">
+														<div className="font-bold text-base truncate" style={{ color: theme.text }}>{item.name || item.peptide}</div>
 														{item.isDraft && (
-															<span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+															<span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
 																Draft
 															</span>
 														)}
 													</div>
-													<div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}><Package size={14} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
+													<div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: theme.textLight }}><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
+												</div>
+												<div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2">
+													<div className="text-[9px] font-bold uppercase tracking-widest opacity-60" style={{ color: theme.text }}>{formatMMDDYYYY(item.date)}</div>
 													{item.dateAcquired && (
-														<div className="text-xs flex items-center gap-1 mt-1" style={{ color: theme.textLight }}>
-															<Calendar size={12} /> Acquired: {formatMMDDYYYY(item.dateAcquired)}
+														<div className="text-[9px] flex items-center gap-1" style={{ color: theme.textLight }}>
+															<Calendar size={9} /> {formatMMDDYYYY(item.dateAcquired)}
 														</div>
 													)}
 												</div>
-												<div className="text-xs text-gray-500">{formatMMDDYYYY(item.date)}</div>
 											</div>
 											
                                             {Array.isArray(item.peptides) && item.peptides.length > 0 ? (
-                                                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: theme.border }}>
+                                                <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
                                                     {item.peptides.map((p, idx) => (
-                                                        <div key={idx} className="text-xs flex justify-between">
-                                                            <span>- {p.name}</span>
-                                                            <span className="font-semibold">{p.dose} {p.doseUnit || 'mcg'}</span>
+                                                        <div key={idx} className="text-[10px] flex justify-between items-center py-0.5">
+                                                            <span className="font-medium" style={{ color: theme.text }}>• {p.name}</span>
+                                                            <span className="font-bold text-[9px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : null}
 
-											<div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
-													<div className="flex items-center gap-2"><Beaker size={14} /> {totalMg} mg</div>
-													<div className="flex items-center gap-2"><Droplet size={14} /> {item.water} mL water</div>
-													<div className="flex items-center gap-2"><Droplet size={14} /> {displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit} total dose` : '-'}</div>
+											<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+												<div className="text-xs space-y-1.5" style={{ color: theme.textLight }}>
+													<div className="flex items-center gap-1.5"><Beaker size={12} style={{ color: '#8ca68c' }} /> {totalMg} mg</div>
+													<div className="flex items-center gap-1.5"><Droplet size={12} style={{ color: '#8ca68c' }} /> {item.water} mL water</div>
+													<div className="flex items-center gap-1.5"><Droplet size={12} style={{ color: '#8ca68c' }} /> {displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit} dose` : '-'}</div>
 												</div>
-												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
-													<div><span className="font-medium text-base pr-1" style={{color: theme.text}}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</span> units/dose</div>
-													<div><span className="font-medium text-base pr-1" style={{color: theme.text}}>{calc.dosesPerVial || '-'}</span> doses/vial</div>
-													<div><span className="font-medium text-base pr-1" style={{color: theme.text}}>{costPerDose || '-'}</span> / dose</div>
+												<div className="text-xs space-y-1.5" style={{ color: theme.textLight }}>
+													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</span> units/dose</div>
+													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{calc.dosesPerVial || '-'}</span> doses/vial</div>
+													<div><span className="font-bold text-sm pr-1" style={{color: theme.text}}>{costPerDose || '-'}</span> / dose</div>
 												</div>
 											</div>
 										</div>
 
-										<div className="flex justify-between items-center mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-											<div className="flex items-center gap-2">
+										<div className="flex justify-between items-center mt-2 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+											<div className="flex items-center gap-1.5">
 									{item.deliveryMethod === 'pen' && item.penColor ? (
-													<div className="flex flex-col gap-1">
+													<div className="flex items-center gap-1.5">
 														<div 
-                                                        className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" 
+                                                        className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm" 
                                                         style={{ 
                                                             background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
                                                             color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
                                                         }}
                                                     >
-															<PenTool size={12} />
+															<PenTool size={10} strokeWidth={2.5} />
 															<span>{
                                                                 // Handle both name format ("Light Blue") and hex format ("#ADD8E6")
                                                                 item.penColor.startsWith('#') 
@@ -1012,8 +1023,8 @@ export default function Recon() {
                                                             } Pen</span>
 														</div>
 														{item.penType && (
-															<div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-																{item.penType === 'other' ? 'Other Pen' : 
+															<div className="text-[9px] font-bold px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+																{item.penType === 'other' ? 'Other' : 
 																	item.penType === 'savvio' ? 'Savvio' :
 																	item.penType === 'novo' ? 'Novo' :
 																	item.penType === 'v1' ? 'V1' :
@@ -1028,17 +1039,17 @@ export default function Recon() {
 														)}
 													</div>
 												) : (
-                                                    <div className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        <Pipette size={12} />
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+                                                        <Pipette size={10} strokeWidth={2.5} />
                                                         <span>Syringe</span>
                                                     </div>
                                                 )}
 											</div>
-                                            <div className="flex items-center">
+                                            <div className="flex items-center gap-1">
 											    {item.isDraft ? (
                                                     <button 
-                                                        className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" 
-                                                        style={{ color: theme.primary }} 
+                                                        className="px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all hover:opacity-80" 
+                                                        style={{ color: theme.primary, backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' }} 
                                                         onClick={(e) => {
                                                             e.stopPropagation(); // Prevent card click
                                                             // Prefill calculator with draft data
@@ -1081,23 +1092,23 @@ export default function Recon() {
                                                             // Draft will be removed when user saves the calculation
                                                         }}
                                                     >
-                                                        <Calculator size={14} className="icon-hover" /> <span className="text-hover">Continue Draft</span>
+                                                        <Calculator size={12} strokeWidth={2.5} /> <span>Continue Draft</span>
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        <button className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
-                                                            <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Vial is Finished</span>
+                                                        <button className="px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all hover:opacity-80" style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }} onClick={() => handleMarkAsUsed(item)}>
+                                                            <CheckCircle size={12} strokeWidth={2.5} /> <span>Finished</span>
                                                         </button>
-                                                        <button className="p-2 rounded-md action-button-hover" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4 icon-hover" /></button>
+                                                        <button className="p-1.5 rounded-lg transition-all hover:bg-black/10 dark:hover:bg-white/10" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-3.5 w-3.5" strokeWidth={2.5} /></button>
                                                     </>
                                                 )}
                                             </div>
 										</div>
 
 										{item.notes && (
-											<div className="mt-3 pt-3 border-t text-xs flex items-start gap-2" style={{ borderColor: theme.border, color: theme.textLight }}>
-												<FileText size={14} className="mt-0.5" />
-												<p>{item.notes}</p>
+											<div className="mt-2 pt-2 border-t text-[10px] flex items-start gap-1.5" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
+												<FileText size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
+												<p className="italic">{item.notes}</p>
 											</div>
 										)}
 									</div>

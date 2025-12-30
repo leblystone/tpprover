@@ -2666,16 +2666,15 @@ export default function Stockpile() {
           title={viewingGroup.name}
           theme={theme}
           variant="modern"
-          maxWidth="max-w-3xl"
+          maxWidth="max-w-2xl"
           footer={(
-            <div className="w-full flex items-center justify-between">
+            <div className="w-full flex items-center justify-between px-2">
               <button
                 onClick={() => setViewingGroup(null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-black/5 dark:hover:bg-white/10"
                 style={{
-                  backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                  color: theme.text,
-                  border: 'none'
+                  color: theme.textLight,
+                  border: `1px solid ${theme.border}`
                 }}
               >
                 Close
@@ -2689,109 +2688,159 @@ export default function Stockpile() {
                   setViewingGroup(null);
                   openManage(viewingGroup.name);
                 }}
-                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                className="px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl active:scale-95"
                 style={{
-                  background: getPrimaryActionGradient(false),
+                  background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
                   color: theme?.textOnPrimary || '#ffffff',
-                  border: 'none',
-                  boxShadow: primaryActionDefaultShadow
                 }}
               >
-                Edit
+                Manage Research
               </button>
             </div>
           )}
         >
-          <div className="space-y-4">
-            {/* Summary */}
-            <div className="p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)' }}>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Total Amount</div>
-                  <div className="text-lg font-bold" style={{ color: theme.text }}>
+          <div className="space-y-6">
+            {/* Research Summary Header */}
+            <div 
+              className="p-5 rounded-2xl border flex items-center justify-between overflow-hidden relative" 
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                borderColor: theme.border
+              }}
+            >
+              {/* Subtle decorative icon */}
+              <Package size={80} className="absolute -right-4 -bottom-4 opacity-5 rotate-12" style={{ color: theme.primary }} />
+              
+              <div className="flex-1">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 opacity-50" style={{ color: theme.text }}>
+                  Inventory Summary
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <div className="text-3xl font-black" style={{ color: theme.text }}>
                     {viewingGroup.totalMg > 0 
-                      ? `${viewingGroup.totalMg} ${viewingGroup.unit || 'mg'}` 
-                      : `${viewingGroup.totalVials} ${viewingGroup.totalVials === 1 ? 'vial' : 'vials'}`
+                      ? viewingGroup.totalMg
+                      : viewingGroup.totalVials
                     }
                   </div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Variants</div>
-                  <div className="text-lg font-bold" style={{ color: theme.text }}>
-                    {Object.keys(viewingGroup.variants).length} variant{Object.keys(viewingGroup.variants).length !== 1 ? 's' : ''}
+                  <div className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: theme.text }}>
+                    {viewingGroup.totalMg > 0 
+                      ? (viewingGroup.unit || 'mg')
+                      : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')
+                    } Total
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Variants */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Variants</h4>
+            {/* Detailed Inventory List */}
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Beaker size={16} style={{ color: '#8ca68c' }} />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: theme.text }}>Research Vials</h4>
+              </div>
+              
               {Object.values(viewingGroup.variants)
                 .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
                 .map(variant => (
                   <div
                     key={variant.mg}
-                    className="p-3 rounded-lg border"
-                    style={{
-                      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.015)',
-                      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
-                    }}
+                    className="relative pl-4"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 font-semibold" style={{ color: theme.text }}>
-                        <Beaker size={16} style={{ color: theme.primary }} />
-                        {variant.mg} {variant.unit || 'mg'} • {variant.totalVials} {variant.totalVials === 1 ? 'vial' : 'vials'}
+                    {/* Vertical indicator line */}
+                    <div 
+                      className="absolute left-0 top-1 bottom-1 w-1 rounded-full"
+                      style={{ backgroundColor: '#8ca68c', opacity: 0.3 }}
+                    />
+
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2" style={{ color: theme.text }}>
+                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5">
+                          {variant.mg} {variant.unit || 'mg'}
+                        </span>
+                        <span className="opacity-40">•</span>
+                        <span className="opacity-60">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
                       </div>
+                      <div className="h-px flex-1 ml-4 opacity-10" style={{ backgroundColor: theme.text }} />
                     </div>
-                    <div className="space-y-2">
+
+                    <div className="grid grid-cols-1 gap-3">
                       {variant.items.map(item => (
                         <div
                           key={item.id}
-                          className="p-2 rounded text-xs"
-                          style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)' }}
+                          className="p-4 rounded-xl border transition-all hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                          style={{ 
+                            backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                            borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'
+                          }}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Package size={12} style={{ color: theme.primary }} />
-                            <span className="font-medium" style={{ color: theme.text }}>
-                              {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown'}
-                            </span>
-                          </div>
-                          <div className="space-y-1" style={{ color: theme.textLight }}>
-                            {item.date && (
-                              <div>Acquired: {new Date(item.date).toLocaleDateString()}</div>
-                            )}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/10">
+                                <Package size={16} style={{ color: theme.primary }} />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold" style={{ color: theme.text }}>
+                                  {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor'}
+                                </div>
+                                {item.date && (
+                                  <div className="text-[9px] font-medium opacity-50 uppercase tracking-tighter" style={{ color: theme.text }}>
+                                    Acquired {new Date(item.date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
                             {item.useByDate && (() => {
                               const useByStatus = getUseByStatus(item.useByDate);
                               return (
                                 <div 
-                                  className="inline-block px-2 py-0.5 rounded text-xs"
+                                  className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm"
                                   style={{
                                     backgroundColor: useByStatus?.status === 'expired' 
                                       ? 'rgba(239, 68, 68, 0.15)'
                                       : useByStatus?.status === 'expiring'
                                       ? 'rgba(251, 191, 36, 0.15)'
-                                      : 'transparent',
+                                      : 'rgba(16, 185, 129, 0.12)',
                                     color: useByStatus?.status === 'expired'
                                       ? '#ef4444'
                                       : useByStatus?.status === 'expiring'
                                       ? '#f59e0b'
-                                      : theme.textLight
+                                      : '#10b981'
                                   }}
                                 >
-                                  Use By: {new Date(item.useByDate).toLocaleDateString()}
-                                  {useByStatus?.status === 'expired' && ' (EXPIRED)'}
-                                  {useByStatus?.status === 'expiring' && ' (Expiring Soon)'}
+                                  {useByStatus?.status === 'expired' ? 'Expired' : useByStatus?.status === 'expiring' ? 'Expiring' : 'Stable'}
                                 </div>
                               );
                             })()}
-                            {item.purity && (
-                              <div className="flex items-center gap-1">
-                                <Percent size={12} style={{ color: theme.primary }} />
-                                {item.purity}% Purity
-                              </div>
-                            )}
                           </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-black/5 dark:border-white/5">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Purity</span>
+                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Batch #</span>
+                              <span className="text-xs font-bold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Cap Color</span>
+                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Exp. Date</span>
+                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                          </div>
+
+                          {item.notes && (
+                            <div className="mt-4 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                              <div className="flex items-start gap-2">
+                                <Info size={12} className="mt-0.5 opacity-40" style={{ color: theme.text }} />
+                                <p className="text-[11px] leading-relaxed italic opacity-70" style={{ color: theme.text }}>{item.notes}</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

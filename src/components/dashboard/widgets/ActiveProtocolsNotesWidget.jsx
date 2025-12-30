@@ -5,8 +5,6 @@ import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isReadOnly = false, onUpgrade }) => {
-    const { maxItems = 3 } = widget.settings;
-    
     // Filter active protocols
     const activeProtocols = protocols ? protocols.filter(p => {
         if (p?.active !== true) return false;
@@ -27,8 +25,8 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isRea
         return today <= new Date(e.getFullYear(), e.getMonth(), e.getDate());
     }) : [];
 
-    // Limit items based on settings
-    const limitedProtocols = activeProtocols.slice(0, maxItems);
+    // Show all active protocols (no limit)
+    const limitedProtocols = activeProtocols;
 
     // If no active protocols, show compact version
     if (!limitedProtocols || limitedProtocols.length === 0) {
