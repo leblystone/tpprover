@@ -308,7 +308,14 @@ function ItemStrip({
       </div>
 
       {/* Expanded Data Grid */}
-      {isExpanded && (
+      <div 
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: isExpanded ? '500px' : '0',
+          opacity: isExpanded ? 1 : 0,
+          transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
+        }}
+      >
         <div className="mt-1 mb-2 grid grid-cols-2 gap-x-4 gap-y-1.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
           <DataPoint icon={Percent} label="Purity" value={item.purity ? `${item.purity}%` : 'N/A'} theme={theme} />
           <DataPoint icon={Tag} label="Cap Color" value={item.capColor || 'N/A'} theme={theme} />
@@ -338,7 +345,7 @@ function ItemStrip({
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

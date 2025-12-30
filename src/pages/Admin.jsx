@@ -1480,7 +1480,8 @@ function Admin() {
           className="overflow-hidden transition-all duration-300 ease-in-out"
           style={{ 
             maxHeight: isExpanded ? `${items.length * 60}px` : '0px',
-            opacity: isExpanded ? 1 : 0
+            opacity: isExpanded ? 1 : 0,
+            transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
           }}
         >
           <div className="mt-1 space-y-0.5 pl-2">

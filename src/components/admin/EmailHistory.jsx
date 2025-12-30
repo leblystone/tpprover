@@ -482,11 +482,19 @@ export default function EmailHistory({ theme }) {
                 </div>
 
                 {/* Expanded Details */}
-                {isExpanded && (
-                  <div 
-                    className="px-4 pb-4 pt-0 border-t"
-                    style={{ borderColor: theme.border }}
-                  >
+                <div 
+                  className="overflow-hidden transition-all duration-300 ease-in-out"
+                  style={{
+                    maxHeight: isExpanded ? '2000px' : '0',
+                    opacity: isExpanded ? 1 : 0,
+                    transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
+                  }}
+                >
+                  {isExpanded && (
+                    <div 
+                      className="px-4 pb-4 pt-0 border-t"
+                      style={{ borderColor: theme.border }}
+                    >
                     <div className="mt-4 space-y-3">
                       {email.customContent && (
                         <div>

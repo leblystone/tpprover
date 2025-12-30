@@ -95,9 +95,17 @@ export default function CustomDropdown({
             </button>
 
             {/* Dropdown Menu */}
-            {isOpen && (
+            <div 
+                className="absolute z-50 w-full mt-2 overflow-hidden transition-all duration-300 ease-in-out"
+                style={{
+                    maxHeight: isOpen ? '400px' : '0',
+                    opacity: isOpen ? 1 : 0,
+                    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isOpen ? 'auto' : 'none'
+                }}
+            >
                 <div 
-                    className="absolute z-50 w-full mt-2 py-2 bg-white border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                    className="py-2 bg-white border rounded-xl shadow-xl"
                     style={{ 
                         borderColor: theme.border,
                         backgroundColor: theme.cardBackground,
@@ -158,7 +166,7 @@ export default function CustomDropdown({
                         })}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

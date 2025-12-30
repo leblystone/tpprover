@@ -81,16 +81,19 @@ export default function SearchableDropdown({
                     }, 150);
                 }}
             />
-            {isOpen && (
-                <div 
-                    className="absolute mt-1 w-full rounded shadow-lg z-20 border-0"
-                    data-dropdown-container
-                    style={{ 
-                        backgroundColor: theme.isDark ? '#1f2937' : '#fff',
-                        border: 'none',
-                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.5)' : '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                >
+            <div 
+                className="absolute mt-1 w-full rounded shadow-lg z-20 border-0 overflow-hidden transition-all duration-300 ease-in-out"
+                data-dropdown-container
+                style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : '#fff',
+                    border: 'none',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.5)' : '0 4px 6px rgba(0,0,0,0.1)',
+                    maxHeight: isOpen ? '400px' : '0',
+                    opacity: isOpen ? 1 : 0,
+                    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isOpen ? 'auto' : 'none'
+                }}
+            >
                     <ul>
                         {!trimmedQuery ? (
                             <li className="p-2" style={{ color: theme.textLight }}>{idleMessage}</li>
@@ -139,7 +142,7 @@ export default function SearchableDropdown({
                         )}
                     </ul>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

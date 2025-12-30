@@ -1605,17 +1605,25 @@ export default function Stockpile() {
                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                {isAmountUnitDropdownOpen && (
-                  <div className="relative" data-dropdown-container>
-                    <div 
-                      className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                      style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                        borderColor: theme.border,
-                        minWidth: '100px',
-                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                      }}
-                    >
+                <div 
+                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                  data-dropdown-container
+                  style={{
+                    maxHeight: isAmountUnitDropdownOpen ? '300px' : '0',
+                    opacity: isAmountUnitDropdownOpen ? 1 : 0,
+                    transform: isAmountUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isAmountUnitDropdownOpen ? 'auto' : 'none'
+                  }}
+                >
+                  <div 
+                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                      borderColor: theme.border,
+                      minWidth: '100px',
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
                       {[
                         { value: 'mg', label: 'mg' },
                         { value: 'mL', label: 'mL' },
@@ -1660,7 +1668,7 @@ export default function Stockpile() {
                       ))}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
               <label 
                 htmlFor="amount-input"
@@ -1750,17 +1758,25 @@ export default function Stockpile() {
                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                {isUnitDropdownOpen && (
-                  <div className="relative" data-dropdown-container>
-                    <div 
-                      className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                      style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                        borderColor: theme.border,
-                        minWidth: '120px',
-                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                      }}
-                    >
+                <div 
+                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                  data-dropdown-container
+                  style={{
+                    maxHeight: isUnitDropdownOpen ? '300px' : '0',
+                    opacity: isUnitDropdownOpen ? 1 : 0,
+                    transform: isUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isUnitDropdownOpen ? 'auto' : 'none'
+                  }}
+                >
+                  <div 
+                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                      borderColor: theme.border,
+                      minWidth: '120px',
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
                       {[
                         { value: 'vial', label: 'Vial' },
                         { value: 'kit', label: 'Kit' },
@@ -1805,7 +1821,7 @@ export default function Stockpile() {
                       ))}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
               <label 
                 htmlFor="quantity-input"
@@ -1896,17 +1912,25 @@ export default function Stockpile() {
                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              {isPriceUnitDropdownOpen && (
-                <div className="relative" data-dropdown-container>
-                  <div 
-                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                    style={{
-                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                      borderColor: theme.border,
-                      minWidth: '120px',
-                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                  >
+              <div 
+                className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                data-dropdown-container
+                style={{
+                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
+                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
+                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
+                }}
+              >
+                <div 
+                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                  style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    minWidth: '120px',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
                     {[
                       { value: 'vial', label: 'Vial' },
                       { value: 'mg', label: 'mg' },
@@ -1948,11 +1972,11 @@ export default function Stockpile() {
                         >
                           {option.label}
                         </button>
-                      </React.Fragment>
-                    ))}
+                        </React.Fragment>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
             </div>
             <label 
               htmlFor="price-input"
@@ -2003,9 +2027,17 @@ export default function Stockpile() {
           </div>
           
           {/* EXTRA DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
-            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
-            <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+          <div className="flex items-center gap-4 mb-3 pt-1">
+            <ImageUp size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Documentation
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -2027,30 +2059,38 @@ export default function Stockpile() {
       <Modal 
         open={!!manageName} 
         onClose={() => { setManageName(null); setManageRows([]); setShowHistory(false); clearManageSavedData(); }} 
-        title={`${manageName || 'Manage'}`} 
+        title={`${manageName || 'Manage'}`}
+        onBack={() => { 
+          // Go back to view details modal
+          const groupToView = groups.find(g => g.name === manageName);
+          setManageName(null); 
+          setManageRows([]); 
+          setShowHistory(false); 
+          clearManageSavedData();
+          if (groupToView) {
+            setViewingGroup(groupToView);
+          }
+        }}
         titleExtra={
-          <AutoSaveIndicator 
-            isSaving={isManageSaving}
-            lastSaved={lastManageSaved}
-            theme={theme}
-            compact={true}
-          />
+          <button 
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" 
+            style={{ 
+              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
+              border: `1px solid ${theme.border}`, 
+              color: theme.text,
+            }} 
+            onClick={() => setShowHistory(v => !v)}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'}
+          >
+            {showHistory ? 'Hide History' : 'View History'}
+          </button>
         }
         theme={theme} 
         variant="modern"
         maxWidth="max-w-2xl" 
         footer={(
-        <div className="w-full flex items-center justify-between px-2">
-          <button 
-            onClick={() => { setManageName(null); setManageRows([]); setShowHistory(false); clearManageSavedData(); }} 
-            className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-black/5 dark:hover:bg-white/10"
-            style={{
-              color: theme.textLight,
-              border: `1px solid ${theme.border}`
-            }}
-          >
-            Close
-          </button>
+        <div className="w-full flex items-center justify-end px-2">
           <button 
             onClick={() => {
               if (isReadOnly) {
@@ -2070,21 +2110,6 @@ export default function Stockpile() {
         </div>
       )}>
         <div className="space-y-4">
-          <div className="flex items-center justify-end">
-            <button 
-              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" 
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
-                border: `1px solid ${theme.border}`, 
-                color: theme.text,
-              }} 
-              onClick={() => setShowHistory(v => !v)}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'}
-            >
-              {showHistory ? 'Hide History' : 'View History'}
-            </button>
-          </div>
           {showHistory && (
             <div className="rounded-xl border p-3 max-h-40 overflow-auto text-xs space-y-2" style={{ 
               borderColor: theme.border,
@@ -2110,19 +2135,16 @@ export default function Stockpile() {
             return (
             <div
               key={row.id}
-              className="rounded-xl border overflow-hidden transition-all"
-              style={{
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                borderColor: isExpanded ? theme.primary + '40' : theme.border
-              }}
+              className="transition-all"
             >
               {/* Collapsible Header Row */}
               <div 
-                className="flex items-center justify-between p-3 cursor-pointer transition-all"
+                className="flex items-center justify-between p-3 cursor-pointer transition-all rounded-lg border-b"
                 style={{
                   backgroundColor: isExpanded 
                     ? (theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)')
-                    : 'transparent'
+                    : 'transparent',
+                  borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'
                 }}
                 onClick={() => setExpandedManageRows(prev => ({ ...prev, [row.id]: !prev[row.id] }))}
                 onMouseEnter={(e) => {
@@ -2138,7 +2160,7 @@ export default function Stockpile() {
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Chevron */}
-                  <div className="flex-shrink-0 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <div className="flex-shrink-0 transition-transform duration-300 ease-in-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                     <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
                   </div>
                   
@@ -2204,8 +2226,79 @@ export default function Stockpile() {
               </div>
 
               {/* Expanded Edit Form */}
-              {isExpanded && (
-                <div className="p-3 pt-2 space-y-3 border-t" style={{ borderColor: theme.border }}>
+              <div 
+                className="overflow-hidden transition-all duration-300 ease-in-out"
+                style={{ 
+                  maxHeight: isExpanded ? '2000px' : '0',
+                  opacity: isExpanded ? 1 : 0,
+                  transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)',
+                }}
+              >
+                <div className="p-3 space-y-4 border-t" style={{ borderColor: theme.border }}>
+                  {/* VIAL DETAILS Section Header */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <TestTube size={24} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+                      <div className="flex items-center gap-2 ml-1">
+                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                          Research Parameters
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Amount & Quantity in two columns */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <TextInput
+                      label="Amount"
+                      value={row.mg || ''}
+                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: v } : r))}
+                      placeholder="10"
+                      theme={theme}
+                      outlined={true}
+                      customTextColor={theme.isDark ? null : "#181A18"}
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
+                    <TextInput
+                      label="Quantity"
+                      value={row.quantity || ''}
+                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: v } : r))}
+                      placeholder="2"
+                      theme={theme}
+                      outlined={true}
+                      customTextColor={theme.isDark ? null : "#181A18"}
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
+                  </div>
+
+                  <TextInput 
+                    label="Crimp / Cap Color" 
+                    value={row.capColor || ''} 
+                    onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))} 
+                    placeholder="Black Crimp/Black Cap" 
+                    theme={theme} 
+                    uppercase={true} 
+                    outlined={true} 
+                    customTextColor={theme.isDark ? null : "#181A18"} 
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  />
+
+                  {/* ORDER DETAILS Section Header */}
+                  <div className="flex items-center gap-3 mb-2 pt-1">
+                    <PackageOpen size={24} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+                      <div className="flex items-center gap-2 ml-1">
+                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                          Purchase Information
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Vendor */}
                   <VendorSuggestInput
                     label="Vendor"
@@ -2219,53 +2312,55 @@ export default function Stockpile() {
                         )
                       )
                     }
-                    placeholder="Vendor name"
+                    placeholder="e.g., Pharm..."
                     theme={theme}
                   />
 
-                  {/* Amount & Quantity */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <TextInput
-                      label="Amount"
-                      value={row.mg || ''}
-                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: v } : r))}
-                      placeholder="10"
-                      theme={theme}
-                    />
-                    <TextInput
-                      label="Quantity"
-                      value={row.quantity || ''}
-                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: v } : r))}
-                      placeholder="5"
-                      theme={theme}
-                    />
-                  </div>
-
-                  {/* Purity, Batch, Cap Color */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* Purity & Batch Number in two columns */}
+                  <div className="grid grid-cols-2 gap-2.5">
                     <TextInput
                       label="Purity %"
                       value={row.purity || ''}
                       onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, purity: v } : r))}
-                      placeholder="98"
+                      placeholder="e.g., 98"
                       theme={theme}
+                      outlined={true}
+                      customTextColor={theme.isDark ? null : "#181A18"}
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     <TextInput
                       label="Batch #"
                       value={row.batchNumber || ''}
                       onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))}
-                      placeholder="XXX"
+                      placeholder="# XXX"
                       theme={theme}
                       uppercase={true}
+                      outlined={true}
+                      customTextColor={theme.isDark ? null : "#181A18"}
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
-                    <TextInput
-                      label="Cap Color"
-                      value={row.capColor || ''}
-                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
-                      placeholder="Black"
-                      theme={theme}
-                      uppercase={true}
-                    />
+                  </div>
+
+                  {/* Date Acquired */}
+                  <GlassmorphismDatePicker
+                    value={row.date || ''}
+                    onChange={(dateString) => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, date: dateString } : r))}
+                    theme={theme}
+                    placeholder="Date Acquired"
+                  />
+
+                  {/* EXTRA DETAILS Section Header */}
+                  <div className="flex items-center gap-3 mb-2 pt-1">
+                    <ImageUp size={24} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                      <div className="flex items-center gap-2 ml-1">
+                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                          Documentation
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Documentation */}
@@ -2275,13 +2370,14 @@ export default function Stockpile() {
                       setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, documentation } : r))
                     }
                     theme={theme}
-                    title="Lab Documentation"
-                    placeholder="Add COA, vial photos, batch documents..."
+                    title=""
+                    description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
+                    placeholder="Add photos, screenshots, or files that correlate with this peptide."
                     allowImages={true}
                     allowLinks={true}
                   />
                 </div>
-              )}
+              </div>
             </div>
             );
           })}
@@ -2312,7 +2408,7 @@ export default function Stockpile() {
             }}
           >
             <PlusCircle size={18} strokeWidth={2.5} />
-            Add New Vial
+            Add to Stock
           </button>
         </div>
       </Modal>
@@ -2476,22 +2572,13 @@ export default function Stockpile() {
         <Modal
           open={!!viewingGroup}
           onClose={() => setViewingGroup(null)}
+          onBack={() => setViewingGroup(null)}
           title={viewingGroup.name}
           theme={theme}
           variant="modern"
           maxWidth="max-w-2xl"
           footer={(
-            <div className="w-full flex items-center justify-between px-2">
-              <button
-                onClick={() => setViewingGroup(null)}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-black/5 dark:hover:bg-white/10"
-                style={{
-                  color: theme.textLight,
-                  border: `1px solid ${theme.border}`
-                }}
-              >
-                Close
-              </button>
+            <div className="w-full flex items-center justify-end px-2">
               <button
                 onClick={() => {
                   if (isReadOnly) {
@@ -2525,7 +2612,7 @@ export default function Stockpile() {
               <Package size={80} className="absolute -right-4 -bottom-4 opacity-5 rotate-12" style={{ color: theme.primary }} />
               
               <div className="flex-1">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 opacity-50" style={{ color: theme.text }}>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1.5 opacity-40" style={{ color: theme.text }}>
                   Inventory Summary
                 </div>
                 <div className="flex items-baseline gap-2">
@@ -2535,7 +2622,7 @@ export default function Stockpile() {
                       : viewingGroup.totalVials
                     }
                   </div>
-                  <div className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: theme.text }}>
+                  <div className="text-sm font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
                     {viewingGroup.totalMg > 0 
                       ? (viewingGroup.unit || 'mg')
                       : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')
@@ -2566,12 +2653,12 @@ export default function Stockpile() {
                     />
 
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2" style={{ color: theme.text }}>
-                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text }}>
+                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-bold">
                           {variant.mg} {variant.unit || 'mg'}
                         </span>
-                        <span className="opacity-40">•</span>
-                        <span className="opacity-60">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
+                        <span className="opacity-30">•</span>
+                        <span className="opacity-50 font-medium">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
                       </div>
                       <div className="h-px flex-1 ml-4 opacity-10" style={{ backgroundColor: theme.text }} />
                     </div>
@@ -2592,11 +2679,11 @@ export default function Stockpile() {
                                 <Package size={16} style={{ color: theme.primary }} />
                               </div>
                               <div>
-                                <div className="text-xs font-bold" style={{ color: theme.text }}>
+                                <div className="text-sm font-bold" style={{ color: theme.text }}>
                                   {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor'}
                                 </div>
                                 {item.date && (
-                                  <div className="text-[9px] font-medium opacity-50 uppercase tracking-tighter" style={{ color: theme.text }}>
+                                  <div className="text-[10px] font-normal opacity-40 uppercase tracking-tight" style={{ color: theme.text }}>
                                     Acquired {new Date(item.date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                   </div>
                                 )}
@@ -2607,7 +2694,7 @@ export default function Stockpile() {
                               const useByStatus = getUseByStatus(item.useByDate);
                               return (
                                 <div 
-                                  className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide shadow-sm"
                                   style={{
                                     backgroundColor: useByStatus?.status === 'expired' 
                                       ? 'rgba(239, 68, 68, 0.15)'
@@ -2629,28 +2716,28 @@ export default function Stockpile() {
 
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-black/5 dark:border-white/5">
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Purity</span>
-                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Purity</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Batch #</span>
-                              <span className="text-xs font-bold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Batch #</span>
+                              <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Cap Color</span>
-                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Cap Color</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40" style={{ color: theme.text }}>Exp. Date</span>
-                              <span className="text-xs font-bold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Exp. Date</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                           </div>
 
                           {item.notes && (
                             <div className="mt-3 p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                               <div className="flex items-start gap-2">
-                                <Info size={12} className="mt-0.5 opacity-40" style={{ color: theme.text }} />
-                                <p className="text-[11px] leading-relaxed italic opacity-70" style={{ color: theme.text }}>{item.notes}</p>
+                                <Info size={12} className="mt-0.5 opacity-30" style={{ color: theme.text }} />
+                                <p className="text-xs leading-relaxed italic opacity-60 font-normal" style={{ color: theme.text }}>{item.notes}</p>
                               </div>
                             </div>
                           )}

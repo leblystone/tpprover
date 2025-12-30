@@ -488,20 +488,6 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         
         return (
             <div className="space-y-3">
-                {/* Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <TestTubes size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Link Peptides</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Connect to Stockpile
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                
                 <p className="text-sm mb-3 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
                 <div className="space-y-3">
                     {protocol.peptides.map((p, index) => {
@@ -867,7 +853,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 )}
                 
-                 <div className="mt-6 flex justify-end">
+                 <div className="mt-3 flex justify-end">
                     <button 
                         onClick={handleContinue} 
                         className="px-4 py-2 rounded-md text-sm" 
@@ -950,7 +936,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         )
                     })}
                 </div>
-                 <div className="mt-4 text-center">
+                 <div className="mt-3 text-center">
                     <div className="flex justify-between items-center">
                         <button 
                             onClick={handleBack}
@@ -1012,10 +998,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 </div>
                 
-                <p className="text-sm italic text-center mb-3" style={{ color: theme.textLight }}>
+                <p className="text-sm italic text-center mb-2" style={{ color: theme.textLight }}>
                     Confirm your vial(s) for the {reconStrategy === 'separate' ? 'separate' : 'blended'} protocol.
                 </p>
-                <div className="mt-4">
+                <div className="mt-2">
                     <ReconCalculatorPanel
                         theme={theme}
                         prefill={prefill}
@@ -1023,6 +1009,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         reconStrategy={reconStrategy}
                         allowRemovePeptide={false}
                         allowAddPeptide={false}
+                        hideHeader={true}
+                        inlineVendorDate={true}
                         onSave={(reconData) => {
                             const newReconId = `recon-${generateId()}`;
 
@@ -1066,7 +1054,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     />
                 </div>
                 {canGoBack() && (
-                    <div className="mt-4 flex justify-start">
+                    <div className="mt-2 flex justify-start">
                         <button 
                             onClick={handleBack}
                             className="px-4 py-2 rounded-md text-sm flex items-center gap-2"
@@ -1240,7 +1228,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-between gap-2 pt-2">
+                <div className="flex justify-between gap-2 pt-1">
                     <div>
                         {canGoBack() && (
                             <button 

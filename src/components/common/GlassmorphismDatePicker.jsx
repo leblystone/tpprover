@@ -322,10 +322,10 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         days.push(day);
     }
 
-    const calendarDropdown = isOpen && createPortal(
+    const calendarDropdown = createPortal(
         <div
             ref={dropdownRef}
-            className="fixed rounded-xl overflow-hidden"
+            className="fixed rounded-xl overflow-hidden transition-all duration-300 ease-in-out"
             style={{
                 backdropFilter: 'blur(24px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -335,7 +335,12 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 minWidth: compact ? '240px' : '320px',
                 top: `${dropdownPosition.top}px`,
                 left: `${dropdownPosition.left}px`,
-                zIndex: 2147483647
+                zIndex: 2147483647,
+                maxHeight: isOpen ? '500px' : '0',
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.95)',
+                pointerEvents: isOpen ? 'auto' : 'none',
+                overflow: isOpen ? 'visible' : 'hidden'
             }}
         >
             {/* Calendar Header */}

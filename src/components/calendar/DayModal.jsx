@@ -779,9 +779,9 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                       </p>
                     </div>
                   </div>
-                )}
+                  )}
+                </div>
               </div>
-            )}
             
             {/* Washout indicator */}
             {dayScheduled?.washout?.length > 0 && (

@@ -9,7 +9,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false }) {
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ 
     vendor: '', 
@@ -394,40 +394,46 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     if (!isPriceUnitDropdownOpen) return;
 
     const handleClickOutside = (event) => {
-      const isClickInside = event.target.closest('[data-dropdown-container]');
+      const isClickInside = event.target.closest('[data-price-dropdown]');
       if (!isClickInside) {
         setIsPriceUnitDropdownOpen(false);
       }
     };
 
     const timeoutId = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }, 100);
 
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isPriceUnitDropdownOpen]);
 
   const content = (
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
-      <div className="flex items-center gap-4 mb-2">
-        <TestTube size={32} style={{ color: theme.primary }} />
-        <div className="flex flex-col gap-0.5">
-          <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
-            Vial Details
-          </h4>
-          <div className="flex items-center gap-2 ml-1">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Research Parameters
-            </span>
+      {!hideHeader && (
+        <>
+          <div className="flex items-center gap-4 mb-2">
+            <TestTube size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+                Vial Details
+              </h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Research Parameters
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+          <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+        </>
+      )}
 
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 gap-4 mb-3">
@@ -692,7 +698,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       {peptideDoseUnitDropdowns[safeForm.peptides[currentPeptideIndex]?.id] && (
                         <div className="relative" data-dropdown-container>
                           <div 
-                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            className="absolute top-full right-0 mt-1 z-[100] rounded-lg shadow-lg border overflow-hidden"
                             style={{
                               backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                               borderColor: theme.border,
@@ -704,6 +710,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                               { value: 'mcg', label: 'mcg' },
                               { value: 'mg', label: 'mg' },
                               { value: 'mL', label: 'mL' },
+                              { value: 'iu', label: 'IU' },
                               ...(deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
                             ].map((option, optIdx) => (
                               <React.Fragment key={option.value}>
@@ -769,43 +776,80 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </>
               )}
               
-              {/* Vendor - Per peptide */}
-              <VendorSuggestInput 
-                label="Vendor" 
-                value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
-                onChange={v => {
-                  // Get vendors list to find vendorId
-                  let vendors = [];
-                  try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
-                  const selectedVendor = vendors.find(vendor => vendor.name === v);
-                  const vendorId = selectedVendor ? selectedVendor.id : null;
+              {/* Vendor and Date - Can be inline or stacked */}
+              {inlineVendorDate ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <VendorSuggestInput 
+                    label="Vendor" 
+                    value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
+                    onChange={v => {
+                      // Get vendors list to find vendorId
+                      let vendors = [];
+                      try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+                      const selectedVendor = vendors.find(vendor => vendor.name === v);
+                      const vendorId = selectedVendor ? selectedVendor.id : null;
+                      
+                      updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendor', v);
+                      updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
+                      // Also update form vendor and vendorId if it's the first peptide
+                      if (currentPeptideIndex === 0) {
+                        setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
+                      }
+                    }} 
+                    placeholder="e.g., Pharm......" 
+                    theme={theme}
+                    outlined={true}
+                    customTextColor={theme.isDark ? null : "#181A18"}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                  />
+                  <GlassmorphismDatePicker
+                    value={form.dateAcquired || ''}
+                    onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
+                    theme={theme}
+                    placeholder="Date Acquired"
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Vendor - Per peptide */}
+                  <VendorSuggestInput 
+                    label="Vendor" 
+                    value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
+                    onChange={v => {
+                      // Get vendors list to find vendorId
+                      let vendors = [];
+                      try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+                      const selectedVendor = vendors.find(vendor => vendor.name === v);
+                      const vendorId = selectedVendor ? selectedVendor.id : null;
+                      
+                      updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendor', v);
+                      updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
+                      // Also update form vendor and vendorId if it's the first peptide
+                      if (currentPeptideIndex === 0) {
+                        setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
+                      }
+                    }} 
+                    placeholder="e.g., Pharm......" 
+                    theme={theme}
+                    outlined={true}
+                    customTextColor={theme.isDark ? null : "#181A18"}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                  />
                   
-                  updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendor', v);
-                  updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
-                  // Also update form vendor and vendorId if it's the first peptide
-                  if (currentPeptideIndex === 0) {
-                    setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
-                  }
-                }} 
-                placeholder="e.g., Pharm......" 
-                theme={theme}
-                outlined={true}
-                customTextColor={theme.isDark ? null : "#181A18"}
-                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-              />
-              
-              {/* Date Acquired */}
-              <GlassmorphismDatePicker
-                value={form.dateAcquired || ''}
-                onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
-                theme={theme}
-                placeholder="Date Acquired"
-              />
+                  {/* Date Acquired */}
+                  <GlassmorphismDatePicker
+                    value={form.dateAcquired || ''}
+                    onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
+                    theme={theme}
+                    placeholder="Date Acquired"
+                  />
+                </>
+              )}
               
               {/* Cost */}
               <div className="relative">
                 <div 
-                  className="flex items-stretch rounded-lg overflow-hidden"
+                  className="flex items-stretch rounded-lg overflow-visible"
                   style={{ 
                     border: `1px solid #f0eee7`,
                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
@@ -828,7 +872,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     onBlur={(e) => {
                       setTimeout(() => {
                         const relatedTarget = e.relatedTarget || document.activeElement
-                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                        const isClickingDropdown = relatedTarget?.closest('[data-price-dropdown]')
                         if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
                           setIsPriceFocused(false)
                         }
@@ -852,45 +896,59 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       per
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                    data-dropdown-container
-                    style={{ 
-                      borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                      backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                      color: theme.isDark ? theme.text : '#181A18',
-                      minWidth: '100px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
-                    }}
-                  >
-                    <span className="text-sm font-semibold">
-                      {(() => {
-                        const unit = (priceUnit || 'vial').toLowerCase();
-                        if (unit === 'vial') return 'Vial';
-                        if (unit === 'mg') return 'mg';
-                        if (unit === 'g') return 'g';
-                        if (unit === 'iu') return 'IU';
-                        if (unit === 'tablet') return 'Tablet';
-                        return unit.charAt(0).toUpperCase() + unit.slice(1);
-                      })()}
-                    </span>
-                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {isPriceUnitDropdownOpen && (
-                    <div className="relative" data-dropdown-container>
+                  <div className="relative flex-shrink-0" data-price-dropdown>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsPriceUnitDropdownOpen(prev => !prev);
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-r-lg cursor-pointer transition-all border-none outline-none h-full"
+                      style={{ 
+                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                        color: theme.isDark ? theme.text : '#181A18',
+                        minWidth: '100px'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                      }}
+                    >
+                      <span className="text-sm font-semibold">
+                        {(() => {
+                          const unit = (priceUnit || 'vial').toLowerCase();
+                          if (unit === 'vial') return 'Vial';
+                          if (unit === 'mg') return 'mg';
+                          if (unit === 'g') return 'g';
+                          if (unit === 'iu') return 'IU';
+                          if (unit === 'tablet') return 'Tablet';
+                          return unit.charAt(0).toUpperCase() + unit.slice(1);
+                        })()}
+                      </span>
+                      <svg 
+                        width="14" 
+                        height="14" 
+                        viewBox="0 0 12 12" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ 
+                          transform: isPriceUnitDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease'
+                        }}
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {isPriceUnitDropdownOpen && (
                       <div 
-                        className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                        className="absolute top-full right-0 mt-1 z-[100] rounded-lg shadow-lg border overflow-hidden"
+                        data-price-dropdown
                         style={{
                           backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                           borderColor: theme.border,
@@ -942,8 +1000,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           </React.Fragment>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                   <label 
                     htmlFor="recon-cost-input"
@@ -1681,7 +1739,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                         {peptideDoseUnitDropdowns[p.id] && (
                           <div className="relative" data-dropdown-container>
                             <div 
-                              className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                              className="absolute top-full right-0 mt-1 z-[100] rounded-lg shadow-lg border overflow-hidden"
                               style={{
                                 backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                 borderColor: theme.border,
@@ -1693,6 +1751,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                 { value: 'mcg', label: 'mcg' },
                                 { value: 'mg', label: 'mg' },
                                 { value: 'mL', label: 'mL' },
+                                { value: 'iu', label: 'IU' },
                                 ...(deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
                               ].map((option, optIdx) => (
                                 <React.Fragment key={option.value}>

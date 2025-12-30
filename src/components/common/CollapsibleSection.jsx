@@ -49,11 +49,18 @@ export default function CollapsibleSection({
       </button>
 
       {/* Content - Collapsible */}
-      {isExpanded && (
+      <div 
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: isExpanded ? '2000px' : '0',
+          opacity: isExpanded ? 1 : 0,
+          transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
+        }}
+      >
         <div className="px-4 pb-4 pt-2">
           {children}
         </div>
-      )}
+      </div>
     </div>
   );
 }

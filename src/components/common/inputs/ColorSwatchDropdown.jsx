@@ -88,9 +88,17 @@ export default function ColorSwatchDropdown({
             </button>
 
             {/* Dropdown Menu with Color Swatches */}
-            {isOpen && (
+            <div 
+                className="absolute z-50 w-full mt-1 overflow-hidden transition-all duration-300 ease-in-out"
+                style={{
+                    maxHeight: isOpen ? '300px' : '0',
+                    opacity: isOpen ? 1 : 0,
+                    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isOpen ? 'auto' : 'none'
+                }}
+            >
                 <div 
-                    className="absolute z-50 w-full mt-1 p-2 bg-white border rounded-md shadow-lg"
+                    className="p-2 bg-white border rounded-md shadow-lg"
                     style={{ 
                         borderColor: theme.border,
                         backgroundColor: theme.cardBackground 
@@ -141,7 +149,7 @@ export default function ColorSwatchDropdown({
                         })}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
