@@ -574,7 +574,10 @@ export default function Protocols() {
         } else {
           // PWA - use browser API
           await pwaNotificationService.enable();
-          permissionGranted = Notification.permission === 'granted';
+          // Safety check for Notification API (not available on native apps)
+          permissionGranted = typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined'
+            ? Notification.permission === 'granted'
+            : false;
         }
         
         if (permissionGranted) {
