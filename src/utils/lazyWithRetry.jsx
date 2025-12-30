@@ -4,6 +4,7 @@
  */
 
 import { lazy } from 'react';
+import { isNative } from './platform';
 
 /**
  * Track failed chunk loads to avoid infinite reload loops
@@ -45,6 +46,39 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
 
       if (isChunkLoadError) {
         console.warn(`🔄 Chunk load error detected for: ${chunkName}`);
+
+        // Skip cache clearing on native apps - they don't use service workers
+        // and reloading doesn't help with chunk loading issues on native
+        if (isNative()) {
+          console.log('📱 Native app detected - skipping cache clear, showing error component');
+          // Return error component directly without trying to reload
+          return {
+            default: () => {
+              return (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100vh',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                }}>
+                  <h1 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ef4444' }}>
+                    ⚠️ Error Loading Page
+                  </h1>
+                  <p style={{ marginBottom: '1.5rem', color: '#64748b', maxWidth: '500px' }}>
+                    Failed to load {chunkName}. Please try navigating again or restart the app.
+                  </p>
+                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#94a3b8' }}>
+                    Error: {error.message}
+                  </p>
+                </div>
+              );
+            }
+          };
+        }
 
         // If we haven't force refreshed yet, do it once
         if (!pageHasAlreadyBeenForceRefreshed) {
