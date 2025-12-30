@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Pill, Check, Info, PenTool, Beaker, Pipette } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -32,29 +32,29 @@ const penNameToHex = {
 
 const TaskIcon = ({ type, delivery, theme }) => {
     if (type === 'peptide') {
-        return <Pipette size={18} style={{ color: theme.text }} />;
+        return <Pipette size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
     }
     if (type === 'supplement') {
         const deliveryLower = String(delivery || '').toLowerCase();
         switch (deliveryLower) {
             case 'injection':
             case 'syringe':
-                return <Pipette size={18} style={{ color: theme.text }} />;
+                return <Pipette size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
             case 'powder':
-                return <Beaker size={18} style={{ color: theme.text }} />;
+                return <Beaker size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
             case 'oral':
             case 'pill':
             default:
-                return <Pill size={18} style={{ color: theme.text }} />;
+                return <Pill size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
         }
     }
-    return <div className="w-4 h-4" />;
+    return <div className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
 };
 
 
 export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) {
     if (!tasks || tasks.length === 0) {
-        return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
+        return <p className="text-[10px] sm:text-xs text-center py-2 sm:py-3 px-2" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
 
     const amTasks = tasks.filter(t => t.time === 'AM');
@@ -73,8 +73,8 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
         if (tasks.length === 0) return null;
         return (
             <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-gray-500">{timeLabel}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                    <span className="text-[10px] sm:text-xs font-medium text-gray-500">{timeLabel}</span>
                     <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
                 <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
@@ -83,7 +83,7 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     };
 
     return (
-        <div className="space-y-2 relative">
+        <div className="space-y-1.5 sm:space-y-2 relative">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
             )}
@@ -106,22 +106,24 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
 }
 
 const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
+    const clickTimers = useRef({});
+    
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>
-            <ul className="space-y-1.5">
+            <ul className="space-y-1 sm:space-y-1.5">
                 {tasks.map(task => (
-                    <li key={task.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
-                        <div className="flex items-center gap-3 flex-1">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                    <li key={task.id} className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg min-w-0" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                         {task.name}
                                     </div>
                                     {/* Time chip - moved to right of task name */}
                                     {task.time && (
                                         <div 
-                                            className="px-2 py-1 rounded-md text-xs text-white"
+                                            className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
                                                 backgroundColor: task.completed ? '#9ca3af' : `${theme.primary}40`,
                                                 opacity: task.completed ? 0.6 : 0.8
@@ -134,18 +136,18 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                             </div>
                         </div>
                         
-                        <div className={`text-right flex items-center gap-2 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
+                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
                             <div className="text-right">
-                                <div className="font-semibold text-sm" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                <div className="font-semibold text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                     {task.dose}{task.unit ? ` ${task.unit}` : ''}
                                 </div>
                             </div>
                             {/* Show pen color and type if penColor is set, regardless of delivery method */}
                             {/* This matches Calendar behavior where pen color is shown when available */}
                             {task.penColor && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-0.5 sm:gap-1">
                                     <div 
-                                        className="w-3 h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
+                                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
                                         style={{ 
                                             background: task.completed ? '#d1d5db' : getChromeGradient(getResolvedPenColor(task.penColor)),
                                             opacity: task.completed ? 0.5 : 1
@@ -153,13 +155,13 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                         title={`Pen Color: ${task.penColor || 'Default'}`}
                                     />
                                     {task.penType && (
-                                        <span className="text-xs font-medium" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
+                                        <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
                                             {task.penType.toUpperCase()}
                                         </span>
                                     )}
                                 </div>
                             )}
-                            <div style={{ opacity: task.completed ? 0.5 : 1 }}>
+                            <div className="flex-shrink-0" style={{ opacity: task.completed ? 0.5 : 1 }}>
                                 <DeliveryIcon task={task} theme={theme} />
                             </div>
                             
@@ -169,13 +171,20 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                     // Prevent blur events on mobile
                                     e.preventDefault();
                                 }}
-                                onTouchStart={(e) => {
-                                    // Prevent blur events on touch devices
-                                    e.preventDefault();
-                                }}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    
+                                    // Prevent rapid-fire clicks (debounce)
+                                    const taskKey = `${task.id}-${Date.now()}`;
+                                    const lastClick = clickTimers.current[task.id];
+                                    const now = Date.now();
+                                    
+                                    if (lastClick && (now - lastClick) < 300) {
+                                        return; // Ignore clicks within 300ms
+                                    }
+                                    clickTimers.current[task.id] = now;
+                                    
                                     // Check if this is an injection task that's not completed
                                     const deliveryMethod = task.deliveryMethod || task.delivery;
                                     const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
@@ -184,24 +193,24 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                     if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                                         setInjectionTask(task);
                                     } else {
-                                        onToggle(task.id);
+                                        onToggle(task);
                                     }
                                 }}
-                                className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
                                 style={{
                                     borderColor: task.completed ? theme.primary : theme.border,
                                     backgroundColor: task.completed ? theme.primary : 'transparent',
                                     borderRadius: '4px',
-                                    minWidth: '24px',
-                                    minHeight: '24px',
+                                    minWidth: '20px',
+                                    minHeight: '20px',
                                     WebkitTapHighlightColor: 'transparent'
                                 }}
                                 title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                             >
                                 {task.completed && (
                                     <Check 
-                                        size={18} 
-                                        className="absolute text-white" 
+                                        size={14} 
+                                        className="sm:w-[18px] sm:h-[18px] absolute text-white" 
                                         style={{ 
                                             strokeWidth: 2.5,
                                             top: '-3px',
@@ -224,13 +233,13 @@ const DeliveryIcon = ({ task, theme }) => {
         // If penColor is set, show pen icon (matches Calendar behavior)
         // This handles cases where deliveryMethod is 'pipette' but penColor is set
         if (task.penColor || task.deliveryMethod === 'pen') {
-            return <PenTool size={14} style={{ color: theme.textLight }} />;
+            return <PenTool size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
-            return <Pipette size={14} style={{ color: theme.textLight }} />;
+            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'nasal') {
-            return <Pipette size={14} style={{ color: theme.textLight }} />;
+            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
     }
     
@@ -238,13 +247,13 @@ const DeliveryIcon = ({ task, theme }) => {
     if (task.type === 'supplement') {
         const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
         if (delivery === 'injection' || delivery === 'syringe') {
-            return <Pipette size={14} style={{ color: theme.textLight }} />;
+            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (delivery === 'powder') {
-            return <Beaker size={14} style={{ color: theme.textLight }} />;
+            return <Beaker size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (delivery === 'pill' || delivery === 'oral') {
-            return <Pill size={14} style={{ color: theme.textLight }} />;
+            return <Pill size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
     }
     

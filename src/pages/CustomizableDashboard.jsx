@@ -623,13 +623,25 @@ export default function CustomizableDashboard() {
 
   // Task management - using unified completion system
 
-  const handleTaskToggle = (task, date = new Date()) => {
+  const handleTaskToggle = (taskOrId, date = new Date()) => {
+    // Handle both task object and task ID
+    let task;
+    if (typeof taskOrId === 'string' || typeof taskOrId === 'number') {
+      // If ID was passed, find the task
+      task = todaysTasks.find(t => t.id === taskOrId || t.stableTaskId === taskOrId);
+      if (!task) {
+        console.warn('Task not found for ID:', taskOrId);
+        return;
+      }
+    } else {
+      task = taskOrId;
+    }
     
     // Check if this is a syringe or pen delivery method
     const deliveryMethod = task.deliveryMethod || task.delivery;
     const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     
-        // Injection confirmation is now handled inline in the task components
+    // Injection confirmation is now handled inline in the task components
     
     const dateKey = toKey(date);
     const taskId = task.stableTaskId || generateTaskId(task);
@@ -640,9 +652,13 @@ export default function CustomizableDashboard() {
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
     // Update local state to reflect the change immediately (for visual feedback)
-    setTodaysTasks(prev => prev.map(t => 
-      t.id === task.id ? { ...t, completed: newCompletedState } : t
-    ));
+    setTodaysTasks(prev => prev.map(t => {
+      const tTaskId = t.stableTaskId || generateTaskId(t);
+      if (tTaskId === taskId || t.id === task.id) {
+        return { ...t, completed: newCompletedState };
+      }
+      return t;
+    }));
     
     // Add a slight delay before re-sorting to let user see the check mark
     setTimeout(() => {
@@ -665,28 +681,38 @@ export default function CustomizableDashboard() {
     }, 800); // 800ms delay - enough to see the check mark but not too long
   };
 
-  // Listen for task completion changes from other views
+  // Listen for task completion changes from all views (including this one)
   useEffect(() => {
     const handleTaskCompletionChange = (event) => {
       const { taskId, completed, date, timeSlot } = event.detail;
       
-      // Only refresh if this event came from another view (not from this Dashboard)
-      // We can detect this by checking if the task is in our current todaysTasks
-      const isFromThisView = todaysTasks.some(task => {
-        const taskIdFromTask = task.stableTaskId || generateTaskId(task);
-        return taskIdFromTask === taskId;
-      });
+      // Get today's date key for comparison
+      const todayKey = toKey(new Date());
       
-      if (!isFromThisView) {
-        // Refresh today's tasks to reflect changes from other views
-        // This will trigger the useEffect that generates todaysTasks
+      // Update tasks in todaysTasks if they match
+      setTodaysTasks(prev => prev.map(task => {
+        const taskIdFromTask = task.stableTaskId || generateTaskId(task);
+        // Match by taskId and ensure date/timeSlot match
+        if (taskIdFromTask === taskId) {
+          // If date matches today and timeSlot matches (or timeSlot not specified)
+          if (date === todayKey && (!timeSlot || timeSlot === task.time)) {
+            return { ...task, completed };
+          }
+        }
+        return task;
+      }));
+      
+      // Also trigger a full refresh to catch any other changes
+      // This ensures tasks are regenerated with latest completion status
+      // Use a small delay to let the immediate update above take effect first
+      setTimeout(() => {
         setCalendarBump(Date.now());
-      }
+      }, 100);
     };
 
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
-  }, [todaysTasks]);
+  }, []);
 
   // Goal management
   const handleGoalToggle = (goalId) => {

@@ -90,3 +90,4 @@ window.checkSubscriptionData = async function() {
 console.log('💡 Diagnostic tool loaded!');
 console.log('   Run: checkSubscriptionData()');
 
+

@@ -64,38 +64,7 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
-      // Check if subscription is from Google Play
-      if (sub?.paymentProvider === 'googleplay' || sub?.source === 'google_play') {
-        // Redirect to Google Play subscription management
-        const googlePlayUrl = 'https://play.google.com/store/account/subscriptions'
-        window.open(googlePlayUrl, '_blank')
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Opening Google Play subscription management...', type: 'info' } 
-        }))
-        return
-      }
-
-      // Check if subscription is from Apple
-      if (sub?.paymentProvider === 'apple' || sub?.source === 'apple') {
-        // Redirect to Apple subscription management
-        const appleUrl = 'https://apps.apple.com/account/subscriptions'
-        window.open(appleUrl, '_blank')
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Opening Apple subscription management...', type: 'info' } 
-        }))
-        return
-      }
-
-      // For Stripe subscriptions, open the portal
-      if (sub?.stripeCustomerId) {
-        await createPortalSession(sub.stripeCustomerId)
-        return
-      }
-
-      // No subscription or unknown provider
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'No active subscription found.', type: 'error' } 
-      }))
+      await createPortalSession()
     } catch (error) {
       console.error('Portal error:', error)
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -248,14 +217,14 @@ export default function AccountSubscription() {
             {/* Annual Plan */}
             {status.type !== 'annual' && pricing.annual && (
               <div 
-                className="p-4 rounded-2xl border relative"
+                className="p-6 rounded-3xl border relative"
                 style={{ 
                   backgroundColor: theme.cardBackground,
                   borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
                 }}
               >
                 <div 
-                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight"
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
@@ -263,30 +232,30 @@ export default function AccountSubscription() {
                 >
                   {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
                 </div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual Plan</h3>
-                  <Crown size={16} className="opacity-40" style={{ color: theme.text }} />
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-black" style={{ color: theme.text }}>Annual Plan</h3>
+                  <Crown size={20} className="opacity-40" style={{ color: theme.text }} />
                 </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1 mb-0.5">
-                    <span className="text-2xl font-bold" style={{ color: theme.text }}>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-4xl font-black" style={{ color: theme.text }}>
                       {formatCurrency(pricing.annual.founderPrice)}
                     </span>
-                    <span className="text-xs opacity-40" style={{ color: theme.text }}>/year</span>
+                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/year</span>
                   </div>
                   {pricing.annual.savings > 0 && (
-                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
                       SAVE {formatCurrency(pricing.annual.savings)}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={() => handleSelectPlan('annual')}
-                  className="w-full py-2 rounded-lg font-medium transition-all hover:opacity-90 text-xs"
+                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
                   style={{ 
                     backgroundColor: 'transparent',
                     color: theme.text,
-                    border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'}`
+                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
                   }}
                 >
                   Select Annual
@@ -297,14 +266,14 @@ export default function AccountSubscription() {
             {/* Lifetime Plan */}
             {pricing.lifetime && (
               <div 
-                className="p-4 rounded-2xl border relative"
+                className="p-6 rounded-3xl border relative"
                 style={{ 
                   backgroundColor: theme.cardBackground,
                   borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
                 }}
               >
                 <div 
-                  className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight"
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
@@ -312,28 +281,28 @@ export default function AccountSubscription() {
                 >
                   LIMITED TIME
                 </div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Lifetime Plan</h3>
-                  <Sparkles size={16} className="opacity-40" style={{ color: theme.text }} />
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-black" style={{ color: theme.text }}>Lifetime Plan</h3>
+                  <Sparkles size={20} className="opacity-40" style={{ color: theme.text }} />
                 </div>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1 mb-0.5">
-                    <span className="text-2xl font-bold" style={{ color: theme.text }}>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-4xl font-black" style={{ color: theme.text }}>
                       {formatCurrency(pricing.lifetime.founderPrice)}
                     </span>
-                    <span className="text-xs opacity-40" style={{ color: theme.text }}>/once</span>
+                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/once</span>
                   </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                  <p className="text-xs font-bold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
                     ONE-TIME COST
                   </p>
                 </div>
                 <button
                   onClick={() => handleSelectPlan('lifetime')}
-                  className="w-full py-2 rounded-lg font-medium transition-all hover:opacity-90 text-xs"
+                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
                   style={{ 
                     backgroundColor: 'transparent',
                     color: theme.text,
-                    border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'}`
+                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
                   }}
                 >
                   Select Lifetime

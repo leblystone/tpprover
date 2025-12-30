@@ -70,3 +70,4 @@ This means users buy it once and own it forever (no subscription renewal).
 **Enter `lifetime-option` for the Purchase Option ID and select "Buy" for Purchase Type.**
 
 
+

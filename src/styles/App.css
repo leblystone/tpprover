@@ -218,6 +218,28 @@ html, body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
+  /* Today's Research Widget - Responsive fixes */
+  .dashboard-widget [class*="task"] {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Ensure task items don't overflow on mobile */
+  .dashboard-widget li,
+  .dashboard-widget > div > div > div[class*="rounded-lg"] {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Prevent text overflow in task names */
+  .dashboard-widget [class*="font-semibold"] {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: none !important;
+  }
 }
 
 /* Safari Mobile-specific fixes for landing page */

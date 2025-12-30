@@ -101,3 +101,4 @@ You'll have all three products set up and ready to use in your app!
 **TL;DR:** Go to "One-time products" (not Subscriptions), create product with ID `com.thepepplanner.app.lifetime`, set price to $99.99 USD, enable auto-conversion, and you're done!
 
 
+

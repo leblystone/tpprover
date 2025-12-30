@@ -130,3 +130,4 @@ git worktree remove C:\Users\lebro\.cursor\worktrees\TPPSpendide\[worktree-name]
    ```
 4. **Clean up** - remove worktrees when you're done testing to free up space
 
+

@@ -73,15 +73,25 @@ async function getUserNotificationSettings(userId) {
     }
 
     const userData = userDoc.data();
+    const notificationSettings = userData.notificationSettings || {};
+    
+    // For researchReminders, check legacy flag OR new AM/PM flags
+    const researchRemindersEnabled = 
+      notificationSettings.researchReminders === true ||
+      notificationSettings.researchRemindersAM === true ||
+      notificationSettings.researchRemindersPM === true;
+    
     const settings = {
-      push: userData.notificationSettings?.push === true,
-      billing: userData.notificationSettings?.billing === true,
-      researchReminders: userData.notificationSettings?.researchReminders === true,
-      groupBuys: userData.notificationSettings?.groupBuys === true,
-      lowStockAlerts: userData.notificationSettings?.lowStockAlerts === true,
-      orderStatusUpdates: userData.notificationSettings?.orderStatusUpdates === true,
-      washoutReminders: userData.notificationSettings?.washoutReminders === true,
-      cycleReminders: userData.notificationSettings?.cycleReminders === true
+      push: notificationSettings.push === true,
+      billing: notificationSettings.billing === true,
+      researchReminders: researchRemindersEnabled,
+      researchRemindersAM: notificationSettings.researchRemindersAM === true,
+      researchRemindersPM: notificationSettings.researchRemindersPM === true,
+      groupBuys: notificationSettings.groupBuys === true,
+      lowStockAlerts: notificationSettings.lowStockAlerts === true,
+      orderStatusUpdates: notificationSettings.orderStatusUpdates === true,
+      washoutReminders: notificationSettings.washoutReminders === true,
+      cycleReminders: notificationSettings.cycleReminders === true
     };
     
     console.log(`📱 User ${userId} notification settings:`, settings);

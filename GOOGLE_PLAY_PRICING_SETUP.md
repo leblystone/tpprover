@@ -163,3 +163,4 @@ Once prices are set:
 **TL;DR:** Set a default price of $3.99 USD and enable auto-conversion. Google Play will handle the rest!
 
 
+
