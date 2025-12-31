@@ -1542,17 +1542,17 @@ export default function Stockpile() {
               outlined={true}
               customTextColor={theme.isDark ? null : "#181A18"}
             />
-          {/* Amount & Quantity in two columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="relative">
-              <div 
-                className="flex items-stretch rounded-lg"
-                style={{ 
-                  border: `1px solid #f0eee7`,
-                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                  backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                }}
-              >
+            {/* Amount & Quantity in two columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <div 
+                  className="flex items-stretch rounded-lg"
+                  style={{ 
+                    border: `1px solid #f0eee7`,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                  }}
+                >
                 <input 
                   type="text"
                   id="amount-input"
@@ -1669,7 +1669,6 @@ export default function Stockpile() {
                     </div>
                   </div>
                 </div>
-              </div>
               <label 
                 htmlFor="amount-input"
                 className="absolute pointer-events-none transition-all"
@@ -1822,7 +1821,6 @@ export default function Stockpile() {
                     </div>
                   </div>
                 </div>
-              </div>
               <label 
                 htmlFor="quantity-input"
                 className="absolute pointer-events-none transition-all"
@@ -1838,6 +1836,7 @@ export default function Stockpile() {
               >
                 Quantity
               </label>
+            </div>
             </div>
           </div>
           
@@ -1974,10 +1973,8 @@ export default function Stockpile() {
                         </button>
                         </React.Fragment>
                       ))}
-                    </div>
                   </div>
                 </div>
-            </div>
             <label 
               htmlFor="price-input"
               className="absolute pointer-events-none transition-all"
@@ -1993,6 +1990,7 @@ export default function Stockpile() {
             >
               Cost per ($)
             </label>
+          </div>
           </div>
           
           {/* ORDER DETAILS Section Header */}
@@ -2024,7 +2022,6 @@ export default function Stockpile() {
             theme={theme}
             placeholder="Date Acquired"
           />
-          </div>
           
           {/* EXTRA DETAILS Section Header */}
           <div className="flex items-center gap-4 mb-3 pt-1">
@@ -2039,10 +2036,9 @@ export default function Stockpile() {
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Documentation Upload */}
-        <div className="mt-4">
+          
+          {/* Documentation Upload */}
+          <div className="mt-4">
           <DocumentationUpload
             documentation={form.documentation}
             onChange={(documentation) => updateFormData({ documentation })}
@@ -2054,6 +2050,7 @@ export default function Stockpile() {
             allowLinks={true}
           />
         </div>
+      </div>
       </Modal>
 
       <Modal 
