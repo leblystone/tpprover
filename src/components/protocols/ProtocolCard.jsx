@@ -172,11 +172,11 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             <button
                                 className="p-2 rounded-md action-button-hover"
                                 aria-label={hasDraftStart ? 'Resume Protocol' : 'Start Protocol'}
-                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
                                 onClick={() => onStartClick(p, { manage: false })}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'translateY(-1px)';
-                                    e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}40`;
+                                    e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primaryDark}40`;
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'translateY(0)';
@@ -412,11 +412,11 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     <div className="mt-4 flex items-center gap-2">
                         <button
                             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold action-button-hover"
-                            style={{ backgroundColor: isActive ? theme.accent : theme.primary, color: isActive ? theme.accentText : theme.textOnPrimary }}
+                            style={{ backgroundColor: isActive ? theme.accent : theme.primaryDark, color: isActive ? theme.accentText : theme.textOnPrimary }}
                             onClick={() => onStartClick(p, { manage: isActive })}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = `0 4px 12px ${isActive ? theme.accent + '40' : theme.primary + '40'}`;
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isActive ? theme.accent + '40' : theme.primaryDark + '40'}`;
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';

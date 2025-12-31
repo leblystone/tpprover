@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
  import { Target } from 'lucide-react'
- import Modal from '../common/Modal'
+ import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
@@ -78,6 +78,6 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
           placeholder="Goal Date"
         />
       </div>
-    </Modal>
+    </BottomSheet>
   )
 }

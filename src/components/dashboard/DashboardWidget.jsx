@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Move, Plus } from 'lucide-react';
 import { getSizeConfig } from '../../utils/dashboardCustomization';
 
@@ -13,7 +13,21 @@ const DashboardWidget = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const widgetRef = useRef(null);
+
+  // Responsive width detection
+  useEffect(() => {
+    const handleResize = () => {
+      setScreenWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Get responsive size config
+  const sizeConfig = getSizeConfig(widget.size, screenWidth);
 
   const handleDragStart = (e) => {
     if (!isCustomizing || !widget.enabled) return;

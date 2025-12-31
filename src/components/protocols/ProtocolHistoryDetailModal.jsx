@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
 import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star } from 'lucide-react';
 import { deleteProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
@@ -148,14 +148,13 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     };
 
     return (
-        <Modal
+        <BottomSheet
             open={open}
             onClose={onClose}
             onBack={onClose}
             title={`Protocol Details - ${formatMMDDYYYY(startDate)}`}
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-3xl"
+            maxHeight="90vh"
         >
             <div className="space-y-4">
                 {/* Timeline Info */}
@@ -825,7 +824,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     existingNoteId={editingNoteId}
                 />
             )}
-        </Modal>
+        </BottomSheet>
     );
 }
 

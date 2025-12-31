@@ -20,6 +20,7 @@ import { useFirebase } from '../context/FirebaseContext'
 import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import InjectionSiteSelector from '../components/common/InjectionSiteSelector'
 import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings'
+import { useHorizontalSwipe } from '../utils/useSwipeGesture'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -1252,6 +1253,14 @@ export default function Calendar() {
     return null;
   }
 
+  // Swipe gesture handlers for calendar navigation
+  const swipeHandlers = useHorizontalSwipe({
+    onSwipeLeft: handleNext,
+    onSwipeRight: handlePrev,
+    minSwipeDistance: 60,
+    maxSwipeTime: 400
+  });
+
   return (
     <section className="flex flex-col h-full">
       <CalendarHeader
@@ -1270,10 +1279,14 @@ export default function Calendar() {
         onShowIconKey={() => setShowIconKey(true)}
         theme={theme}
       />
-      <div className="rounded p-4 content-card flex-1" style={{ 
-        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-        backgroundColor: theme.cardBackground 
-      }}>
+      <div 
+        className="rounded p-4 content-card flex-1" 
+        style={{ 
+          border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+          backgroundColor: theme.cardBackground 
+        }}
+        {...swipeHandlers}
+      >
         {viewMode === 'month' ? (
           <MonthGrid
             date={currentDate}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
 import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target, Play, FileText } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
@@ -167,14 +167,13 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
 
     return (
         <>
-            <Modal
+            <BottomSheet
                 open={open}
                 onClose={onClose}
                 onBack={onClose}
                 title={`History for "${protocol.protocolName || 'Protocol'}"`}
                 theme={theme}
-                variant="modern"
-                maxWidth="max-w-3xl"
+                maxHeight="90vh"
             >
                 <div className="relative">
                     {timelineEntries.length > 0 ? (
@@ -404,7 +403,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
                         </div>
                     )}
                 </div>
-            </Modal>
+            </BottomSheet>
 
             {/* Detail Modal */}
             <ProtocolHistoryDetailModal

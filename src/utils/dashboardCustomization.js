@@ -33,6 +33,61 @@ export const WIDGET_SIZES = {
   FULL: 'full'         // full width
 };
 
+/**
+ * Get responsive size configuration based on screen width
+ * Automatically adjusts widget sizing for mobile, tablet, and desktop
+ */
+export function getResponsiveSizeConfig(screenWidth) {
+  // Mobile (< 640px) - Single column layout
+  if (screenWidth < 640) {
+    return {
+      columnsCount: 1,
+      columnWidth: '100%',
+      gapSize: '1rem',
+      sizeMap: {
+        [WIDGET_SIZES.SMALL]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.MEDIUM]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.TALL]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.LARGE]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.WIDE]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.FULL]: { cols: 1, rows: 1 }
+      }
+    };
+  }
+  
+  // Tablet (640px - 1024px) - 2-3 column layout
+  if (screenWidth < 1024) {
+    return {
+      columnsCount: 2,
+      columnWidth: 'calc(50% - 0.5rem)',
+      gapSize: '1rem',
+      sizeMap: {
+        [WIDGET_SIZES.SMALL]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.MEDIUM]: { cols: 2, rows: 1 },
+        [WIDGET_SIZES.TALL]: { cols: 1, rows: 2 },
+        [WIDGET_SIZES.LARGE]: { cols: 2, rows: 2 },
+        [WIDGET_SIZES.WIDE]: { cols: 2, rows: 1 },
+        [WIDGET_SIZES.FULL]: { cols: 2, rows: 1 }
+      }
+    };
+  }
+
+  // Desktop (>= 1024px) - Full grid layout
+  return {
+    columnsCount: 6,
+    columnWidth: 'calc(16.666% - 0.833rem)',
+    gapSize: '1rem',
+    sizeMap: {
+      [WIDGET_SIZES.SMALL]: { cols: 1, rows: 1 },
+      [WIDGET_SIZES.MEDIUM]: { cols: 2, rows: 1 },
+      [WIDGET_SIZES.TALL]: { cols: 1, rows: 2 },
+      [WIDGET_SIZES.LARGE]: { cols: 2, rows: 2 },
+      [WIDGET_SIZES.WIDE]: { cols: 3, rows: 1 },
+      [WIDGET_SIZES.FULL]: { cols: 6, rows: 1 }
+    }
+  };
+}
+
 export const DEFAULT_WIDGETS = [
   // Row 0
   {
@@ -436,7 +491,25 @@ export const WIDGET_METADATA = {
 export const GRID_COLS = 4;
 export const GRID_ROWS = 10;
 
-export const getSizeConfig = (size) => {
+/**
+ * Get widget size configuration with responsive support
+ * @param {string} size - Widget size constant from WIDGET_SIZES
+ * @param {number} screenWidth - Current screen width (optional, defaults to window width)
+ * @returns {object} { w: width in grid units, h: height in grid units }
+ */
+export const getSizeConfig = (size, screenWidth = null) => {
+  const width = screenWidth || (typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const responsiveConfig = getResponsiveSizeConfig(width);
+  
+  // For mobile/tablet, return responsive sizing
+  if (width < 1024 && responsiveConfig.sizeMap[size]) {
+    return { 
+      w: responsiveConfig.sizeMap[size].cols, 
+      h: responsiveConfig.sizeMap[size].rows 
+    };
+  }
+  
+  // Desktop sizing (original behavior)
   switch (size) {
     case WIDGET_SIZES.SMALL:
       return { w: 1, h: 1 };

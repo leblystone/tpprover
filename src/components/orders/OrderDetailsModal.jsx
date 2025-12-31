@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle, PackageOpen, ListChecks, TruckElectric, ImageUp, RefreshCw, MapPin } from 'lucide-react';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
@@ -13,7 +13,7 @@ import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade, activeTab = 'domestic', isDeleting = false }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, activeTab = 'domestic', isDeleting = false }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -341,7 +341,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   };
 
   return (
-    <Modal
+    <BottomSheet
       open={open}
       onClose={handleClose}
       title={
@@ -364,8 +364,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         </div>
       }
       theme={theme}
-      variant="modern"
-      maxWidth={isReadOnly ? "max-w-md" : maxWidth}
+      maxHeight="90vh"
       footer={(
         <div className="w-full flex items-center gap-3">
           <div className="flex items-center gap-2 flex-1 justify-start">
@@ -822,7 +821,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           </div>
         </div>
       )}
-    </Modal>
+    </BottomSheet>
   )
 }
 

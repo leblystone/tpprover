@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import Modal from '../common/Modal'
+import BottomSheet from '../common/BottomSheet'
 
 export default function NotesModal({ open, onClose, theme, notes, onSave }) {
     const [text, setText] = useState('')
@@ -16,7 +16,7 @@ export default function NotesModal({ open, onClose, theme, notes, onSave }) {
     }
 
     return (
-        <Modal
+        <BottomSheet
             open={open}
             onClose={onClose}
             title="Add/Edit Note"
@@ -87,6 +87,6 @@ export default function NotesModal({ open, onClose, theme, notes, onSave }) {
                     e.currentTarget.style.boxShadow = 'none';
                 }}
             />
-        </Modal>
+        </BottomSheet>
     )
 }

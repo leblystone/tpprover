@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { BookHeart } from 'lucide-react';
 
@@ -105,13 +105,12 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
     };
 
     return (
-        <Modal 
+        <BottomSheet 
             open={open} 
             onClose={onClose}
             title="Add to Wishlist"
             theme={theme}
-            maxWidth="max-w-2xl"
-            variant="modern"
+            maxHeight="90vh"
         >
             <div className="space-y-3 -my-3 sm:-my-4">
                 <div className="flex items-center gap-3 mb-2">
@@ -346,16 +345,6 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                 
                 <div className="flex items-center justify-end gap-3 pt-3 border-t mt-2" style={{ borderColor: theme.border }}>
                     <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
-                        style={{ 
-                            borderColor: theme.border,
-                            color: theme.text
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    <button
                         onClick={handleSave}
                         disabled={isSaving || !form.name.trim()}
                         className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -378,6 +367,6 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     </button>
                 </div>
             </div>
-        </Modal>
+        </BottomSheet>
     );
 }

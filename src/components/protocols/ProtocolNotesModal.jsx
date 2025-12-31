@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import { FileText, Plus, Edit3, Trash2, Calendar, X } from 'lucide-react';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 import { addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
@@ -163,13 +163,12 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
     if (!open || !protocol) return null;
 
     return (
-        <Modal
+        <BottomSheet
             open={open}
             onClose={handleClose}
             title={`Protocol Notes: ${protocol.protocolName || 'Unnamed Protocol'}`}
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-2xl"
+            maxHeight="90vh"
         >
             <div className="space-y-4">
                 {/* Add Note Button */}
@@ -505,7 +504,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                     </button>
                 </div>
             )}
-        </Modal>
+        </BottomSheet>
     );
 }
 

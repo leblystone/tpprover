@@ -8,7 +8,7 @@ const VenmoIcon = ({ size = 18, style, className }) => {
     return <SiVenmo size={size} style={style} className={className} />;
 }
 import { FaPaypal, FaAlipay } from 'react-icons/fa6'
-import Modal from '../common/Modal'
+import BottomSheet from '../common/BottomSheet'
 
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
@@ -118,7 +118,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   };
 
   return (
-    <Modal 
+    <BottomSheet 
       open={open} 
       onClose={handleClose} 
       title={form.name || 'New Vendor'} 
@@ -134,8 +134,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
       }
       theme={theme} 
-      variant="modern"
-      maxWidth="max-w-4xl" 
+      maxHeight="90vh" 
       footer={(
       <div className="w-full flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -771,7 +770,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           </div>
         </div>
       )}
-    </Modal>
+    </BottomSheet>
   )
 }
 

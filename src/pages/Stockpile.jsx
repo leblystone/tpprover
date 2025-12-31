@@ -3,16 +3,18 @@ import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
-import Modal from '../components/common/Modal'
+import CustomDropdown from '../components/common/inputs/CustomDropdown'
+import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, Info, Calendar } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, Info, Calendar, Search, AlertTriangle } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
 import ImagePreviewModal from '../components/common/ImagePreviewModal'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import StockpileGroupCard from '../components/stockpile/StockpileGroupCard'
+import IncomingGroupCard from '../components/stockpile/IncomingGroupCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
@@ -38,6 +40,9 @@ export default function Stockpile() {
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('onhand')
+  const [stockpileFilter, setStockpileFilter] = useState('view all') // 'view all' | 'low' | 'well stocked'
+  const [showStockpileSearch, setShowStockpileSearch] = useState(false)
+  const [stockpileSearchQuery, setStockpileSearchQuery] = useState('')
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
@@ -80,6 +85,13 @@ export default function Stockpile() {
         // Clear state after use
         window.history.replaceState({}, document.title);
       }
+    }
+    
+    // Handle navigation back from orders page - set active tab
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear state after use
+      window.history.replaceState({}, document.title);
     }
   }, [location.state, items]);
 
@@ -223,13 +235,13 @@ export default function Stockpile() {
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
       const vendorName = i.vendorId ? vendorMap[i.vendorId] : (i.vendor || '');
-      const combinedQuery = query || searchQuery;
+      const combinedQuery = stockpileSearchQuery || query || searchQuery;
       return (
         (!vendorFilter || vendorName.toLowerCase().includes(vendorFilter.toLowerCase())) &&
         (!combinedQuery || (i.name || '').toLowerCase().includes(combinedQuery.toLowerCase()) || String(i.batchNumber || '').toLowerCase().includes(combinedQuery.toLowerCase()))
       )
     })
-  }, [items, vendorFilter, query, searchQuery, vendorMap])
+  }, [items, vendorFilter, query, searchQuery, stockpileSearchQuery, vendorMap])
 
   const groups = useMemo(() => {
     const map = new Map()
@@ -278,6 +290,38 @@ export default function Stockpile() {
       return a.name.localeCompare(b.name)
     })
   }, [filtered])
+
+  // Filter groups based on stock status
+  const filteredGroups = useMemo(() => {
+    if (stockpileFilter === 'view all') {
+      return groups
+    } else if (stockpileFilter === 'low') {
+      return groups.filter(g => {
+        const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
+        return hasLowStock && g.totalVials > 0
+      })
+    } else if (stockpileFilter === 'well stocked') {
+      return groups.filter(g => {
+        const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
+        return !hasLowStock && g.totalVials > 0
+      })
+    }
+    return groups
+  }, [groups, stockpileFilter])
+
+  // Calculate filter counts
+  const filterCounts = useMemo(() => {
+    const allCount = groups.filter(g => g.totalVials > 0).length
+    const lowCount = groups.filter(g => {
+      const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
+      return hasLowStock && g.totalVials > 0
+    }).length
+    const wellStockedCount = groups.filter(g => {
+      const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
+      return !hasLowStock && g.totalVials > 0
+    }).length
+    return { all: allCount, low: lowCount, wellStocked: wellStockedCount }
+  }, [groups])
 
   const incomingGroups = useMemo(() => {
     const list = Array.isArray(orders) ? orders.filter(o => {
@@ -995,8 +1039,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Inventory On Hand</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Inventory On Hand</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
                   Add peptides to your stockpile to track quantities, vendors, batches, and documentation. 
                   Delivered orders automatically sync here, or add items manually to maintain your inventory.
                 </p>
@@ -1004,7 +1048,7 @@ export default function Stockpile() {
                   <button
                     onClick={() => setOpenAdd(true)}
                     className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   >
                     <PlusCircle size={18} />
                     Add Your First Peptide
@@ -1014,9 +1058,123 @@ export default function Stockpile() {
             ) : (
               <div>
             
+            {/* Filter and Search */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3">
+                {/* Stock Status Filter - Dropdown */}
+                <div className="flex-1">
+                  <CustomDropdown
+                    value={stockpileFilter}
+                    onChange={setStockpileFilter}
+                    options={[
+                      { 
+                        value: 'view all', 
+                        label: `View All (${filterCounts.all})`,
+                        icon: <Package size={16} style={{ color: theme.textLight }} />
+                      },
+                      { 
+                        value: 'low', 
+                        label: `Low (${filterCounts.low})`,
+                        icon: <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+                      },
+                      { 
+                        value: 'well stocked', 
+                        label: `Well Stocked (${filterCounts.wellStocked})`,
+                        icon: <Package size={16} style={{ color: theme.primary }} />
+                      }
+                    ]}
+                    theme={theme}
+                    placeholder="Filter stockpile..."
+                    outlined={true}
+                    customShadow={true}
+                  />
+                </div>
+
+                {/* Search Input - Inline with Dropdown */}
+                <div className="relative" style={{ width: showStockpileSearch ? '250px' : 'auto' }}>
+                  {showStockpileSearch ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={stockpileSearchQuery}
+                        onChange={(e) => setStockpileSearchQuery(e.target.value)}
+                        placeholder="Search..."
+                        autoFocus
+                        className="w-full px-4 py-3.5 pr-10 text-sm border rounded-xl transition-all"
+                        style={{
+                          borderColor: theme.border,
+                          backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                          color: theme.isDark ? theme.text : '#181A18',
+                          boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.1)',
+                          minWidth: '200px'
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setShowStockpileSearch(false)
+                            setStockpileSearchQuery('')
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Don't close if clicking on the close button
+                          if (!e.currentTarget.parentElement.contains(e.relatedTarget)) {
+                            // Only close if search is empty
+                            if (!stockpileSearchQuery.trim()) {
+                              setShowStockpileSearch(false)
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStockpileSearchQuery('')
+                          setShowStockpileSearch(false)
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded transition-colors"
+                        style={{
+                          color: theme.textLight
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                        }}
+                      >
+                        <X size={18} strokeWidth={2} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStockpileSearch(true)
+                      }}
+                      className="p-2.5 rounded-lg transition-all hover:scale-105 active:scale-95"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                        border: `1px solid ${theme.border}`,
+                        color: theme.text,
+                        WebkitTapHighlightColor: 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+                      }}
+                      title="Search stockpile"
+                    >
+                      <Search size={18} strokeWidth={2} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             {/* Duplicate Detection */}
             <DuplicateDetection
-              groups={groups.filter(g => g.totalVials > 0)}
+              groups={filteredGroups.filter(g => g.totalVials > 0)}
               theme={theme}
               onMergeRequest={handleMergeRequest}
               onDismissSuggestion={handleDismissDuplicate}
@@ -1024,7 +1182,7 @@ export default function Stockpile() {
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {groups.filter(g => g.totalVials > 0).map(g => {
+                {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
                     
@@ -1193,8 +1351,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <ShoppingCart size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Incoming Orders</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
                   Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
                 </p>
                 <button
@@ -1203,79 +1361,29 @@ export default function Stockpile() {
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
                   <PlusCircle size={18} />
                   Place Your First Order
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {incomingGroups.map(g => (
-                    <div 
-                        key={`incoming-${g.name}`} 
-                        className="p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow cursor-pointer" 
-                        style={{ 
-                          border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                          backgroundColor: theme.cardBackground,
-                          boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
-                        }}
-                        onClick={() => {
-                            if (isReadOnly) {
-                                setShowUpgradeModal(true);
-                                return;
-                            }
-                            handleEditIncoming(g.name);
-                        }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{g.name}</div>
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{g.totalMg} {g.unit || 'mg'} en route</div>
-                          <button 
-                            className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold hover:opacity-90 transition-all" 
-                            style={{ 
-                              backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
-                              color: theme.textOnPrimary,
-                              opacity: isReadOnly ? 0.6 : 1,
-                              cursor: isReadOnly ? 'not-allowed' : 'pointer',
-                              fontFamily: 'Poppins, sans-serif'
-                            }} 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditIncoming(g.name);
-                            }}
-                            title="Edit incoming orders"
-                          >
-                            <Edit size={12} /> Edit
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {Object.values(g.variants).sort((a,b)=>String(a.mg).localeCompare(String(b.mg))).map(v => (
-                          <div key={v.mg} className="rounded-md p-3" style={{ 
-                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                            backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                          }}>
-                            <div className="flex items-center justify-between text-sm mb-2">
-                              <div className="font-medium flex items-center gap-2" style={{ fontFamily: 'Poppins, sans-serif' }}><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
-                              <div className="text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{v.totalMg} {v.unit || 'mg'}</div>
-                            </div>
-                            <ul className="mt-1 text-xs space-y-1" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                              {Object.entries(v.vendors).sort((a,b)=>a[0].localeCompare(b[0])).map(([vendor, qtyMg]) => {
-                                const vials = Math.max(1, Math.round((Number(qtyMg)||0) / (Number(v.mg)||1)))
-                                return (
-                                  <li key={vendor} className="flex items-center gap-2">
-                                    <Package size={12} /> {vendor} ({vials} {vials === 1 ? 'vial' : 'vials'})
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <IncomingGroupCard
+                    key={`incoming-${g.name}`}
+                    group={g}
+                    theme={theme}
+                    orders={orders}
+                    vendorMap={vendorMap}
+                    onViewOrder={(orderId) => {
+                      if (isReadOnly) {
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      navigate(`/app/orders`, { state: { openOrderId: orderId, returnToStockpileIncoming: true } });
+                    }}
+                  />
                 ))}
               </div>
             )}
@@ -1291,8 +1399,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Out of Stock Items</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Out of Stock Items</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
                   Items that have been depleted will appear here. You can restore them by adding new inventory.
                 </p>
               </div>
@@ -1316,13 +1424,13 @@ export default function Stockpile() {
                       }}
                     >
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)', fontFamily: 'Poppins, sans-serif' }}>OUT</div>
+                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
                       </div>
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-2">
                           <h3 
                             className="font-semibold text-base cursor-pointer flex-1"
-                            style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+                            style={{ color: theme.text }}
                             onClick={() => {
                               if (isReadOnly) {
                                 setShowUpgradeModal(true);
@@ -1337,8 +1445,7 @@ export default function Stockpile() {
                             <div className="px-2.5 py-1 rounded-full text-xs font-medium"
                               style={{ 
                                 backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                                color: theme.isDark ? '#f87171' : '#dc2626',
-                                fontFamily: 'Poppins, sans-serif'
+                                color: theme.isDark ? '#f87171' : '#dc2626'
                               }}
                             >
                               Out of Stock
@@ -1370,7 +1477,7 @@ export default function Stockpile() {
                             </button>
                           </div>
                         </div>
-                        <div className="text-sm" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>No vials on hand.</div>
+                        <div className="text-sm" style={{ color: theme.textLight }}>No vials on hand.</div>
                       </div>
                     </div>
                   );
@@ -1380,7 +1487,7 @@ export default function Stockpile() {
           </div>
         )}
 
-      <Modal 
+      <BottomSheet 
         open={openAdd} 
         onClose={handleCloseStockpileModal} 
         title="Add to Stockpile" 
@@ -1394,15 +1501,14 @@ export default function Stockpile() {
               iconOnly={true}
             />
             {(isSaving || isSavingToStockpile) && (
-              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}>
+              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
                 {isSavingToStockpile ? 'Saving...' : 'Auto-saving...'}
               </span>
             )}
           </div>
         }
         theme={theme}
-        variant="modern"
-        maxWidth="max-w-2xl" 
+        maxHeight="90vh" 
         footer={(
         <div className="w-full flex items-center justify-end gap-3">
           <button 
@@ -1489,8 +1595,7 @@ export default function Stockpile() {
               background: getPrimaryActionGradient(isSavingToStockpile || isReadOnly),
               color: (isSavingToStockpile || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
               border: 'none',
-              boxShadow: (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow,
-              fontFamily: 'Poppins, sans-serif'
+              boxShadow: (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow
             }}
             onMouseEnter={(e) => {
               if (isSavingToStockpile || isReadOnly) return;
@@ -1514,7 +1619,7 @@ export default function Stockpile() {
             <div className="p-4 rounded-lg bg-red-50 border border-red-200">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="text-sm font-medium text-red-800" style={{ fontFamily: 'Poppins, sans-serif' }}>{saveError}</span>
+                <span className="text-sm font-medium text-red-800">{saveError}</span>
               </div>
             </div>
           )}
@@ -1523,10 +1628,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3">
             <TestTube size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Vial Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Research Parameters
                 </span>
               </div>
@@ -1601,7 +1706,7 @@ export default function Stockpile() {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  <span className="text-sm font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  <span className="text-sm font-semibold">
                     {(form.mgUnit || 'mg')}
                   </span>
                   <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1654,8 +1759,7 @@ export default function Stockpile() {
                             style={{
                               color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
                               backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent',
-                              fontFamily: 'Poppins, sans-serif'
+                              WebkitTapHighlightColor: 'transparent'
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -1741,7 +1845,7 @@ export default function Stockpile() {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  <span className="text-sm font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  <span className="text-sm font-semibold">
                     {(() => {
                       const unit = (form.unit || 'vial').toLowerCase();
                       const quantity = Number(form.quantity) || 1;
@@ -1807,8 +1911,7 @@ export default function Stockpile() {
                             style={{
                               color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
                               backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent',
-                              fontFamily: 'Poppins, sans-serif'
+                              WebkitTapHighlightColor: 'transparent'
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -1901,7 +2004,7 @@ export default function Stockpile() {
                   e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                 }}
               >
-                <span className="text-sm font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <span className="text-sm font-semibold">
                   {(() => {
                     const unit = (form.priceUnit || 'vial').toLowerCase();
                     if (unit === 'vial') return 'Vial';
@@ -1963,8 +2066,7 @@ export default function Stockpile() {
                             style={{
                               color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
                               backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent',
-                              fontFamily: 'Poppins, sans-serif'
+                              WebkitTapHighlightColor: 'transparent'
                             }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -2003,10 +2105,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3 pt-1">
             <PackageOpen size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Order Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Purchase Information
                 </span>
               </div>
@@ -2033,10 +2135,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3 pt-1">
             <ImageUp size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Extra Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Documentation
                 </span>
               </div>
@@ -2057,9 +2159,9 @@ export default function Stockpile() {
           />
         </div>
       </div>
-      </Modal>
+      </BottomSheet>
 
-      <Modal 
+      <BottomSheet 
         open={!!manageName} 
         onClose={() => { setManageName(null); setManageRows([]); setShowHistory(false); clearManageSavedData(); }} 
         title={`${manageName || 'Manage'}`}
@@ -2080,8 +2182,7 @@ export default function Stockpile() {
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
               border: `1px solid ${theme.border}`, 
-              color: theme.text,
-              fontFamily: 'Poppins, sans-serif'
+              color: theme.text
             }} 
             onClick={() => setShowHistory(v => !v)}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
@@ -2091,8 +2192,7 @@ export default function Stockpile() {
           </button>
         }
         theme={theme} 
-        variant="modern"
-        maxWidth="max-w-2xl" 
+        maxHeight="90vh"
         footer={(
         <div className="w-full flex items-center justify-end px-2">
           <button 
@@ -2106,8 +2206,7 @@ export default function Stockpile() {
             className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95" 
             style={{ 
               background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-              color: theme?.textOnPrimary || '#ffffff',
-              fontFamily: 'Poppins, sans-serif'
+              color: theme?.textOnPrimary || '#ffffff'
             }}
           >
             Save Changes
@@ -2122,12 +2221,12 @@ export default function Stockpile() {
             }}>
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).slice(0,50).map(h => (
                 <div key={h.id} className="flex items-center justify-between py-1">
-                  <span style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty!=null ? `(from ${h.prevQty}${h.nextQty!=null?`→${h.nextQty}`:''})` : ''}</span>
-                  <span style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>{new Date(h.date).toLocaleDateString()}</span>
+                  <span style={{ color: theme.text }}>{h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty!=null ? `(from ${h.prevQty}${h.nextQty!=null?`→${h.nextQty}`:''})` : ''}</span>
+                  <span style={{ color: theme.textLight }}>{new Date(h.date).toLocaleDateString()}</span>
                 </div>
               ))}
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
-                <div className="text-center py-2" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>No history yet for this research material.</div>
+                <div className="text-center py-2" style={{ color: theme.textLight }}>No history yet for this research material.</div>
               )}
             </div>
           )}
@@ -2171,13 +2270,13 @@ export default function Stockpile() {
                   
                   {/* Summary Info */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                    <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>
                       {vendorName}
                     </div>
-                    <div className="text-xs font-semibold opacity-60" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                    <div className="text-xs font-semibold opacity-60" style={{ color: theme.text }}>
                       {row.mg || '?'}{row.mgUnit || 'mg'}
                     </div>
-                    <div className="text-xs font-semibold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                    <div className="text-xs font-semibold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
                       {row.quantity || '0'} {row.quantity === '1' ? 'vial' : 'vials'}
                     </div>
                   </div>
@@ -2244,10 +2343,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2">
                     <TestTube size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Vial Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                           Research Parameters
                         </span>
                       </div>
@@ -2294,10 +2393,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2 pt-1">
                     <PackageOpen size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Order Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                           Purchase Information
                         </span>
                       </div>
@@ -2358,10 +2457,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2 pt-1">
                     <ImageUp size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Extra Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                           Documentation
                         </span>
                       </div>
@@ -2416,7 +2515,7 @@ export default function Stockpile() {
             Add to Stock
           </button>
         </div>
-      </Modal>
+      </BottomSheet>
       
       {/* Merge Selection Modal */}
       <MergeSelectionModal
@@ -2466,13 +2565,12 @@ export default function Stockpile() {
       />
 
       {/* Out of Stock Options Modal */}
-      <Modal
+      <BottomSheet
         open={!!outOfStockModalName}
         onClose={() => setOutOfStockModalName(null)}
         title={`${outOfStockModalName || ''} - Out of Stock!`}
         theme={theme}
-        variant="modern"
-        maxWidth="max-w-md"
+        maxHeight="90vh"
       >
         <div className="space-y-4">
           <p className="text-sm" style={{ color: theme.text }}>
@@ -2498,8 +2596,8 @@ export default function Stockpile() {
                   <Package size={20} style={{ color: theme.primary }} />
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark, fontFamily: 'Poppins, sans-serif' }}>Found a Vial?</div>
-                  <div className="text-xs" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>Add vials back to your inventory</div>
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Found a Vial?</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>Add vials back to your inventory</div>
                 </div>
               </div>
             </button>
@@ -2521,8 +2619,8 @@ export default function Stockpile() {
                   <ShoppingCart size={20} style={{ color: theme.success }} />
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark, fontFamily: 'Poppins, sans-serif' }}>Have an Incoming Order?</div>
-                  <div className="text-xs" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>Track your order to automatically restock</div>
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Have an Incoming Order?</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>Track your order to automatically restock</div>
                 </div>
               </div>
             </button>
@@ -2545,8 +2643,8 @@ export default function Stockpile() {
                   <FileText size={20} style={{ color: theme.accent }} />
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark, fontFamily: 'Poppins, sans-serif' }}>Restore from History</div>
-                  <div className="text-xs" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>View usage history and restore if it was a mistake</div>
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Restore from History</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>View usage history and restore if it was a mistake</div>
                 </div>
               </div>
             </button>
@@ -2557,13 +2655,13 @@ export default function Stockpile() {
             <button
               onClick={() => setOutOfStockModalName(null)}
               className="w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all"
-              style={{ borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+              style={{ borderColor: theme.border, color: theme.text }}
             >
               Cancel
             </button>
           </div>
         </div>
-      </Modal>
+      </BottomSheet>
 
       <UpgradeModal 
         isOpen={showUpgradeModal}
@@ -2574,14 +2672,13 @@ export default function Stockpile() {
 
       {/* View Group Modal - Read-only overview */}
       {viewingGroup && (
-        <Modal
+        <BottomSheet
           open={!!viewingGroup}
           onClose={() => setViewingGroup(null)}
           onBack={() => setViewingGroup(null)}
           title={viewingGroup.name}
           theme={theme}
-          variant="modern"
-          maxWidth="max-w-2xl"
+          maxHeight="90vh"
           footer={(
             <div className="w-full flex items-center justify-end px-2">
               <button
@@ -2596,8 +2693,7 @@ export default function Stockpile() {
                 className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95"
                 style={{
                   background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-                  color: theme?.textOnPrimary || '#ffffff',
-                  fontFamily: 'Poppins, sans-serif'
+                  color: theme?.textOnPrimary || '#ffffff'
                 }}
               >
                 Edit Stockpile
@@ -2618,17 +2714,17 @@ export default function Stockpile() {
               <Package size={80} className="absolute -right-4 -bottom-4 opacity-5 rotate-12" style={{ color: theme.primary }} />
               
               <div className="flex-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1.5 opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1.5 opacity-40" style={{ color: theme.text }}>
                   Inventory Summary
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                  <div className="text-3xl font-semibold" style={{ color: theme.text }}>
                     {viewingGroup.totalMg > 0 
                       ? viewingGroup.totalMg
                       : viewingGroup.totalVials
                     }
                   </div>
-                  <div className="text-sm font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                  <div className="text-sm font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
                     {viewingGroup.totalMg > 0 
                       ? (viewingGroup.unit || 'mg')
                       : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')
@@ -2642,7 +2738,7 @@ export default function Stockpile() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-1">
                 <Beaker size={16} style={{ color: '#8ca68c' }} />
-                <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Research Vials</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.text }}>Research Vials</h4>
               </div>
               
               {Object.values(viewingGroup.variants)
@@ -2659,12 +2755,12 @@ export default function Stockpile() {
                     />
 
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text }}>
+                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-semibold">
                           {variant.mg} {variant.unit || 'mg'}
                         </span>
                         <span className="opacity-30">•</span>
-                        <span className="opacity-50 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
+                        <span className="opacity-50 font-medium">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
                       </div>
                       <div className="h-px flex-1 ml-4 opacity-10" style={{ backgroundColor: theme.text }} />
                     </div>
@@ -2685,11 +2781,11 @@ export default function Stockpile() {
                                 <Package size={16} style={{ color: theme.primary }} />
                               </div>
                               <div>
-                                <div className="text-sm font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                                <div className="text-sm font-semibold" style={{ color: theme.text }}>
                                   {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor'}
                                 </div>
                                 {item.date && (
-                                  <div className="text-[10px] font-normal opacity-40 uppercase tracking-tight" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                                  <div className="text-[10px] font-normal opacity-40 uppercase tracking-tight" style={{ color: theme.text }}>
                                     Acquired {new Date(item.date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                   </div>
                                 )}
@@ -2722,20 +2818,20 @@ export default function Stockpile() {
 
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-black/5 dark:border-white/5">
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Purity</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Purity</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Batch #</span>
-                              <span className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{item.batchNumber || 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Batch #</span>
+                              <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Cap Color</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{item.capColor || 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Cap Color</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Exp. Date</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
+                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Exp. Date</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                           </div>
 
@@ -2743,7 +2839,7 @@ export default function Stockpile() {
                             <div className="mt-3 p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                               <div className="flex items-start gap-2">
                                 <Info size={12} className="mt-0.5 opacity-30" style={{ color: theme.text }} />
-                                <p className="text-xs leading-relaxed italic opacity-60 font-normal" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{item.notes}</p>
+                                <p className="text-xs leading-relaxed italic opacity-60 font-normal" style={{ color: theme.text }}>{item.notes}</p>
                               </div>
                             </div>
                           )}
@@ -2754,7 +2850,7 @@ export default function Stockpile() {
                 ))}
             </div>
           </div>
-        </Modal>
+        </BottomSheet>
       )}
 
       {/* Image Preview Modal */}

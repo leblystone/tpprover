@@ -105,7 +105,7 @@ export default function CustomDropdown({
                 }}
             >
                 <div 
-                    className="py-2 bg-white border rounded-xl shadow-xl overflow-x-hidden"
+                    className="py-2 border rounded-xl shadow-xl overflow-x-hidden"
                     style={{ 
                         borderColor: theme.border,
                         backgroundColor: theme.cardBackground,

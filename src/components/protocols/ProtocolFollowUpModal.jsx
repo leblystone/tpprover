@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import { FileText, Star, X, Save, Calendar, CheckCircle, XCircle, Clock, Lightbulb, Target, Tag, StickyNote, AlertCircle, RotateCcw, TrendingUp, Award, DollarSign, ThumbsDown, ThumbsUp, Users, Ban, Timer } from 'lucide-react';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 
@@ -263,14 +263,13 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
     if (!open || !protocol) return null;
 
     return (
-        <Modal
+        <BottomSheet
             open={open}
             onClose={handleClose}
             onBack={handleClose}
             title={existingNoteId ? "Edit Protocol Follow-Up" : "Protocol Follow-Up"}
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-2xl"
+            maxHeight="90vh"
             footer={
                 <div className="flex justify-end gap-3 w-full">
                     <button
@@ -507,7 +506,7 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                     )}
                 </div>
             </div>
-        </Modal>
+        </BottomSheet>
     );
 }
 

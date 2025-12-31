@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import Modal from '../common/Modal'
+import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
@@ -283,6 +283,6 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
           </div>
         </div>
       </div>
-    </Modal>
+    </BottomSheet>
   )
 }

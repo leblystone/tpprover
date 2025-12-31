@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
+import { hapticsLight, hapticsMedium } from '../../utils/haptics'
 
 export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant }) {
   // Use internal state to persist modal open state across app lifecycle changes
@@ -130,6 +131,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       setTimeout(() => {
         setInternalOpen(true);
         setTimeout(() => setIsAnimating(false), 250);
+        hapticsLight(); // Haptic feedback on modal open
       }, 10);
       wasOpenBeforeBackground.current = false; // Reset when explicitly opened
       isInBackgroundState.current = false;
@@ -213,6 +215,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   // Handle backdrop click
   const handleBackdropClick = () => {
     // User explicitly closed via backdrop click
+    hapticsMedium(); // Haptic feedback on close
     explicitCloseRequested.current = true;
     wasOpenBeforeBackground.current = false;
     isInBackgroundState.current = false;

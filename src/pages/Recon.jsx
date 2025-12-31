@@ -14,7 +14,7 @@ import { formatCurrency } from '../utils/currencyUtils'
 import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS, penColors } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
-import Modal from '../components/common/Modal'
+import BottomSheet from '../components/common/BottomSheet'
 import { calculateRecon } from '../utils/recon'
 import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
@@ -1245,7 +1245,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'Add Reconstitution'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
+            <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'Add Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
 				<div className="w-full flex items-center justify-between gap-3">
 					{editingItem ? (
 						<button
@@ -1941,9 +1941,9 @@ export default function Recon() {
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                 </div>
-			</Modal>
+			</BottomSheet>
 
-            <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} variant="modern">
+            <BottomSheet open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} maxHeight="90vh">
 				{viewItem && (() => {
 					const calc = calculateRecon(viewItem)
                     const reconstitutedDate = viewItem.date; // Date when reconstitution was created
@@ -2015,7 +2015,7 @@ export default function Recon() {
 						</div>
 					)
 				})()}
-			</Modal>
+			</BottomSheet>
 
             <Modal
                 open={!!historyToDelete}

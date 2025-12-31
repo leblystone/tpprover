@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
@@ -397,7 +397,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     };
 
     return (
-        <Modal 
+        <BottomSheet 
             open={open}
             onClose={handleClose}
             title={
@@ -415,8 +415,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 />
             }
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-4xl"
+            maxHeight="90vh"
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
                     {form?.id ? (
@@ -1039,7 +1038,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
             )}
-        </Modal>
+        </BottomSheet>
     );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { Pill, TestTube, Pipette } from 'lucide-react';
@@ -61,7 +61,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
     ];
 
     return (
-        <Modal 
+        <BottomSheet 
             open={open} 
             onClose={onClose} 
             title={supplement?.id ? "Edit Supplement" : "Add Supplement"} 
@@ -157,7 +157,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                     </div>
                 </div>
             </div>
-        </Modal>
+        </BottomSheet>
         
         <ConfirmationModal
             open={showDeleteConfirm}
@@ -170,33 +170,6 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
             title="Confirm Deletion"
             message=""
             confirmText="Delete"
-            cancelText="Cancel"
-            type="delete"
-            theme={theme}
-            hideIcon={true}
-        />
-    </>
-    );
-}
-
-            cancelText="Cancel"
-            type="delete"
-            theme={theme}
-            hideIcon={true}
-        />
-    </>
-    );
-}
-
-            cancelText="Cancel"
-            type="delete"
-            theme={theme}
-            hideIcon={true}
-        />
-    </>
-    );
-}
-
             cancelText="Cancel"
             type="delete"
             theme={theme}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { useOutletContext, useLocation } from 'react-router-dom'
+import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import { PlusCircle, Package } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
@@ -26,7 +26,9 @@ export default function Orders() {
 	const { isReadOnly } = useSubscriptionAccess();
 	const { firebaseUser } = useFirebase();
 	const location = useLocation()
+	const navigate = useNavigate()
 	const [activeTab, setActiveTab] = useState('domestic')
+	const [returnToStockpileIncoming, setReturnToStockpileIncoming] = useState(false)
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -198,6 +200,10 @@ export default function Orders() {
 			if (orderToOpen) {
 				setEditingOrder(orderToOpen);
 				setShowAddModal(true);
+				// Store return flag if set
+				if (location.state?.returnToStockpileIncoming) {
+					setReturnToStockpileIncoming(true);
+				}
 				// Optional: clear state after use
 				window.history.replaceState({}, document.title)
 			}
@@ -788,7 +794,15 @@ export default function Orders() {
 			
 			<OrderDetailsModal 
 				open={showAddModal}
-				onClose={() => { setShowAddModal(false); setEditingOrder(null) }}
+				onClose={() => { 
+					setShowAddModal(false); 
+					setEditingOrder(null);
+					// Navigate back to stockpile incoming tab if we came from there
+					if (returnToStockpileIncoming) {
+						setReturnToStockpileIncoming(false);
+						navigate('/app/stockpile', { state: { activeTab: 'incoming' } });
+					}
+				}}
 				theme={theme}
 				order={editingOrder}
 				vendors={vendors}
@@ -859,6 +873,11 @@ export default function Orders() {
 					}
 					setShowAddModal(false)
 					setEditingOrder(null)
+					// Navigate back to stockpile incoming tab if we came from there
+					if (returnToStockpileIncoming) {
+						setReturnToStockpileIncoming(false)
+						navigate('/app/stockpile', { state: { activeTab: 'incoming' } })
+					}
 				}}
 				onDelete={async (id) => {
 					// Note: handleDeleteOrder now handles stockpile cleanup internally

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { ShoppingCart, HandCoins } from 'lucide-react';
@@ -101,13 +101,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
     const canDelete = Boolean(onDelete && (form.id || buy?.id));
 
     return (
-        <Modal 
+        <BottomSheet 
             open={open} 
             onClose={onClose} 
             title={buy ? 'Edit Scheduled Buy' : 'Add Scheduled Buy'} 
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-2xl"
+            maxHeight="90vh"
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -314,6 +313,6 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     rows={3}
                 />
             </div>
-        </Modal>
+        </BottomSheet>
     )
 }
