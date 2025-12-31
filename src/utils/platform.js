@@ -53,6 +53,44 @@ export const isIOSPWAInstalled = () => {
   return window.navigator.standalone === true;
 };
 
+/**
+ * Check if PWA is installed (works for all platforms)
+ * Returns true if user has "installed" the app to home screen
+ */
+export const isPWAInstalled = () => {
+  // iOS PWA detection
+  if (window.navigator.standalone === true) {
+    return true;
+  }
+  
+  // Android/Desktop PWA detection (display-mode: standalone)
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    return true;
+  }
+  
+  // Fallback: Not installed, just browsing
+  return false;
+};
+
+/**
+ * Check if user should see intro (native apps + installed PWAs only)
+ * Browser users (not installed) should skip intro
+ */
+export const shouldShowIntro = () => {
+  // Native apps: Always show intro
+  if (isNative()) {
+    return true;
+  }
+  
+  // Installed PWA: Show intro (user committed by installing)
+  if (isPWAInstalled()) {
+    return true;
+  }
+  
+  // Browser (not installed): Skip intro, go to landing or login
+  return false;
+};
+
 export const getPlatform = () => {
   if (isIOS()) return 'ios';
   if (isAndroid()) return 'android';

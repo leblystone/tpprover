@@ -8,7 +8,8 @@ const INTRO_SCREENS = [
     title: 'Welcome to The Pep Planner',
     subtitle: 'Your research companion',
     description: 'Built for the pep research community. Made by a researcher, for researchers.',
-    gradient: ['#9bc2bb', '#86b0a8'], // Sage green gradient
+    gradient: ['#1a1a1a', '#0a0a0a'], // Deep black
+    accentColor: '#7F9E95', // Sage accent
     icon: FlaskConical,
     illustration: '🧪'
   },
@@ -17,7 +18,8 @@ const INTRO_SCREENS = [
     title: 'Organize Your Protocols',
     subtitle: 'Plan with precision',
     description: 'Create dosing schedules, track durations, and manage your research protocols all in one place.',
-    gradient: ['#c4b8b0', '#a39890'], // Taupe gradient
+    gradient: ['#7F9E95', '#6B8A81'], // Sage green
+    accentColor: '#F5F3EF', // Cream accent
     icon: Calendar,
     illustration: '📅'
   },
@@ -26,16 +28,19 @@ const INTRO_SCREENS = [
     title: 'Track Everything',
     subtitle: 'Stay on top of your research',
     description: 'Monitor inventory, manage orders, and keep detailed records of your peptide research journey.',
-    gradient: ['#9f8f95', '#7d6f74'], // Mauve gradient
+    gradient: ['#F5F3EF', '#E8E6E1'], // Cream/beige
+    accentColor: '#7F9E95', // Sage accent
     icon: Package,
-    illustration: '📦'
+    illustration: '📦',
+    darkText: true // Use dark text on light background
   },
   {
     id: 4,
     title: '10 Days to Explore',
     subtitle: 'No strings attached',
     description: 'Take 10 full days to explore every feature. No initial payment, just see if it works for you.',
-    gradient: ['#7F9E95', '#5F7F76'], // Primary sage gradient
+    gradient: ['#2a2a2a', '#1a1a1a'], // Charcoal to black
+    accentColor: '#7F9E95', // Sage accent
     icon: TrendingUp,
     illustration: '✨'
   }
@@ -205,11 +210,13 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
 
   const backgroundStyle = { background: getBackgroundGradient() };
 
-  const IconComponent = currentScreen.icon;
+  // Determine text color for current screen (for skip button)
+  const currentTextColor = currentScreen.darkText ? '#2F3B3A' : '#FFFFFF';
+  const currentSubtleTextColor = currentScreen.darkText ? 'rgba(47, 59, 58, 0.8)' : 'rgba(255, 255, 255, 0.8)';
 
   return (
     <div 
-      className="fixed inset-0 z-[10001] overflow-hidden"
+      className="fixed inset-0 z-[10001] overflow-hidden relative"
       style={backgroundStyle}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -220,13 +227,67 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
       onMouseLeave={handleMouseUp}
       ref={containerRef}
     >
+      {/* Diagonal wave transition overlay */}
+      {isDragging && nextScreen && dragOffset < 0 && (
+        <div 
+          className="absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            opacity: Math.abs(dragOffset) / window.innerWidth,
+            background: `linear-gradient(135deg, ${nextScreen.gradient[0]} 0%, ${nextScreen.gradient[1]} 100%)`
+          }}
+        >
+          <svg 
+            className="absolute inset-0 w-full h-full"
+            viewBox="0 0 100 100" 
+            preserveAspectRatio="none"
+            style={{
+              transform: `translateX(${100 - (Math.abs(dragOffset) / window.innerWidth * 100)}%)`
+            }}
+          >
+            <path 
+              d="M 0 0 Q 50 30, 100 0 L 100 100 L 0 100 Z" 
+              fill={nextScreen.gradient[0]}
+              opacity="0.9"
+            />
+          </svg>
+        </div>
+      )}
+      
+      {isDragging && prevScreen && dragOffset > 0 && (
+        <div 
+          className="absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            opacity: Math.abs(dragOffset) / window.innerWidth,
+            background: `linear-gradient(135deg, ${prevScreen.gradient[0]} 0%, ${prevScreen.gradient[1]} 100%)`
+          }}
+        >
+          <svg 
+            className="absolute inset-0 w-full h-full"
+            viewBox="0 0 100 100" 
+            preserveAspectRatio="none"
+            style={{
+              transform: `translateX(-${100 - (Math.abs(dragOffset) / window.innerWidth * 100)}%)`
+            }}
+          >
+            <path 
+              d="M 0 0 Q 50 30, 100 0 L 100 100 L 0 100 Z" 
+              fill={prevScreen.gradient[0]}
+              opacity="0.9"
+            />
+          </svg>
+        </div>
+      )}
+
       {/* Skip button */}
       <button
         onClick={handleSkip}
-        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
+        className="absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition-all"
+        style={{ 
+          backgroundColor: currentScreen.darkText ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'
+        }}
         aria-label="Skip intro"
       >
-        <X className="w-5 h-5 text-white" />
+        <X className="w-5 h-5" style={{ color: currentTextColor }} />
       </button>
 
       {/* Content container with drag offset */}
@@ -243,10 +304,15 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
             const isActive = index === currentIndex;
             const offset = (index - currentIndex) * 100;
             
+            // Calculate text colors for THIS screen
+            const screenTextColor = screen.darkText ? '#2F3B3A' : '#FFFFFF';
+            const screenSubtleTextColor = screen.darkText ? 'rgba(47, 59, 58, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+            const IconComponent = screen.icon;
+            
             return (
               <div
                 key={screen.id}
-                className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center z-[2]"
                 style={{
                   transform: `translateX(${offset}%)`,
                   opacity: isActive ? 1 : 0,
@@ -259,38 +325,59 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                   <img 
                     src={logo} 
                     alt="The Pep Planner Logo" 
-                    className="h-20 w-20 rounded-full shadow-2xl object-cover mx-auto border-4 border-white/30"
+                    className="h-20 w-20 rounded-full shadow-2xl object-cover mx-auto border-4"
+                    style={{ 
+                      borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)'
+                    }}
                   />
                 </div>
 
                 {/* Icon/Illustration */}
                 <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                  <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 border-2 border-white/30">
-                    <IconComponent className="w-12 h-12 text-white" />
+                  <div 
+                    className="w-24 h-24 rounded-full backdrop-blur-sm flex items-center justify-center mb-4 border-2"
+                    style={{
+                      backgroundColor: screen.darkText ? 'rgba(127, 158, 149, 0.2)' : 'rgba(255, 255, 255, 0.2)',
+                      borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)'
+                    }}
+                  >
+                    {IconComponent && <IconComponent 
+                      className="w-12 h-12" 
+                      style={{ color: screen.accentColor }}
+                    />}
                   </div>
                   <div className="text-6xl mb-2">{screen.illustration}</div>
                 </div>
 
                 {/* Title */}
                 <h1 
-                  className="text-4xl sm:text-5xl font-black mb-3 text-white drop-shadow-lg animate-fade-in"
-                  style={{ animationDelay: '0.2s' }}
+                  className="text-4xl sm:text-5xl font-black mb-3 drop-shadow-lg animate-fade-in"
+                  style={{ 
+                    color: screenTextColor,
+                    animationDelay: '0.2s'
+                  }}
                 >
                   {screen.title}
                 </h1>
 
                 {/* Subtitle */}
                 <h2 
-                  className="text-xl sm:text-2xl font-semibold mb-4 text-white/90 drop-shadow-md animate-fade-in"
-                  style={{ animationDelay: '0.3s' }}
+                  className="text-xl sm:text-2xl font-semibold mb-4 drop-shadow-md animate-fade-in"
+                  style={{ 
+                    color: screenSubtleTextColor,
+                    animationDelay: '0.3s'
+                  }}
                 >
                   {screen.subtitle}
                 </h2>
 
                 {/* Description */}
                 <p 
-                  className="text-base sm:text-lg text-white/80 max-w-md mx-auto leading-relaxed mb-8 drop-shadow-sm animate-fade-in"
-                  style={{ animationDelay: '0.4s' }}
+                  className="text-base sm:text-lg max-w-md mx-auto leading-relaxed mb-8 drop-shadow-sm animate-fade-in"
+                  style={{ 
+                    color: screenSubtleTextColor,
+                    animationDelay: '0.4s'
+                  }}
                 >
                   {screen.description}
                 </p>
@@ -300,11 +387,13 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                   {INTRO_SCREENS.map((_, dotIndex) => (
                     <div
                       key={dotIndex}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        dotIndex === currentIndex 
-                          ? 'w-8 bg-white' 
-                          : 'w-2 bg-white/40'
-                      }`}
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: dotIndex === currentIndex ? '32px' : '8px',
+                        backgroundColor: dotIndex === currentIndex 
+                          ? screenTextColor
+                          : screenSubtleTextColor.replace('0.8', '0.4')
+                      }}
                     />
                   ))}
                 </div>
@@ -312,8 +401,12 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                 {/* Next/Get Started button */}
                 <button
                   onClick={handleNext}
-                  className="px-8 py-4 rounded-full bg-white text-gray-800 font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-2 animate-fade-in"
-                  style={{ animationDelay: '0.6s' }}
+                  className="px-8 py-4 rounded-full font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-2 animate-fade-in"
+                  style={{ 
+                    backgroundColor: screen.accentColor,
+                    color: screen.darkText ? '#FFFFFF' : '#1a1a1a',
+                    animationDelay: '0.6s'
+                  }}
                 >
                   {currentIndex === INTRO_SCREENS.length - 1 ? (
                     <>
@@ -335,8 +428,8 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
 
       {/* Swipe indicator (only show on first screen) */}
       {currentIndex === 0 && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="flex flex-col items-center text-white/60 text-sm">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce z-[3]">
+          <div className="flex flex-col items-center text-sm" style={{ color: currentSubtleTextColor }}>
             <span className="mb-2">Swipe to continue</span>
             <ChevronRight className="w-5 h-5" />
           </div>

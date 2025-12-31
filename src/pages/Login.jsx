@@ -9,6 +9,7 @@ import SignupAgreementModal from '../components/legal/SignupAgreementModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import TwoFactorModal from '../components/auth/TwoFactorModal';
 import Modal from '../components/common/Modal';
+import SwipeableIntro from '../components/onboarding/SwipeableIntro';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { clearAllUserData, clearAllLocalStorage } from '../utils/clearUserData';
@@ -25,6 +26,7 @@ import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
+import { shouldShowIntro, isNative, isPWAInstalled } from '../utils/platform';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -141,6 +143,54 @@ export default function Login() {
     const [isPending, startTransition] = useTransition();
     const [showTryLoginButton, setShowTryLoginButton] = useState(false);
     const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+    
+    // Check if user has seen intro (localStorage, no auth needed)
+    // Only show intro for native apps and installed PWAs (not browser users)
+    const [showIntro, setShowIntro] = useState(() => {
+        try {
+            const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro');
+            const skipIntro = searchParams.get('skipIntro') === 'true';
+            const forceIntro = searchParams.get('testIntro') === 'true';
+            
+            // Force intro for testing
+            if (forceIntro) return true;
+            
+            // Skip if explicitly requested
+            if (skipIntro) return false;
+            
+            // Skip if already seen
+            if (hasSeenIntro) return false;
+            
+            // Only show for native apps + installed PWAs
+            // Browser users (not installed) skip intro
+            return shouldShowIntro();
+        } catch {
+            return false;
+        }
+    });
+    
+    const handleIntroComplete = () => {
+        setShowIntro(false);
+        try {
+            localStorage.setItem('tpp_has_seen_intro', 'true');
+            console.log('✨ User completed intro - saved to localStorage');
+            console.log('🎯 Proceeding to login/signup screen');
+        } catch (error) {
+            console.error('❌ Failed to save intro state:', error);
+        }
+    };
+    
+    // Log intro decision on mount for debugging
+    useEffect(() => {
+        if (showIntro) {
+            console.log('🎬 Showing swipeable intro');
+            console.log('   Platform:', isNative() ? 'Native App' : isPWAInstalled() ? 'Installed PWA' : 'Browser');
+        } else {
+            const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro');
+            console.log('⏭️ Skipping intro');
+            console.log('   Reason:', hasSeenIntro ? 'Already seen' : 'Browser user (not installed)');
+        }
+    }, []);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -1608,6 +1658,17 @@ export default function Login() {
     };
 
 
+
+    // Show intro first if user hasn't seen it
+    if (showIntro) {
+        return (
+            <SwipeableIntro
+                open={true}
+                onComplete={handleIntroComplete}
+                theme={theme}
+            />
+        );
+    }
 
     return (
         <>

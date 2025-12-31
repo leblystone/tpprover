@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { BookHeart } from 'lucide-react';
@@ -16,6 +17,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
     const [isPriceFocused, setIsPriceFocused] = useState(false);
     const [isMgFocused, setIsMgFocused] = useState(false);
     const [isMgUnitDropdownOpen, setIsMgUnitDropdownOpen] = useState(false);
+    const unitButtonRef = useRef(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
     useEffect(() => {
         if (open) {
@@ -40,6 +43,28 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             }
         }
     }, [item, open]);
+
+    // Update dropdown position when opened
+    useEffect(() => {
+        if (isMgUnitDropdownOpen && unitButtonRef.current) {
+            const updatePosition = () => {
+                if (unitButtonRef.current) {
+                    const rect = unitButtonRef.current.getBoundingClientRect();
+                    setDropdownPosition({
+                        top: rect.bottom + 4,
+                        right: window.innerWidth - rect.right
+                    });
+                }
+            };
+            updatePosition();
+            window.addEventListener('resize', updatePosition);
+            window.addEventListener('scroll', updatePosition, true);
+            return () => {
+                window.removeEventListener('resize', updatePosition);
+                window.removeEventListener('scroll', updatePosition, true);
+            };
+        }
+    }, [isMgUnitDropdownOpen]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -88,8 +113,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             maxWidth="max-w-2xl"
             variant="modern"
         >
-            <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-4">
+            <div className="space-y-3 -my-3 sm:-my-4">
+                <div className="flex items-center gap-3 mb-2">
                     <BookHeart size={32} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Wishlist Item</h4>
@@ -193,6 +218,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                             }}
                         />
                         <button
+                            ref={unitButtonRef}
                             type="button"
                             onClick={() => setIsMgUnitDropdownOpen(prev => !prev)}
                             onMouseDown={(e) => e.preventDefault()}
@@ -228,17 +254,20 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                 <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         </button>
-                        {isMgUnitDropdownOpen && (
-                            <div className="relative" data-dropdown-container>
-                                <div 
-                                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                                    style={{
-                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                        borderColor: theme.border,
-                                        minWidth: '100px',
-                                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                    }}
-                                >
+                    </div>
+                    {isMgUnitDropdownOpen && createPortal(
+                        <div 
+                            className="fixed z-[10005] rounded-lg shadow-lg border overflow-hidden"
+                            data-dropdown-container
+                            style={{
+                                top: `${dropdownPosition.top}px`,
+                                right: `${dropdownPosition.right}px`,
+                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                borderColor: theme.border,
+                                minWidth: '100px',
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                        >
                                     {[
                                         { value: 'mg', label: 'mg' },
                                         { value: 'g', label: 'g' },
@@ -283,10 +312,9 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                             </button>
                                         </React.Fragment>
                                     ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                        </div>,
+                        document.body
+                    )}
                     <label 
                         className={`absolute left-3 transition-all pointer-events-none outlined-input-label ${(isMgFocused || form.mgAmount) ? 'active' : ''}`}
                         style={{ 
@@ -316,7 +344,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     rows={3}
                 />
                 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t" style={{ borderColor: theme.border }}>
+                <div className="flex items-center justify-end gap-3 pt-3 border-t mt-2" style={{ borderColor: theme.border }}>
                     <button
                         onClick={onClose}
                         className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"

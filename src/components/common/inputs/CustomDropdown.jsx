@@ -61,7 +61,7 @@ export default function CustomDropdown({
                     // Prevent any parent blur events on touch devices
                     e.preventDefault();
                 }}
-                className={`w-full ${outlined ? 'px-4 py-3.5' : 'px-3 py-2'} text-sm border ${outlined ? 'rounded-xl' : 'rounded-md'} flex items-center justify-between transition-all duration-200 touch-manipulation ${outlined ? 'hover:shadow-md' : 'hover:border-gray-400'}`}
+                className={`w-full ${outlined ? 'px-4 py-3.5' : 'px-3 py-2'} text-sm border ${outlined ? 'rounded-xl' : 'rounded-md'} flex items-center justify-between transition-all duration-200 touch-manipulation ${outlined ? 'hover:shadow-md' : 'hover:border-gray-400'} overflow-hidden`}
                 style={{
                     borderColor: isOpen ? theme.primary : theme.border,
                     backgroundColor: outlined ? (theme.isDark ? '#1f2937' : '#ffffff') : theme.cardBackground,
@@ -83,9 +83,9 @@ export default function CustomDropdown({
                             : 'none')
                 }}
             >
-                <span className="flex items-center gap-2.5">
+                <span className="flex items-center gap-2.5 min-w-0 flex-1">
                     {selectedOption?.icon && <span className="flex-shrink-0">{selectedOption.icon}</span>}
-                    <span>{displayText}</span>
+                    <span className="truncate text-left">{displayText}</span>
                 </span>
                 <ChevronDown 
                     size={18} 
@@ -105,7 +105,7 @@ export default function CustomDropdown({
                 }}
             >
                 <div 
-                    className="py-2 bg-white border rounded-xl shadow-xl"
+                    className="py-2 bg-white border rounded-xl shadow-xl overflow-x-hidden"
                     style={{ 
                         borderColor: theme.border,
                         backgroundColor: theme.cardBackground,
@@ -114,7 +114,7 @@ export default function CustomDropdown({
                             : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)'
                     }}
                 >
-                    <div className="max-h-60 overflow-y-auto">
+                    <div className="max-h-60 overflow-y-auto overflow-x-hidden">
                         {options.map((option) => {
                             const isSelected = value === option.value;
                             return (
@@ -145,7 +145,7 @@ export default function CustomDropdown({
                                             e.currentTarget.style.backgroundColor = 'transparent';
                                         }
                                     }}
-                                    className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation"
+                                    className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
                                     style={{
                                         backgroundColor: isSelected ? theme.primary + '15' : 'transparent',
                                         color: theme.text,
@@ -154,9 +154,9 @@ export default function CustomDropdown({
                                         margin: '2px 4px'
                                     }}
                                 >
-                                    <span className="flex items-center gap-3 font-medium">
+                                    <span className="flex items-center gap-3 font-medium min-w-0 flex-1">
                                         {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                                        <span>{option.label}</span>
+                                        <span className="truncate">{option.label}</span>
                                     </span>
                                     {isSelected && (
                                         <Check size={18} style={{ color: theme.primary }} className="flex-shrink-0" />

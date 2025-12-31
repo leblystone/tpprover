@@ -1125,6 +1125,7 @@ function SubscriptionDebugSection({ user, theme }) {
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -15,6 +15,7 @@ import { penColors } from '../utils/penColors'
 import { formatCurrency } from '../utils/currencyUtils'
 import ProtocolCard from '../components/protocols/ProtocolCard'
 import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
+import ProtocolHistoryDetailModal from '../components/protocols/ProtocolHistoryDetailModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import ProtocolsTipsBanner from '../components/protocols/ProtocolsTipsBanner';
 import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
@@ -42,6 +43,8 @@ export default function Protocols() {
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [hoveredHistoryId, setHoveredHistoryId] = useState(null);
+  const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -861,7 +864,7 @@ export default function Protocols() {
                     { 
                       value: 'active', 
                       label: `Active Only (${organizedProtocols.active.length})`,
-                      icon: <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+                      icon: <CheckCircle2 size={16} style={{ color: theme.primary }} />
                     },
                     { 
                       value: 'inactive', 
@@ -1102,39 +1105,32 @@ export default function Protocols() {
                 });
               });
 
-              return (
-                <div className="relative pl-8 md:pl-12">
-                  {/* Vertical timeline line */}
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 w-0.5"
-                    style={{ 
-                      backgroundColor: theme.border || (theme.isDark ? '#374151' : '#e5e7eb'),
-                      marginLeft: '1.5rem',
-                      zIndex: 1
-                    }}
-                  />
+              // Helper function to get icon for completion status
+              const getStatusIcon = (status) => {
+                switch (status) {
+                  case 'completed':
+                    return CheckCircle2;
+                  case 'ended_early':
+                    return XCircle;
+                  case 'rescheduled':
+                    return Clock;
+                  default:
+                    return FlaskConical;
+                }
+              };
 
+              return (
+                <div className="relative">
                   {/* Timeline entries */}
-                  <div className="space-y-6">
+                  <div className="space-y-3">
                     {timelineEntries.map((entry, index) => {
                       if (entry.type === 'header') {
-                        // Month/Year header
+                        // Month/Year header - simplified without timeline node
                         return (
-                          <div key={entry.key} className="relative flex items-center">
-                            {/* Timeline node for header */}
-                            <div 
-                              className="absolute left-0 w-4 h-4 rounded-full border-2 -ml-8 md:-ml-12 z-10"
-                              style={{ 
-                                backgroundColor: theme.cardBackground || theme.background,
-                                borderColor: theme.primary,
-                                marginLeft: '-1.5rem'
-                              }}
-                            />
-                            
-                            {/* Month/Year label */}
+                          <div key={entry.key} className="relative flex items-center mb-3 mt-4 first:mt-0">
                             <h3 
-                              className="text-lg font-bold uppercase tracking-wider pl-4"
-                              style={{ color: theme.text }}
+                              className="text-sm font-semibold uppercase tracking-wider"
+                              style={{ color: theme.textLight }}
                             >
                               {entry.month} {entry.year}
                             </h3>
@@ -1146,83 +1142,108 @@ export default function Protocols() {
                         const protocol = entry.protocol;
                         const statusBadge = getStatusBadge(entry.completionStatus);
                         const StatusIcon = statusBadge?.icon;
+                        const TimelineIcon = getStatusIcon(entry.completionStatus);
+                        const isHovered = hoveredHistoryId === historyEntry.id;
                         
                         return (
-                          <div key={historyEntry.id} className="relative pl-4">
-                            {/* Timeline node for protocol */}
-                            <div 
-                              className="absolute left-0 w-3 h-3 rounded-full -ml-8 md:-ml-12 z-10"
-                              style={{ 
-                                backgroundColor: theme.primary,
-                                marginLeft: '-1.5rem',
-                                marginTop: '0.5rem',
-                                border: `2px solid ${theme.cardBackground || theme.background}`
-                              }}
-                            />
+                          <div 
+                            key={historyEntry.id} 
+                            className="relative group"
+                            onMouseEnter={() => setHoveredHistoryId(historyEntry.id)}
+                            onMouseLeave={() => setHoveredHistoryId(null)}
+                          >
+                            {/* Floating icon node - only visible on hover */}
+                            {isHovered && (
+                              <div 
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20"
+                                style={{ 
+                                  backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                                  backdropFilter: 'blur(10px)',
+                                  border: `2px solid ${theme.primary}`,
+                                  boxShadow: theme.isDark 
+                                    ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                                    : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                                }}
+                              >
+                                <TimelineIcon 
+                                  size={18} 
+                                  style={{ color: theme.primary }}
+                                />
+                              </div>
+                            )}
                             
-                            {/* Protocol card */}
+                            {/* Protocol card with glassmorphism */}
                             <button
-                              onClick={() => setHistoryProtocol(protocol || { id: historyEntry.protocolId, protocolName: historyEntry.protocolName })}
-                              className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
+                              onClick={() => setSelectedHistoryEntry(historyEntry)}
+                              className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
                               style={{ 
-                                backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
-                                border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
+                                backgroundColor: theme.isDark 
+                                  ? 'rgba(31, 41, 55, 0.6)' 
+                                  : 'rgba(255, 255, 255, 0.7)',
+                                backdropFilter: 'blur(20px)',
+                                WebkitBackdropFilter: 'blur(20px)',
+                                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
                                 boxShadow: theme.isDark 
-                                  ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
-                                  : '0 2px 4px rgba(0, 0, 0, 0.05)'
+                                  ? '0 4px 16px rgba(0, 0, 0, 0.3)' 
+                                  : '0 4px 16px rgba(0, 0, 0, 0.08)'
                               }}
                             >
-                              <div className="flex items-start justify-between gap-3">
+                              <div className="flex gap-4 p-4">
+                                {/* Main content */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-2">
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    {protocol?.emoji && (
+                                      <span className="text-xl">{protocol.emoji}</span>
+                                    )}
                                     <span className="font-semibold text-base" style={{ color: theme.text }}>
                                       {historyEntry.protocolName || protocol?.protocolName || protocol?.name || 'Unnamed Protocol'}
                                     </span>
-                                    {protocol?.emoji && (
-                                      <span className="text-lg">{protocol.emoji}</span>
-                                    )}
                                   </div>
                                   
-                                  <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
-                                    <span className="flex items-center gap-1">
-                                      <Clock size={14} />
-                                      {entry.startDate} → {entry.endDate}
-                                    </span>
-                                  </div>
+                                  {/* Status badge - inline */}
+                                  {statusBadge && StatusIcon && (
+                                    <div className="inline-block mt-1.5">
+                                      <span 
+                                        className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
+                                        style={{ 
+                                          backgroundColor: statusBadge.bgColor,
+                                          color: statusBadge.textColor
+                                        }}
+                                      >
+                                        <StatusIcon size={12} />
+                                        {statusBadge.label}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                                 
-                                {/* Duration and arrow indicator - upper right */}
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                                {/* Sidebar with dates and duration */}
+                                <div className="flex-shrink-0 w-32 text-right space-y-0.5 border-l pl-4" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+                                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                                    {entry.startDate}
+                                  </div>
+                                  <div className="text-xs" style={{ color: theme.textLight }}>
+                                    →
+                                  </div>
+                                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                                    {entry.endDate}
+                                  </div>
                                   {entry.durationDays > 0 && (
-                                    <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                                      {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                    </span>
+                                    <div className="pt-1.5 mt-1.5 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+                                      <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
                                   )}
-                                  <div className="opacity-50">
+                                  <div className="pt-1.5 flex justify-end">
                                     <ChevronDown 
-                                      size={20} 
-                                      className="transform rotate-[-90deg]"
+                                      size={16} 
+                                      className="transform rotate-[-90deg] opacity-50"
                                       style={{ color: theme.textLight }}
                                     />
                                   </div>
                                 </div>
                               </div>
-                              
-                              {/* Status badge - bottom right */}
-                              {statusBadge && StatusIcon && (
-                                <div className="absolute bottom-2 right-2">
-                                  <span 
-                                    className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
-                                    style={{ 
-                                      backgroundColor: statusBadge.bgColor,
-                                      color: statusBadge.textColor
-                                    }}
-                                  >
-                                    <StatusIcon size={12} />
-                                    {statusBadge.label}
-                                  </span>
-                                </div>
-                              )}
                             </button>
                           </div>
                         );
@@ -1237,46 +1258,24 @@ export default function Protocols() {
 
         {activeTab === 'reminders' && (
           <div className="space-y-4">
-            <div 
-              className="p-6 rounded-lg space-y-6"
-              style={{ backgroundColor: theme.cardBackground }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div 
-                  className="p-3 rounded-lg"
-                  style={{ backgroundColor: `${theme.primary}20` }}
-                >
-                  <Bell size={24} style={{ color: theme.primary }} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold" style={{ color: theme.text }}>
-                    Research Reminders
-                  </h2>
-                  <p className="text-sm" style={{ color: theme.textLight }}>
-                    Set the time you want to receive reminders of your active protocols.
-                  </p>
+            {/* Research Reminders Section Header */}
+            <div className="flex items-center gap-4 mb-3">
+              <Bell size={32} style={{ color: theme.primary }} />
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Research Reminders</h4>
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    Notifications
+                  </span>
                 </div>
               </div>
-
-              {/* Push Notification Status Indicator */}
-              {!pushNotificationStatus.enabled && (
-                <div 
-                  className="p-3 rounded-lg text-xs mb-4"
-                  style={{ 
-                    backgroundColor: theme.secondary,
-                    color: theme.textLight,
-                    border: `1px solid ${theme.border}`
-                  }}
-                >
-                  <span className="font-medium" style={{ color: theme.text }}>⚠️ </span>
-                  Push notifications are disabled. Enabling reminders below will request notification permissions.
-                </div>
-              )}
-
-              {/* Reminders Cards Container - Two columns on desktop */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>
+            
+            {/* Reminders Cards Container - Two columns on desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* AM Reminders Section */}
-                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.secondary, border: `1px solid ${theme.border}` }}>
+                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', border: `1px solid ${theme.border}` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
@@ -1352,7 +1351,7 @@ export default function Protocols() {
                 </div>
 
                 {/* PM Reminders Section */}
-                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.secondary, border: `1px solid ${theme.border}` }}>
+                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', border: `1px solid ${theme.border}` }}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
@@ -1427,7 +1426,6 @@ export default function Protocols() {
                 )}
                 </div>
               </div>
-            </div>
           </div>
         )}
       </div>
@@ -1736,6 +1734,14 @@ export default function Protocols() {
         theme={theme}
         onStartProtocol={handleStartClick}
         key={`${historyProtocol?.id}-${historyRefreshKey}`} // Force re-render when history is updated
+      />
+
+      <ProtocolHistoryDetailModal
+        open={!!selectedHistoryEntry}
+        onClose={() => setSelectedHistoryEntry(null)}
+        historyEntry={selectedHistoryEntry}
+        theme={theme}
+        stockpile={stockpile}
       />
 
       {manageConfirm && manageConfirm.protocolName && (

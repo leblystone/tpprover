@@ -701,8 +701,16 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                 </button>
                 
                 {/* Expanded details */}
-                {expandedGroupBuy === dayKey && expandedGroupBuyData && (
-                  <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? '#111827' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                <div 
+                  className="overflow-hidden transition-all duration-300 ease-in-out"
+                  style={{
+                    maxHeight: expandedGroupBuy === dayKey && expandedGroupBuyData ? '500px' : '0',
+                    opacity: expandedGroupBuy === dayKey && expandedGroupBuyData ? 1 : 0,
+                    transform: expandedGroupBuy === dayKey && expandedGroupBuyData ? 'translateY(0)' : 'translateY(-10px)'
+                  }}
+                >
+                  {expandedGroupBuy === dayKey && expandedGroupBuyData && (
+                    <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? '#111827' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
                     <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
                       <p className="font-semibold text-sm" style={{ color: theme.text }}>{expandedGroupBuyData.item || 'Unknown Item'}</p>
                     </div>
@@ -781,6 +789,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   </div>
                   )}
                 </div>
+              </div>
+            )}
             
             {/* Washout indicator */}
             {dayScheduled?.washout?.length > 0 && (

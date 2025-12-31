@@ -6,13 +6,11 @@ import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, onUpgrade }) => {
-  const { maxItems = 3 } = widget.settings;
-  
-  // Limit items based on settings
-  const limitedItems = wishlist ? wishlist.slice(0, maxItems) : [];
+  // Show all wishlist items (no limit)
+  const displayItems = wishlist || [];
 
   // If no items, show compact version matching PendingVendorsView structure
-  if (!limitedItems || limitedItems.length === 0) {
+  if (!displayItems || displayItems.length === 0) {
     return (
       <div className="h-full">
         <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
@@ -85,7 +83,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
   return (
     <div className="h-full">
       <Wishlist 
-        wishlist={limitedItems} 
+        wishlist={displayItems} 
         theme={theme} 
         onAdd={onAdd}
       />

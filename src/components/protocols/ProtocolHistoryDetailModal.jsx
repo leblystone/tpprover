@@ -157,18 +157,18 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             variant="modern"
             maxWidth="max-w-3xl"
         >
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Timeline Info */}
                 {/* Mobile: Combined date card */}
                 <div className="md:hidden">
                     <div
-                        className="p-4 rounded-lg"
+                        className="p-3 rounded-lg"
                         style={{
                             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             border: `1px solid ${theme.border}`
                         }}
                     >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Calendar size={16} style={{ color: theme.primary }} />
                                 <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
@@ -185,7 +185,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 </span>
                             </div>
                         </div>
-                        <div className="mb-4">
+                        <div className="mb-3">
                             <div className="flex items-center gap-3">
                                 <div className="text-sm font-semibold" style={{ color: theme.text }}>
                                     {formatMMDDYYYY(startDate)}
@@ -201,7 +201,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                             </div>
                         </div>
                         {/* Status Badge */}
-                        <div className="flex items-center justify-center mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+                        <div className="flex items-center justify-center mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
                             <div
                                 className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                                 style={{
@@ -219,13 +219,13 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Desktop: Separate cards */}
                 <div className="hidden md:grid grid-cols-3 gap-4">
                     <div
-                        className="p-4 rounded-lg"
+                        className="p-3 rounded-lg"
                         style={{
                             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             border: `1px solid ${theme.border}`
                         }}
                     >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1.5">
                             <Calendar size={16} style={{ color: theme.primary }} />
                             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
                                 Start Date
@@ -244,7 +244,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 border: `1px solid ${theme.border}`
                             }}
                         >
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-1.5">
                                 <Calendar size={16} style={{ color: theme.primary }} />
                                 <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
                                     End Date
@@ -257,23 +257,23 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     )}
 
                     <div
-                        className="p-4 rounded-lg"
+                        className="p-3 rounded-lg"
                         style={{
                             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             border: `1px solid ${theme.border}`
                         }}
                     >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1.5">
                             <Clock size={16} style={{ color: theme.primary }} />
                             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
                                 Duration
                             </span>
                         </div>
-                        <div className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                        <div className="text-sm font-semibold mb-2" style={{ color: theme.text }}>
                             {getDuration()}
                         </div>
                         {/* Status Badge */}
-                        <div className="flex items-center justify-end mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
+                        <div className="flex items-center justify-end mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${theme.border}` }}>
                             <div
                                 className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                                 style={{
@@ -291,7 +291,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Protocol Summary */}
                 {protocolData && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                        <h3 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>
                             Protocol Summary
                         </h3>
                         <div
@@ -314,7 +314,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         </div>
                                     )}
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {protocolData.duration && !protocolData.duration.noEnd && (
                                         <div>
                                             <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>
@@ -338,7 +338,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 </div>
                             </div>
                             {protocolData.peptides && protocolData.peptides.length > 0 && (
-                                <div className="mt-4">
+                                <div className="mt-3">
                                     <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>
                                         Peptides ({protocolData.peptides.length})
                                     </div>
@@ -363,7 +363,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Vials Used Section */}
                 {vials && vials.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
                             <Package size={16} />
                             Vials Used
                         </h3>
@@ -418,7 +418,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Vials Added During Protocol */}
                 {vialsAddedDuring && vialsAddedDuring.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
                             <Package size={16} />
                             Vials Added During Protocol
                         </h3>
@@ -472,7 +472,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Reconstitution Data */}
                 {reconstitutionData && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
                             <FlaskConical size={16} />
                             Reconstitution Details
                         </h3>
@@ -484,7 +484,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                             }}
                         >
                             {reconstitutionData.reconStrategy && (
-                                <div className="mb-2 text-sm" style={{ color: theme.text }}>
+                                <div className="mb-1.5 text-sm" style={{ color: theme.text }}>
                                     <span className="font-medium">Strategy:</span>{' '}
                                     <span style={{ color: theme.textLight }}>
                                         {reconstitutionData.reconStrategy === 'separate' ? 'Separate' : 'Blended'}
@@ -504,7 +504,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Skipped Reconstitution Data */}
                 {skippedReconstitution && Object.keys(skippedReconstitution).length > 0 && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
                             <FlaskConical size={16} />
                             Skipped Reconstitution
                         </h3>
@@ -518,7 +518,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         border: `1px solid ${theme.border}`
                                     }}
                                 >
-                                    <div className="font-medium mb-2" style={{ color: theme.text }}>
+                                    <div className="font-medium mb-1.5" style={{ color: theme.text }}>
                                         {data.peptideName || 'Unknown Peptide'}
                                     </div>
                                     {data.deliveryMethod && (
@@ -562,8 +562,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
 
                 {/* Follow-Up Assessment Section - Prominently Displayed */}
                 {followUpNote ? (
-                    <div className="mb-6">
-                        <div className="flex items-center justify-between mb-3">
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
                                 <FileText size={16} />
                                 Follow-Up Assessment
@@ -589,7 +589,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                             }}
                         >
                             {followUpNote.rating && (
-                                <div className="mb-3 flex items-center justify-center gap-2">
+                                <div className="mb-2 flex items-center justify-center gap-2">
                                     <span className="text-sm font-medium" style={{ color: theme.text }}>Protocol Rating:</span>
                                     <div className="flex items-center gap-1">
                                         {[1, 2, 3, 4, 5].map(n => (
@@ -607,7 +607,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 </div>
                             )}
                             {followUpNote.content && (
-                                <p className="text-sm whitespace-pre-wrap mb-3" style={{ color: theme.text }}>
+                                <p className="text-sm whitespace-pre-wrap mb-2" style={{ color: theme.text }}>
                                     {followUpNote.content}
                                 </p>
                             )}
@@ -628,7 +628,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 </div>
                             )}
                             {followUpNote.linkedDate && (
-                                <div className="mt-3 text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                                <div className="mt-2 text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
                                     <Calendar size={12} />
                                     Linked to calendar: {formatMMDDYYYY(followUpNote.linkedDate)}
                                 </div>
@@ -636,8 +636,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         </div>
                     </div>
                 ) : (
-                    <div className="mb-6">
-                        <div className="flex items-center justify-between mb-3">
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
                                 <FileText size={16} />
                                 Follow-Up Assessment
@@ -671,7 +671,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 {/* Notes Section */}
                 {Array.isArray(notes) && notes.length > 0 && (
                     <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
                                 <FileText size={16} />
                                 Notes ({notes.length})
@@ -707,7 +707,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 </div>
                             </div>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             {filteredNotes.length === 0 ? (
                                 <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
                                     No {noteFilter === 'all' ? '' : noteFilter === 'during' ? 'during protocol ' : 'follow-up '}notes found.
@@ -723,9 +723,9 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                             borderLeft: `4px solid ${note.type === 'follow_up' ? theme.primary : theme.accent}`
                                         }}
                                     >
-                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="flex items-start justify-between gap-2 mb-1.5">
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex items-center gap-2 mb-1.5">
                                                     <span 
                                                         className="px-2 py-0.5 rounded text-xs font-medium"
                                                         style={{
@@ -760,7 +760,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                                     </p>
                                                 )}
                                                 {note.tags && note.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                                                         {note.tags.map(tagId => (
                                                             <span
                                                                 key={tagId}
@@ -786,7 +786,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             </div>
 
             {/* Footer */}
-            <div className="flex justify-between items-center pt-4 mt-6" style={{
+            <div className="flex justify-start items-center pt-3 mt-4" style={{
                 borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
             }}>
                 <button
@@ -807,13 +807,6 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 >
                     <Trash2 size={16} />
                     Delete Entry
-                </button>
-                <button
-                    className="px-4 py-2 rounded-lg font-medium transition-all"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    onClick={onClose}
-                >
-                    Close
                 </button>
             </div>
             

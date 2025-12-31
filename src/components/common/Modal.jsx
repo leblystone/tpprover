@@ -5,11 +5,14 @@ import { X, ChevronLeft } from 'lucide-react'
 export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant }) {
   // Use internal state to persist modal open state across app lifecycle changes
   const [internalOpen, setInternalOpen] = useState(open);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [shouldRender, setShouldRender] = useState(open);
   const wasOpenBeforeBackground = useRef(false);
   const visibilityChangeTimeoutRef = useRef(null);
   const isInBackgroundState = useRef(false);
   const explicitCloseRequested = useRef(false);
   const previousOpenProp = useRef(open);
+  const animationTimeoutRef = useRef(null);
 
   // Monitor document visibility AND Capacitor App state to prevent modal from closing when app is minimized
   useEffect(() => {
@@ -117,22 +120,52 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     //    - AND this isn't happening during app lifecycle changes
     //    - AND it wasn't already explicitly closed
     if (open) {
-      setInternalOpen(true);
+      // Opening animation
+      setShouldRender(true);
+      setIsAnimating(true);
+      // Small delay to trigger animation
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      setTimeout(() => {
+        setInternalOpen(true);
+        setTimeout(() => setIsAnimating(false), 250);
+      }, 10);
       wasOpenBeforeBackground.current = false; // Reset when explicitly opened
       isInBackgroundState.current = false;
       explicitCloseRequested.current = false;
     } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
-      // Only close if:
-      // - Prop explicitly changed from true to false (user action)
-      // - We're not in background recovery state
-      // - Modal wasn't open before background
+      // Closing animation
       explicitCloseRequested.current = true;
+      setIsAnimating(true);
       setInternalOpen(false);
+      // Wait for animation to complete before removing from DOM
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      animationTimeoutRef.current = setTimeout(() => {
+        setShouldRender(false);
+        setIsAnimating(false);
+      }, 250);
     } else if (!open && !isInBackgroundState.current && !wasOpenBeforeBackground.current && explicitCloseRequested.current) {
       // Allow closing if explicitly requested and we're stable
+      setIsAnimating(true);
       setInternalOpen(false);
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      animationTimeoutRef.current = setTimeout(() => {
+        setShouldRender(false);
+        setIsAnimating(false);
+      }, 250);
     }
     // Otherwise, ignore prop changes during background state transitions
+
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+    };
   }, [open]);
 
   // Add keyboard shortcuts and prevent body scroll on mobile
@@ -148,8 +181,17 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         explicitCloseRequested.current = true;
         wasOpenBeforeBackground.current = false;
         isInBackgroundState.current = false;
+        setIsAnimating(true);
         setInternalOpen(false);
-        onClose();
+        // Wait for animation before calling onClose
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+        }
+        animationTimeoutRef.current = setTimeout(() => {
+          setShouldRender(false);
+          setIsAnimating(false);
+          onClose();
+        }, 250);
       }
     };
     
@@ -174,11 +216,20 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     explicitCloseRequested.current = true;
     wasOpenBeforeBackground.current = false;
     isInBackgroundState.current = false;
+    setIsAnimating(true);
     setInternalOpen(false);
-    onClose();
+    // Wait for animation before calling onClose
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+    animationTimeoutRef.current = setTimeout(() => {
+      setShouldRender(false);
+      setIsAnimating(false);
+      onClose();
+    }, 250);
   };
   
-  if (!internalOpen) return null
+  if (!shouldRender) return null
   
   // Modern variant styling
   const isModern = variant === 'modern';
@@ -207,9 +258,20 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       : 'text-sm text-white/90 mt-0.5';
   
   const content = (
-    <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 overflow-x-hidden">
+    <div 
+      className="fixed inset-0 z-[10002] flex items-center justify-center p-4 overflow-x-hidden"
+      style={{
+        opacity: internalOpen ? 1 : 0,
+        pointerEvents: internalOpen ? 'auto' : 'none',
+        transition: 'opacity 250ms ease-out'
+      }}
+    >
       <div 
         className={`absolute inset-0 ${backdropClass}`}
+        style={{
+          opacity: internalOpen ? 1 : 0,
+          transition: 'opacity 250ms ease-out'
+        }}
         onClick={handleBackdropClick}
         onTouchStart={(e) => {
           // Only close if touch starts on the backdrop, not if it's a swipe from modal content
@@ -226,7 +288,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
           minHeight: 'auto',
           boxShadow: theme?.isDark 
             ? '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1)' 
-            : '0 20px 60px rgba(0,0,0,0.15)'
+            : '0 20px 60px rgba(0,0,0,0.15)',
+          transform: internalOpen ? 'scale(1)' : 'scale(0.95)',
+          opacity: internalOpen ? 1 : 0,
+          transition: 'transform 250ms ease-out, opacity 250ms ease-out',
+          willChange: 'transform, opacity'
         }}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}

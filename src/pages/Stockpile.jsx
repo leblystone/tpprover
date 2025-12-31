@@ -995,8 +995,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Inventory On Hand</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Inventory On Hand</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
                   Add peptides to your stockpile to track quantities, vendors, batches, and documentation. 
                   Delivered orders automatically sync here, or add items manually to maintain your inventory.
                 </p>
@@ -1004,7 +1004,7 @@ export default function Stockpile() {
                   <button
                     onClick={() => setOpenAdd(true)}
                     className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}
                   >
                     <PlusCircle size={18} />
                     Add Your First Peptide
@@ -1193,8 +1193,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <ShoppingCart size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Incoming Orders</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
                   Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
                 </p>
                 <button
@@ -1203,7 +1203,7 @@ export default function Stockpile() {
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}
                 >
                   <PlusCircle size={18} />
                   Place Your First Order
@@ -1229,16 +1229,17 @@ export default function Stockpile() {
                         }}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
+                        <div className="font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{g.name}</div>
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text }}>{g.totalMg} {g.unit || 'mg'} en route</div>
+                          <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{g.totalMg} {g.unit || 'mg'} en route</div>
                           <button 
                             className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold hover:opacity-90 transition-all" 
                             style={{ 
                               backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
                               color: theme.textOnPrimary,
                               opacity: isReadOnly ? 0.6 : 1,
-                              cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                              cursor: isReadOnly ? 'not-allowed' : 'pointer',
+                              fontFamily: 'Poppins, sans-serif'
                             }} 
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -1258,10 +1259,10 @@ export default function Stockpile() {
                             boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                           }}>
                             <div className="flex items-center justify-between text-sm mb-2">
-                              <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
-                              <div className="text-xs">{v.totalMg} {v.unit || 'mg'}</div>
+                              <div className="font-medium flex items-center gap-2" style={{ fontFamily: 'Poppins, sans-serif' }}><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
+                              <div className="text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{v.totalMg} {v.unit || 'mg'}</div>
                             </div>
-                            <ul className="mt-1 text-xs space-y-1" style={{ color: theme.text }}>
+                            <ul className="mt-1 text-xs space-y-1" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                               {Object.entries(v.vendors).sort((a,b)=>a[0].localeCompare(b[0])).map(([vendor, qtyMg]) => {
                                 const vials = Math.max(1, Math.round((Number(qtyMg)||0) / (Number(v.mg)||1)))
                                 return (
@@ -1290,8 +1291,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Out of Stock Items</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>No Out of Stock Items</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
                   Items that have been depleted will appear here. You can restore them by adding new inventory.
                 </p>
               </div>
@@ -1315,13 +1316,13 @@ export default function Stockpile() {
                       }}
                     >
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
+                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)', fontFamily: 'Poppins, sans-serif' }}>OUT</div>
                       </div>
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-2">
                           <h3 
-                            className="font-bold text-base cursor-pointer flex-1"
-                            style={{ color: theme.text }}
+                            className="font-semibold text-base cursor-pointer flex-1"
+                            style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}
                             onClick={() => {
                               if (isReadOnly) {
                                 setShowUpgradeModal(true);
@@ -1336,7 +1337,8 @@ export default function Stockpile() {
                             <div className="px-2.5 py-1 rounded-full text-xs font-medium"
                               style={{ 
                                 backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                                color: theme.isDark ? '#f87171' : '#dc2626'
+                                color: theme.isDark ? '#f87171' : '#dc2626',
+                                fontFamily: 'Poppins, sans-serif'
                               }}
                             >
                               Out of Stock
@@ -1368,7 +1370,7 @@ export default function Stockpile() {
                             </button>
                           </div>
                         </div>
-                        <div className="text-sm" style={{ color: theme.textLight }}>No vials on hand.</div>
+                        <div className="text-sm" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>No vials on hand.</div>
                       </div>
                     </div>
                   );
@@ -1392,7 +1394,7 @@ export default function Stockpile() {
               iconOnly={true}
             />
             {(isSaving || isSavingToStockpile) && (
-              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary, fontFamily: 'Poppins, sans-serif' }}>
                 {isSavingToStockpile ? 'Saving...' : 'Auto-saving...'}
               </span>
             )}
@@ -1511,7 +1513,7 @@ export default function Stockpile() {
             <div className="p-4 rounded-lg bg-red-50 border border-red-200">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="text-sm font-medium text-red-800">{saveError}</span>
+                <span className="text-sm font-medium text-red-800" style={{ fontFamily: 'Poppins, sans-serif' }}>{saveError}</span>
               </div>
             </div>
           )}
@@ -1520,10 +1522,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3">
             <TestTube size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Vial Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   Research Parameters
                 </span>
               </div>
@@ -1598,7 +1600,7 @@ export default function Stockpile() {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
                     {(form.mgUnit || 'mg')}
                   </span>
                   <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1651,7 +1653,8 @@ export default function Stockpile() {
                             style={{
                               color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
                               backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent'
+                              WebkitTapHighlightColor: 'transparent',
+                              fontFamily: 'Poppins, sans-serif'
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -1737,7 +1740,7 @@ export default function Stockpile() {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold" style={{ fontFamily: 'Poppins, sans-serif' }}>
                     {(() => {
                       const unit = (form.unit || 'vial').toLowerCase();
                       const quantity = Number(form.quantity) || 1;
@@ -1803,7 +1806,8 @@ export default function Stockpile() {
                             style={{
                               color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
                               backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent'
+                              WebkitTapHighlightColor: 'transparent',
+                              fontFamily: 'Poppins, sans-serif'
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -1954,12 +1958,13 @@ export default function Stockpile() {
                             updateFormData({ priceUnit: option.value });
                             setIsPriceUnitDropdownOpen(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                          style={{
-                            color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
-                            backgroundColor: 'transparent',
-                            WebkitTapHighlightColor: 'transparent'
-                          }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent',
+                              fontFamily: 'Poppins, sans-serif'
+                            }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
                             e.currentTarget.style.color = theme.primary;
@@ -1997,10 +2002,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3 pt-1">
             <PackageOpen size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Order Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   Purchase Information
                 </span>
               </div>
@@ -2027,10 +2032,10 @@ export default function Stockpile() {
           <div className="flex items-center gap-4 mb-3 pt-1">
             <ImageUp size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Extra Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   Documentation
                 </span>
               </div>
@@ -2070,11 +2075,12 @@ export default function Stockpile() {
         }}
         titleExtra={
           <button 
-            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" 
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all" 
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
               border: `1px solid ${theme.border}`, 
               color: theme.text,
+              fontFamily: 'Poppins, sans-serif'
             }} 
             onClick={() => setShowHistory(v => !v)}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
@@ -2096,10 +2102,11 @@ export default function Stockpile() {
               }
               saveManage();
             }} 
-            className="px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl active:scale-95" 
+            className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95" 
             style={{ 
               background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
               color: theme?.textOnPrimary || '#ffffff',
+              fontFamily: 'Poppins, sans-serif'
             }}
           >
             Save Changes
@@ -2119,7 +2126,7 @@ export default function Stockpile() {
                 </div>
               ))}
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
-                <div className="text-center py-2" style={{ color: theme.textLight }}>No history yet for this research material.</div>
+                <div className="text-center py-2" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>No history yet for this research material.</div>
               )}
             </div>
           )}
@@ -2163,13 +2170,13 @@ export default function Stockpile() {
                   
                   {/* Summary Info */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="text-sm font-bold truncate" style={{ color: theme.text }}>
+                    <div className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                       {vendorName}
                     </div>
-                    <div className="text-xs font-bold opacity-60" style={{ color: theme.text }}>
+                    <div className="text-xs font-semibold opacity-60" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                       {row.mg || '?'}{row.mgUnit || 'mg'}
                     </div>
-                    <div className="text-xs font-bold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+                    <div className="text-xs font-semibold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                       {row.quantity || '0'} {row.quantity === '1' ? 'vial' : 'vials'}
                     </div>
                   </div>
@@ -2236,10 +2243,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2">
                     <TestTube size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Vial Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                           Research Parameters
                         </span>
                       </div>
@@ -2286,10 +2293,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2 pt-1">
                     <PackageOpen size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Order Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                           Purchase Information
                         </span>
                       </div>
@@ -2350,10 +2357,10 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2 pt-1">
                     <ImageUp size={24} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>Extra Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                           Documentation
                         </span>
                       </div>
@@ -2382,7 +2389,7 @@ export default function Stockpile() {
 
           {/* Add Vial Button */}
           <button 
-            className="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border" 
+            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border" 
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
               borderColor: theme.border,

@@ -32,7 +32,7 @@ import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
-import { isNative } from '../utils/platform';
+import { isNative, isPWAInstalled } from '../utils/platform';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -51,12 +51,18 @@ export default function Landing() {
     };
   }, []);
 
-  // Redirect mobile/native app users to login page
+  // Smart routing: Native apps and installed PWAs go to login (with intro)
+  // Browser users stay on landing page (marketing)
   useEffect(() => {
-    if (isNative()) {
+    const shouldRedirectToApp = isNative() || isPWAInstalled();
+    
+    if (shouldRedirectToApp) {
+      console.log('📱 Native/Installed PWA detected - redirecting to login/intro');
       startTransition(() => {
         navigate('/login', { replace: true });
       });
+    } else {
+      console.log('🌐 Browser user detected - showing marketing landing page');
     }
   }, [navigate]);
 

@@ -75,7 +75,7 @@ export default function StockpileGroupCard({
           >
             <div className="flex items-center gap-2">
               <PenTool size={14} style={{ color: '#c87a5c', flexShrink: 0 }} />
-              <p className="text-xs font-medium flex-1" style={{ color: theme.text }}>
+              <p className="text-xs font-normal flex-1" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                 Incomplete entry - matching the research principal
               </p>
             </div>
@@ -89,8 +89,8 @@ export default function StockpileGroupCard({
                 const firstItem = Object.values(group.variants)[0]?.items[0];
                 if (firstItem && onCompleteEntry) onCompleteEntry(firstItem);
               }}
-              className="w-full px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#c87a5c', color: '#ffffff' }}
+              className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: '#c87a5c', color: '#ffffff', fontFamily: 'Poppins, sans-serif' }}
             >
               Complete Entry
             </button>
@@ -100,15 +100,16 @@ export default function StockpileGroupCard({
         {/* Header Section */}
         <div className="flex items-start justify-between mb-2 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
+            <h3 className="text-base font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
           </div>
           
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <div 
-              className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm"
+              className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider shadow-sm"
               style={{ 
+                fontFamily: 'Poppins, sans-serif',
                 backgroundColor: statusBadge === 'low' 
                   ? (theme.isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)')
                   : (theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)'),
@@ -119,7 +120,7 @@ export default function StockpileGroupCard({
             >
               {statusBadge === 'low' ? 'Low' : 'Well Stocked'}
             </div>
-            <div className="text-[10px] font-bold opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
+            <div className="text-[10px] font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.totalVials} Vials • {group.totalMg} {group.unit || 'mg'}
             </div>
           </div>
@@ -138,7 +139,7 @@ export default function StockpileGroupCard({
                 />
                 
                 {/* Variant Header Label */}
-                <div className="text-[10px] font-black uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text }}>
+                <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   <div className="flex items-center gap-1.5">
                     <Beaker size={10} style={{ color: '#8ca68c' }} />
                     {variant.mg} {variant.unit || 'mg'} Vials
@@ -176,7 +177,7 @@ export default function StockpileGroupCard({
         {/* Tap to Open Indicator - Bottom Center */}
         <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
           <div className="flex items-center gap-2 opacity-50 group-hover:opacity-80 transition-opacity">
-            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.text }}>
+            <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               View Stock
             </span>
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-y-0.5 transition-transform" />
@@ -237,11 +238,11 @@ function ItemStrip({
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
           </div>
           
-          <div className="text-[12px] font-bold truncate" style={{ color: theme.text }}>
+          <div className="text-[12px] font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {vendorName}
           </div>
           {item.date && (
-            <div className="flex items-center gap-1 text-[10px] opacity-60 flex-shrink-0" style={{ color: theme.text }}>
+            <div className="flex items-center gap-1 text-[10px] opacity-60 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               <Calendar size={10} />
               {new Date(item.date).toLocaleDateString(undefined, { month: 'numeric', year: '2-digit' })}
             </div>
@@ -256,7 +257,7 @@ function ItemStrip({
         </div>
 
         <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
-          <div className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+          <div className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {item.quantity} {item.quantity === 1 ? 'vial' : 'vials'}
           </div>
           
@@ -323,9 +324,9 @@ function ItemStrip({
           <DataPoint icon={Calendar} label="Use By" value={item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'} theme={theme} />
           {item.notes && (
             <div className="col-span-2 mt-0.5 pt-1.5 border-t border-black/5 dark:border-white/5">
-              <div className="flex items-start gap-2 text-[10px]" style={{ color: theme.textLight }}>
+              <div className="flex items-start gap-2 text-[10px]" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
                 <Info size={10} className="mt-0.5" />
-                <span className="italic">{item.notes}</span>
+                <span className="italic font-normal">{item.notes}</span>
               </div>
             </div>
           )}
@@ -335,8 +336,8 @@ function ItemStrip({
                 <button
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); if (doc.type === 'image') onPreviewImage(doc); }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
-                  style={{ color: theme.primary }}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
+                  style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
                 >
                   <FileImage size={10} strokeWidth={2.5} />
                   View Lab Document
@@ -356,8 +357,8 @@ function DataPoint({ icon: Icon, label, value, theme }) {
     <div className="flex items-center gap-2 overflow-hidden">
       <Icon size={12} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
       <div className="flex flex-col min-w-0">
-        <span className="text-[9px] uppercase tracking-widest opacity-50 font-black" style={{ color: theme.text }}>{label}</span>
-        <span className="text-[11px] font-bold truncate" style={{ color: theme.text }}>{value}</span>
+        <span className="text-[9px] uppercase tracking-widest opacity-50 font-medium" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{label}</span>
+        <span className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
       </div>
     </div>
   );
@@ -368,7 +369,7 @@ function MenuAction({ icon: Icon, label, onClick, theme, color }) {
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className="w-full text-left px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-3 transition-colors font-medium"
-      style={{ color: color || theme.text }}
+      style={{ color: color || theme.text, fontFamily: 'Poppins, sans-serif' }}
     >
       <Icon size={14} style={{ color: color || '#8ca68c' }} />
       {label}
