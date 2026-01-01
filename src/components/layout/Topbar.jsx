@@ -415,13 +415,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-2 pb-4 text-base capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation flex items-center"
+                className="px-2 pb-4 pt-2 text-base capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent',
-                  paddingTop: '0.5rem',
-                  paddingBottom: '1rem'
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
@@ -506,22 +504,25 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-1 pb-4 pt-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation"
+                className="px-1 pb-4 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  paddingTop: '1rem',
+                  paddingBottom: '1rem'
                 }}
               >
                 {tab.label}
                 {/* Active indicator line - below text */}
                 {activeTab === tab.value && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-300"
+                    className="absolute left-0 right-0 rounded-full transition-all duration-300"
                     style={{ 
                       backgroundColor: theme.primary,
                       height: '3px',
-                      boxShadow: `0 0 8px ${theme.primary}60`
+                      boxShadow: `0 0 8px ${theme.primary}60`,
+                      bottom: '0.5rem'
                     }}
                   />
                 )}
