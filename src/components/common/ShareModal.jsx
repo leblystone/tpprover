@@ -244,28 +244,62 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         <Modal
             open={open}
             onClose={onClose}
-            title={`Share ${title}`}
+            title="Share Research Data"
             theme={theme}
             variant="modern"
             footer={
-                <div className="flex w-full gap-2">
-                    <button onClick={handleShareImage} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" style={{ backgroundColor: theme.primary, color: theme.white }}>
-                        <Image size={16} />
-                        Share as Image
+                <div className="flex w-full gap-3">
+                    <button 
+                        onClick={handleShareImage} 
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
+                        style={{ 
+                            backgroundColor: theme.primary, 
+                            color: theme.textOnPrimary || '#ffffff'
+                        }}
+                    >
+                        <Image size={18} />
+                        Share Image
                     </button>
-                    <button onClick={handleCopyLink} disabled={copied} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold border transition-all" style={{ borderColor: theme.border, backgroundColor: copied ? theme.primary : 'transparent', color: copied ? theme.white : theme.text }}>
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                    <button 
+                        onClick={handleCopyLink} 
+                        disabled={copied} 
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                        style={{ 
+                            borderColor: copied ? theme.primary : theme.border, 
+                            backgroundColor: copied ? `${theme.primary}15` : 'transparent', 
+                            color: copied ? theme.primary : theme.text 
+                        }}
+                    >
+                        {copied ? <Check size={18} /> : <Copy size={18} />}
                         {copied ? 'Copied!' : 'Copy Link'}
                     </button>
                 </div>
             }
         >
-            <p className="text-sm text-center mb-4" style={{ color: theme.textLight }}>
-                Here is a preview of what will be shared.
-            </p>
-            <div className="flex justify-center w-full overflow-x-auto">
-                <div ref={cardRef} className="bg-white p-2 inline-block max-w-full" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                    <ShareCard {...cardProps} isPublicView={true} theme={theme} />
+            <div className="space-y-4">
+                {/* Header Section */}
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                    <div>
+                        <h3 className="text-sm font-bold tracking-tight" style={{ color: theme.text }}>Preview</h3>
+                        <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
+                            Shareable Content
+                        </p>
+                    </div>
+                </div>
+
+                {/* Preview Card */}
+                <div className="flex justify-center w-full overflow-x-auto pb-2">
+                    <div 
+                        ref={cardRef} 
+                        className="bg-white rounded-2xl shadow-lg inline-block max-w-full" 
+                        style={{ 
+                            fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                            padding: '0'
+                        }}
+                    >
+                        <ShareCard {...cardProps} isPublicView={true} theme={theme} />
+                    </div>
                 </div>
             </div>
         </Modal>

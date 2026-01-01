@@ -1,68 +1,167 @@
 import React from 'react';
-import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp } from 'lucide-react';
-import { formatMMDDYYYY } from '../../utils/date';
+import { Target, Clock, FileText, RotateCw, Info } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 
-// Sage theme colors - fixed for shared content
-const sageTheme = {
-    primary: '#4A7C70',        // Sage green
-    primaryDark: '#3A6B5F',    // Darker sage green
-    border: '#D1D5DB',         // Light gray border
-    text: '#374151',           // Dark gray text
-    textLight: '#6B7280'       // Medium gray text
+// Modern theme colors - matching app aesthetic
+const shareTheme = {
+    primary: '#7F9E95',        // Sage green matching app
+    primaryDark: '#5F7F76',
+    border: '#DDE6DE',
+    text: '#2F3B3A',
+    textLight: '#6B7D7A',
+    accent: '#8ca68c'
 };
 
 export default function SharedProtocolCard({ item: p, theme }) {
     if (!p) return null;
 
-    const Icon = ({ I }) => <I size={16} className="mt-0.5 flex-shrink-0" style={{ color: sageTheme.primary }} />;
+    const formatDuration = () => {
+        if (p.duration?.noEnd) return 'Ongoing';
+        if (p.duration?.count && p.duration?.unit) {
+            return `${p.duration.count} ${p.duration.unit}${p.duration.count !== 1 ? 's' : ''}`;
+        }
+        return 'Not specified';
+    };
+
+    const formatFrequency = (freq) => {
+        if (!freq) return 'Not set';
+        if (freq.type === 'daily') {
+            if (freq.time && Array.isArray(freq.time) && freq.time.length > 0) {
+                return `Daily: ${freq.time.join(', ')}`;
+            }
+            return 'Daily';
+        }
+        if (freq.type === 'weekly' && freq.days?.length > 0) {
+            return `Weekly: ${freq.days.join(', ')}`;
+        }
+        if (freq.type === 'cycle') {
+            return `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+        }
+        if (freq.type === 'custom') {
+            return freq.customDays ? `Every ${freq.customDays} days` : 'Custom';
+        }
+        return 'Not set';
+    };
 
     return (
-        <div className="p-6 rounded-xl shadow-xl bg-white w-full max-w-md" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-            <header className="flex items-center gap-3 mb-4">
-                <img src={logo} alt="The Pep Planner Logo" className="h-12 w-12 rounded-full shadow-md object-cover" />
-                <div>
-                    <h1 className="font-bold text-lg" style={{ color: sageTheme.primaryDark }}>{p.protocolName || 'Research Protocol'}</h1>
-                    <p className="text-xs text-gray-500">Research Protocol</p>
+        <div className="p-6 rounded-2xl bg-white w-full max-w-md shadow-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5 pb-4 border-b" style={{ borderColor: shareTheme.border }}>
+                <div className="flex items-center gap-3">
+                    <img src={logo} alt="The Pep Planner" className="h-10 w-10 rounded-full shadow-sm object-cover" />
+                    <div>
+                        <h1 className="font-bold text-xl tracking-tight" style={{ color: shareTheme.text }}>
+                            {p.protocolName || 'Research Protocol'}
+                        </h1>
+                        <p className="text-xs opacity-60 mt-0.5" style={{ color: shareTheme.text }}>Research Protocol</p>
+                    </div>
                 </div>
-            </header>
-            
-            <div className="space-y-3 text-sm text-gray-700">
-                <div className="flex items-start gap-3"><Icon I={Target} /><span><strong>Purpose:</strong> {p.purpose || 'N/A'}</span></div>
-                <div className="flex items-start gap-3"><Icon I={Clock} /><span><strong>Duration:</strong> {p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}(s)` : 'N/A')}</span></div>
-                {p.washout?.enabled && p.washout?.count > 0 && (
-                    <div className="flex items-start gap-3"><Icon I={RotateCw} /><span><strong>Washout:</strong> {p.washout.count} {p.washout.unit}(s)</span></div>
+            </div>
+
+            {/* Content Sections */}
+            <div className="space-y-4">
+                {/* Protocol Overview */}
+                <div className="relative pl-3">
+                    <div 
+                        className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                        style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
+                    />
+                    <div className="space-y-2.5">
+                        {p.purpose && (
+                            <div>
+                                <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
+                                    <Target size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                                    Purpose
+                                </div>
+                                <p className="text-xs font-semibold" style={{ color: shareTheme.text }}>{p.purpose}</p>
+                            </div>
+                        )}
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
+                                <Clock size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                                Duration
+                            </div>
+                            <p className="text-xs font-semibold" style={{ color: shareTheme.text }}>{formatDuration()}</p>
+                        </div>
+                        {p.washout?.enabled && p.washout?.count > 0 && (
+                            <div>
+                                <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
+                                    <RotateCw size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                                    Washout Period
+                                </div>
+                                <p className="text-xs font-semibold" style={{ color: shareTheme.text }}>
+                                    {p.washout.count} {p.washout.unit}{p.washout.count !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Peptides */}
+                {p.peptides && p.peptides.length > 0 && (
+                    <div className="relative pl-3">
+                        <div 
+                            className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                            style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
+                        />
+                        <div className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
+                            <Info size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                            Included Peptides
+                        </div>
+                        <div className="space-y-2">
+                            {p.peptides.map((peptide, index) => (
+                                <div 
+                                    key={peptide.id || index} 
+                                    className="p-2.5 rounded-xl bg-gray-50 flex justify-between items-center"
+                                >
+                                    <span className="text-xs font-bold" style={{ color: shareTheme.text }}>
+                                        {peptide.name || 'Unnamed Peptide'}
+                                    </span>
+                                    {peptide.dosage?.amount > 0 && (
+                                        <span className="text-[10px] font-semibold opacity-70" style={{ color: shareTheme.text }}>
+                                            {peptide.dosage.amount} {peptide.dosage.unit}
+                                            {peptide.frequency && (
+                                                <span className="ml-1 opacity-60">
+                                                    • {formatFrequency(peptide.frequency)}
+                                                </span>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Notes */}
+                {p.notes && p.notes.trim() && (
+                    <div className="relative pl-3">
+                        <div 
+                            className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                            style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
+                        />
+                        <div className="text-[10px] font-bold uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
+                            <FileText size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                            Protocol Notes
+                        </div>
+                        <p 
+                            className="text-[11px] leading-relaxed italic opacity-70"
+                            style={{ color: shareTheme.text }}
+                        >
+                            {p.notes}
+                        </p>
+                    </div>
                 )}
             </div>
 
-            <hr className="my-4" style={{ borderColor: sageTheme.border }} />
-            
-            <h2 className="font-semibold text-sm mb-2" style={{ color: sageTheme.text }}>Included Peptides</h2>
-            <div className="space-y-2">
-                {p.peptides?.map((peptide, index) => (
-                    <div key={peptide.id || index} className="text-sm p-2 rounded-md bg-gray-50 flex justify-between items-center">
-                        <span className="font-medium">{peptide.name || 'Unnamed Peptide'}</span>
-                        <span className="text-xs text-gray-600">
-                            {peptide.dosage?.amount > 0 ? `${peptide.dosage.amount} ${peptide.dosage.unit}` : ''}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            {p.notes && (
-                <>
-                    <hr className="my-4" style={{ borderColor: sageTheme.border }} />
-                    <div className="flex items-start gap-3 text-sm"><Icon I={FileText} /><p><strong>Notes:</strong> <span className="text-xs italic">{p.notes}</span></p></div>
-                </>
-            )}
-
-            <footer className="text-center mt-6 pt-4 border-t" style={{ borderColor: sageTheme.border }}>
-                <p className="text-xs font-semibold" style={{ color: sageTheme.primary }}>The Pep Planner</p>
-                <p className="text-xs text-gray-400 mb-2">Organize Your Research</p>
-                <p className="text-[10px] text-red-600 font-semibold p-1 bg-red-100 rounded">
-                    For Research & Informational Purposes Only. Not for human consumption. The content is user-generated and not endorsed by The Pep Planner.
+            {/* Footer */}
+            <div className="mt-6 pt-4 border-t text-center" style={{ borderColor: shareTheme.border }}>
+                <p className="text-xs font-bold mb-1" style={{ color: shareTheme.primary }}>The Pep Planner</p>
+                <p className="text-[10px] opacity-60 mb-2" style={{ color: shareTheme.text }}>Organize Your Research</p>
+                <p className="text-[9px] font-semibold px-2 py-1 rounded bg-red-50 text-red-700 inline-block">
+                    For Research & Informational Purposes Only
                 </p>
-            </footer>
+            </div>
         </div>
     );
 }

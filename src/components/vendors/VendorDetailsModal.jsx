@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff } from 'lucide-react'
+import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff, MessageSquare } from 'lucide-react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { generateId } from '../../utils/string'
 
@@ -178,13 +178,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       <div className="relative space-y-4">
         {/* VENDOR INFO Section Header */}
         <div className="pt-2">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <div>
-              <h4 className="text-base font-bold tracking-tight" style={{ color: theme.text }}>Vendor Profile</h4>
-              <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                Identity & Classification
-              </p>
+          {/* Section Header */}
+          <div className="flex items-center gap-4 mb-4">
+            <Building2 size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5 flex-1">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vendor Profile</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Name & Rating
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -297,13 +301,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
         {/* CONTACT INFO Section Header */}
         <div className="pt-4">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <div>
-              <h4 className="text-base font-bold tracking-tight" style={{ color: theme.text }}>Communication</h4>
-              <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                Contact & Support Details
-              </p>
+          {/* Section Header */}
+          <div className="flex items-center gap-4 mb-4">
+            <MessageSquare size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Communication</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Contact & Support Details
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -420,13 +428,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
         {/* PAYMENT METHODS Section Header */}
         <div className="pt-4">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <div>
-              <h4 className="text-base font-bold tracking-tight" style={{ color: theme.text }}>Trust & Payments</h4>
-              <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                Transaction Security
-              </p>
+          {/* Section Header */}
+          <div className="flex items-center gap-4 mb-4">
+            <CreditCard size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Trust & Payments</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Transaction Security
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -453,12 +465,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
                   className="flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 border-2"
                   style={{
-                    backgroundColor: isSelected ? `${theme.primary}10` : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
+                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
                     borderColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'),
-                    color: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
+                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
                   }}
                 >
-                  <Icon size={20} className="mb-2" />
+                  <Icon size={20} className="mb-2" style={{ color: isSelected ? theme.textOnPrimary : 'inherit' }} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">{payment.name}</span>
                 </button>
               )
@@ -478,13 +490,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
         {/* ADDITIONAL INFO Section Header */}
         <div className="pt-4">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <div>
-              <h4 className="text-base font-bold tracking-tight" style={{ color: theme.text }}>Observations</h4>
-              <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                Research Intelligence
-              </p>
+          {/* Section Header */}
+          <div className="flex items-center gap-4 mb-4">
+            <FileText size={32} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Labels</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Research Tags
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -492,7 +508,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
         {/* Section: Labels + Notes */}
         <div className="space-y-6">
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {labelOptions.map(label => {
               const Icon = getLabelIcon(label)
               const isSelected = Array.isArray(form.labels) && form.labels.includes(label)
@@ -501,15 +517,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   key={label}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 text-xs font-bold border-2"
+                  className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 border-2"
                   style={{
-                    backgroundColor: isSelected ? `${theme.primary}10` : 'transparent',
+                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
                     borderColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'),
-                    color: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
+                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
                   }}
                 >
-                  <span>{label}</span>
-                  <Icon size={12} className={isSelected ? 'opacity-100' : 'opacity-40'} />
+                  <Icon size={16} className="mb-1" style={{ color: isSelected ? theme.textOnPrimary : 'inherit' }} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">{label}</span>
                 </button>
               )
             })}
@@ -518,13 +534,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="relative">
             <textarea 
               id="notes-textarea"
-              className="w-full p-4 rounded-xl text-sm font-medium transition-all focus:outline-none resize-none" 
+              className="w-full p-3 rounded-xl text-sm font-medium transition-all focus:outline-none resize-none" 
               value={form.notes || ''} 
               onChange={e => setForm({ ...form, notes: e.target.value })} 
               onFocus={() => setIsNotesFocused(true)}
               onBlur={() => setIsNotesFocused(false)}
-              placeholder=" " 
-              rows={3}
+              rows={2}
               style={{ 
                 border: `1px solid ${isNotesFocused ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff', 
@@ -537,7 +552,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               className="absolute pointer-events-none transition-all"
               style={{
                 fontSize: (isNotesFocused || (form.notes && form.notes.trim())) ? '0.7rem' : '0.875rem',
-                top: (isNotesFocused || (form.notes && form.notes.trim())) ? '-8px' : '14px',
+                top: (isNotesFocused || (form.notes && form.notes.trim())) ? '-8px' : '12px',
                 left: (isNotesFocused || (form.notes && form.notes.trim())) ? '12px' : '16px',
                 padding: (isNotesFocused || (form.notes && form.notes.trim())) ? '0 4px' : '0',
                 background: (isNotesFocused || (form.notes && form.notes.trim())) ? (theme.cardBackground || '#fff') : 'transparent',
@@ -546,7 +561,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                 opacity: (isNotesFocused || (form.notes && form.notes.trim())) ? 1 : 0.5
               }}
             >
-              Protocol Observations
+              Notes . . .
             </label>
           </div>
         </div>
@@ -555,13 +570,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         {vendor && (
           <>
             <div className="pt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <div>
-                  <h4 className="text-base font-bold tracking-tight" style={{ color: theme.text }}>Acquisition History</h4>
-                  <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                    Past Protocols
-                  </p>
+              {/* Section Header */}
+              <div className="flex items-center gap-4 mb-4">
+                <History size={32} style={{ color: theme.primary }} />
+                <div className="flex flex-col gap-0.5">
+                  <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order History</h4>
+                  <div className="flex items-center gap-2 ml-1">
+                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                      Recent
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
