@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { formatMMDDYYYY } from '../../utils/date'
 import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from '../../utils/currencyUtils'
-import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Edit, Home } from 'lucide-react'
+import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Edit, Home, MoreVertical, Trash2 } from 'lucide-react'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
@@ -15,8 +15,10 @@ const getNextStatus = (status) => {
   return { text: 'Mark as Shipped', icon: <Truck className="h-4 w-4" /> };
 };
 
-export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendors = [] }) {
+export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [] }) {
   const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   if (!orders.length) {
     return <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>No orders.</p>
   }
@@ -29,30 +31,36 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
         return (
           <div 
             key={o.id} 
-            className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card cursor-pointer" 
+            className="rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer relative" 
             style={{ backgroundColor: theme.cardBackground }}
             onClick={() => onEdit?.(o)}
           >
-            {/* Top row: Title/Vendor on left, Status/Buttons on right */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-              {/* Left side: Title and Vendor */}
-              <div className="flex-grow min-w-0">
-                <div className="font-semibold text-base" style={{ color: theme?.text }}>{formatOrderTitle(o)}</div>
-                <div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}>
-                  <Package size={14} /> {o.vendorId ? vendorMap[o.vendorId] : o.vendor}
-                </div>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg mb-1" style={{ color: theme.primaryDark }}>
+                  {formatOrderTitle(o)}
+                </h3>
+                {o.vendorId || o.vendor ? (
+                  <p className="text-sm flex items-center gap-2" style={{ color: theme.textLight }}>
+                    <Package size={14} />
+                    from {o.vendorId ? vendorMap[o.vendorId] : o.vendor}
+                  </p>
+                ) : null}
               </div>
-
-              {/* Right side: Status and Actions - Mobile optimized */}
-              <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                 <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={statusStyle(o.status, theme)}>
+              
+              <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={statusStyle(o.status, theme)}>
                   {displayStatus(o.status)}
                 </span>
                 {nextStatusAction && (
                   <button 
                     aria-label={nextStatusAction.text} 
-                    className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-md hover:bg-gray-100 text-xs sm:text-sm flex-shrink-0" 
-                    style={{ color: theme.primary }} 
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0" 
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      color: theme.textOnPrimary 
+                    }} 
                     onClick={(e) => {
                       e.stopPropagation();
                       onAdvance?.(o);
@@ -62,40 +70,114 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
                     <span className="hidden sm:inline">{nextStatusAction.text}</span>
                   </button>
                 )}
-                <button 
-                  aria-label="Edit" 
-                  className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 flex-shrink-0" 
-                  style={{ color: theme.primary }} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.(o);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Details grid for larger screens, stacked for mobile */}
-            <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm" style={{ borderColor: theme.border, color: theme.textLight }}>
-              <div className="flex items-center gap-2"><Beaker size={14} /> {formatTotalQuantity(o)}</div>
-              <div className="flex items-center gap-2"><DollarSign size={14} /> {formatTotalCost(o)}</div>
-              <div className="flex items-center gap-2"><Calendar size={14} /> Ordered: {formatMMDDYYYY(o.date)}</div>
-              <div className="flex items-center gap-2">
-                <Truck size={14} /> 
-                {o.status === 'Delivered' 
-                    ? `Delivered: ${formatMMDDYYYY(o.deliveryDate) || ''}`
-                    : `Est. Delivery: ${formatMMDDYYYY(o.deliveryDate) || 'Pending'}`
-                }
               </div>
             </div>
 
+            {/* Details Grid */}
+            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm" style={{ borderColor: theme.border }}>
+              <div className="flex items-center gap-2">
+                <Beaker size={14} style={{ color: theme.textLight }} />
+                <span style={{ color: theme.text }}>
+                  Quantity: {formatTotalQuantity(o)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <DollarSign size={14} style={{ color: theme.textLight }} />
+                <span style={{ color: theme.text }}>
+                  Total: {formatTotalCost(o)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Calendar size={14} style={{ color: theme.textLight }} />
+                <span style={{ color: theme.text }}>
+                  Ordered: {formatMMDDYYYY(o.date)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Truck size={14} style={{ color: theme.textLight }} />
+                <span style={{ color: theme.text }}>
+                  {o.status === 'Delivered' 
+                    ? `Delivered: ${formatMMDDYYYY(o.deliveryDate) || 'N/A'}`
+                    : `Est. Delivery: ${formatMMDDYYYY(o.deliveryDate) || 'Pending'}`
+                  }
+                </span>
+              </div>
+            </div>
+
+            {/* Notes */}
             {o.notes && (
-              <div className="mt-3 pt-3 border-t text-xs flex items-start gap-2" style={{ borderColor: theme.border, color: theme.textLight }}>
-                <Info size={14} className="mt-0.5" />
-                <p>{o.notes}</p>
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
+                <div className="flex items-start gap-2">
+                  <Info size={14} style={{ color: theme.textLight }} className="mt-0.5" />
+                  <span className="text-sm" style={{ color: theme.text }}>
+                    {o.notes}
+                  </span>
+                </div>
               </div>
             )}
+
+            {/* 3-dot menu in bottom right */}
+            <div className="absolute bottom-3 right-3" onClick={(e) => e.stopPropagation()}>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuId(openMenuId === o.id ? null : o.id);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  style={{ color: theme.textLight }}
+                  title="More options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+                
+                {openMenuId === o.id && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setOpenMenuId(null)}
+                    />
+                    <div 
+                      className="absolute bottom-8 right-0 bg-white rounded-lg shadow-lg border z-20 min-w-[140px]"
+                      style={{ 
+                        borderColor: theme.border,
+                        backgroundColor: theme.cardBackground 
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                          onEdit?.(o);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors rounded-t-lg"
+                        style={{ color: theme.text }}
+                      >
+                        <Edit size={14} />
+                        Edit
+                      </button>
+                      {onDelete && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(null);
+                            onDelete?.(o.id);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors rounded-b-lg"
+                          style={{ color: theme.error || '#ef4444' }}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )})}
     </div>
