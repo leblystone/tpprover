@@ -2628,6 +2628,21 @@ export default function Stockpile() {
           onClose={() => setViewingGroup(null)}
           onBack={() => setViewingGroup(null)}
           title={viewingGroup.name}
+          titleExtra={(
+            <div className="flex flex-col items-end leading-none">
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black tracking-tight" style={{ color: theme.primary }}>
+                  {viewingGroup.totalMg > 0 ? viewingGroup.totalMg : viewingGroup.totalVials}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-70" style={{ color: theme.text }}>
+                  {viewingGroup.totalMg > 0 ? (viewingGroup.unit || 'mg') : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')}
+                </span>
+              </div>
+              <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 -mt-0.5" style={{ color: theme.text }}>
+                Total Stock
+              </div>
+            </div>
+          )}
           theme={theme}
           maxHeight="90vh"
           footer={(
@@ -2652,39 +2667,7 @@ export default function Stockpile() {
             </div>
           )}
         >
-          <div className="space-y-4">
-            {/* Research Summary Header */}
-            <div 
-              className="p-4 rounded-2xl border flex items-center justify-between overflow-hidden relative" 
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                borderColor: theme.border
-              }}
-            >
-              {/* Subtle decorative icon */}
-              <Package size={80} className="absolute -right-4 -bottom-4 opacity-5 rotate-12" style={{ color: theme.primary }} />
-              
-              <div className="flex-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1.5 opacity-40" style={{ color: theme.text }}>
-                  Inventory Summary
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-semibold" style={{ color: theme.text }}>
-                    {viewingGroup.totalMg > 0 
-                      ? viewingGroup.totalMg
-                      : viewingGroup.totalVials
-                    }
-                  </div>
-                  <div className="text-sm font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
-                    {viewingGroup.totalMg > 0 
-                      ? (viewingGroup.unit || 'mg')
-                      : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')
-                    } Total
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <div className="space-y-6">
             {/* Detailed Inventory List */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-1">
