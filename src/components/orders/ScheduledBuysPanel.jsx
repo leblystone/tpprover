@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Edit, Trash2, Building } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Building, Calendar, Info, ChevronDown, MessageSquare } from 'lucide-react';
 import { formatMMDDYYYY } from '../../utils/date';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
@@ -47,19 +47,12 @@ export default function ScheduledBuysPanel({ theme }) {
     };
 
     const handleDelete = async (id) => {
-        // Find the scheduled buy being deleted for logging
         const buyToDelete = scheduledBuys.find(b => b.id === id);
-        
         if (buyToDelete) {
             console.log('🗑️ Deleting scheduled buy:', buyToDelete.item || buyToDelete.name || 'Unknown');
         }
-        
-        // Remove from local state
         const updatedBuys = scheduledBuys.filter(b => b.id !== id);
         setScheduledBuys(updatedBuys);
-        
-        // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
-        // This prevents server data from restoring deleted items
         if (firebaseUser) {
             try {
                 const userId = firebaseUser.uid;
@@ -73,20 +66,10 @@ export default function ScheduledBuysPanel({ theme }) {
                     vendors: vendors || [],
                     calendarNotes: calendarNotes || {},
                     stockpile: stockpile || [],
-                    scheduledBuys: updatedBuys // Use updated scheduled buys with deletion
+                    scheduledBuys: updatedBuys
                 };
-                
-                // Force immediate sync with skipMerge to overwrite server data
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
-                if (syncResult) {
-                    console.log('✅ Deleted scheduled buy synced to cloud immediately');
-                } else {
-                    console.error('❌ Failed to sync deleted scheduled buy to cloud');
-                }
-            } catch (error) {
-                console.error('❌ Error syncing deleted scheduled buy to cloud:', error);
-                // Don't throw - the auto-sync will handle it
-            }
+                saveAppData(userId, appData, { skipMerge: true });
+            } catch (error) {}
         }
     };
 
@@ -102,37 +85,72 @@ export default function ScheduledBuysPanel({ theme }) {
     };
 
     return (
-        <div className="rounded-lg border p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Scheduled Buys</h2>
+        <div className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, fontFamily: 'Poppins, sans-serif' }}>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-0.5">
+                    <h2 className="text-base font-bold uppercase tracking-wider" style={{ color: theme.text }}>Scheduled Buys</h2>
+                    <div className="flex items-center gap-2">
+                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Research Queue</span>
+                    </div>
+                </div>
                 <button
-                    className="px-3 py-2 rounded-md text-sm font-semibold flex items-center gap-2"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     onClick={() => handleOpenModal()}
                 >
-                    <PlusCircle size={14} /> Add
+                    <PlusCircle size={14} strokeWidth={2.5} /> Add
                 </button>
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-4 mt-2">
                 {scheduledBuys.length > 0 ? (
                     scheduledBuys.sort((a, b) => new Date(a.openDate) - new Date(b.openDate)).map(buy => (
-                        <div key={buy.id} className="p-3 rounded-md border flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                            <div>
-                                <div className="font-semibold" style={{ color: theme.text }}>{buy.item}</div>
-                                <div className="text-xs text-gray-500">
+                        <div key={buy.id} className="relative pl-3 group/buy cursor-pointer" onClick={() => handleOpenModal(buy)}>
+                            {/* Vertical indicator line */}
+                            <div 
+                                className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full transition-opacity group-hover/buy:opacity-100"
+                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                            />
+                            
+                            {/* Header Section */}
+                            <div className="flex items-center justify-between mb-1.5">
+                                <div className="font-semibold text-[13px]" style={{ color: theme.text }}>{buy.item}</div>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal(buy); }} className="p-1 hover:bg-black/5 rounded-md transition-colors" style={{ color: theme.textLight }}><Edit size={12} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete scheduled buy?')) handleDelete(buy.id); }} className="p-1 hover:bg-red-50 rounded-md transition-colors" style={{ color: theme.error || '#ef4444' }}><Trash2 size={12} /></button>
+                                </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-1 gap-1.5">
+                                <div className="flex items-center gap-2 text-[11px] opacity-70" style={{ color: theme.text }}>
+                                    <Calendar size={10} style={{ color: '#8ca68c' }} />
                                     {formatMMDDYYYY(buy.openDate)} - {formatMMDDYYYY(buy.closeDate)}
                                 </div>
-                                {buy.vendor && <div className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Building size={12}/> {buy.vendor}</div>}
-                                {buy.notes && <p className="text-xs text-gray-400 mt-1 italic">"{buy.notes}"</p>}
+                                {buy.vendor && (
+                                    <div className="flex items-center gap-2 text-[11px] opacity-70" style={{ color: theme.text }}>
+                                        <Building size={10} style={{ color: '#8ca68c' }} />
+                                        {buy.vendor}
+                                    </div>
+                                )}
+                                {buy.notes && (
+                                    <div className="flex items-start gap-2 text-[11px] opacity-60 italic mt-0.5" style={{ color: theme.text }}>
+                                        <Info size={10} className="mt-0.5" style={{ color: '#8ca68c' }} />
+                                        <span>{buy.notes}</span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => handleOpenModal(buy)} className="p-1 hover:bg-gray-200 rounded-full"><Edit size={14} /></button>
-                                <button onClick={() => handleDelete(buy.id)} className="p-1 hover:bg-red-100 rounded-full"><Trash2 size={14} className="text-red-500" /></button>
-                            </div>
+                            
+                            {/* Section Divider */}
+                            <div className="h-px w-full mt-3 opacity-10" style={{ backgroundColor: theme.text }} />
                         </div>
                     ))
                 ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No scheduled buys.</p>
+                    <div className="flex flex-col items-center justify-center py-8 opacity-40">
+                        <MessageSquare size={24} className="mb-2" />
+                        <p className="text-xs font-medium uppercase tracking-widest text-center">No research buys<br/>scheduled</p>
+                    </div>
                 )}
             </div>
 

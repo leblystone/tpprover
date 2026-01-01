@@ -46,6 +46,16 @@ const formatPenType = (penType) => {
     return penTypes[penType] || `🖊️ ${penType}`;
 }
 
+const SectionDivider = ({ label, theme, icon }) => (
+    <div className="flex items-center gap-2 my-3 opacity-60">
+        {icon && <div style={{ color: theme.textLight }}>{icon}</div>}
+        <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: theme.textLight }}>
+            {label}
+        </span>
+        <div className="h-[1px] flex-1" style={{ backgroundColor: theme.border }} />
+    </div>
+);
+
 const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -268,279 +278,375 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     return (
         <>
             <div 
-                className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover cursor-pointer" 
-                style={{ backgroundColor: theme.cardBackground }}
+                className={`p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''}`}
+                style={{ 
+                    backgroundColor: theme.cardBackground,
+                    borderColor: isActive ? `${theme.primary}30` : 'transparent'
+                }}
                 onClick={() => !isPublicView && onStartClick(p, { manage: isActive })}
             >
                 <div className="flex-grow">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                            <h3 className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
-                                {p.protocolName || 'Unnamed Protocol'}
-                            </h3>
-                            {p.purpose && (
-                                <p className="text-sm mt-0.5" style={{ color: theme.textLight }}>
-                                    {p.purpose}
-                                </p>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {!isPublicView && isActive && (
-                                <div
-                                    className="px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 shadow-sm"
-                                    style={{
-                                        background: terracottaGradient,
-                                        color: '#ffffff',
-                                        boxShadow: terracottaShadow
-                                    }}
-                                >
-                                    Active
-                                </div>
-                            )}
-                            {!isPublicView && (
-                                <div className="relative protocol-menu-container">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsMenuOpen(!isMenuOpen);
-                                        }}
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-                                        style={{ color: theme.textLight }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                            e.currentTarget.style.color = theme.primary;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                            e.currentTarget.style.color = theme.textLight;
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <h3 className="font-semibold text-lg leading-tight" style={{ color: theme.text }}>
+                                    {p.protocolName || 'Unnamed Protocol'}
+                                </h3>
+                                {!isPublicView && isActive && (
+                                    <div
+                                        className="px-2 py-0.5 text-[10px] uppercase font-bold rounded flex-shrink-0 shadow-sm"
+                                        style={{
+                                            background: theme.isDark ? 'rgba(200, 122, 92, 0.2)' : 'rgba(200, 122, 92, 0.1)',
+                                            color: '#c87a5c',
+                                            border: '1px solid rgba(200, 122, 92, 0.3)'
                                         }}
                                     >
-                                        <MoreVertical size={18} />
-                                    </button>
-                                    {isMenuOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-[100]" onClick={() => setIsMenuOpen(false)} />
-                                            <div 
-                                                className="absolute right-0 top-full mt-1 rounded-lg shadow-lg z-[101] min-w-[160px]"
-                                                style={{ 
-                                                    backgroundColor: theme.cardBackground,
-                                                    border: `1px solid ${theme.border}`
+                                        Protocol Active
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Image-style metadata: "1 ORDER" -> "N PEPTIDES" */}
+                            <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>
+                                <div className="flex items-center gap-1">
+                                    <Beaker size={12} />
+                                    <span>{p.peptides?.length || 0} Peptides</span>
+                                </div>
+                                {isActive && p.startDate && (
+                                    <div className="flex items-center gap-1">
+                                        <Clock size={12} />
+                                        <span>Since {formatMMDDYYYY(new Date(p.startDate))}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {!isPublicView && (
+                            <div className="relative protocol-menu-container">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsMenuOpen(!isMenuOpen);
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="p-1.5 rounded-lg hover:bg-opacity-10 transition-colors"
+                                    style={{ color: theme.textLight }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <MoreVertical size={18} />
+                                </button>
+                                {isMenuOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-[100]" onClick={() => setIsMenuOpen(false)} />
+                                        <div 
+                                            className="absolute right-0 top-full mt-1 rounded-lg shadow-xl z-[101] min-w-[160px] overflow-hidden"
+                                            style={{ 
+                                                backgroundColor: theme.cardBackground,
+                                                border: `1px solid ${theme.border}`,
+                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsMenuOpen(false);
+                                                    onStartClick(p, { manage: isActive });
                                                 }}
-                                                onClick={(e) => e.stopPropagation()}
+                                                className="hidden md:flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
+                                                style={{ 
+                                                    color: theme.text,
+                                                    borderColor: theme.border
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
                                             >
+                                                <Play size={16} />
+                                                <span>{isActive ? 'Manage Protocol' : (hasDraftStart ? 'Resume Draft' : 'Start Research')}</span>
+                                            </button>
+                                            {isActive && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setIsMenuOpen(false);
-                                                        onStartClick(p, { manage: isActive });
+                                                        setIsNotesModalOpen(true);
                                                     }}
-                                                    className="hidden md:flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left border-b"
+                                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
                                                     style={{ 
                                                         color: theme.text,
                                                         borderColor: theme.border
                                                     }}
                                                     onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.backgroundColor = 'transparent';
                                                     }}
                                                 >
-                                                    <Play size={16} />
-                                                    <span>{isActive ? 'Manage' : (hasDraftStart ? 'Drafted Start' : 'Start Protocol')}</span>
+                                                    <NotebookPen size={16} />
+                                                    <span>Notes</span>
+                                                    {notesCount > 0 && (
+                                                        <span 
+                                                            className="ml-auto px-1.5 py-0.5 rounded-full text-xs font-bold"
+                                                            style={{ 
+                                                                backgroundColor: theme.primary, 
+                                                                color: theme.textOnPrimary
+                                                            }}
+                                                        >
+                                                            {notesCount}
+                                                        </span>
+                                                    )}
                                                 </button>
-                                                {isActive && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsMenuOpen(false);
-                                                            setIsNotesModalOpen(true);
-                                                        }}
-                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                                                        style={{ color: theme.text }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                                        }}
-                                                    >
-                                                        <NotebookPen size={16} />
-                                                        <span>Notes</span>
-                                                        {notesCount > 0 && (
-                                                            <span 
-                                                                className="ml-auto px-1.5 py-0.5 rounded-full text-xs font-bold"
-                                                                style={{ 
-                                                                    backgroundColor: theme.primary, 
-                                                                    color: theme.textOnPrimary
-                                                                }}
-                                                            >
-                                                                {notesCount}
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setIsMenuOpen(false);
-                                                        handleShare();
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                                                    style={{ color: theme.text }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                    }}
-                                                >
-                                                    <Share2 size={16} />
-                                                    <span>Share</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setIsMenuOpen(false);
-                                                        onHistoryClick(p);
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                                                    style={{ color: theme.text }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                    }}
-                                                >
-                                                    <History size={16} />
-                                                    <span>History</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setIsMenuOpen(false);
-                                                        onEditClick(p);
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                                                    style={{ color: theme.text }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                    }}
-                                                >
-                                                    <EditIcon size={16} />
-                                                    <span>Edit</span>
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsMenuOpen(false);
+                                                    handleShare();
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
+                                                style={{ 
+                                                    color: theme.text,
+                                                    borderColor: theme.border
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                            >
+                                                <Share2 size={16} />
+                                                <span>Share</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsMenuOpen(false);
+                                                    onHistoryClick(p);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
+                                                style={{ 
+                                                    color: theme.text,
+                                                    borderColor: theme.border
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                            >
+                                                <History size={16} />
+                                                <span>History</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsMenuOpen(false);
+                                                    onEditClick(p);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left"
+                                                style={{ color: theme.text }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                            >
+                                                <EditIcon size={16} />
+                                                <span>Edit</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Primary Status Section */}
-                    {isActive && (
-                        <div className="mb-2 pb-2 border-b" style={{ borderColor: theme.border }}>
-                            <div className="flex items-center gap-2">
-                                <CirclePlay size={16} style={{ color: theme.primary }} />
-                                <span className="font-medium text-sm" style={{ color: theme.text }}>
-                                    {renderDateRange(p, isActive) || 'Not started'}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Peptides Section */}
-                    {p.peptides && p.peptides.length > 0 && (
-                        <div className="mb-2 pb-2 border-b" style={{ borderColor: theme.border }}>
-                            <div className="space-y-1.5">
-                                {p.peptides.map((peptide, index) => (
-                                    <div key={peptide.id || index} className="flex items-start gap-2">
-                                        <Beaker size={14} style={{ color: theme.textLight }} className="mt-0.5 flex-shrink-0" />
-                                        <div className="flex-1">
-                                            <div className="font-medium text-sm" style={{ color: theme.text }}>
-                                                {peptide.name || 'Unnamed Peptide'}
-                                            </div>
-                                            <div className="text-xs space-y-0.5 mt-0.5" style={{ color: theme.textLight }}>
-                                                {peptide.dosage?.amount > 0 && (
-                                                    <div>
-                                                        {peptide.dosage.amount} {peptide.dosage.unit}
-                                                        {peptide.unitValue && ` (${peptide.unitValue} units)`}
-                                                    </div>
-                                                )}
-                                                {peptide.frequency && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <CalendarClock size={12} className="flex-shrink-0" />
-                                                        <span>{formatIndividualFrequency(peptide.frequency)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-2 pb-2 border-b" style={{ borderColor: theme.border }}>
-                        {isActive && (() => {
-                            const deliveryMethods = p.peptides && p.peptides.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))] : [];
-                            const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
-                            const cycleInfo = cyclePeptide?.frequency ? formatIndividualFrequency(cyclePeptide.frequency) : null;
+                    {isActive ? (
+                        /* NEW HIERARCHY FOR ACTIVE CARDS */
+                        <>
+                            <SectionDivider label="RESEARCH LOG" theme={theme} icon={<FileText size={12} />} />
                             
-                            return (
-                                <>
-                                    {p.duration && (
-                                        <div className="flex items-center gap-2">
-                                            <CalendarClock size={14} style={{ color: theme.textLight }} />
-                                            <span style={{ color: theme.text }}>
-                                                {p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}
-                                            </span>
+                            <div className="space-y-3 px-1">
+                                {p.purpose && (
+                                    <div className="flex items-start gap-2.5">
+                                        <Target size={14} className="mt-0.5 opacity-50" style={{ color: theme.textLight }} />
+                                        <p className="text-sm leading-relaxed" style={{ color: theme.text }}>
+                                            {p.purpose}
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                <div className="flex items-center gap-2.5">
+                                    <Clock size={14} className="opacity-50" style={{ color: theme.textLight }} />
+                                    <span className="text-sm font-medium" style={{ color: theme.text }}>
+                                        {renderDateRange(p, isActive) || 'Not started'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <SectionDivider label="PEPTIDES" theme={theme} icon={<Beaker size={12} />} />
+                            
+                            <div className="space-y-4 px-1">
+                                {p.peptides && p.peptides.length > 0 ? (
+                                    p.peptides.map((peptide, index) => (
+                                        <div key={peptide.id || index} className="flex items-stretch gap-3">
+                                            {/* Colored vertical line instead of square */}
+                                            <div 
+                                                className="w-1 rounded-full flex-shrink-0" 
+                                                style={{ 
+                                                    backgroundColor: peptide.capColor || theme.primary,
+                                                    opacity: peptide.capColor ? 1 : 0.3
+                                                }} 
+                                            />
+                                            
+                                            <div className="flex-1 py-0.5">
+                                                <div className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.text }}>
+                                                    {peptide.name || 'Unnamed Peptide'}
+                                                    {peptide.emoji && <span className="text-base leading-none">{peptide.emoji}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[12px] mt-0.5" style={{ color: theme.textLight }}>
+                                                    {peptide.dosage?.amount > 0 && (
+                                                        <span>{peptide.dosage.amount} {peptide.dosage.unit}</span>
+                                                    )}
+                                                    {(peptide.dosage?.amount > 0 && peptide.frequency) && (
+                                                        <span className="opacity-30">|</span>
+                                                    )}
+                                                    {peptide.frequency && (
+                                                        <span>{formatIndividualFrequency(peptide.frequency)}</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                    
-                                    {cycleInfo && (
-                                        <div className="flex items-center gap-2">
-                                            <Repeat size={14} style={{ color: theme.textLight }} />
-                                            <span style={{ color: theme.text }}>
-                                                {cycleInfo}
-                                            </span>
-                                        </div>
-                                    )}
-                                    
-                                    {deliveryMethods.length > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            {deliveryMethods.includes('pen') ? <Pen size={14} style={{ color: theme.textLight }} /> : <Pipette size={14} style={{ color: theme.textLight }} />}
+                                    ))
+                                ) : (
+                                    <p className="text-xs italic opacity-50">No peptides defined</p>
+                                )}
+                            </div>
+
+                            <SectionDivider label="RESEARCH DATA" theme={theme} icon={<Layers size={12} />} />
+                            
+                            <div className="grid grid-cols-2 gap-y-3 gap-x-4 px-1 pb-2">
+                                {p.duration && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <CalendarClock size={14} className="opacity-50" style={{ color: theme.textLight }} />
+                                        <span style={{ color: theme.text }}>
+                                            {p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {p.washout?.enabled && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <RotateCw size={14} className="opacity-50" style={{ color: theme.textLight }} />
+                                        <span style={{ color: theme.text }}>
+                                            {p.washout.count} {p.washout.unit} Washout
+                                        </span>
+                                    </div>
+                                )}
+
+                                {(() => {
+                                    const deliveryMethods = p.peptides && p.peptides.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))] : [];
+                                    if (deliveryMethods.length === 0) return null;
+                                    return (
+                                        <div className="flex items-center gap-2 text-sm">
+                                            {deliveryMethods.includes('pen') ? <Pen size={14} className="opacity-50" /> : <Pipette size={14} className="opacity-50" />}
                                             <span style={{ color: theme.text }}>
                                                 {deliveryMethods.length === 1 
-                                                    ? (deliveryMethods[0] === 'pen' ? 'Pen Delivery' : 'Syringe Delivery')
-                                                    : 'Mixed Delivery'
+                                                    ? (deliveryMethods[0] === 'pen' ? 'Pen' : 'Syringe')
+                                                    : 'Mixed'
                                                 }
                                             </span>
                                         </div>
-                                    )}
-                                    
-                                    {p.washout?.enabled && p.washout?.count > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <RotateCw size={14} style={{ color: theme.textLight }} />
-                                            <span style={{ color: theme.text }}>
-                                                Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}
-                                            </span>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-                        
-                        {!isActive && (
-                            <>
+                                    );
+                                })()}
+                            </div>
+
+                            {p.notes && (
+                                <div className="mt-2 px-3 py-2 rounded-md text-[11px] italic" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', color: theme.textLight }}>
+                                    {p.notes}
+                                </div>
+                            )}
+
+                            {/* Footer - Image Style */}
+                            <div className="mt-6 pt-3 border-t relative flex items-center justify-center" style={{ borderColor: theme.border }}>
+                                <div 
+                                    className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] opacity-40 hover:opacity-100 transition-opacity cursor-pointer mx-auto"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onStartClick(p, { manage: isActive });
+                                    }}
+                                >
+                                    <span>View Details</span>
+                                    <TrendingUp size={12} className="rotate-90" />
+                                </div>
+                                <div className="absolute right-0 flex items-center">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                                        className="p-1.5 rounded-full hover:bg-opacity-10 transition-colors"
+                                        style={{ color: theme.textLight }}
+                                    >
+                                        <Share2 size={16} className="opacity-40 hover:opacity-100" />
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        /* ORIGINAL LAYOUT FOR INACTIVE CARDS */
+                        <>
+                            {p.purpose && (
+                                <p className="text-sm mt-0.5 mb-2" style={{ color: theme.textLight }}>
+                                    {p.purpose}
+                                </p>
+                            )}
+                            
+                            {/* Peptides Section */}
+                            {p.peptides && p.peptides.length > 0 && (
+                                <div className="mb-2 pb-2 border-b" style={{ borderColor: theme.border }}>
+                                    <div className="space-y-1.5">
+                                        {p.peptides.map((peptide, index) => (
+                                            <div key={peptide.id || index} className="flex items-start gap-2">
+                                                <Beaker size={14} style={{ color: theme.textLight }} className="mt-0.5 flex-shrink-0" />
+                                                <div className="flex-1">
+                                                    <div className="font-medium text-sm" style={{ color: theme.text }}>
+                                                        {peptide.name || 'Unnamed Peptide'}
+                                                    </div>
+                                                    <div className="text-xs space-y-0.5 mt-0.5" style={{ color: theme.textLight }}>
+                                                        {peptide.dosage?.amount > 0 && (
+                                                            <div>
+                                                                {peptide.dosage.amount} {peptide.dosage.unit}
+                                                                {peptide.unitValue && ` (${peptide.unitValue} units)`}
+                                                            </div>
+                                                        )}
+                                                        {peptide.frequency && (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <CalendarClock size={12} className="flex-shrink-0" />
+                                                                <span>{formatIndividualFrequency(peptide.frequency)}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-3 text-sm mb-2 pb-2 border-b" style={{ borderColor: theme.border }}>
                                 {p.duration && (
                                     <div className="flex items-center gap-2">
                                         <CalendarClock size={14} style={{ color: theme.textLight }} />
@@ -557,24 +663,24 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                         </span>
                                     </div>
                                 )}
-                            </>
-                        )}
-                    </div>
-
-                    {/* Notes */}
-                    {p.notes && (
-                        <div className="mb-2">
-                            <div className="flex items-start gap-2">
-                                <FileText size={14} style={{ color: theme.textLight }} className="mt-0.5" />
-                                <span className="text-sm" style={{ color: theme.text }}>
-                                    {p.notes}
-                                </span>
                             </div>
-                        </div>
+
+                            {/* Notes */}
+                            {p.notes && (
+                                <div className="mb-2">
+                                    <div className="flex items-start gap-2">
+                                        <FileText size={14} style={{ color: theme.textLight }} className="mt-0.5" />
+                                        <span className="text-sm" style={{ color: theme.text }}>
+                                            {p.notes}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
-
             </div>
+
 
             <ShareModal
                 open={isShareModalOpen}

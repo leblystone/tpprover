@@ -30,7 +30,7 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
   }, [open, goal])
 
   return (
-    <Modal
+    <BottomSheet
       open={open}
       onClose={onClose}
       title={goal ? 'Edit Goal' : 'New Goal'}

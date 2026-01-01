@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Edit, ShoppingCart, FileText } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, ShoppingCart, FileText, ChevronDown, Info } from 'lucide-react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si';
 import { FaPaypal, FaAlipay } from 'react-icons/fa6';
 import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
+import { formatCurrency } from '../../utils/currencyUtils';
 
 // Venmo icon wrapper - makes it bigger for better visibility
 const VenmoIcon = ({ className, size, style }) => {
@@ -19,14 +20,14 @@ const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'O
 
 const getContactIcon = (type) => {
     const s = String(type || '').toLowerCase();
-    if (s === 'email') return <Mail size={14} />;
-    if (s === 'phone') return <Phone size={14} />;
-    if (s === 'website') return <Globe size={14} />;
-    if (s === 'whatsapp') return <FaWhatsapp size={14} />;
-    if (s === 'discord') return <FaDiscord size={14} />;
-    if (s === 'telegram') return <FaTelegramPlane size={14} />;
-    if (s === 'facebook') return <FaFacebook size={14} />;
-    return <MessageSquare size={14} />;
+    if (s === 'email') return <Mail size={12} />;
+    if (s === 'phone') return <Phone size={12} />;
+    if (s === 'website') return <Globe size={12} />;
+    if (s === 'whatsapp') return <FaWhatsapp size={12} />;
+    if (s === 'discord') return <FaDiscord size={12} />;
+    if (s === 'telegram') return <FaTelegramPlane size={12} />;
+    if (s === 'facebook') return <FaFacebook size={12} />;
+    return <MessageSquare size={12} />;
 };
 
 function buildContactHref(type, rawValue) {
@@ -89,6 +90,27 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
 
     const orderHistory = getOrderHistory();
 
+    // Calculate total spent with this vendor
+    const totalSpent = useMemo(() => {
+        if (orderHistory.length === 0) return 0;
+        
+        return orderHistory.reduce((total, order) => {
+            // Check if order has items array (new format)
+            if (order.items && order.items.length > 0) {
+                const itemsTotal = order.items.reduce((sum, item) => {
+                    const price = parseFloat(item.price) || 0;
+                    const quantity = parseInt(item.quantity, 10) || 1;
+                    return sum + (price * quantity);
+                }, 0);
+                const shippingCost = parseFloat(order.shippingCost) || 0;
+                return total + itemsTotal + shippingCost;
+            }
+            // Fallback to direct cost field (old format)
+            const cost = parseFloat(order.cost) || 0;
+            return total + cost;
+        }, 0);
+    }, [orderHistory]);
+
     const paymentMethods = [];
     const p = vendor?.payments || {};
     if (p.card) paymentMethods.push({ label: 'Card', Icon: CreditCard });
@@ -105,152 +127,250 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
 
     return (
         <>
-            <div className={`p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between h-full ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} style={{...cardStyle, '--tw-ring-color': vendor.isStub ? theme.primary : 'transparent'}}>
-                {/* Top Section: Name, Rating, Contacts */}
-                <div>
-                    <div className="flex items-start justify-between">
-                        <div className="font-semibold text-base">{vendor.name}</div>
+            <div 
+                className={`rounded-2xl shadow-md p-4 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} 
+                style={{
+                    ...cardStyle, 
+                    '--tw-ring-color': vendor.isStub ? theme.primary : 'transparent',
+                    fontFamily: 'Poppins, sans-serif'
+                }}
+                onClick={() => !isPublicView && onEditClick?.(vendor)}
+            >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3 gap-3">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
+                            {vendor.name}
+                        </h3>
                         <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map(n => (
-                                <Star key={n} size={16} style={{ fill: (vendor.rating || 0) >= n ? theme.primary : '#e5e7eb', color: (vendor.rating || 0) >= n ? theme.primary : '#d1d5db' }} />
+                                <Star key={n} size={14} style={{ fill: (vendor.rating || 0) >= n ? theme.primary : '#e5e7eb', color: (vendor.rating || 0) >= n ? theme.primary : '#d1d5db' }} />
                             ))}
                         </div>
                     </div>
                     
-                    {vendor.isStub && (
-                        <div className="mt-3 text-center">
-                            <button 
-                                onClick={() => onEditClick(vendor)}
-                                className="w-full px-3 py-2 rounded-md text-sm font-semibold"
-                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        {vendor.isStub && (
+                            <div 
+                                className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm"
+                                style={{ 
+                                    backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.15)' : 'rgba(200, 122, 92, 0.12)',
+                                    color: '#c87a5c'
+                                }}
                             >
-                                Complete Profile
-                            </button>
-                        </div>
-                    )}
+                                Incomplete
+                            </div>
+                        )}
+                        {!isPublicView && orderHistory.length > 0 && (
+                            <>
+                                <div className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
+                                    {orderHistory.length} ORDER{orderHistory.length !== 1 ? 'S' : ''}
+                                </div>
+                                <div className="text-[10px] font-semibold opacity-60 mt-0.5" style={{ color: theme.text }}>
+                                    {formatCurrency(totalSpent)}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
 
+                {/* Vertical Indicator Content Area */}
+                <div className="flex-1 space-y-3 mt-1">
+                    
+                    {/* Contacts Section */}
                     {vendor.contacts && vendor.contacts.length > 0 && (
-                        <div className="mt-3 pt-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
-                            <div className="grid grid-cols-1 gap-x-4 gap-y-2">
+                        <div className="relative pl-3">
+                            <div 
+                                className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                            />
+                            
+                            {/* Section Header */}
+                            <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <MessageSquare size={10} style={{ color: '#8ca68c' }} />
+                                    Contacts
+                                </div>
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-1.5 text-sm">
                                 {vendor.contacts.filter(c => c.value).map(c => {
                                     const action = buildContactHref(c.type, c.value);
                                     const content = (
-                                        <div className="flex items-center gap-2 text-sm transition-colors" style={{ color: theme.text }}>
-                                            <span className="text-base" style={{ color: theme.primary }}>{getContactIcon(c.type)}</span>
-                                            <span className="truncate">{c.value}</span>
+                                        <div className="flex items-center gap-2 text-[12px] group/item">
+                                            <span style={{ color: '#8ca68c' }}>{getContactIcon(c.type)}</span>
+                                            <span className="truncate opacity-80 group-hover/item:opacity-100 transition-opacity" style={{ color: theme.text }}>
+                                                {c.value}
+                                            </span>
                                         </div>
                                     );
                                     
                                     if (action.isLink) {
                                         return (
-                                            <a key={c.type+c.value} href={action.href} target="_blank" rel="noopener noreferrer" className="min-w-0" style={{ color: theme.text }}>{content}</a>
+                                            <a 
+                                                key={c.type+c.value} 
+                                                href={action.href} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="min-w-0"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {content}
+                                            </a>
                                         );
                                     }
                                     
                                     return (
-                                        <button key={c.type+c.value} onClick={() => { try { navigator.clipboard.writeText(c.value); window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Copied!', type: 'success' } })) } catch { } }} title={`Copy ${c.value}`} className="min-w-0 text-left w-full" style={{ color: theme.text }}>{content}</button>
+                                        <button 
+                                            key={c.type+c.value} 
+                                            onClick={(e) => { 
+                                                e.stopPropagation();
+                                                try { 
+                                                    navigator.clipboard.writeText(c.value); 
+                                                    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Copied!', type: 'success' } })) 
+                                                } catch { } 
+                                            }} 
+                                            title={`Copy ${c.value}`} 
+                                            className="min-w-0 text-left w-full"
+                                        >
+                                            {content}
+                                        </button>
                                     );
                                 })}
                             </div>
                         </div>
                     )}
 
-                    {vendor.notes && vendor.notes.trim() && (
-                        <div className="mt-3 pt-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
-                            <div className="flex items-start gap-2 text-sm">
-                                <FileText size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
-                                <div 
-                                    className="text-xs leading-relaxed"
-                                    style={{
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 3,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        maxHeight: '3.6em',
-                                        color: theme.isDark ? theme.textLight : theme.text
-                                    }}
-                                >
-                                    {vendor.notes}
+                    {/* Payments & Labels Section - Collapsible or always visible based on space */}
+                    {(paymentMethods.length > 0 || (vendor.labels && vendor.labels.length > 0)) && (
+                        <div className="relative pl-3">
+                            <div 
+                                className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                            />
+                            
+                            {/* Section Header */}
+                            <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <CreditCard size={10} style={{ color: '#8ca68c' }} />
+                                    Trust & Payments
                                 </div>
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                            </div>
+
+                            <div className="space-y-2">
+                                {paymentMethods.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {paymentMethods.map(({ label, Icon }) => (
+                                            <span 
+                                                key={label} 
+                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" 
+                                                style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}
+                                            >
+                                                <Icon className="w-3 h-3 opacity-70" />
+                                                {label}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {vendor.labels && vendor.labels.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {vendor.labels.map(l => {
+                                            let backgroundColor, color;
+                                            if (theme.isDark) {
+                                                if (GOOD_LABELS.includes(l)) {
+                                                    backgroundColor = 'rgba(60, 78, 58, 0.4)';
+                                                    color = '#dcfce7';
+                                                } else if (BAD_LABELS.includes(l)) {
+                                                    backgroundColor = 'rgba(109, 43, 44, 0.4)';
+                                                    color = '#fee2e2';
+                                                } else {
+                                                    backgroundColor = 'rgba(68, 104, 121, 0.4)';
+                                                    color = '#dbeafe';
+                                                }
+                                            } else {
+                                                if (GOOD_LABELS.includes(l)) {
+                                                    backgroundColor = 'rgba(96, 124, 92, 0.15)';
+                                                    color = '#3c4e3a';
+                                                } else if (BAD_LABELS.includes(l)) {
+                                                    backgroundColor = 'rgba(161, 77, 77, 0.15)';
+                                                    color = '#6D2B2C';
+                                                } else {
+                                                    backgroundColor = 'rgba(173, 195, 209, 0.2)';
+                                                    color = '#1e3a5f';
+                                                }
+                                            }
+                                            return (
+                                                <span 
+                                                    key={l} 
+                                                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                                                    style={{ backgroundColor, color }}
+                                                >
+                                                    {l}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes Section - Expandable */}
+                    {vendor.notes && vendor.notes.trim() && (
+                        <div className="relative pl-3">
+                            <div 
+                                className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                            />
+                            
+                            {/* Section Header */}
+                            <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <Info size={10} style={{ color: '#8ca68c' }} />
+                                    Research Notes
+                                </div>
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                            </div>
+
+                            <div 
+                                className="text-[11px] leading-relaxed italic opacity-70"
+                                style={{
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    color: theme.text
+                                }}
+                            >
+                                {vendor.notes}
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Bottom Section: Payments, Labels, Buttons */}
-                <div>
-                    {(paymentMethods.length > 0 || (vendor.labels && vendor.labels.length > 0)) && (
-                        <div className="mt-3 pt-3 space-y-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
-                            {paymentMethods.length > 0 && (
-                                <div className="flex flex-wrap gap-2 text-xs">
-                                    {paymentMethods.map(({ label, Icon }) => (
-                                        <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, color: theme.text }}>
-                                            <Icon className="w-3.5 h-3.5" />
-                                            {label}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            {vendor.labels && vendor.labels.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {vendor.labels.map(l => {
-                                        let backgroundColor, color;
-                                        if (theme.isDark) {
-                                            // Dark mode: custom muted colors
-                                            if (GOOD_LABELS.includes(l)) {
-                                                backgroundColor = '#3c4e3a'; // custom green
-                                                color = '#dcfce7'; // green-100
-                                            } else if (BAD_LABELS.includes(l)) {
-                                                backgroundColor = '#6D2B2C'; // custom red
-                                                color = '#fee2e2'; // red-100
-                                            } else {
-                                                backgroundColor = '#446879'; // custom blue
-                                                color = '#dbeafe'; // blue-100
-                                            }
-                                        } else {
-                                            // Light mode: custom colors
-                                            if (GOOD_LABELS.includes(l)) {
-                                                backgroundColor = '#607c5c'; // custom green
-                                                color = '#dcfce7'; // green-100
-                                            } else if (BAD_LABELS.includes(l)) {
-                                                backgroundColor = '#A14D4D'; // custom red
-                                                color = '#fee2e2'; // red-100
-                                            } else {
-                                                backgroundColor = '#ADC3D1'; // custom blue
-                                                color = '#1e3a5f'; // darker blue text
-                                            }
-                                        }
-                                        return (
-                                            <span 
-                                                key={l} 
-                                                className="px-2 py-1 rounded-full text-xs font-semibold"
-                                                style={{ backgroundColor, color }}
-                                            >
-                                                {l}
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                {/* Footer Section - Action buttons and Expand Indicator */}
+                <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                    <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                            View Details
+                        </span>
+                        <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
+                    </div>
 
                     {!isPublicView && (
-                         <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
-                            {orderHistory.length > 0 && (
-                                <div className="flex items-center gap-1 text-xs" style={{ color: theme.textLight }}>
-                                    <ShoppingCart size={12} />
-                                    <span>{orderHistory.length} order{orderHistory.length !== 1 ? 's' : ''}</span>
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2 ml-auto">
-                                <button data-tour="vendor-share" onClick={handleShare} className="p-2 rounded-md transition-colors flex-shrink-0" style={{ color: theme.text }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} aria-label="Share vendor">
-                                    <Share2 className="h-4 w-4" />
-                                </button>
-                                <button onClick={() => onEditClick(vendor)} className="p-2 rounded-md transition-colors flex-shrink-0" style={{ color: theme.text }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} aria-label="Edit vendor">
-                                    <Edit className="h-4 w-4" />
-                                </button>
-                            </div>
+                        <div className="absolute right-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShare();
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                title="Share vendor"
+                            >
+                                <Share2 size={14} style={{ color: theme.textLight }} />
+                            </button>
                         </div>
                     )}
                 </div>

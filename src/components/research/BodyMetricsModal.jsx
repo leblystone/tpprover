@@ -114,7 +114,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
   };
 
   return (
-    <Modal 
+    <BottomSheet 
       open={open} 
       onClose={onClose} 
       title={
