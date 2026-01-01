@@ -31,14 +31,15 @@ export default function BottomSheet({
   maxHeight = '90vh',
   snapPoints = [0.9] // Default to single snap point at 90% height
 }) {
-  const [internalOpen, setInternalOpen] = useState(open);
-  const [shouldRender, setShouldRender] = useState(open);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [dragStart, setDragStart] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sheetRef = useRef(null);
   const animationTimeoutRef = useRef(null);
+  const rafRef = useRef(null);
 
   // Detect mobile/desktop
   useEffect(() => {
@@ -49,25 +50,60 @@ export default function BottomSheet({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync with open prop
+  // Sync with open prop - with smooth animations
   useEffect(() => {
+    // Clear any pending animations
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
     if (open) {
+      // Opening: render first with initial state (off-screen)
       setShouldRender(true);
-      setTimeout(() => {
-        setInternalOpen(true);
-        hapticsLight();
-      }, 10);
+      setInternalOpen(false); // Start closed
+      
+      // Wait for DOM to render initial state, then animate
+      // Triple RAF ensures the browser has painted the initial state
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = requestAnimationFrame(() => {
+            setInternalOpen(true);
+            hapticsLight();
+          });
+        });
+      });
     } else {
-      setInternalOpen(false);
-      if (animationTimeoutRef.current) {
-        clearTimeout(animationTimeoutRef.current);
+      // Closing: ensure smooth animation
+      // Reset drag state first for clean animation
+      setDragOffset(0);
+      setIsDragging(false);
+      setDragStart(null);
+      
+      // Force a reflow to ensure the element is in the right state
+      if (sheetRef.current) {
+        // Trigger a reflow by reading a layout property
+        void sheetRef.current.offsetHeight;
       }
-      animationTimeoutRef.current = setTimeout(() => {
-        setShouldRender(false);
-      }, 300);
+      
+      // Double RAF ensures the browser is ready and the transition is applied
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = requestAnimationFrame(() => {
+          setInternalOpen(false);
+          // Wait for animation to complete before removing from DOM
+          animationTimeoutRef.current = setTimeout(() => {
+            setShouldRender(false);
+          }, 400); // Match transition duration
+        });
+      });
     }
 
     return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current);
       }
@@ -107,22 +143,34 @@ export default function BottomSheet({
 
   const handleTouchEnd = () => {
     if (!isMobile) return;
-    setIsDragging(false);
     
     // Close if dragged down more than 100px
     if (dragOffset > 100) {
       hapticsMedium();
+      // Reset drag state before closing for smooth animation
+      setIsDragging(false);
+      setDragStart(null);
+      setDragOffset(0);
+      // Call onClose - the useEffect will handle the smooth animation
       onClose();
     } else {
+      // Snap back to original position
+      setIsDragging(false);
       hapticsLight();
+      setDragStart(null);
+      setDragOffset(0);
     }
-    
-    setDragStart(null);
-    setDragOffset(0);
   };
 
   const handleBackdropClick = () => {
     hapticsMedium();
+    // Reset any drag state before closing
+    if (isDragging) {
+      setIsDragging(false);
+      setDragStart(null);
+      setDragOffset(0);
+    }
+    // Call onClose - the useEffect will handle the smooth animation
     onClose();
   };
 
@@ -138,7 +186,7 @@ export default function BottomSheet({
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',
-        transition: 'opacity 300ms ease-out'
+        transition: 'opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
       }}
     >
       {/* Backdrop */}
@@ -146,7 +194,7 @@ export default function BottomSheet({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         style={{
           opacity: internalOpen ? 1 : 0,
-          transition: 'opacity 300ms ease-out'
+          transition: 'opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
         }}
         onClick={handleBackdropClick}
       />
@@ -165,13 +213,15 @@ export default function BottomSheet({
             ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1)' 
             : '0 -10px 40px rgba(0,0,0,0.2)',
           transform: isMobile 
-            ? `translateY(${internalOpen ? (isDragging ? `${dragOffset}px` : '0') : '100%'})`
+            ? `translate3d(0, ${internalOpen ? (isDragging ? `${dragOffset}px` : '0') : '100%'}, 0)`
             : `scale(${internalOpen ? 1 : 0.95})`,
           opacity: isMobile ? 1 : (internalOpen ? 1 : 0),
           transition: isDragging ? 'none' : (isMobile 
-            ? 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)' 
-            : 'transform 300ms ease-out, opacity 300ms ease-out'),
-          willChange: 'transform, opacity'
+            ? 'transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+            : 'transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'),
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -206,6 +256,13 @@ export default function BottomSheet({
                 onClick={(e) => {
                   e.preventDefault();
                   hapticsLight();
+                  // Reset any drag state before closing
+                  if (isDragging) {
+                    setIsDragging(false);
+                    setDragStart(null);
+                    setDragOffset(0);
+                  }
+                  // Call onBack - the useEffect will handle the smooth animation
                   onBack();
                 }}
                 className="p-1 rounded-full -ml-2 transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
@@ -232,6 +289,13 @@ export default function BottomSheet({
               onClick={(e) => {
                 e.preventDefault();
                 hapticsMedium();
+                // Reset any drag state before closing
+                if (isDragging) {
+                  setIsDragging(false);
+                  setDragStart(null);
+                  setDragOffset(0);
+                }
+                // Call onClose - the useEffect will handle the smooth animation
                 onClose();
               }}
               className="p-1.5 rounded-full transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 

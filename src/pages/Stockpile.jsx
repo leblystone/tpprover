@@ -15,6 +15,7 @@ import ImagePreviewModal from '../components/common/ImagePreviewModal'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import StockpileGroupCard from '../components/stockpile/StockpileGroupCard'
 import IncomingGroupCard from '../components/stockpile/IncomingGroupCard'
+import OutOfStockGroupCard from '../components/stockpile/OutOfStockGroupCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
@@ -1381,7 +1382,11 @@ export default function Stockpile() {
                         setShowUpgradeModal(true);
                         return;
                       }
-                      navigate(`/app/orders`, { state: { openOrderId: orderId, returnToStockpileIncoming: true } });
+                      const orderToOpen = orders.find(o => o.id === orderId);
+                      if (orderToOpen) {
+                        setEditingOrder(orderToOpen);
+                        setShowOrderModal(true);
+                      }
                     }}
                   />
                 ))}
@@ -1406,82 +1411,28 @@ export default function Stockpile() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {groups.filter(g => g.totalVials <= 0).map(g => {
-                  const isUnknownGroup = (!g.name || g.name.trim() === '');
-                  
-                  // Get all items in this group
-                  const groupItems = Object.values(g.variants).flatMap(v => v.items);
-                  
-                  return (
-                    <div 
-                      key={`oos-${g.name}`} 
-                      className="relative p-4 rounded-2xl content-card shadow-md hover:shadow-lg transition-all"
-                      style={{ 
-                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                        backgroundColor: theme.cardBackground,
-                        boxShadow: theme.isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 2px 16px rgba(0, 0, 0, 0.06)',
-                        opacity: 0.7
-                      }}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                        <div style={{ fontSize: '64px', color: theme.text, fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
-                      </div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 
-                            className="font-semibold text-base cursor-pointer flex-1"
-                            style={{ color: theme.text }}
-                            onClick={() => {
-                              if (isReadOnly) {
-                                setShowUpgradeModal(true);
-                                return;
-                              }
-                              setOutOfStockModalName(g.name);
-                            }}
-                          >
-                            {g.name}
-                          </h3>
-                          <div className="flex items-center gap-2">
-                            <div className="px-2.5 py-1 rounded-full text-xs font-medium"
-                              style={{ 
-                                backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                                color: theme.isDark ? '#f87171' : '#dc2626'
-                              }}
-                            >
-                              Out of Stock
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isReadOnly) {
-                                  setShowUpgradeModal(true);
-                                  return;
-                                }
-                                // Store the group to delete and open confirmation modal
-                                setDeleteOutOfStockGroup(g);
-                              }}
-                              className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95"
-                              style={{
-                                color: theme.isDark ? '#f87171' : '#dc2626',
-                                backgroundColor: 'transparent'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                              title="Delete this out of stock item"
-                            >
-                              <X size={18} strokeWidth={2.5} />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="text-sm" style={{ color: theme.textLight }}>No vials on hand.</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {groups.filter(g => g.totalVials <= 0).map(g => (
+                  <OutOfStockGroupCard
+                    key={`oos-${g.name}`}
+                    group={g}
+                    theme={theme}
+                    isReadOnly={isReadOnly}
+                    onDelete={(group) => {
+                      if (isReadOnly) {
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      setDeleteOutOfStockGroup(group);
+                    }}
+                    onCardClick={() => {
+                      if (isReadOnly) {
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      setOutOfStockModalName(g.name);
+                    }}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -2979,6 +2930,7 @@ export default function Stockpile() {
         theme={theme}
         order={editingOrder}
         vendors={vendors}
+        activeTab={editingOrder?.category || editingOrder?.type || 'domestic'}
         onSave={(data) => {
           const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
           if (editingOrder) {

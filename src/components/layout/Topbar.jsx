@@ -415,11 +415,13 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-2 pb-4 pt-2 text-base capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
+                className="px-2 pb-4 text-base capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation flex items-center"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  paddingTop: '0.5rem',
+                  paddingBottom: '1rem'
                 }}
               >
                 {tab.label}

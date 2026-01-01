@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import Modal from '../common/Modal';
+import BottomSheet from '../common/BottomSheet';
 import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
@@ -1378,18 +1378,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     if (!protocol) return null;
 
     return (
-        <Modal
+        <BottomSheet
             open={open}
             onClose={onClose}
             onBack={canGoBack() ? handleBack : undefined}
             title="Start Protocol"
             theme={theme}
-            variant="modern"
-            maxWidth="max-w-4xl"
+            maxHeight="90vh"
             titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
         >
             {renderProgressIndicator()}
             {renderContent()}
-        </Modal>
+        </BottomSheet>
     );
 }

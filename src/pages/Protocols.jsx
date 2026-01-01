@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
+import BottomSheet from '../components/common/BottomSheet'
 import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
@@ -1745,7 +1746,7 @@ export default function Protocols() {
       />
 
       {manageConfirm && manageConfirm.protocolName && (
-        <Modal
+        <BottomSheet
           open={true}
           onClose={() => {
             setManageConfirm(null);
@@ -1753,8 +1754,7 @@ export default function Protocols() {
           }}
           title={`Manage "${manageConfirm.protocolName}"`}
           theme={theme}
-          variant="modern"
-          maxWidth="max-w-2xl"
+          maxHeight="90vh"
           footer={
             <div className="w-full flex items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
@@ -1991,7 +1991,7 @@ export default function Protocols() {
                 </div>
             </div>
         </div>
-        </Modal>
+        </BottomSheet>
       )}
 
       {/* Delete Confirmation Modal */}
