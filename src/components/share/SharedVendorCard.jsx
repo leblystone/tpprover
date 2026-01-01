@@ -71,18 +71,6 @@ export default function SharedVendorCard({ vendor, theme }) {
                         </div>
                     </div>
                 </div>
-                {!vendor.isStub && (
-                    <div 
-                        className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest"
-                        style={{ 
-                            backgroundColor: 'rgba(140, 166, 140, 0.12)',
-                            color: '#5a6e5a',
-                            border: '1px solid rgba(140, 166, 140, 0.2)'
-                        }}
-                    >
-                        Active
-                    </div>
-                )}
             </div>
 
             {/* Content Sections */}

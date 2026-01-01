@@ -1,7 +1,7 @@
 import React, { useRef, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { toPng } from 'html-to-image';
-import { Image, Copy, Check } from 'lucide-react';
+import { Image, Copy, Check, Eye } from 'lucide-react';
 import { encodeShareData } from '../../utils/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -278,13 +278,18 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         >
             <div className="space-y-4">
                 {/* Header Section */}
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                    <div>
-                        <h3 className="text-sm font-bold tracking-tight" style={{ color: theme.text }}>Preview</h3>
-                        <p className="text-[10px] font-medium uppercase tracking-widest opacity-40" style={{ color: theme.text }}>
-                            Shareable Content
-                        </p>
+                <div className="pt-2">
+                    <div className="flex items-center gap-4 mb-4">
+                        <Eye size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 flex-1">
+                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Shareable Content
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

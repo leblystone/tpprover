@@ -15,6 +15,7 @@ import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS, penColors } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
 import BottomSheet from '../components/common/BottomSheet'
+import Modal from '../components/common/Modal'
 import { calculateRecon } from '../utils/recon'
 import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
@@ -28,12 +29,11 @@ import { recordDeletion } from '../utils/deletionTracking'
 
 function DataPoint({ icon: Icon, label, value, theme }) {
 	return (
-		<div className="flex items-center gap-2 overflow-hidden">
-			<Icon size={12} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
-			<div className="flex flex-col min-w-0">
-				<span className="text-[8px] uppercase tracking-widest opacity-50 font-black" style={{ color: theme.text }}>{label}</span>
-				<span className="text-[10px] font-bold truncate" style={{ color: theme.text }}>{value}</span>
-			</div>
+		<div className="flex items-center gap-2 text-[12px] group/item">
+			<span style={{ color: '#8ca68c' }}><Icon size={12} /></span>
+			<span className="truncate opacity-80" style={{ color: theme.text }}>
+				{value}
+			</span>
 		</div>
 	);
 }
@@ -915,14 +915,10 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
-										className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl ${item.isDraft ? 'cursor-pointer' : ''}`} 
+										className={`rounded-2xl shadow-md p-4 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
 										style={{ 
-											background: theme.isDark 
-												? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
-												: `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
-											boxShadow: theme.isDark
-												? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-												: '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+											backgroundColor: theme.cardBackground,
+											fontFamily: 'Poppins, sans-serif',
 											border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
 										}}
 										onClick={item.isDraft ? () => {
@@ -966,21 +962,13 @@ export default function Recon() {
 											// Draft will be removed when user saves the calculation
 										} : undefined}
 									>
-                                        {/* Hover Border Glow */}
-                                        <div 
-                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl"
-                                            style={{
-                                                boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
-                                            }}
-                                        />
-
-                                        {/* Header Section */}
-                                        <div className="relative flex items-start justify-between mb-3 gap-3">
+                                        {/* Header */}
+                                        <div className="flex items-start justify-between mb-3 gap-3">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
+                                                <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
                                                     {item.name || item.peptide}
                                                 </h3>
-                                                <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                                                <div className="flex items-center gap-1.5 opacity-60">
                                                     <Package size={10} style={{ color: '#8ca68c' }} />
                                                     <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
                                                         {item.vendorId ? (vendorMap && vendorMap[item.vendorId]) : item.vendor || 'Unknown Source'}
@@ -990,78 +978,137 @@ export default function Recon() {
                                             
                                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                                 {item.isDraft ? (
-                                                    <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                                                    <div 
+                                                        className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm"
+                                                        style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                                                    >
                                                         Draft
                                                     </div>
                                                 ) : (
-                                                    <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm" style={{ backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: '#6b8e6b' }}>
+                                                    <div 
+                                                        className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm"
+                                                        style={{ backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: '#6b8e6b' }}
+                                                    >
                                                         Active
                                                     </div>
                                                 )}
-                                                <div className="text-[9px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                <div className="text-[9px] font-bold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
                                                     {formatMMDDYYYY(item.date)}
                                                 </div>
                                             </div>
                                         </div>
-											
-                                            {/* Peptides List (for Blends) */}
-                                        {Array.isArray(item.peptides) && item.peptides.length > 0 && (
-                                            <div className="relative mb-3 space-y-1">
-                                                {item.peptides.map((p, idx) => (
-                                                    <div key={idx} className="relative pl-3 flex items-center justify-between">
-                                                        <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                        <span className="text-[10px] font-bold truncate" style={{ color: theme.text }}>{p.name}</span>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
+
+                                        {/* Content Area */}
+                                        <div className="flex-1 space-y-4">
+                                            {/* Peptides Section (for blends) */}
+                                            {Array.isArray(item.peptides) && item.peptides.length > 0 && (
+                                                <div className="relative pl-3">
+                                                    <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                    <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                            <Beaker size={10} style={{ color: '#8ca68c' }} />
+                                                            Components
+                                                        </div>
+                                                        <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                     </div>
-                                                ))}
+                                                    <div className="space-y-1">
+                                                        {item.peptides.map((p, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between text-[12px]">
+                                                                <span className="font-medium" style={{ color: theme.text }}>{p.name}</span>
+                                                                <span className="opacity-60" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Recon Details Section */}
+                                            <div className="relative pl-3">
+                                                <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                        <Calculator size={10} style={{ color: '#8ca68c' }} />
+                                                        Recon Data
+                                                    </div>
+                                                    <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                                    <DataPoint icon={Beaker} label="Amount" value={`${totalMg} mg`} theme={theme} />
+                                                    <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />
+                                                    <DataPoint icon={Pipette} label="Dose" value={displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit}` : 'N/A'} theme={theme} />
+                                                    <DataPoint icon={Hash} label="Units/Dose" value={calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : 'N/A'} theme={theme} />
+                                                    <DataPoint icon={Info} label="Doses/Vial" value={calc.dosesPerVial || 'N/A'} theme={theme} />
+                                                    <DataPoint icon={Tag} label="Cost/Dose" value={costPerDose || 'N/A'} theme={theme} />
+                                                </div>
                                             </div>
-                                        )}
 
-                                        {/* Data Grid - Icon Driven to reduce text heaviness */}
-                                        <div className="relative grid grid-cols-2 gap-x-4 gap-y-3 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 mb-3">
-                                            <DataPoint icon={Beaker} label="Amount" value={`${totalMg} mg`} theme={theme} />
-                                            <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />
-                                            <DataPoint icon={Pipette} label="Dose" value={displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit}` : 'N/A'} theme={theme} />
-                                            <DataPoint icon={Hash} label="Units/Dose" value={calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : 'N/A'} theme={theme} />
-                                            <DataPoint icon={Info} label="Doses/Vial" value={calc.dosesPerVial || 'N/A'} theme={theme} />
-                                            <DataPoint icon={Tag} label="Cost/Dose" value={costPerDose || 'N/A'} theme={theme} />
-                                        </div>
-
-                                        {/* Footer Actions */}
-										<div className="relative flex justify-between items-center pt-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-											<div className="flex items-center gap-1.5">
-									            {item.deliveryMethod === 'pen' && item.penColor ? (
-													<div className="flex items-center gap-1.5">
-														<div 
-                                                            className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm" 
+                                            {/* Delivery Section */}
+                                            <div className="relative pl-3">
+                                                <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                        <Pipette size={10} style={{ color: '#8ca68c' }} />
+                                                        Administration
+                                                    </div>
+                                                    <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {item.deliveryMethod === 'pen' && item.penColor ? (
+                                                        <div 
+                                                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm" 
                                                             style={{ 
                                                                 background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
                                                                 color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
                                                             }}
                                                         >
-															<PenTool size={10} strokeWidth={2.5} />
-															<span>{
-                                                                item.penColor.startsWith('#') 
-                                                                    ? Object.keys(PEN_COLORS).find(name => PEN_COLORS[name] === item.penColor) || 'Custom'
-                                                                    : item.penColor
-                                                            }</span>
-														</div>
-													</div>
-												) : (
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
-                                                        <Pipette size={10} strokeWidth={2.5} />
-                                                        <span>Syringe</span>
-                                                    </div>
-                                                )}
-											</div>
+                                                            <PenTool size={10} strokeWidth={2.5} />
+                                                            <span>{item.penColor.startsWith('#') ? 'Custom' : item.penColor} Pen</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                            <Pipette className="w-3 h-3 opacity-70" />
+                                                            Syringe
+                                                        </span>
+                                                    )}
+                                                    {item.administrationRoute && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                            {item.administrationRoute.toUpperCase()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                                            <div className="flex items-center gap-1">
-											    {item.isDraft ? (
+                                            {/* Notes Section */}
+                                            {item.notes && (
+                                                <div className="relative pl-3">
+                                                    <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                    <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                            <Info size={10} style={{ color: '#8ca68c' }} />
+                                                            Notes
+                                                        </div>
+                                                        <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                    </div>
+                                                    <p className="text-[11px] leading-relaxed italic opacity-70" style={{ color: theme.text }}>{item.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="mt-4 pt-3 border-t flex items-center justify-between relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                            <div className="flex items-center gap-1 opacity-50 transition-opacity">
+                                                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                    {item.isDraft ? 'Resume Draft' : 'View Details'}
+                                                </span>
+                                                <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
+                                            </div>
+
+                                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                                {item.isDraft ? (
                                                     <button 
-                                                        className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-105" 
-                                                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
+                                                        className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                        style={{ color: theme.primary }}
+                                                        onClick={() => {
                                                             setPrefill({
                                                                 peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
                                                                 vendor: item.vendor || '',
@@ -1077,44 +1124,33 @@ export default function Recon() {
                                                             setActiveTab('calculator');
                                                         }}
                                                     >
-                                                        <Calculator size={12} strokeWidth={2.5} />
-                                                        <span>Resume</span>
+                                                        <Calculator size={14} />
                                                     </button>
                                                 ) : (
                                                     <>
                                                         <button 
-                                                            className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all hover:bg-black/5 dark:hover:bg-white/10" 
+                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
                                                             style={{ color: '#dc2626' }} 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleMarkAsUsed(item);
-                                                            }}
+                                                            onClick={() => handleMarkAsUsed(item)}
+                                                            title="Finish Vial"
                                                         >
-                                                            <CheckCircle size={12} strokeWidth={2.5} />
-                                                            <span>Finish</span>
+                                                            <CheckCircle size={14} />
                                                         </button>
                                                         <button 
-                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10" 
+                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
                                                             style={{ color: theme.primary }} 
-                                                            onClick={(e) => { 
-                                                                e.stopPropagation();
+                                                            onClick={() => { 
                                                                 setEditingItem(item); 
                                                                 setShowEditModal(true);
                                                             }}
+                                                            title="Edit Recon"
                                                         >
-                                                            <Edit size={14} strokeWidth={2.5} />
+                                                            <Edit size={14} />
                                                         </button>
                                                     </>
                                                 )}
                                             </div>
-										</div>
-
-										{item.notes && (
-											<div className="relative mt-3 pt-3 border-t text-[10px] flex items-start gap-2" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
-												<Info size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
-												<p className="italic leading-relaxed">{item.notes}</p>
-											</div>
-										)}
+                                        </div>
 									</div>
 								)
 							})
@@ -1152,33 +1188,21 @@ export default function Recon() {
                                         return (
                                             <div
                                                 key={`h-${item.id}`}
-                                                className="group relative overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl cursor-pointer mb-3"
+                                                className={`rounded-2xl shadow-md p-4 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
                                                 style={{ 
-                                                    background: theme.isDark 
-                                                        ? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
-                                                        : `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
-                                                    boxShadow: theme.isDark
-                                                        ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                                                        : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+                                                    backgroundColor: theme.cardBackground,
+                                                    fontFamily: 'Poppins, sans-serif',
                                                     border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
                                                 }}
                                                 onClick={() => setViewItem(item)}
                                             >
-                                                {/* Hover Border Glow */}
-                                                <div 
-                                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl"
-                                                    style={{
-                                                        boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
-                                                    }}
-                                                />
-
-                                                {/* Header Section */}
-                                                <div className="relative flex items-start justify-between mb-3 gap-3">
+                                                {/* Header */}
+                                                <div className="flex items-start justify-between mb-3 gap-3">
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
+                                                        <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
                                                             {item.peptide || 'Unnamed research vial'}
                                                         </h3>
-                                                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                                                        <div className="flex items-center gap-1.5 opacity-60">
                                                             <Package size={10} style={{ color: '#8ca68c' }} />
                                                             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
                                                                 {vendorName || 'Unknown Source'}
@@ -1187,55 +1211,84 @@ export default function Recon() {
                                                     </div>
                                                     
                                                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                                        <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.textLight }}>
+                                                        <div 
+                                                            className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm"
+                                                            style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}
+                                                        >
                                                             Archived
                                                         </div>
-                                                        <div className="text-[9px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                        <div className="text-[9px] font-bold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
                                                             {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Data Grid - Icon Driven */}
-                                                <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-                                                    <DataPoint icon={Beaker} label="Amount" value={`${item.mg} mg`} theme={theme} />
-                                                    {item.water && <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />}
-                                                    {item.dose && <DataPoint icon={Pipette} label="Dose" value={`${item.dose} ${item.doseUnit || 'mcg'}`} theme={theme} />}
-                                                    <DataPoint icon={Calendar} label="Finished" value={usedDate ? formatMMDDYYYY(usedDate) : 'N/A'} theme={theme} />
+                                                {/* Content Area */}
+                                                <div className="flex-1 space-y-4">
+                                                    {/* Recon Details Section */}
+                                                    <div className="relative pl-3">
+                                                        <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                        <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                                <FileText size={10} style={{ color: '#8ca68c' }} />
+                                                                Historical Data
+                                                            </div>
+                                                            <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                                            <DataPoint icon={Beaker} label="Amount" value={`${item.mg} mg`} theme={theme} />
+                                                            {item.water && <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />}
+                                                            {item.dose && <DataPoint icon={Pipette} label="Dose" value={`${item.dose} ${item.doseUnit || 'mcg'}`} theme={theme} />}
+                                                            <DataPoint icon={Calendar} label="Finished" value={usedDate ? formatMMDDYYYY(usedDate) : 'N/A'} theme={theme} />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Notes Section */}
+                                                    {item.notes && (
+                                                        <div className="relative pl-3">
+                                                            <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                            <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                                    <Info size={10} style={{ color: '#8ca68c' }} />
+                                                                    Notes
+                                                                </div>
+                                                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                            </div>
+                                                            <p className="text-[11px] leading-relaxed italic opacity-70 line-clamp-2" style={{ color: theme.text }}>{item.notes}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {/* Footer Actions */}
-                                                <div className="relative flex justify-between items-center mt-3 pt-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-                                                    <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest" style={{ color: theme.text }}>
-                                                        Historical Record
+                                                {/* Footer */}
+                                                <div className="mt-4 pt-3 border-t flex items-center justify-between relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                                    <div className="flex items-center gap-1 opacity-50 transition-opacity">
+                                                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                            View Details
+                                                        </span>
+                                                        <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
                                                     </div>
-                                                    <div className="flex items-center gap-1">
+
+                                                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                                         <button
-                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10"
-                                                            style={{ color: theme.textLight }}
-                                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                            style={{ color: theme.primary }}
+                                                            onClick={() => setViewItem(item)}
                                                             title="View details"
                                                         >
-                                                            <Eye size={14} strokeWidth={2.5} />
+                                                            <Eye size={14} />
                                                         </button>
                                                         <button
-                                                            className="p-1.5 rounded-lg transition-all hover:bg-black/5 dark:hover:bg-white/10"
+                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                                                             style={{ color: '#dc2626' }}
-                                                            onClick={(e) => { e.stopPropagation(); setHistoryToDelete(item); }}
+                                                            onClick={() => setHistoryToDelete(item)}
                                                             title="Delete entry"
                                                         >
-                                                            <Trash2 size={14} strokeWidth={2.5} />
+                                                            <Trash2 size={14} />
                                                         </button>
                                                     </div>
                                                 </div>
-
-                                                {item.notes && (
-                                                    <div className="relative mt-3 pt-3 border-t text-[10px] flex items-start gap-2" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}>
-                                                        <Info size={10} className="mt-0.5 flex-shrink-0" style={{ color: '#8ca68c' }} />
-                                                        <p className="italic leading-relaxed line-clamp-2">{item.notes}</p>
-                                                    </div>
-                                                )}
                                             </div>
+                                        )
                                         )
                                     })}
 								</div>
