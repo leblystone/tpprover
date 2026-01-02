@@ -67,8 +67,13 @@ const mockUpdates = {
 };
 
 function App() {
+  console.log('🚀 App component rendering...');
+  
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  
+  console.log('🚀 App location:', location.pathname);
+  
   const [themeName] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -173,7 +178,7 @@ function App() {
   useEffect(() => {
     const checkFeatureAnnouncement = () => {
       // Change this ID when you have a new announcement to show
-      const CURRENT_ANNOUNCEMENT_ID = 'v1.0.16-smart-update';
+      const CURRENT_ANNOUNCEMENT_ID = 'v1.0.18-smart-update';
       
       if (shouldShowAnnouncement(CURRENT_ANNOUNCEMENT_ID)) {
         // Show after a slight delay to not overwhelm on first load
@@ -270,7 +275,7 @@ function App() {
     // Utility to reset announcement (for testing)
     window.resetFeatureAnnouncement = async () => {
       const { resetAnnouncement } = await import('./components/common/FeatureAnnouncementModal');
-      resetAnnouncement('v1.0.16-smart-update');
+      resetAnnouncement('v1.0.18-smart-update');
       console.log('✅ Feature announcement reset - refresh to see it again');
     };
   }, [testUpdateModal]);

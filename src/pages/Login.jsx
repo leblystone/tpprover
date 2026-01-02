@@ -103,6 +103,8 @@ function validatePassword(password) {
 // markInviteUsed now handled by Firebase service
 
 export default function Login() {
+    console.log('🔍 Login component rendering...');
+    
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const appContext = useAppContext();
@@ -118,6 +120,13 @@ export default function Login() {
     const annualCode = searchParams.get('annual'); // Annual subscription code from redemption page
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
+    
+    console.log('🔍 Login state:', { 
+        isFirebaseLoading, 
+        hasFirebaseUser: !!firebaseUser, 
+        isTrialMode, 
+        isSignupMode 
+    });
     // Default to signup mode if coming from trial link or signup=true, otherwise login
     const [mode, setMode] = useState(isTrialMode || isSignupMode ? 'signup' : 'login'); // 'login' | 'signup'
     const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -1661,6 +1670,7 @@ export default function Login() {
 
     // Show intro first if user hasn't seen it
     if (showIntro) {
+        console.log('📱 Showing intro screen');
         return (
             <SwipeableIntro
                 open={true}
@@ -1670,6 +1680,7 @@ export default function Login() {
         );
     }
 
+    console.log('📝 Rendering login/signup form');
     return (
         <>
             <style>{`

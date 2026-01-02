@@ -6,10 +6,18 @@ import { themes, defaultThemeName } from '../../theme/themes';
 import { isNative } from '../../utils/platform';
 
 const ProtectedRoute = () => {
+  console.log('🔒 ProtectedRoute rendering...');
+  
   try {
     const appContext = useAppContext();
     const { isFirebaseLoading } = useFirebase();
     const theme = themes[defaultThemeName];
+    
+    console.log('🔒 ProtectedRoute state:', { 
+      hasAppContext: !!appContext, 
+      isFirebaseLoading, 
+      isNativePlatform: isNative() 
+    });
     
     // Safety check: if context is not available yet, show loading
     if (!appContext) {
@@ -24,9 +32,16 @@ const ProtectedRoute = () => {
     }
     
     const { user, isLoading } = appContext;
+    
+    console.log('🔒 ProtectedRoute user state:', { 
+      hasUser: !!user, 
+      isLoading, 
+      isFirebaseLoading 
+    });
 
     // Wait for Firebase to finish loading first
     if (isFirebaseLoading) {
+      console.log('🔄 Firebase still loading...');
       return (
         <div className="flex items-center justify-center h-screen w-full" style={{ backgroundColor: theme.background, color: theme.text }}>
           <div className="text-center px-4">
@@ -38,12 +53,14 @@ const ProtectedRoute = () => {
 
     // Native app bypass - check user after Firebase is ready
     if (isNative()) {
+      console.log('📱 Native app - user check:', !!user);
       return user ? <Outlet /> : <Navigate to="/login" replace />;
     }
 
     // Wait for initial load to complete before checking user
     // isLoading can be undefined initially, so check for truthy values
     if (isLoading === true || isLoading === undefined) {
+      console.log('🔄 App context still loading...');
       // Show loading screen instead of returning null
       return (
         <div className="flex items-center justify-center h-screen w-full" style={{ backgroundColor: theme.background, color: theme.text }}>
@@ -54,6 +71,7 @@ const ProtectedRoute = () => {
       );
     }
 
+    console.log('✅ ProtectedRoute: Rendering outlet or redirect');
     return user ? <Outlet /> : <Navigate to="/login" replace />;
   } catch (error) {
     console.error('❌ ProtectedRoute error:', error);

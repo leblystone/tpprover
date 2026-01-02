@@ -7,7 +7,7 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 // Current app version (matches package.json and android/ios builds)
-export const APP_VERSION = '1.0.8';
+export const APP_VERSION = '1.0.18';
 
 // Local storage keys
 const VERSION_CHECK_KEY = 'tpp_version_check';
