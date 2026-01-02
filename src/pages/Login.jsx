@@ -155,28 +155,8 @@ export default function Login() {
     
     // Check if user has seen intro (localStorage, no auth needed)
     // Only show intro for native apps and installed PWAs (not browser users)
-    const [showIntro, setShowIntro] = useState(() => {
-        try {
-            const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro');
-            const skipIntro = searchParams.get('skipIntro') === 'true';
-            const forceIntro = searchParams.get('testIntro') === 'true';
-            
-            // Force intro for testing
-            if (forceIntro) return true;
-            
-            // Skip if explicitly requested
-            if (skipIntro) return false;
-            
-            // Skip if already seen
-            if (hasSeenIntro) return false;
-            
-            // Only show for native apps + installed PWAs
-            // Browser users (not installed) skip intro
-            return shouldShowIntro();
-        } catch {
-            return false;
-        }
-    });
+    // TEMPORARILY DISABLED - intro will be rebuilt later
+    const [showIntro, setShowIntro] = useState(false);
     
     const handleIntroComplete = () => {
         setShowIntro(false);

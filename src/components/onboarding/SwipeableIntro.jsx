@@ -47,6 +47,8 @@ const INTRO_SCREENS = [
 ];
 
 export default function SwipeableIntro({ open, onComplete, theme }) {
+  console.log('🎬 SwipeableIntro rendering, open =', open);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
@@ -54,6 +56,8 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
   const containerRef = useRef(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  
+  console.log('🎬 SwipeableIntro state:', { currentIndex, isDragging, dragOffset });
 
   // Reset to first screen when opened
   useEffect(() => {
@@ -149,11 +153,16 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
     }
   };
 
-  if (!open) return null;
+  if (!open) {
+    console.log('🎬 SwipeableIntro not rendering (open = false)');
+    return null;
+  }
 
   const currentScreen = INTRO_SCREENS[currentIndex];
   const nextScreen = INTRO_SCREENS[currentIndex + 1];
   const prevScreen = INTRO_SCREENS[currentIndex - 1];
+  
+  console.log('🎬 SwipeableIntro rendering screen:', currentScreen?.title);
 
   // Calculate background gradient based on swipe position
   const getBackgroundGradient = () => {
@@ -208,7 +217,10 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
     }).join('')}`;
   };
 
-  const backgroundStyle = { background: getBackgroundGradient() };
+  const backgroundStyle = { 
+    background: getBackgroundGradient(),
+    backgroundColor: currentScreen.gradient[0] // Fallback solid color
+  };
 
   // Determine text color for current screen (for skip button)
   const currentTextColor = currentScreen.darkText ? '#2F3B3A' : '#FFFFFF';
