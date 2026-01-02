@@ -278,7 +278,8 @@ export default function ResetPassword() {
                 style={{ 
                   borderColor: password && !passwordValidation.valid 
                     ? '#FCA5A5' 
-                    : theme.border 
+                    : theme.border,
+                  color: theme.text
                 }}
               />
               <button 
@@ -344,7 +345,8 @@ export default function ResetPassword() {
                 style={{ 
                   borderColor: confirmPassword && password !== confirmPassword 
                     ? '#FCA5A5' 
-                    : theme.border 
+                    : theme.border,
+                  color: theme.text
                 }}
               />
             </div>

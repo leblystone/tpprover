@@ -1753,7 +1753,8 @@ export default function Login() {
                                     style={{ 
                                         borderColor: mode === 'signup' && email && !emailValidation.valid 
                                             ? '#FCA5A5' 
-                                            : theme.border 
+                                            : theme.border,
+                                        color: theme.text
                                     }} 
                                 />
                             </div>
@@ -1773,7 +1774,8 @@ export default function Login() {
                                     style={{ 
                                         borderColor: mode === 'signup' && password && !passwordValidation.valid 
                                             ? '#FCA5A5' 
-                                            : theme.border 
+                                            : theme.border,
+                                        color: theme.text
                                     }} 
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
@@ -1797,7 +1799,8 @@ export default function Login() {
                                         style={{ 
                                             borderColor: password && confirmPassword && password !== confirmPassword 
                                                 ? '#FCA5A5' 
-                                                : theme.border 
+                                                : theme.border,
+                                            color: theme.text
                                         }} 
                                     />
                                 </div>
