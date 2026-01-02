@@ -359,9 +359,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
       <header 
         className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header" 
         style={{ 
-          paddingTop: isNative ? 'max(0.5rem, var(--safe-area-top, 0px))' : '0px',
+          paddingTop: isNative ? 'calc(0.5rem + var(--safe-area-top, 0px))' : '0.5rem',
           paddingBottom: '0.5rem',
-          minHeight: isNative ? 'calc(2.5rem + max(0.5rem, var(--safe-area-top, 0px)))' : '2.5rem',
+          minHeight: isNative ? 'calc(3rem + var(--safe-area-top, 0px))' : '3rem',
           borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
           background: theme.isDark 
             ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
