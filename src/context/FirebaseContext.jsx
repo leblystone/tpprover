@@ -15,17 +15,42 @@ export function FirebaseProvider({ children }) {
 
     // Listen to Firebase Auth changes
     useEffect(() => {
+        let timeoutId = null;
+        let isMounted = true;
+        
+        // Set a timeout to prevent infinite loading (5 seconds max)
+        timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn('⚠️ Firebase auth initialization timeout - proceeding without user');
+                setIsFirebaseLoading(false);
+            }
+        }, 5000);
+        
         const unsubscribe = onAuthChange((user) => {
-            setFirebaseUser(user);
-            setIsFirebaseLoading(false);
+            // Clear timeout since auth state changed
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
             
-            if (!user) {
-                // User logged out, clear password
-                setUserPassword(null);
+            if (isMounted) {
+                setFirebaseUser(user);
+                setIsFirebaseLoading(false);
+                
+                if (!user) {
+                    // User logged out, clear password
+                    setUserPassword(null);
+                }
             }
         });
 
-        return unsubscribe;
+        return () => {
+            isMounted = false;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            unsubscribe();
+        };
     }, []);
 
     // Store user password for encryption (in memory only)
