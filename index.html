@@ -32,13 +32,15 @@
   <body>
     <div id="root">
       <!-- Mobile loading fallback -->
-      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background-color: #ffffff;">
+      <div id="loading-fallback" style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background-color: #ffffff;">
         <div style="text-align: center;">
           <img 
             src="/tpp_logo.png" 
             alt="The Pep Planner Logo" 
             style="width: 80px; height: 80px; animation: pulse 1.5s ease-in-out infinite; display: block; margin: 0 auto;"
+            onerror="this.style.display='none'; document.getElementById('loading-fallback').innerHTML='<div style=\'padding: 20px; color: #dc2626;\'><h2>Loading Error</h2><p>Failed to load app resources.</p><button onclick=\'window.location.reload()\' style=\'padding: 8px 16px; background: #8A9A8F; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 16px;\'>Reload</button></div>'"
           />
+          <p style="margin-top: 16px; color: #666; font-size: 14px;">Loading The Pep Planner...</p>
         </div>
       </div>
       <style>
@@ -61,5 +63,30 @@
       </style>
     </div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Timeout check - if app doesn't load in 10 seconds, show error
+      setTimeout(function() {
+        const root = document.getElementById('root');
+        const loadingFallback = document.getElementById('loading-fallback');
+        // Check if React has rendered (root should have children other than loading fallback)
+        if (root && root.children.length === 1 && root.children[0].id === 'loading-fallback') {
+          console.error('⚠️ App failed to load within 10 seconds');
+          if (loadingFallback) {
+            loadingFallback.innerHTML = `
+              <div style="padding: 20px; text-align: center; max-width: 400px;">
+                <h2 style="color: #dc2626; margin-bottom: 16px;">App Loading Timeout</h2>
+                <p style="color: #666; margin-bottom: 8px;">The app is taking longer than expected to load.</p>
+                <p style="color: #666; font-size: 12px; margin-bottom: 16px;">This may be due to network issues or a JavaScript error.</p>
+                <button onclick="window.location.reload()" style="padding: 10px 20px; background: #8A9A8F; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 8px;">Reload App</button>
+                <button onclick="console.log('Check browser console for errors'); alert('Open browser developer tools (F12) and check the Console tab for error messages')" style="padding: 10px 20px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px;">Check Console</button>
+              </div>
+            `;
+          }
+        }
+      }, 10000); // 10 second timeout
+      
+      // Log when script starts loading
+      console.log('📱 index.html: Script tag executed, main.jsx should load now');
+    </script>
   </body>
 </html>

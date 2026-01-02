@@ -12,9 +12,26 @@ import { isNative } from './utils/platform'
 import { setupSafeAreaSupport } from './utils/safeArea'
 import './index.css'
 
+// Log immediately when script starts executing
+console.log('🚀 main.jsx: Script started executing');
+console.log('🚀 main.jsx: Document ready state:', document.readyState);
+console.log('🚀 main.jsx: Window location:', window.location.href);
+console.log('🚀 main.jsx: Is native platform:', isNative());
+
 // Initialize cache busting on app load
-initCacheBusting();
-setupSafeAreaSupport();
+try {
+  initCacheBusting();
+  console.log('✅ Cache busting initialized');
+} catch (error) {
+  console.error('❌ Cache busting init failed:', error);
+}
+
+try {
+  setupSafeAreaSupport();
+  console.log('✅ Safe area support initialized');
+} catch (error) {
+  console.error('❌ Safe area support init failed:', error);
+}
 
 // Global error handlers to prevent renderer crashes
 if (typeof window !== 'undefined') {
@@ -53,19 +70,53 @@ if (typeof window !== 'undefined') {
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ChunkErrorBoundary>
-      <FirebaseProvider>
-        <FounderOfferProvider>
-          <AppProvider>
-            <RouterProvider router={router} />
-          </AppProvider>
-        </FounderOfferProvider>
-      </FirebaseProvider>
-    </ChunkErrorBoundary>
-  </React.StrictMode>,
-)
+// Ensure root element exists before rendering
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  console.error('❌ CRITICAL: Root element not found!');
+  document.body.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background-color: #ffffff; color: #000000; padding: 20px; text-align: center;">
+      <div>
+        <h1 style="color: #dc2626; margin-bottom: 16px;">Critical Error</h1>
+        <p>Root element not found. Please refresh the app.</p>
+        <button onclick="window.location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #8A9A8F; color: white; border: none; border-radius: 4px; cursor: pointer;">Reload App</button>
+      </div>
+    </div>
+  `;
+} else {
+  try {
+    console.log('✅ Root element found, initializing React...');
+    const root = ReactDOM.createRoot(rootElement);
+    
+    root.render(
+      <React.StrictMode>
+        <ChunkErrorBoundary>
+          <FirebaseProvider>
+            <FounderOfferProvider>
+              <AppProvider>
+                <RouterProvider router={router} />
+              </AppProvider>
+            </FounderOfferProvider>
+          </FirebaseProvider>
+        </ChunkErrorBoundary>
+      </React.StrictMode>
+    );
+    
+    console.log('✅ React render initiated successfully');
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to render React app:', error);
+    rootElement.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background-color: #ffffff; color: #000000; padding: 20px; text-align: center;">
+        <div>
+          <h1 style="color: #dc2626; margin-bottom: 16px;">App Failed to Load</h1>
+          <p style="margin-bottom: 8px;">Error: ${error.message || 'Unknown error'}</p>
+          <p style="font-size: 12px; color: #666; margin-bottom: 16px;">Check console for details</p>
+          <button onclick="window.location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #8A9A8F; color: white; border: none; border-radius: 4px; cursor: pointer;">Reload App</button>
+        </div>
+      </div>
+    `;
+  }
+}
 
 // Expose debug controls to window
 if (typeof window !== 'undefined') {
