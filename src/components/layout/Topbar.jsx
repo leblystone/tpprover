@@ -359,7 +359,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
       <header 
         className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header" 
         style={{ 
-          paddingTop: isNative ? 'var(--safe-area-top, 0px)' : '0px',
+          paddingTop: isNative ? 'max(0.5rem, var(--safe-area-top, 0px))' : '0px',
+          paddingBottom: '0.5rem',
+          minHeight: isNative ? 'calc(2.5rem + max(0.5rem, var(--safe-area-top, 0px)))' : '2.5rem',
           borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
           background: theme.isDark 
             ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
@@ -477,11 +479,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Mobile tabs - minimal underline style */}
         {tabs && tabs.length > 0 && (
           <div 
-            className="lg:hidden flex items-center gap-3 absolute left-3 overflow-x-auto mobile-tabs-container" 
+            className="lg:hidden flex items-center gap-2 flex-1 overflow-x-auto mobile-tabs-container mr-2" 
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
-              maxWidth: 'calc(100vw - 120px)'
+              minWidth: 0
             }}
           >
             <style>{`
@@ -504,13 +506,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-1 pb-4 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
+                className="px-2 py-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent',
-                  paddingTop: '1rem',
-                  paddingBottom: '1rem'
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
@@ -522,7 +522,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                       backgroundColor: theme.primary,
                       height: '3px',
                       boxShadow: `0 0 8px ${theme.primary}60`,
-                      bottom: '0.5rem'
+                      bottom: '0.25rem'
                     }}
                   />
                 )}
@@ -531,7 +531,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
+        <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0" style={{ minWidth: 0 }}>
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
           {tabs && tabs.length > 0 && onActionClick && (
             <button 
@@ -725,11 +725,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
       <style>{`
         .topbar-header {
-          min-height: 2.5rem; /* h-10 for mobile - padding-top adds extra space for native apps */
+          /* Height handled inline with safe area calculations */
         }
         @media (min-width: 1024px) {
           .topbar-header {
-            min-height: 3rem; /* lg:h-12 for desktop - padding-top adds extra space for native apps */
+            min-height: 3rem !important; /* lg:h-12 for desktop */
+            padding-top: 0px !important; /* No safe area padding on desktop */
           }
         }
         @keyframes sway {
