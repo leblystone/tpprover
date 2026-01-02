@@ -49,6 +49,7 @@ export default function Recon() {
 	const [showEditModal, setShowEditModal] = useState(false)
 	const [viewItem, setViewItem] = useState(null)
     const [historyToDelete, setHistoryToDelete] = useState(null)
+    const [showCalculatorModal, setShowCalculatorModal] = useState(false)
 
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
@@ -120,8 +121,8 @@ export default function Recon() {
 				
 				if (hasValidPrefill) {
 					setPrefill(data)
-					// Automatically switch to calculator tab when valid prefill data exists
-					setActiveTab('calculator')
+					// Automatically open calculator modal when valid prefill data exists
+					setShowCalculatorModal(true)
 					// Show toast to let user know data was loaded
 					const peptideName = data.peptide || (data.peptides && data.peptides[0]?.name) || 'peptide'
 					window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -772,15 +773,17 @@ export default function Recon() {
 			{ value: 'reconstituted', label: 'In Use' },
 			{ value: 'history', label: 'History' }
 		];
-			// Ensure we don't get stuck on a hidden tab on desktop
-			if (!isMobile && activeTab === 'calculator') {
-				setActiveTab('reconstituted');
-			}
 			window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
 				detail: { 
 					tabs, 
 					activeTab, 
-					onTabChange: setActiveTab,
+					onTabChange: (tab) => {
+						if (tab === 'calculator') {
+							setShowCalculatorModal(true);
+						} else {
+							setActiveTab(tab);
+						}
+					},
 					onActionClick: () => setShowEditModal(true),
 					actionDisabled: false
 				} 
@@ -807,23 +810,7 @@ export default function Recon() {
 		<>
 			<ReconTipsBanner theme={theme} />
 			
-			{/* Calculator Tab - Full width centered on desktop when active */}
-			{activeTab === 'calculator' && (
-				<div className="flex justify-center">
-					<div className="w-full lg:max-w-2xl">
-					<ReconCalculatorPanel 
-                        theme={theme} 
-                        prefill={prefill} 
-                        isReadOnly={isReadOnly} 
-                        onUpgrade={() => setShowUpgradeModal(true)} 
-                        onSave={handleCalculatorSave}
-                        onSaveDraft={handleCalculatorSaveDraft}
-                    />
-					</div>
-				</div>
-			)}
-
-			<div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${activeTab === 'calculator' ? 'hidden' : ''}`}>
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Desktop: Show calculator in sidebar on other tabs */}
 				<div className="order-1 lg:order-2 hidden lg:block">
 				<ReconCalculatorPanel 
@@ -837,7 +824,7 @@ export default function Recon() {
 				</div>
 
 			{/* Main content area */}
-			<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
+			<div className="order-2 lg:order-1 lg:col-span-2">
 				
 				{activeTab === 'reconstituted' && (
 						<div className="space-y-4">
@@ -958,7 +945,7 @@ export default function Recon() {
                                                                 dateAcquired: item.dateAcquired || ''
                                                             });
 											setDraftIdToRemove(item.id); // Track which draft to remove when saving
-											setActiveTab('calculator');
+											setShowCalculatorModal(true);
 											// Draft will be removed when user saves the calculation
 										} : undefined}
 									>
@@ -989,7 +976,7 @@ export default function Recon() {
                                                         className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
                                                         style={{ backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: '#6b8e6b' }}
                                                     >
-                                                        Active
+                                                        In Use
                                                     </div>
                                                 )}
                                                 <div className="text-[8px] font-bold opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
@@ -1095,15 +1082,38 @@ export default function Recon() {
                                         </div>
 
                                         {/* Footer */}
-                                        <div className="mt-3 pt-2 border-t flex items-center justify-between relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-                                            <div className="flex items-center gap-1 opacity-50 transition-opacity">
+                                        <div className="mt-3 pt-2 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                            <button 
+                                                className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (item.isDraft) {
+                                                        setPrefill({
+                                                            peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
+                                                            vendor: item.vendor || '',
+                                                            water: item.water || 2,
+                                                            deliveryMethod: item.deliveryMethod || 'pipette',
+                                                            administrationRoute: item.administrationRoute || 'subq',
+                                                            penType: item.penType || '',
+                                                            penColor: item.penColor || '',
+                                                            cost: item.cost || '',
+                                                            dateAcquired: item.dateAcquired || ''
+                                                        });
+                                                                setDraftIdToRemove(item.id);
+                                                                setShowCalculatorModal(true);
+                                                    } else {
+                                                        setEditingItem(item);
+                                                        setShowEditModal(true);
+                                                    }
+                                                }}
+                                            >
                                                 <span className="text-[8px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
                                                     {item.isDraft ? 'Resume' : 'Details'}
                                                 </span>
                                                 <ChevronDown size={10} style={{ color: theme.primary }} strokeWidth={3} />
-                                            </div>
+                                            </button>
 
-                                            <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                            <div className="absolute right-0 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                                                 {item.isDraft ? (
                                                     <button 
                                                         className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
@@ -1121,33 +1131,20 @@ export default function Recon() {
                                                                 dateAcquired: item.dateAcquired || ''
                                                             });
                                                             setDraftIdToRemove(item.id);
-                                                            setActiveTab('calculator');
+                                                            setShowCalculatorModal(true);
                                                         }}
                                                     >
                                                         <Calculator size={13} />
                                                     </button>
                                                 ) : (
-                                                    <>
-                                                        <button 
-                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
-                                                            style={{ color: '#dc2626' }} 
-                                                            onClick={() => handleMarkAsUsed(item)}
-                                                            title="Finish Vial"
-                                                        >
-                                                            <CheckCircle size={13} />
-                                                        </button>
-                                                        <button 
-                                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
-                                                            style={{ color: theme.primary }} 
-                                                            onClick={() => { 
-                                                                setEditingItem(item); 
-                                                                setShowEditModal(true);
-                                                            }}
-                                                            title="Edit Recon"
-                                                        >
-                                                            <Edit size={13} />
-                                                        </button>
-                                                    </>
+                                                    <button 
+                                                        className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
+                                                        style={{ color: '#dc2626' }} 
+                                                        onClick={() => handleMarkAsUsed(item)}
+                                                        title="Finish Vial"
+                                                    >
+                                                        <CheckCircle size={13} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -1188,7 +1185,7 @@ export default function Recon() {
                                         return (
                                             <div
                                                 key={`h-${item.id}`}
-                                                className={`rounded-2xl shadow-md p-4 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
+                                                className={`rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
                                                 style={{ 
                                                     backgroundColor: theme.cardBackground,
                                                     fontFamily: 'Poppins, sans-serif',
@@ -1197,14 +1194,14 @@ export default function Recon() {
                                                 onClick={() => setViewItem(item)}
                                             >
                                                 {/* Header */}
-                                                <div className="flex items-start justify-between mb-3 gap-3">
+                                                <div className="flex items-start justify-between mb-2 gap-3">
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
+                                                        <h3 className="font-semibold text-base truncate" style={{ color: theme.text }}>
                                                             {item.peptide || 'Unnamed research vial'}
                                                         </h3>
                                                         <div className="flex items-center gap-1.5 opacity-60">
                                                             <Package size={10} style={{ color: '#8ca68c' }} />
-                                                            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
                                                                 {vendorName || 'Unknown Source'}
                                                             </span>
                                                         </div>
@@ -1212,30 +1209,30 @@ export default function Recon() {
                                                     
                                                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                                         <div 
-                                                            className="px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm"
+                                                            className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
                                                             style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}
                                                         >
                                                             Archived
                                                         </div>
-                                                        <div className="text-[9px] font-bold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
+                                                        <div className="text-[8px] font-bold opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
                                                             {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Content Area */}
-                                                <div className="flex-1 space-y-4">
+                                                <div className="flex-1 space-y-3">
                                                     {/* Recon Details Section */}
                                                     <div className="relative pl-3">
                                                         <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                        <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                        <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                             <div className="flex items-center gap-1.5 flex-shrink-0">
                                                                 <FileText size={10} style={{ color: '#8ca68c' }} />
                                                                 Historical Data
                                                             </div>
                                                             <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                         </div>
-                                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                                        <div className="grid grid-cols-2 gap-y-1 gap-x-4">
                                                             <DataPoint icon={Beaker} label="Amount" value={`${item.mg} mg`} theme={theme} />
                                                             {item.water && <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />}
                                                             {item.dose && <DataPoint icon={Pipette} label="Dose" value={`${item.dose} ${item.doseUnit || 'mcg'}`} theme={theme} />}
@@ -1247,35 +1244,41 @@ export default function Recon() {
                                                     {item.notes && (
                                                         <div className="relative pl-3">
                                                             <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                            <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                            <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                                                     <Info size={10} style={{ color: '#8ca68c' }} />
                                                                     Notes
                                                                 </div>
                                                                 <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                             </div>
-                                                            <p className="text-[11px] leading-relaxed italic opacity-70 line-clamp-2" style={{ color: theme.text }}>{item.notes}</p>
+                                                            <p className="text-[10px] leading-relaxed italic opacity-70 line-clamp-2" style={{ color: theme.text }}>{item.notes}</p>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Footer */}
-                                                <div className="mt-4 pt-3 border-t flex items-center justify-between relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-                                                    <div className="flex items-center gap-1 opacity-50 transition-opacity">
-                                                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
-                                                            View Details
+                                                <div className="mt-3 pt-2 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                                    <button 
+                                                        className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setViewItem(item);
+                                                        }}
+                                                    >
+                                                        <span className="text-[8px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                            Details
                                                         </span>
-                                                        <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
-                                                    </div>
+                                                        <ChevronDown size={10} style={{ color: theme.primary }} strokeWidth={3} />
+                                                    </button>
 
-                                                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="absolute right-0 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                                                         <button
                                                             className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                                                             style={{ color: theme.primary }}
                                                             onClick={() => setViewItem(item)}
                                                             title="View details"
                                                         >
-                                                            <Eye size={14} />
+                                                            <Eye size={13} />
                                                         </button>
                                                         <button
                                                             className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
@@ -1283,12 +1286,11 @@ export default function Recon() {
                                                             onClick={() => setHistoryToDelete(item)}
                                                             title="Delete entry"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={13} />
                                                         </button>
                                                     </div>
                                                 </div>
                                             </div>
-                                        )
                                         )
                                     })}
 								</div>
@@ -2096,6 +2098,40 @@ export default function Recon() {
                     </button>
                 </div>
             </Modal>
+
+			<BottomSheet 
+				open={showCalculatorModal} 
+				onClose={() => { 
+					setShowCalculatorModal(false); 
+					setPrefill(null);
+					setDraftIdToRemove(null);
+				}} 
+				title="Peptide Calculator" 
+				theme={theme} 
+				maxHeight="90vh"
+			>
+				<div className="-m-4 sm:-m-6 -mb-3 flex flex-col" style={{ height: 'calc(90vh - 80px)' }}>
+					<ReconCalculatorPanel 
+						theme={theme} 
+						prefill={prefill} 
+						isReadOnly={isReadOnly} 
+						onUpgrade={() => setShowUpgradeModal(true)} 
+						hideFooter={false}
+						onSave={(data) => {
+							handleCalculatorSave(data);
+							setShowCalculatorModal(false);
+							setPrefill(null);
+							setDraftIdToRemove(null);
+						}}
+						onSaveDraft={(data) => {
+							handleCalculatorSaveDraft(data);
+							setShowCalculatorModal(false);
+							setPrefill(null);
+							setDraftIdToRemove(null);
+						}}
+					/>
+				</div>
+			</BottomSheet>
 
 			<UpgradeModal
 				isOpen={showUpgradeModal}
