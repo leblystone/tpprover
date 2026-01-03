@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink } from 'lucide-react'
+import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -572,6 +572,61 @@ export default function AccountSubscription() {
           </div>
           <ArrowLeft size={16} className="opacity-40 rotate-180" style={{ color: theme.text }} />
         </button>
+      </div>
+
+      {/* Trust Badges - Payment Providers */}
+      <div className="pt-8 pb-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield size={16} className="opacity-40" style={{ color: theme.text }} />
+            <span className="text-xs font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+              Secure Payment Processing
+            </span>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* Stripe Badge */}
+            <div 
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+              }}
+            >
+              <CheckCircle2 size={16} style={{ color: '#635BFF' }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>Stripe</span>
+            </div>
+
+            {/* Google Play Badge */}
+            <div 
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+              }}
+            >
+              <CheckCircle2 size={16} style={{ color: '#01875F' }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>Google Play</span>
+            </div>
+
+            {/* Apple App Store Badge */}
+            <div 
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+              }}
+            >
+              <CheckCircle2 size={16} style={{ color: '#007AFF' }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>App Store</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>
+            Your subscription is securely processed by trusted payment providers. 
+            Manage billing through your chosen platform.
+          </p>
+        </div>
       </div>
 
       {/* Gift Modal */}
