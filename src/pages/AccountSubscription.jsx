@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { byPrefixAndName } from '@fortawesome/fontawesome-svg-core/import.macro'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -593,9 +595,10 @@ export default function AccountSubscription() {
                 border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
               }}
             >
-              <svg width="70" height="24" viewBox="0 0 468 222" xmlns="http://www.w3.org/2000/svg">
-                <path d="M414 113.4c0-25.6-12.4-45.8-36.1-45.8-23.8 0-38.2 20.2-38.2 45.6 0 30.1 17 45.3 41.4 45.3 11.9 0 20.9-2.7 27.7-6.5V136c-6.8 3.4-14.6 5.5-24.5 5.5-9.7 0-18.3-3.4-19.4-15.2h48.9c0-1.3.2-6.5.2-13.9zm-49.4-9.5c0-11.3 6.9-16 13.2-16 6.1 0 12.6 4.7 12.6 16h-25.8zm-42.1 9.5c0-25.6-12.4-45.8-36.1-45.8-23.8 0-38.2 20.2-38.2 45.6 0 30.1 17 45.3 41.4 45.3 11.9 0 20.9-2.7 27.7-6.5V136c-6.8 3.4-14.6 5.5-24.5 5.5-9.7 0-18.3-3.4-19.4-15.2h48.9c0-1.3.2-6.5.2-13.9zm-49.4-9.5c0-11.3 6.9-16 13.2-16 6.1 0 12.6 4.7 12.6 16h-25.8zm-50.1 20.1c-4.8 0-8.1-2.5-9.5-5.7h-1.1V155h-12.1V67.7h12.1v11.4c2.3-8.7 8.5-13.2 17.9-13.2 1.9 0 3.4.2 4.4.4v11.9c-1-.3-2.4-.5-4.4-.5zm-24.1 7.9c0 19.3 9.5 28.9 22.8 28.9 6.1 0 10.9-1.6 14.2-4.2v-9.8c-3.2 1.9-7.9 3.4-12.8 3.4-10.1 0-15.2-7.2-15.2-17.3 0-9.8 4.7-17.6 14.6-17.6 4.9 0 9.2 1.3 12.5 3.1V87.8c-3.3-2.4-8.1-4-13.5-4-14.3 0-22.6 10.4-22.6 28.7zm-80.3-37.8c-5.3 0-9.1 3.8-9.1 9.1 0 5.1 3.5 8.9 8.9 8.9s9.1-3.8 9.1-8.9c-.1-5.1-3.7-9.1-8.9-9.1zm-8.2 19.6h12.1V155h-12.1V113.7zm-142-55.5h-11.8l-7.5 18.2h-.5l-7.3-18.2h-12.1l11.4 26.8-10.7 24.9h12.1l14.2-33.1 11.4 26.5h12.1l-10.7-24.7 11.2-26.7zm-52.1 0h-12.1V155h12.1V58.2zm-18.3 48.6c-4.8 0-8.1-2.5-9.5-5.7h-1.1v47.9h-12.1V67.7h12.1v11.4c2.3-8.7 8.5-13.2 17.9-13.2 1.9 0 3.4.2 4.4.4v11.9c-1-.3-2.4-.5-4.4-.5zm-24 7.9c0 19.3 9.5 28.9 22.8 28.9 6.1 0 10.9-1.6 14.2-4.2v-9.8c-3.2 1.9-7.9 3.4-12.8 3.4-10.1 0-15.2-7.2-15.2-17.3 0-9.8 4.7-17.6 14.6-17.6 4.9 0 9.2 1.3 12.5 3.1V87.8c-3.3-2.4-8.1-4-13.5-4-14.3 0-22.6 10.4-22.6 28.7z" fill={theme.isDark ? '#ffffff' : '#635BFF'}/>
-              </svg>
+              <FontAwesomeIcon 
+                icon={byPrefixAndName.fab['cc-stripe']} 
+                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#635BFF' }}
+              />
             </div>
 
             {/* Google Play Logo */}
@@ -606,10 +609,10 @@ export default function AccountSubscription() {
                 border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
               }}
             >
-              <svg width="100" height="28" viewBox="0 0 100 28" xmlns="http://www.w3.org/2000/svg">
-                <path d="M28.5 4.5H16.2v21.4h3v-6.5h8.6c3.9 0 7-2.8 7-7.5 0-4.1-2.7-7.4-6.3-7.4zm-.2 11.1h-8.4V8.5h8.4c2.2 0 3.8 1.8 3.8 3.6 0 1.9-1.6 3.6-3.8 3.6zm15.3 4.3c-3.9 0-5.9-2.4-5.9-5.6V4.5H37.3v.6h-2.7v10c0 4.6 2.5 7.5 7.5 7.5 2.2 0 4.1-.8 5.2-2.2l-1.3-2.2c-.8 1-2.3 1.7-3.9 1.7zm12.7-11.1h-5.6V4.5h5.9c2.6 0 4.6 1.8 4.6 4.3 0 2.6-2 4.6-4.9 4.6zm-5.6-2.2h4.8c1.3 0 2.2-.8 2.2-2.2 0-1.3-.9-2.2-2.2-2.2h-4.8v4.4zm7.5 13.3h3V8.5h-3v12.6zm9.1-12.6h-3v12.6h3V8.5zm4.6 6.3c0-3.9 2.6-6.8 6.5-6.8 3.9 0 6.5 2.9 6.5 6.8 0 3.9-2.6 6.8-6.5 6.8-3.9 0-6.5-2.9-6.5-6.8zm9.9 0c0-2.3-1.3-4.1-3.4-4.1-2.2 0-3.4 1.8-3.4 4.1 0 2.3 1.2 4.1 3.4 4.1 2.1 0 3.4-1.8 3.4-4.1z" fill={theme.isDark ? '#ffffff' : '#01875F'}/>
-                <path d="M13.3 7.9c-.8 0-1.3.6-1.3 1.7v2.2h2.6v1.3h-2.6v2.6h-1.3v-6.8h3.9v1.3h-2.3zm-4.6 6.8h1.3V8.5H8.7v6.3zm-2.2-4.6c0-.8.6-1.3 1.7-1.3 1 0 1.7.4 1.7 1.3v.6H6.7c-1 0-1.7.4-1.7 1.7v2.6h1.3v-2.2c0-.6.4-1 1-1h1.3v3.2H5.5v-3.1z" fill={theme.isDark ? '#ffffff' : '#01875F'}/>
-              </svg>
+              <FontAwesomeIcon 
+                icon={byPrefixAndName.fab['google-play']} 
+                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#01875F' }}
+              />
             </div>
 
             {/* Apple App Store Logo */}
@@ -620,11 +623,10 @@ export default function AccountSubscription() {
                 border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
               }}
             >
-              <svg width="90" height="28" viewBox="0 0 90 28" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15.5 4.5c-.8 0-1.5.7-1.5 1.5v18c0 .8.7 1.5 1.5 1.5h59c.8 0 1.5-.7 1.5-1.5V6c0-.8-.7-1.5-1.5-1.5h-59zm59 20h-59V7h59v17.5z" fill={theme.isDark ? '#ffffff' : '#000000'}/>
-                <path d="M20.5 12.5h49v1.5h-49v-1.5zm0 3h49v1.5h-49v-1.5zm0 3h35v1.5h-35v-1.5z" fill={theme.isDark ? '#ffffff' : '#000000'}/>
-                <path d="M25 9.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill={theme.isDark ? '#ffffff' : '#000000'}/>
-              </svg>
+              <FontAwesomeIcon 
+                icon={byPrefixAndName.fab['apple']} 
+                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#000000' }}
+              />
             </div>
           </div>
 
