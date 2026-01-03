@@ -64,26 +64,66 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
+      // Log subscription data for debugging
+      console.log('💳 Full subscription data:', JSON.stringify(sub, null, 2))
+      
       // Determine payment provider from subscription
       // Check paymentProvider field first (most reliable)
       let paymentProvider = sub?.paymentProvider
       
+      // Normalize provider name if it exists
+      if (paymentProvider === 'google_play') paymentProvider = 'googleplay'
+      if (paymentProvider === 'appstore') paymentProvider = 'apple'
+      
       // Fallback: Detect from subscription data
+      // IMPORTANT: Check Google Play BEFORE Stripe, since Stripe fields might be null/undefined
       if (!paymentProvider) {
-        if (sub?.stripeCustomerId || sub?.customerId) {
-          paymentProvider = 'stripe'
-        } else if (sub?.source === 'google_play' || sub?.googlePlayPurchaseToken) {
+        // Google Play indicators (check these first)
+        if (sub?.googlePlayPurchaseToken || 
+            sub?.googlePlayProductId || 
+            sub?.googlePlayOrderId ||
+            sub?.source === 'google_play' ||
+            sub?.source === 'googleplay') {
           paymentProvider = 'googleplay'
-        } else if (sub?.source === 'apple' || sub?.appStoreTransactionId) {
+        }
+        // Apple indicators
+        else if (sub?.appStoreTransactionId || 
+                 sub?.appStoreProductId ||
+                 sub?.source === 'apple' ||
+                 sub?.source === 'appstore') {
           paymentProvider = 'apple'
+        }
+        // Stripe indicators (check last, as these might be null for other providers)
+        else if (sub?.stripeCustomerId || sub?.customerId || sub?.stripeSubscriptionId) {
+          paymentProvider = 'stripe'
+        }
+        // Final fallback: Check source using same logic as getSource() function
+        else if (sub) {
+          // Check paymentProvider field (used by backend)
+          if (sub.paymentProvider === 'googleplay') {
+            paymentProvider = 'googleplay'
+          } else if (sub.paymentProvider === 'apple') {
+            paymentProvider = 'apple'
+          } else if (sub.paymentProvider === 'stripe') {
+            paymentProvider = 'stripe'
+          }
+          // Fallback checks for older data
+          else if (sub.source === 'google_play') {
+            paymentProvider = 'googleplay'
+          } else if (sub.source === 'apple') {
+            paymentProvider = 'apple'
+          } else if (sub.source === 'stripe' || sub.paymentMethodId) {
+            paymentProvider = 'stripe'
+          }
         }
       }
       
-      // Normalize provider name
+      // Final normalization
       if (paymentProvider === 'google_play') paymentProvider = 'googleplay'
       if (paymentProvider === 'appstore') paymentProvider = 'apple'
 
-      console.log('💳 Payment provider detected:', paymentProvider, 'Subscription:', sub)
+      console.log('💳 Payment provider detected:', paymentProvider)
+      console.log('💳 Subscription keys:', sub ? Object.keys(sub) : 'No subscription')
 
       // Route to appropriate billing management based on provider
       if (paymentProvider === 'googleplay' || paymentProvider === 'google_play') {
@@ -126,8 +166,20 @@ export default function AccountSubscription() {
         return
       }
 
+      // If we still don't have a provider, show error
+      if (!paymentProvider) {
+        console.error('❌ Could not determine payment provider. Subscription data:', sub)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Unable to determine subscription provider. Please contact support with your subscription details.', 
+            type: 'error' 
+          } 
+        }))
+        return
+      }
+
       // Default to Stripe for web/PWA subscriptions or if provider is 'stripe'
-      if (paymentProvider === 'stripe' || !paymentProvider) {
+      if (paymentProvider === 'stripe') {
         // Get customerId from subscription data first
         let customerId = sub?.stripeCustomerId || sub?.customerId
         
