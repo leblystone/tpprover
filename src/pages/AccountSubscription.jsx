@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { byPrefixAndName } from '@fortawesome/fontawesome-svg-core/import.macro'
+import { faCcStripe, faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -596,7 +596,7 @@ export default function AccountSubscription() {
               }}
             >
               <FontAwesomeIcon 
-                icon={byPrefixAndName.fab['cc-stripe']} 
+                icon={faCcStripe} 
                 style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#635BFF' }}
               />
             </div>
@@ -610,7 +610,7 @@ export default function AccountSubscription() {
               }}
             >
               <FontAwesomeIcon 
-                icon={byPrefixAndName.fab['google-play']} 
+                icon={faGooglePlay} 
                 style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#01875F' }}
               />
             </div>
@@ -624,7 +624,7 @@ export default function AccountSubscription() {
               }}
             >
               <FontAwesomeIcon 
-                icon={byPrefixAndName.fab['apple']} 
+                icon={faApple} 
                 style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#000000' }}
               />
             </div>
