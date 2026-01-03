@@ -65,7 +65,42 @@ export default function AccountSubscription() {
   const handleManageBilling = async () => {
     try {
       // Log subscription data for debugging
-      console.log('💳 Full subscription data:', JSON.stringify(sub, null, 2))
+      console.log('💳 [BILLING] Starting billing management')
+      console.log('💳 [BILLING] Subscription object:', sub)
+      console.log('💳 [BILLING] Has googlePlayProductId:', !!sub?.googlePlayProductId)
+      console.log('💳 [BILLING] Has googlePlayOrderId:', !!sub?.googlePlayOrderId)
+      console.log('💳 [BILLING] Has googlePlayPurchaseToken:', !!sub?.googlePlayPurchaseToken)
+      
+      // CRITICAL: Check for Google Play FIRST before anything else
+      // This prevents accidentally trying to open Stripe portal for Google Play subscriptions
+      if (sub?.googlePlayProductId || sub?.googlePlayOrderId || sub?.googlePlayPurchaseToken) {
+        console.log('💳 [BILLING] ✅ Detected Google Play subscription - routing to Play Store')
+        const playStoreUrl = 'https://play.google.com/store/account/subscriptions'
+        
+        // On Android, try to open the Play Store app first
+        if (window.Capacitor && window.Capacitor.Plugins?.App) {
+          try {
+            console.log('💳 [BILLING] Opening Play Store app...')
+            await window.Capacitor.Plugins.App.openUrl({ url: playStoreUrl })
+            return
+          } catch (error) {
+            console.warn('💳 [BILLING] Failed to open Play Store app, falling back to web:', error)
+          }
+        }
+        
+        // Fallback to web URL
+        console.log('💳 [BILLING] Opening Play Store in browser...')
+        window.open(playStoreUrl, '_blank')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Opening Google Play Store to manage your subscription...', 
+            type: 'info' 
+          } 
+        }))
+        return
+      }
+      
+      console.log('💳 [BILLING] Not a Google Play subscription, continuing detection...')
       
       // Determine payment provider from subscription
       // Check paymentProvider field first (most reliable)
@@ -122,8 +157,7 @@ export default function AccountSubscription() {
       if (paymentProvider === 'google_play') paymentProvider = 'googleplay'
       if (paymentProvider === 'appstore') paymentProvider = 'apple'
 
-      console.log('💳 Payment provider detected:', paymentProvider)
-      console.log('💳 Subscription keys:', sub ? Object.keys(sub) : 'No subscription')
+      console.log('💳 [BILLING] Payment provider detected:', paymentProvider)
 
       // Route to appropriate billing management based on provider
       if (paymentProvider === 'googleplay' || paymentProvider === 'google_play') {
