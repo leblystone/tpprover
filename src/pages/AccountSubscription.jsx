@@ -64,17 +64,25 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
-      // Log subscription data for debugging
-      console.log('💳 [BILLING] Starting billing management')
+      // Log subscription data for debugging - ALWAYS log first
+      console.log('💳💳💳 [BILLING] ===== STARTING BILLING MANAGEMENT =====')
       console.log('💳 [BILLING] Subscription object:', sub)
-      console.log('💳 [BILLING] Has googlePlayProductId:', !!sub?.googlePlayProductId)
-      console.log('💳 [BILLING] Has googlePlayOrderId:', !!sub?.googlePlayOrderId)
-      console.log('💳 [BILLING] Has googlePlayPurchaseToken:', !!sub?.googlePlayPurchaseToken)
+      console.log('💳 [BILLING] Subscription type:', typeof sub)
+      console.log('💳 [BILLING] Subscription keys:', sub ? Object.keys(sub) : 'NULL')
+      
+      // Check for Google Play indicators - check ALL possible fields
+      const hasGooglePlayProductId = sub?.googlePlayProductId
+      const hasGooglePlayOrderId = sub?.googlePlayOrderId
+      const hasGooglePlayPurchaseToken = sub?.googlePlayPurchaseToken
+      
+      console.log('💳 [BILLING] googlePlayProductId:', hasGooglePlayProductId)
+      console.log('💳 [BILLING] googlePlayOrderId:', hasGooglePlayOrderId)
+      console.log('💳 [BILLING] googlePlayPurchaseToken:', hasGooglePlayPurchaseToken)
       
       // CRITICAL: Check for Google Play FIRST before anything else
       // This prevents accidentally trying to open Stripe portal for Google Play subscriptions
-      if (sub?.googlePlayProductId || sub?.googlePlayOrderId || sub?.googlePlayPurchaseToken) {
-        console.log('💳 [BILLING] ✅ Detected Google Play subscription - routing to Play Store')
+      if (hasGooglePlayProductId || hasGooglePlayOrderId || hasGooglePlayPurchaseToken) {
+        console.log('💳 [BILLING] ✅✅✅ DETECTED GOOGLE PLAY - ROUTING TO PLAY STORE ✅✅✅')
         const playStoreUrl = 'https://play.google.com/store/account/subscriptions'
         
         // On Android, try to open the Play Store app first
@@ -82,6 +90,7 @@ export default function AccountSubscription() {
           try {
             console.log('💳 [BILLING] Opening Play Store app...')
             await window.Capacitor.Plugins.App.openUrl({ url: playStoreUrl })
+            console.log('💳 [BILLING] Play Store app opened successfully')
             return
           } catch (error) {
             console.warn('💳 [BILLING] Failed to open Play Store app, falling back to web:', error)
@@ -97,8 +106,11 @@ export default function AccountSubscription() {
             type: 'info' 
           } 
         }))
+        console.log('💳 [BILLING] Returning early - Google Play handled')
         return
       }
+      
+      console.log('💳 [BILLING] ⚠️ NOT a Google Play subscription - continuing to other providers...')
       
       console.log('💳 [BILLING] Not a Google Play subscription, continuing detection...')
       
