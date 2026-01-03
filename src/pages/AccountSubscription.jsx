@@ -64,11 +64,123 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
-      await createPortalSession()
-    } catch (error) {
-      console.error('Portal error:', error)
+      // Determine payment provider from subscription
+      // Check paymentProvider field first (most reliable)
+      let paymentProvider = sub?.paymentProvider
+      
+      // Fallback: Detect from subscription data
+      if (!paymentProvider) {
+        if (sub?.stripeCustomerId || sub?.customerId) {
+          paymentProvider = 'stripe'
+        } else if (sub?.source === 'google_play' || sub?.googlePlayPurchaseToken) {
+          paymentProvider = 'googleplay'
+        } else if (sub?.source === 'apple' || sub?.appStoreTransactionId) {
+          paymentProvider = 'apple'
+        }
+      }
+      
+      // Normalize provider name
+      if (paymentProvider === 'google_play') paymentProvider = 'googleplay'
+      if (paymentProvider === 'appstore') paymentProvider = 'apple'
+
+      console.log('💳 Payment provider detected:', paymentProvider, 'Subscription:', sub)
+
+      // Route to appropriate billing management based on provider
+      if (paymentProvider === 'googleplay' || paymentProvider === 'google_play') {
+        // Google Play subscriptions must be managed through Google Play Store
+        // Use the general subscriptions page - users can find their subscription there
+        const playStoreUrl = 'https://play.google.com/store/account/subscriptions'
+        
+        // On Android, try to open the Play Store app first
+        if (window.Capacitor && window.Capacitor.Plugins?.App) {
+          try {
+            // Try to open in Play Store app
+            await window.Capacitor.Plugins.App.openUrl({ url: playStoreUrl })
+            return
+          } catch (error) {
+            console.warn('Failed to open Play Store app, falling back to web:', error)
+          }
+        }
+        
+        // Fallback to web URL
+        window.open(playStoreUrl, '_blank')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Opening Google Play Store to manage your subscription...', 
+            type: 'info' 
+          } 
+        }))
+        return
+      }
+
+      if (paymentProvider === 'apple' || paymentProvider === 'appstore') {
+        // iOS subscriptions must be managed through App Store settings
+        // On iOS, we can't directly open App Store subscriptions, so show instructions
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'To manage your subscription, go to Settings → Apple ID → Subscriptions on your iOS device.', 
+            type: 'info',
+            duration: 6000
+          } 
+        }))
+        return
+      }
+
+      // Default to Stripe for web/PWA subscriptions or if provider is 'stripe'
+      if (paymentProvider === 'stripe' || !paymentProvider) {
+        // Get customerId from subscription data first
+        let customerId = sub?.stripeCustomerId || sub?.customerId
+        
+        // Fallback: If not in subscription, check user document
+        if (!customerId && firebaseUser) {
+          try {
+            const { db } = await import('../config/firebase')
+            const { doc, getDoc } = await import('firebase/firestore')
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+            if (userDoc.exists()) {
+              customerId = userDoc.data()?.stripeCustomerId
+            }
+          } catch (error) {
+            console.warn('Failed to fetch customerId from user document:', error)
+          }
+        }
+        
+        if (!customerId) {
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { 
+              message: 'Unable to find billing information. Please try refreshing the page or contact support if the issue persists.', 
+              type: 'error' 
+            } 
+          }))
+          return
+        }
+
+        // Open Stripe Customer Portal
+        const result = await createPortalSession(customerId)
+        
+        if (result?.url) {
+          // Redirect to Stripe Customer Portal
+          window.location.href = result.url
+        } else {
+          throw new Error('No portal URL returned')
+        }
+        return
+      }
+
+      // If we can't determine the provider, show an error
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to open billing portal.', type: 'error' } 
+        detail: { 
+          message: 'Unable to determine subscription provider. Please contact support.', 
+          type: 'error' 
+        } 
+      }))
+    } catch (error) {
+      console.error('Billing management error:', error)
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: error.message || 'Failed to open billing management. Please try again or contact support.', 
+          type: 'error' 
+        } 
       }))
     }
   }
