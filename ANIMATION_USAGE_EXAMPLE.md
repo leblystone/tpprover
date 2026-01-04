@@ -223,3 +223,4 @@ const handleDelete = async (id) => {
 4. **Test on mobile** - Ensure animations are smooth on lower-end devices
 5. **Consider user preferences** - Respect `prefers-reduced-motion` if needed
 
+

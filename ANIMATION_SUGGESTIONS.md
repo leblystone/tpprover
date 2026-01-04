@@ -442,3 +442,4 @@ const handleUndo = () => {
 - Consider **reduced motion** preferences: Use `prefers-reduced-motion` media query
 - Test on **mobile devices** to ensure smooth performance
 
+
