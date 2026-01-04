@@ -94,10 +94,29 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
           // Return a promise that never resolves (we're reloading anyway)
           return new Promise(() => {});
         } else {
-          // We already tried reloading - show error to user
-          console.error('🚨 Chunk load failed even after reload. Manual refresh needed.');
+          // We already tried reloading - silently reload again or redirect to dashboard
+          console.error('🚨 Chunk load failed even after reload. Auto-reloading silently...');
           
-          // Return an error component
+          // Clear the flag and reload silently - don't show error to user
+          window.sessionStorage.removeItem('page_has_been_force_refreshed');
+          
+          // Try to redirect to dashboard if we can, otherwise just reload
+          setTimeout(() => {
+            try {
+              // If we're in the app, try to go to dashboard
+              if (window.location.pathname.startsWith('/app')) {
+                window.location.href = '/app/dashboard';
+              } else {
+                // Otherwise just reload
+                window.location.reload();
+              }
+            } catch (e) {
+              // Fallback to simple reload
+              window.location.reload();
+            }
+          }, 100);
+          
+          // Return a minimal loading component while redirecting
           return {
             default: () => {
               return (
@@ -111,38 +130,9 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
                   textAlign: 'center',
                   fontFamily: 'system-ui, -apple-system, sans-serif'
                 }}>
-                  <h1 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ef4444' }}>
-                    ⚠️ Update Required
-                  </h1>
-                  <p style={{ marginBottom: '1.5rem', color: '#64748b', maxWidth: '500px' }}>
-                    The Pep Planner has been updated. Please refresh your browser to load the latest version.
-                  </p>
-                  <button
-                    onClick={async () => {
-                      window.sessionStorage.removeItem('page_has_been_force_refreshed');
-                      const userId = getUserId();
-                      if (userId) {
-                        await safeReload(userId, 'manual-refresh-after-chunk-error', false);
-                      } else {
-                        window.location.reload();
-                      }
-                    }}
-                    style={{
-                      padding: '0.75rem 2rem',
-                      fontSize: '1rem',
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Refresh Now
-                  </button>
-                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#94a3b8' }}>
-                    Error: {chunkName} - {error.message}
-                  </p>
+                  <div style={{ fontSize: '1rem', color: '#64748b' }}>
+                    Loading...
+                  </div>
                 </div>
               );
             }
