@@ -632,8 +632,8 @@ export default function AccountSubscription() {
           </div>
 
           <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>
-            Your subscription is securely processed by trusted payment providers. 
-            Manage billing through your chosen platform.
+            The Pep Planner does not store or process any private payment information. 
+            All payments are securely handled exclusively through Stripe, Google Play, and Apple App Store.
           </p>
         </div>
       </div>
