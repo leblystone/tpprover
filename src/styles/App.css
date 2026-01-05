@@ -1,5 +1,11 @@
 /* iOS Safe Area Support for all insets (notch, home indicator, etc.) */
 /* Also handles Android browser UI (status bar, bottom navigation) via visualViewport API */
+/* 
+ * Edge-to-Edge Display Support (Android 14+ / iOS):
+ * Modern mobile devices use edge-to-edge displays where content can draw under system UI.
+ * We use visualViewport API to detect Android navigation bars and combine with iOS safe-area-inset.
+ * This ensures all fixed bottom elements (modals, bottom nav, prompts) don't overlap system UI.
+ */
 :root {
     --sat: env(safe-area-inset-top);
     --sar: env(safe-area-inset-right);
@@ -15,6 +21,11 @@
     --safe-area-right: max(var(--sar, 0px), var(--android-safe-area-right, 0px));
     --safe-area-bottom: max(var(--sab, 0px), var(--android-safe-area-bottom, 0px));
     --safe-area-left: max(var(--sal, 0px), var(--android-safe-area-left, 0px));
+}
+
+/* Utility class for fixed bottom elements - automatically handles safe area insets */
+.safe-area-bottom {
+    padding-bottom: max(0.75rem, calc(0.75rem + var(--safe-area-bottom, 0px))) !important;
 }
 
 .main-content {

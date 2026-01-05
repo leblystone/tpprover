@@ -58,7 +58,9 @@ export default function IOSInstallPrompt({ theme }) {
           isMinimized ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
-          transform: isMinimized ? 'translateY(calc(100% - 60px))' : 'translateY(0)'
+          transform: isMinimized ? 'translateY(calc(100% - 60px))' : 'translateY(0)',
+          // Add bottom padding for Android navigation bar (edge-to-edge display support)
+          paddingBottom: `max(1rem, calc(1rem + var(--safe-area-bottom, 0px)))`
         }}
       >
         <div 

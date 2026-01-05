@@ -9,7 +9,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false }) {
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ 
     vendor: '', 
@@ -1903,7 +1903,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
         
-        <div className="mt-3">
+        {!hideSaveButton && onSave && (
+        <div className="mt-3 sticky bottom-0 z-10" style={{ 
+          // Add safe area padding for Android navigation bar when sticky
+          paddingBottom: `max(0px, var(--safe-area-bottom, 0px))`,
+          backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF'
+        }}>
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -1947,12 +1952,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             onSave(dataToSave);
           }}
           type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl text-[14px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-xl active:scale-95"
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl text-[14px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-xl active:scale-95 sticky bottom-0 z-10"
           style={{ 
             background: getPrimaryActionGradient(false),
             color: theme?.textOnPrimary || '#ffffff',
             border: 'none',
-            boxShadow: `0 10px 20px -5px ${theme.primary}60`
+            boxShadow: `0 10px 20px -5px ${theme.primary}60`,
+            // Add safe area padding for Android navigation bar
+            marginBottom: `max(0px, var(--safe-area-bottom, 0px))`
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1967,7 +1974,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           <FilePlus size={18} />
           Save Calculation
         </button>
-        {onSaveDraft && (
+        </div>
+        )}
+        {onSaveDraft && !hideSaveButton && (
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -2031,7 +2040,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         >
           <Info size={14} className="inline mr-2 opacity-70" />
           For research purposes only. Always verify calculations with alternative methods.
-        </div>
         </div>
       </div>
       

@@ -323,7 +323,9 @@ export default function BottomNavigation({ theme }) {
               animation: searchClosing 
                 ? 'slideDownSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
                 : 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)'
+              // Use comprehensive safe area variable (includes Android detection)
+              // This ensures search modal doesn't overlap Android navigation bar (edge-to-edge display support)
+              paddingBottom: `max(1rem, calc(1rem + var(--safe-area-bottom, 0px)))`
             }}
           >
             {/* Handle bar */}
@@ -444,7 +446,8 @@ export default function BottomNavigation({ theme }) {
         onTouchStart={handleMenuTouchStart}
         onTouchMove={handleMenuTouchMove}
         style={{
-          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
+          // Use comprehensive safe area variable (includes Android detection)
+          paddingBottom: `max(0.75rem, calc(0.75rem + var(--safe-area-bottom, 0px)))`,
           maxHeight: expandedMenu ? '600px' : '0',
           opacity: expandedMenu ? 1 : 0,
           transform: expandedMenu ? 'translateY(0)' : 'translateY(20px)',
@@ -541,7 +544,9 @@ export default function BottomNavigation({ theme }) {
             ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
             : 'linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%)',
           borderTop: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
-          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)',
+          // Use comprehensive safe area variable (includes Android detection via visualViewport API)
+          // This ensures bottom nav doesn't overlap Android navigation bar (edge-to-edge display support)
+          paddingBottom: `max(0px, var(--safe-area-bottom, 0px))`,
           boxShadow: theme.isDark
             ? '0 -4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
             : '0 -4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)'

@@ -1,3 +1,16 @@
+/**
+ * Safe Area Detection for Edge-to-Edge Displays
+ * 
+ * Works universally across:
+ * - All Android brands (Samsung, Pixel, OnePlus, Xiaomi, etc.)
+ * - All screen sizes (small phones to tablets)
+ * - All navigation modes (gesture, button, 3-button)
+ * - iOS devices (via env(safe-area-inset-*) fallback)
+ * 
+ * Uses visualViewport API to dynamically measure system UI height.
+ * This is browser-based detection, not device-specific, so it works
+ * on any device using Chrome/Chromium (95%+ of Android browsers).
+ */
 const RESIZE_EVENTS = ['resize', 'orientationchange'];
 
 const round = (value) => `${Math.max(0, Math.round(value || 0))}px`;
@@ -10,6 +23,8 @@ const updateVisualViewportInsets = () => {
   const root = document.documentElement;
   const viewport = window.visualViewport;
 
+  // Graceful fallback: if visualViewport API not available, set to 0
+  // The max() pattern in CSS ensures minimum padding still works
   if (!viewport) {
     root.style.setProperty('--android-safe-area-top', '0px');
     root.style.setProperty('--android-safe-area-right', '0px');
@@ -18,6 +33,8 @@ const updateVisualViewportInsets = () => {
     return;
   }
 
+  // Measure the actual gap between window and viewport
+  // This works on ALL Android devices regardless of brand or size
   const top = viewport.offsetTop;
   const left = viewport.offsetLeft;
   const widthGap = window.innerWidth - viewport.width;

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import Modal from '../common/Modal'
+import BottomSheet from '../common/BottomSheet'
 import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import { useAppContext } from '../../context/AppContext'
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
+import { FilePlus } from 'lucide-react'
+import { penColors } from '../../utils/penColors'
 
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
   const { setReconItems } = useAppContext();
@@ -175,8 +177,67 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
     onClose();
   };
 
+  // Get primary action gradient for save button
+  const getPrimaryActionGradient = (saving) => {
+    const secondaryColor = theme?.secondary || '#d1d5db';
+    if (saving) {
+      return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+    }
+    return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+  };
+  const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+  const primaryActionHoverShadow = theme?.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+
+  // Get current delivery method and pen color from form
+  const [deliveryMethod, setDeliveryMethod] = useState('pipette');
+  const [penColor, setPenColor] = useState('#9ca3af');
+  
+  // Sync delivery method and pen color from form when it changes
+  useEffect(() => {
+    if (form?.deliveryMethod) {
+      setDeliveryMethod(form.deliveryMethod);
+    }
+    if (form?.penColor) {
+      setPenColor(form.penColor);
+    }
+  }, [form?.deliveryMethod, form?.penColor]);
+
+  // Prepare save button data
+  const handleSaveClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!form || !form.peptides) {
+      console.error('Form data is missing!');
+      return;
+    }
+    
+    // Convert hex color to name before saving
+    const selectedPenColor = penColors.find(p => p.hex === penColor);
+    const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
+    
+    // Convert form data to save format
+    const dataToSave = {
+      ...form,
+      peptides: (form.peptides || []).map(pep => ({
+        ...pep,
+        stockpileId: pep.stockpileId || null,
+        quantityUsed: pep.quantityUsed || 1
+      })),
+      vendorId: form.vendorId || null,
+      deliveryMethod: form.deliveryMethod || deliveryMethod,
+      administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || 'subq') : undefined,
+      penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined,
+      penColor: penColorName || form.penColor || '',
+      cost: form.cost || '',
+      dateAcquired: form.dateAcquired || ''
+    };
+    
+    await handleSave(dataToSave);
+  };
+
   return (
-    <Modal 
+    <BottomSheet 
       open={open} 
       onClose={handleClose} 
       title="Peptide Calculator"
@@ -190,32 +251,70 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
           iconOnly={true}
         />
       }
-      theme={theme} 
-      maxWidth="max-w-6xl"
-      variant="modern"
-    >
-      {/* Error Display */}
-      {saveError && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-sm font-medium text-red-800">{saveError}</span>
-          </div>
+      theme={theme}
+      maxHeight="90vh"
+      footer={
+        <div className="w-full">
+          {/* Error Display */}
+          {saveError && (
+            <div className="mb-3 p-3 rounded-lg border" style={{ 
+              backgroundColor: theme.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
+              borderColor: theme.error || '#ef4444'
+            }}>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.error || '#ef4444' }}></div>
+                <span className="text-sm font-medium" style={{ color: theme.error || '#ef4444' }}>{saveError}</span>
+              </div>
+            </div>
+          )}
+          
+          <button
+            type="button"
+            onClick={handleSaveClick}
+            disabled={isSavingToRecon || isReadOnly}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+            style={{
+              background: getPrimaryActionGradient(isSavingToRecon || isReadOnly),
+              color: (isSavingToRecon || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+              border: 'none',
+              boxShadow: (isSavingToRecon || isReadOnly) ? 'none' : primaryActionDefaultShadow
+            }}
+            onMouseEnter={(e) => {
+              if (isSavingToRecon || isReadOnly) return;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = (isSavingToRecon || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToRecon || isReadOnly);
+            }}
+            title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
+          >
+            <FilePlus size={18} />
+            {isSavingToRecon ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
+          </button>
         </div>
-      )}
-      
-      {/* Use the calculator panel without its card wrapper for modal */}
+      }
+    >
+      {/* Use the calculator panel without its card wrapper and without save button */}
       <ReconCalculatorPanel 
         theme={theme} 
         prefill={prefill}
         isReadOnly={isReadOnly}
-        onSave={handleSave}
+        onSave={null} // Don't show save button in panel - it's in footer
         noCard={true}
         compact={true}
         formData={form}
-        setFormData={setForm}
+        setFormData={(newForm) => {
+          setForm(newForm);
+          // Sync delivery method and pen color for save button
+          if (newForm?.deliveryMethod) setDeliveryMethod(newForm.deliveryMethod);
+          if (newForm?.penColor) setPenColor(newForm.penColor);
+        }}
         reconStrategy={null}
+        hideSaveButton={true}
       />
-    </Modal>
+    </BottomSheet>
   )
 }

@@ -323,7 +323,13 @@ export default function BottomSheet({
             className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" 
             style={{ 
               backgroundColor: theme?.cardBackground || '#FFFFFF', 
-              borderColor: theme?.border || 'rgba(0,0,0,0.1)' 
+              borderColor: theme?.border || 'rgba(0,0,0,0.1)',
+              // Add bottom padding for Android navigation bar on mobile devices
+              // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
+              // Devices without overlap (e.g., Pixel) will just get normal 0.75rem padding
+              paddingBottom: isMobile 
+                ? `max(0.75rem, calc(0.75rem + var(--safe-area-bottom, 0px)))`
+                : '0.75rem'
             }}
           >
             {footer}

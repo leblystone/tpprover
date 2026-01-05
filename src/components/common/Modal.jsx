@@ -8,6 +8,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   const [internalOpen, setInternalOpen] = useState(open);
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(open);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const wasOpenBeforeBackground = useRef(false);
   const visibilityChangeTimeoutRef = useRef(null);
   const isInBackgroundState = useRef(false);
@@ -169,6 +170,15 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       }
     };
   }, [open]);
+
+  // Detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Add keyboard shortcuts and prevent body scroll on mobile
   useEffect(() => {
@@ -355,7 +365,19 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', borderColor: theme?.border || 'rgba(0,0,0,0.1)' }}>
+          <div 
+            className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" 
+            style={{ 
+              backgroundColor: theme?.cardBackground || '#FFFFFF', 
+              borderColor: theme?.border || 'rgba(0,0,0,0.1)',
+              // Add bottom padding for Android navigation bar on mobile devices
+              // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
+              // Devices without overlap (e.g., Pixel) will just get normal 0.75rem padding
+              paddingBottom: isMobile
+                ? `max(0.75rem, calc(0.75rem + var(--safe-area-bottom, 0px)))`
+                : '0.75rem'
+            }}
+          >
             {footer}
           </div>
         )}

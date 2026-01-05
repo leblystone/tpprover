@@ -224,3 +224,5 @@ const handleDelete = async (id) => {
 5. **Consider user preferences** - Respect `prefers-reduced-motion` if needed
 
 
+
+

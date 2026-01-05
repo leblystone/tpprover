@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -50,6 +50,8 @@ export default function Recon() {
 	const [viewItem, setViewItem] = useState(null)
     const [historyToDelete, setHistoryToDelete] = useState(null)
     const [showCalculatorModal, setShowCalculatorModal] = useState(false)
+    const [calculatorFormData, setCalculatorFormData] = useState(null)
+    const [isSavingCalculator, setIsSavingCalculator] = useState(false)
 
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
@@ -2105,32 +2107,92 @@ export default function Recon() {
 					setShowCalculatorModal(false); 
 					setPrefill(null);
 					setDraftIdToRemove(null);
+					setCalculatorFormData(null);
 				}} 
 				title="Peptide Calculator" 
 				theme={theme} 
 				maxHeight="90vh"
+				footer={
+					<div className="w-full">
+						<button
+							type="button"
+							onClick={async () => {
+								if (!calculatorFormData || isSavingCalculator || isReadOnly) {
+									if (isReadOnly) {
+										setShowUpgradeModal(true);
+									}
+									return;
+								}
+								
+								setIsSavingCalculator(true);
+								try {
+									// Convert hex color to name before saving if needed
+									const formDataToSave = { ...calculatorFormData };
+									if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
+										const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
+										if (selectedPenColor) {
+											formDataToSave.penColor = selectedPenColor.name;
+										}
+									}
+									
+									// Ensure peptides have required fields
+									if (formDataToSave.peptides) {
+										formDataToSave.peptides = formDataToSave.peptides.map(pep => ({
+											...pep,
+											stockpileId: pep.stockpileId || null,
+											quantityUsed: pep.quantityUsed || 1
+										}));
+									}
+									
+									await handleCalculatorSave(formDataToSave);
+									setShowCalculatorModal(false);
+									setPrefill(null);
+									setDraftIdToRemove(null);
+									setCalculatorFormData(null);
+								} catch (error) {
+									console.error('Failed to save calculation:', error);
+								} finally {
+									setIsSavingCalculator(false);
+								}
+							}}
+							disabled={isSavingCalculator || isReadOnly || !calculatorFormData}
+							className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+							style={{
+								background: getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData),
+								color: (isSavingCalculator || isReadOnly || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+								border: 'none',
+								boxShadow: (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow
+							}}
+							onMouseEnter={(e) => {
+								if (isSavingCalculator || isReadOnly || !calculatorFormData) return;
+								e.currentTarget.style.transform = 'translateY(-1px)';
+								e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.transform = 'translateY(0)';
+								e.currentTarget.style.boxShadow = (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow;
+								e.currentTarget.style.background = getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData);
+							}}
+							title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
+						>
+							<FilePlus size={18} />
+							{isSavingCalculator ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
+						</button>
+					</div>
+				}
 			>
-				<div className="-m-4 sm:-m-6 -mb-3 flex flex-col" style={{ height: 'calc(90vh - 80px)' }}>
-					<ReconCalculatorPanel 
-						theme={theme} 
-						prefill={prefill} 
-						isReadOnly={isReadOnly} 
-						onUpgrade={() => setShowUpgradeModal(true)} 
-						hideFooter={false}
-						onSave={(data) => {
-							handleCalculatorSave(data);
-							setShowCalculatorModal(false);
-							setPrefill(null);
-							setDraftIdToRemove(null);
-						}}
-						onSaveDraft={(data) => {
-							handleCalculatorSaveDraft(data);
-							setShowCalculatorModal(false);
-							setPrefill(null);
-							setDraftIdToRemove(null);
-						}}
-					/>
-				</div>
+				<ReconCalculatorPanel 
+					theme={theme} 
+					prefill={prefill} 
+					isReadOnly={isReadOnly} 
+					onUpgrade={() => setShowUpgradeModal(true)} 
+					onSave={null} // Don't show save button in panel - it's in footer
+					hideSaveButton={true}
+					formData={calculatorFormData}
+					setFormData={(newForm) => {
+						setCalculatorFormData(newForm);
+					}}
+				/>
 			</BottomSheet>
 
 			<UpgradeModal
