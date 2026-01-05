@@ -83,7 +83,7 @@ const DashboardCustomizer = ({
       maxWidth="max-w-4xl"
       variant="modern"
     >
-      <div className="space-y-6">
+      <div className="space-y-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
         {/* All Widgets */}
         <div>
           <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>

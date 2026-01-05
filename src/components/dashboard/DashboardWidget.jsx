@@ -107,6 +107,7 @@ const DashboardWidget = ({
       style={{
         ...widgetStyle,
         backgroundColor: theme.cardBackground,
+        fontFamily: 'Poppins, sans-serif',
         '--tw-ring-color': isCustomizing && widget.enabled ? theme.primary : theme.primary + '4D' // 30% opacity for hover
       }}
       onDragStart={handleDragStart}

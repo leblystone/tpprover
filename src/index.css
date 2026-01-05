@@ -473,3 +473,11 @@ body .grecaptcha-badge,
   height: 0 !important;
   overflow: hidden !important;
 }
+
+/* Dashboard Font - Ensure Poppins is used throughout dashboard and widgets */
+.dashboard-grid,
+.dashboard-widget,
+[class*="dashboard"],
+[class*="widget"] {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif !important;
+}

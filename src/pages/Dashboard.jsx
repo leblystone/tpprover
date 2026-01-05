@@ -605,7 +605,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="space-y-0.5 md:space-y-4" data-tour="dashboard-welcome">
+    <div className="space-y-0.5 md:space-y-4" data-tour="dashboard-welcome" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <ViewContainer theme={theme} transparent noMinHeight>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-1 md:gap-2 mb-0 items-start">
           {/* Today's Research taking up 3/4 of the space */}

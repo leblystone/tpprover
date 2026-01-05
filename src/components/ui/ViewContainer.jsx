@@ -7,7 +7,8 @@ export default function ViewContainer({ theme, className = '', children, transpa
       style={{ 
         backgroundColor: transparent ? 'transparent' : (theme?.background || '#FFFFFF'),
         minWidth: 0,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        fontFamily: 'Poppins, sans-serif'
       }}
     >
       {children}
