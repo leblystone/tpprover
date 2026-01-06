@@ -107,7 +107,7 @@ export default function BottomSheet({
           // Wait for animation to complete before removing from DOM
           animationTimeoutRef.current = setTimeout(() => {
             setShouldRender(false);
-          }, 400); // Match transition duration
+          }, 500); // Match transition duration
         });
       });
     }
@@ -191,6 +191,14 @@ export default function BottomSheet({
   // Theme-aware styling - Header matches content background for seamless look
   const headerBackground = theme?.cardBackground || '#FFFFFF';
   const headerTextColor = theme?.text || '#000000';
+  
+  // Calculate transition based on open state for smoother animations
+  const sheetTransition = isMobile 
+    ? `transform ${internalOpen ? '500ms' : '450ms'} ${internalOpen ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.4, 0.0, 0.2, 1)'}`
+    : `transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)`;
+  
+  const backdropTransition = `opacity ${internalOpen ? '500ms' : '450ms'} ${internalOpen ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.4, 0.0, 0.2, 1)'}`;
+  const containerTransition = backdropTransition;
 
   const content = (
     <div 
@@ -198,7 +206,7 @@ export default function BottomSheet({
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',
-        transition: 'opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+        transition: containerTransition
       }}
     >
       {/* Backdrop */}
@@ -206,7 +214,7 @@ export default function BottomSheet({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         style={{
           opacity: internalOpen ? 1 : 0,
-          transition: 'opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+          transition: containerTransition
         }}
         onClick={handleBackdropClick}
       />
@@ -228,9 +236,7 @@ export default function BottomSheet({
             ? `translate3d(0, ${internalOpen ? (isDragging ? `${dragOffset}px` : '0') : '100%'}, 0)`
             : `scale(${internalOpen ? 1 : 0.95})`,
           opacity: isMobile ? 1 : (internalOpen ? 1 : 0),
-          transition: isDragging ? 'none' : (isMobile 
-            ? 'transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
-            : 'transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'),
+          transition: isDragging ? 'none' : sheetTransition,
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'

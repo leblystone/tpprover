@@ -77,16 +77,16 @@ export default function IncomingGroupCard({
       {/* Content */}
       <div className="relative p-3">
         {/* Header Section */}
-        <div className="flex items-start justify-between mb-2 gap-3">
+        <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+            <h3 className="text-lg font-bold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
           </div>
           
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <div 
-              className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider shadow-sm"
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
               style={{ 
                 fontFamily: 'Poppins, sans-serif',
                 backgroundColor: theme.isDark ? `${theme.primary}25` : `${theme.primary}15`,
@@ -95,7 +95,7 @@ export default function IncomingGroupCard({
             >
               Incoming
             </div>
-            <div className="text-[10px] font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+            <div className="text-xs font-semibold opacity-70 uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.totalMg} {group.unit || 'mg'} en route
             </div>
           </div>
@@ -114,9 +114,9 @@ export default function IncomingGroupCard({
                 />
                 
                 {/* Variant Header Label */}
-                <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   <div className="flex items-center gap-1.5">
-                    <Beaker size={10} style={{ color: theme.primary }} />
+                    <Beaker size={12} style={{ color: theme.primary }} />
                     {variant.mg} {variant.unit || 'mg'}
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
@@ -143,12 +143,12 @@ export default function IncomingGroupCard({
                           }}
                         >
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Package size={12} style={{ color: theme.primary }} />
-                            <span className="text-[12px] font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                            <Package size={14} style={{ color: theme.primary }} />
+                            <span className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                               {vendor}
                             </span>
                           </div>
-                          <div className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 ml-2 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                          <div className="text-xs font-semibold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 ml-2 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                             {vials} {vials === 1 ? 'vial' : 'vials'}
                           </div>
                         </div>
@@ -161,12 +161,12 @@ export default function IncomingGroupCard({
 
         {/* View Order Indicator - Bottom Center */}
         <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-          <div className="flex items-center gap-2 opacity-50 group-hover:opacity-80 transition-opacity">
-            <ShoppingCart size={14} style={{ color: theme.primary }} strokeWidth={2} />
-            <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+          <div className="flex items-center gap-2 opacity-60 group-hover:opacity-90 transition-opacity">
+            <ShoppingCart size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               View Order
             </span>
-            <ChevronRight size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight size={16} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
       </div>

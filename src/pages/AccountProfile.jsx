@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info } from 'lucide-react'
+import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info, AlertCircle } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
@@ -8,6 +8,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getApp } from 'firebase/app'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import Modal from '../components/common/Modal'
+import BottomSheet from '../components/common/BottomSheet'
 import { generateTOTPSecret, generateQRCode, verifyTOTPCode } from '../utils/totp'
 import { getTwoFactorSettings, saveTwoFactorSettings, disableTwoFactor, generateBackupCodes } from '../services/twoFactorAuth'
 
@@ -86,10 +87,22 @@ export default function AccountProfile() {
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailDraft, setEmailDraft] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
+  
+  // Password re-authentication for email change
+  const [passwordConfirmOpen, setPasswordConfirmOpen] = useState(false)
+  const [passwordForEmailChange, setPasswordForEmailChange] = useState('')
+  const [showPasswordForEmailChange, setShowPasswordForEmailChange] = useState(false)
+  const [isReauthenticating, setIsReauthenticating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
   const [verificationCooldown, setVerificationCooldown] = useState(0)
   const [cloudCreatedAt, setCloudCreatedAt] = useState(null)
+  
+  // Password re-authentication for email change
+  const [passwordConfirmOpen, setPasswordConfirmOpen] = useState(false)
+  const [passwordForEmailChange, setPasswordForEmailChange] = useState('')
+  const [showPasswordForEmailChange, setShowPasswordForEmailChange] = useState(false)
+  const [isReauthenticating, setIsReauthenticating] = useState(false)
   
   // Password Reset States
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
@@ -257,29 +270,106 @@ export default function AccountProfile() {
       return
     }
 
-    setIsUpdating(true)
+    // Require password confirmation before email change
+    setPasswordConfirmOpen(true)
+  }
+
+  const cancelEmailEdit = () => {
+    setEmailDraft(user?.email || '')
+    setEditingEmail(false)
+    setPasswordConfirmOpen(false)
+    setPasswordForEmailChange('')
+  }
+
+  // Handle password confirmation for email change
+  const handlePasswordConfirm = async () => {
+    if (!passwordForEmailChange) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Please enter your password', type: 'error' } 
+      }))
+      return
+    }
+
+    setIsReauthenticating(true)
     try {
       const auth = getAuth()
+      const userAuth = auth.currentUser
+      
+      // Re-authenticate user with password
+      const credential = EmailAuthProvider.credential(userAuth.email, passwordForEmailChange)
+      await reauthenticateWithCredential(userAuth, credential)
+      
+      // Password confirmed, proceed with email update
+      setPasswordConfirmOpen(false)
+      setPasswordForEmailChange('')
+      await proceedWithEmailUpdate()
+    } catch (error) {
+      console.error('Error re-authenticating:', error)
+      let message = 'Password is incorrect'
+      if (error.code === 'auth/wrong-password') {
+        message = 'Incorrect password. Please try again.'
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Too many attempts. Please try again later.'
+      } else if (error.message) {
+        message = error.message
+      }
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message, type: 'error' } 
+      }))
+    } finally {
+      setIsReauthenticating(false)
+    }
+  }
+
+  // Proceed with email update after password confirmation
+  const proceedWithEmailUpdate = async () => {
+    if (!emailDraft || emailDraft === user?.email) {
+      setEditingEmail(false)
+      return
+    }
+
+    setIsUpdating(true)
+    const oldEmail = user?.email || firebaseUser?.email
+    
+    try {
+      const auth = getAuth()
+      
+      // If email is changing, set verification status to false immediately
+      if (emailDraft !== user?.email) {
+        setEmailVerified(false)
+      }
+      
       await verifyBeforeUpdateEmail(auth.currentUser, emailDraft)
       
+      // Send security notification to old email
+      try {
+        const functions = getFunctions(getApp(), 'us-central1')
+        const sendEmailChangeNotification = httpsCallable(functions, 'sendEmailChangeNotification')
+        await sendEmailChangeNotification({
+          oldEmail: oldEmail,
+          newEmail: emailDraft,
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // Don't fail the email change if notification fails, but log it
+        console.warn('Failed to send security notification:', notificationError)
+      }
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Verification email sent to new address', type: 'success' } 
+        detail: { message: 'Verification email sent to new address. Please verify your new email.', type: 'success' } 
       }))
       
       setEditingEmail(false)
     } catch (error) {
       console.error('Error updating email:', error)
+      // Revert verification status if update failed
+      setEmailVerified(firebaseUser?.emailVerified || false)
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: 'Failed to update email', type: 'error' } 
       }))
     } finally {
       setIsUpdating(false)
     }
-  }
-
-  const cancelEmailEdit = () => {
-    setEmailDraft(user?.email || '')
-    setEditingEmail(false)
   }
 
   const handleSendVerificationEmail = async () => {
@@ -588,63 +678,29 @@ export default function AccountProfile() {
                   {getUserInitials(user.email)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start gap-3">
+                  <div className="flex justify-between items-baseline gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email</div>
-                      {editingEmail ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="email"
-                            value={emailDraft}
-                            onChange={(e) => setEmailDraft(e.target.value)}
-                            className="px-3 py-1 rounded-lg border text-sm"
-                            style={{ 
-                              backgroundColor: theme.background, 
-                              borderColor: theme.border, 
-                              color: theme.text 
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleEmailUpdate}
-                            disabled={isUpdating}
-                            className="p-1 rounded hover:opacity-80"
-                            style={{ color: theme.primary }}
-                          >
-                            <Save size={16} />
-                          </button>
-                          <button
-                            onClick={cancelEmailEdit}
-                            className="p-1 rounded hover:opacity-80"
-                            style={{ color: theme.mutedText }}
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div 
-                          className="font-semibold tracking-tight whitespace-nowrap"
-                          style={{ 
-                            color: theme.text,
-                            fontSize: user.email 
-                              ? `${Math.max(12, Math.min(18, 18 - (user.email.length - 20) * 0.4))}px`
-                              : '1.125rem'
-                          }}
-                        >
-                          {user.email}
-                        </div>
-                      )}
-                    </div>
-                    {!editingEmail && (
-                      <button 
-                        className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all shrink-0" 
-                        style={{ color: theme.primary, backgroundColor: theme.primary + '10' }} 
-                        onClick={() => { setEditingEmail(true); setEmailDraft(user.email || '') }}
+                      <div 
+                        className="font-semibold tracking-tight whitespace-nowrap"
+                        style={{ 
+                          color: theme.text,
+                          fontSize: user.email 
+                            ? `${Math.max(12, Math.min(18, 18 - (user.email.length - 20) * 0.4))}px`
+                            : '1.125rem'
+                        }}
                       >
-                        <Edit3 size={12} className="inline mr-1" />
-                        Edit
-                      </button>
-                    )}
+                        {user.email}
+                      </div>
+                    </div>
+                    <button 
+                      className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all shrink-0" 
+                      style={{ color: theme.primary, backgroundColor: theme.primary + '10' }} 
+                      onClick={() => { setEditingEmail(true); setEmailDraft(user.email || '') }}
+                    >
+                      <Edit3 size={12} className="inline mr-1" />
+                      Edit
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1035,6 +1091,179 @@ export default function AccountProfile() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Email Edit Bottom Sheet */}
+      <BottomSheet
+        open={editingEmail}
+        onClose={cancelEmailEdit}
+        title="Edit Email Address"
+        theme={theme}
+        footer={
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={cancelEmailEdit}
+              disabled={isUpdating}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+              style={{ 
+                backgroundColor: theme.secondary, 
+                color: theme.text,
+                border: `1px solid ${theme.border}`
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEmailUpdate}
+              disabled={isUpdating || !emailDraft || emailDraft === user?.email}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: emailDraft && emailDraft !== user?.email ? theme.primary : theme.mutedText, 
+                color: theme.primaryText || '#FFFFFF'
+              }}
+            >
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Disclaimer */}
+          <div 
+            className="p-4 rounded-xl border-2 flex items-start gap-3"
+            style={{ 
+              backgroundColor: theme.primary + '10',
+              borderColor: theme.primary + '30'
+            }}
+          >
+            <AlertCircle size={20} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+            <div className="flex-1">
+              <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
+                Email Verification Required
+              </div>
+              <div className="text-xs leading-relaxed opacity-80" style={{ color: theme.text }}>
+                After changing your email address, you'll need to verify your new email. A verification email will be sent to your new address, and your email status will be set to unverified until you complete verification.
+              </div>
+            </div>
+          </div>
+
+          {/* Email Input */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold" style={{ color: theme.text }}>
+              New Email Address
+            </label>
+            <input
+              type="email"
+              value={emailDraft}
+              onChange={(e) => setEmailDraft(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border-2 text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{ 
+                backgroundColor: theme.background, 
+                borderColor: emailDraft && emailDraft !== user?.email ? theme.primary : theme.border, 
+                color: theme.text,
+                boxShadow: emailDraft && emailDraft !== user?.email 
+                  ? `0 0 0 3px ${theme.primary}15` 
+                  : '0 2px 8px rgba(0,0,0,0.05)'
+              }}
+              placeholder="Enter your new email address"
+              autoFocus
+            />
+            {emailDraft && emailDraft !== user?.email && (
+              <div className="text-xs opacity-60" style={{ color: theme.text }}>
+                Current: {user?.email}
+              </div>
+            )}
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Password Confirmation Modal for Email Change */}
+      <Modal
+        open={passwordConfirmOpen}
+        onClose={() => {
+          setPasswordConfirmOpen(false)
+          setPasswordForEmailChange('')
+        }}
+        title="Confirm Password"
+        theme={theme}
+      >
+        <div className="space-y-4">
+          <div 
+            className="p-3 rounded-xl"
+            style={{ backgroundColor: theme.primary + '10' }}
+          >
+            <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
+              Security Verification Required
+            </div>
+            <div className="text-xs opacity-80" style={{ color: theme.text }}>
+              For your security, please enter your password to confirm this email change.
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
+              Current Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPasswordForEmailChange ? 'text' : 'password'}
+                value={passwordForEmailChange}
+                onChange={(e) => setPasswordForEmailChange(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 text-base transition-all focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{ 
+                  backgroundColor: theme.background, 
+                  borderColor: theme.border, 
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+                placeholder="Enter your password"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && passwordForEmailChange) {
+                    handlePasswordConfirm()
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordForEmailChange(!showPasswordForEmailChange)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                style={{ color: theme.mutedText }}
+              >
+                {showPasswordForEmailChange ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setPasswordConfirmOpen(false)
+                setPasswordForEmailChange('')
+              }}
+              disabled={isReauthenticating}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+              style={{ 
+                backgroundColor: theme.secondary, 
+                color: theme.text,
+                border: `1px solid ${theme.border}`
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePasswordConfirm}
+              disabled={isReauthenticating || !passwordForEmailChange}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: passwordForEmailChange && !isReauthenticating ? theme.primary : theme.mutedText, 
+                color: theme.primaryText || '#FFFFFF'
+              }}
+            >
+              {isReauthenticating ? 'Verifying...' : 'Confirm & Continue'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </section>
   )

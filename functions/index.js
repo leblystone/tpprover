@@ -2071,6 +2071,62 @@ exports.sendAccountDeletionEmail = onCall(
   }
 );
 
+/**
+ * Send email change security notification
+ */
+exports.sendEmailChangeNotification = onCall(
+  {
+    cors: true,
+    secrets: ['RESEND_API_KEY']
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated to send email change notification');
+    }
+
+    const { oldEmail, newEmail, timestamp } = request.data;
+
+    if (!oldEmail || !newEmail) {
+      throw new HttpsError('invalid-argument', 'oldEmail and newEmail are required');
+    }
+
+    logger.info(`📧 Sending email change notification to: ${oldEmail}`);
+
+    try {
+      const db = admin.firestore();
+      const emailService = require('./emailService');
+      
+      // Get user info for logging
+      const userId = request.auth.uid;
+      const userRecord = await admin.auth().getUser(userId).catch(() => null);
+      const userName = userRecord?.displayName || null;
+      
+      const success = await emailService.sendEmailChangeNotification(
+        oldEmail, 
+        newEmail, 
+        timestamp || new Date().toISOString(),
+        {
+          userId: userId,
+          recipientName: userName,
+          sentBy: 'system'
+        }
+      );
+      
+      if (success) {
+        logger.info(`✅ Email change notification sent successfully to: ${oldEmail}`);
+        return { success: true, message: 'Security notification sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send email change notification to: ${oldEmail}`);
+        return { success: false, message: 'Failed to send security notification' };
+      }
+    } catch (error) {
+      logger.error('❌ Error sending email change notification:', error);
+      throw new HttpsError('internal', `Failed to send security notification: ${error.message}`);
+    }
+  }
+);
+
 // Check and clean up blocked account (for admin use)
 // This function can see disabled accounts that client SDK cannot
 exports.checkAndCleanBlockedAccount = onCall(

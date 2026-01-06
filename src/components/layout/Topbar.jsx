@@ -479,11 +479,18 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Mobile tabs - minimal underline style */}
         {tabs && tabs.length > 0 && (
           <div 
-            className="lg:hidden flex items-center gap-2 flex-1 overflow-x-auto mobile-tabs-container mr-2" 
+            className="lg:hidden flex items-center gap-0.5 flex-1 overflow-x-auto mobile-tabs-container" 
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
-              minWidth: 0
+              minWidth: 0,
+              // Responsive padding - adjusted via CSS media queries below
+              // Base padding for larger phones, media queries handle smaller screens
+              paddingRight: 'calc(8rem + env(safe-area-inset-right, 0px))',
+              marginRight: '0.25rem',
+              // Ensure tabs container respects right-side button space
+              maxWidth: 'calc(100% - 9rem)',
+              WebkitOverflowScrolling: 'touch'
             }}
           >
             <style>{`
@@ -508,11 +515,13 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-2 py-2 text-sm capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
+                className="px-1.5 py-2 text-xs capitalize tracking-tight transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
                 style={{
                   color: activeTab === tab.value ? theme.text : theme.textLight,
                   fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent'
+                  WebkitTapHighlightColor: 'transparent',
+                  fontSize: '0.75rem',
+                  lineHeight: '1rem'
                 }}
               >
                 {tab.label}
@@ -533,7 +542,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0" style={{ minWidth: 0 }}>
+        <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
           {tabs && tabs.length > 0 && onActionClick && (
             <button 
@@ -735,6 +744,25 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           .topbar-header {
             min-height: 3rem !important; /* lg:h-12 for desktop */
             padding-top: 0px !important; /* No safe area padding on desktop */
+          }
+        }
+        /* Responsive tab spacing for mobile devices */
+        @media (max-width: 374px) {
+          .mobile-tabs-container {
+            padding-right: calc(9rem + env(safe-area-inset-right, 0px)) !important;
+            max-width: calc(100% - 10rem) !important;
+          }
+        }
+        @media (min-width: 375px) and (max-width: 413px) {
+          .mobile-tabs-container {
+            padding-right: calc(8.5rem + env(safe-area-inset-right, 0px)) !important;
+            max-width: calc(100% - 9.5rem) !important;
+          }
+        }
+        @media (min-width: 414px) and (max-width: 767px) {
+          .mobile-tabs-container {
+            padding-right: calc(8rem + env(safe-area-inset-right, 0px)) !important;
+            max-width: calc(100% - 9rem) !important;
           }
         }
         @keyframes sway {

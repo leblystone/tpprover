@@ -98,16 +98,16 @@ export default function StockpileGroupCard({
         )}
 
         {/* Header Section */}
-        <div className="flex items-start justify-between mb-2 gap-3">
+        <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+            <h3 className="text-lg font-bold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
           </div>
           
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <div 
-              className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider shadow-sm"
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
               style={{ 
                 fontFamily: 'Poppins, sans-serif',
                 backgroundColor: statusBadge === 'low' 
@@ -120,7 +120,7 @@ export default function StockpileGroupCard({
             >
               {statusBadge === 'low' ? 'Low' : 'Well Stocked'}
             </div>
-            <div className="text-[10px] font-medium opacity-50 uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+            <div className="text-xs font-semibold opacity-70 uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.totalVials} Vials • {group.totalMg} {group.unit || 'mg'}
             </div>
           </div>
@@ -139,9 +139,9 @@ export default function StockpileGroupCard({
                 />
                 
                 {/* Variant Header Label */}
-                <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   <div className="flex items-center gap-1.5">
-                    <Beaker size={10} style={{ color: '#8ca68c' }} />
+                    <Beaker size={12} style={{ color: '#8ca68c' }} />
                     {variant.mg} {variant.unit || 'mg'} Vials
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
@@ -176,8 +176,8 @@ export default function StockpileGroupCard({
 
         {/* Tap to Open Indicator - Bottom Center */}
         <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-          <div className="flex items-center gap-2 opacity-50 group-hover:opacity-80 transition-opacity">
-            <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+          <div className="flex items-center gap-2 opacity-60 group-hover:opacity-90 transition-opacity">
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               View Stock
             </span>
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-y-0.5 transition-transform" />
@@ -238,12 +238,12 @@ function ItemStrip({
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
           </div>
           
-          <div className="text-[12px] font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+          <div className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {vendorName}
           </div>
           {item.date && (
-            <div className="flex items-center gap-1 text-[10px] opacity-60 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              <Calendar size={10} />
+            <div className="flex items-center gap-1 text-xs opacity-70 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+              <Calendar size={12} />
               {new Date(item.date).toLocaleDateString(undefined, { month: 'numeric', year: '2-digit' })}
             </div>
           )}
@@ -257,7 +257,7 @@ function ItemStrip({
         </div>
 
         <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
-          <div className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+          <div className="text-xs font-semibold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {item.quantity} {item.quantity === 1 ? 'vial' : 'vials'}
           </div>
           
@@ -317,15 +317,15 @@ function ItemStrip({
           transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
         }}
       >
-        <div className="mt-1 mb-2 grid grid-cols-2 gap-x-4 gap-y-1.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+        <div className="mt-1 mb-2 grid grid-cols-2 gap-x-4 gap-y-2 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
           <DataPoint icon={Percent} label="Purity" value={item.purity ? `${item.purity}%` : 'N/A'} theme={theme} />
           <DataPoint icon={Tag} label="Cap Color" value={item.capColor || 'N/A'} theme={theme} />
           <DataPoint icon={Hash} label="Batch #" value={item.batchNumber || 'N/A'} theme={theme} />
           <DataPoint icon={Calendar} label="Use By" value={item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'} theme={theme} />
           {item.notes && (
-            <div className="col-span-2 mt-0.5 pt-1.5 border-t border-black/5 dark:border-white/5">
-              <div className="flex items-start gap-2 text-[10px]" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
-                <Info size={10} className="mt-0.5" />
+            <div className="col-span-2 mt-1 pt-2 border-t border-black/5 dark:border-white/5">
+              <div className="flex items-start gap-2 text-xs" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
+                <Info size={12} className="mt-0.5" />
                 <span className="italic font-normal">{item.notes}</span>
               </div>
             </div>
@@ -336,10 +336,10 @@ function ItemStrip({
                 <button
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); if (doc.type === 'image') onPreviewImage(doc); }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
                   style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
                 >
-                  <FileImage size={10} strokeWidth={2.5} />
+                  <FileImage size={12} strokeWidth={2.5} />
                   View Lab Document
                 </button>
               ))}
@@ -355,10 +355,10 @@ function ItemStrip({
 function DataPoint({ icon: Icon, label, value, theme }) {
   return (
     <div className="flex items-center gap-2 overflow-hidden">
-      <Icon size={12} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
+      <Icon size={14} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
       <div className="flex flex-col min-w-0">
-        <span className="text-[9px] uppercase tracking-widest opacity-50 font-medium" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{label}</span>
-        <span className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
+        <span className="text-[10px] uppercase tracking-wide opacity-60 font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{label}</span>
+        <span className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
       </div>
     </div>
   );

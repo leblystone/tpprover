@@ -1376,8 +1376,8 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <ShoppingCart size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
+                <p className="text-base mb-6 max-w-md" style={{ color: theme.textLight }}>
                   Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
                 </p>
                 <button
@@ -1385,10 +1385,10 @@ export default function Stockpile() {
                     window.history.pushState({}, '', '/app/orders?new=true');
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold transition-all hover:opacity-90 hover:scale-105"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
-                  <PlusCircle size={18} />
+                  <PlusCircle size={20} />
                   Place Your First Order
                 </button>
               </div>
@@ -1607,7 +1607,7 @@ export default function Stockpile() {
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Research Parameters
+                  Amount & Quantity
                 </span>
               </div>
             </div>
@@ -2164,7 +2164,7 @@ export default function Stockpile() {
         }}
         titleExtra={
           <button 
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all" 
+            className="px-3 py-1.5 rounded-lg text-sm font-bold transition-all" 
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
               border: `1px solid ${theme.border}`, 
@@ -2201,18 +2201,18 @@ export default function Stockpile() {
       )}>
         <div className="space-y-4">
           {showHistory && (
-            <div className="rounded-xl border p-3 max-h-40 overflow-auto text-xs space-y-2" style={{ 
+            <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
               borderColor: theme.border,
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
             }}>
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).slice(0,50).map(h => (
-                <div key={h.id} className="flex items-center justify-between py-1">
-                  <span style={{ color: theme.text }}>{h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty!=null ? `(from ${h.prevQty}${h.nextQty!=null?`→${h.nextQty}`:''})` : ''}</span>
-                  <span style={{ color: theme.textLight }}>{new Date(h.date).toLocaleDateString()}</span>
+                <div key={h.id} className="flex items-center justify-between py-1.5">
+                  <span className="text-sm font-medium" style={{ color: theme.text }}>{h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty!=null ? `(from ${h.prevQty}${h.nextQty!=null?`→${h.nextQty}`:''})` : ''}</span>
+                  <span className="text-xs font-medium opacity-70" style={{ color: theme.textLight }}>{new Date(h.date).toLocaleDateString()}</span>
                 </div>
               ))}
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
-                <div className="text-center py-2" style={{ color: theme.textLight }}>No history yet.</div>
+                <div className="text-center py-2 text-sm" style={{ color: theme.textLight }}>No history yet.</div>
               )}
             </div>
           )}
@@ -2258,18 +2258,18 @@ export default function Stockpile() {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Chevron */}
                   <div className="flex-shrink-0 transition-transform duration-150 ease-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', willChange: 'transform' }}>
-                    <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
+                    <ChevronDown size={18} style={{ color: theme.primary }} strokeWidth={2.5} />
                   </div>
                   
                   {/* Summary Info */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+                    <div className="text-base font-bold truncate" style={{ color: theme.text }}>
                       {vendorName}
                     </div>
-                    <div className="text-xs font-semibold opacity-60" style={{ color: theme.text }}>
+                    <div className="text-xs font-semibold opacity-70" style={{ color: theme.text }}>
                       {row.mg || '?'}{row.mgUnit || 'mg'}
                     </div>
-                    <div className="text-xs font-semibold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+                    <div className="text-xs font-bold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
                       {row.quantity || '0'} {row.quantity === '1' ? 'vial' : 'vials'}
                     </div>
                   </div>
@@ -2338,13 +2338,13 @@ export default function Stockpile() {
               >
                 <div className="p-3 space-y-4 border-t" style={{ borderColor: theme.border }}>
                   {/* VIAL DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <TestTube size={24} style={{ color: theme.primary }} />
+                  <div className="flex items-center gap-3 mb-3">
+                    <TestTube size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
                           Research Parameters
                         </span>
                       </div>
@@ -2516,13 +2516,13 @@ export default function Stockpile() {
                   />
 
                   {/* ORDER DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-2 pt-1">
-                    <PackageOpen size={24} style={{ color: theme.primary }} />
+                  <div className="flex items-center gap-3 mb-3 pt-1">
+                    <PackageOpen size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
                           Purchase Information
                         </span>
                       </div>
@@ -2580,13 +2580,13 @@ export default function Stockpile() {
                   />
 
                   {/* EXTRA DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-2 pt-1">
-                    <ImageUp size={24} style={{ color: theme.primary }} />
+                  <div className="flex items-center gap-3 mb-3 pt-1">
+                    <ImageUp size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
                           Documentation
                         </span>
                       </div>
@@ -2615,7 +2615,7 @@ export default function Stockpile() {
 
           {/* Add Vial Button */}
           <button 
-            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border" 
+            className="w-full px-4 py-3 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 border" 
             style={{ 
               backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
               borderColor: theme.border,
@@ -2816,14 +2816,14 @@ export default function Stockpile() {
           titleExtra={(
             <div className="flex flex-col items-end leading-none">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black tracking-tight" style={{ color: theme.primary }}>
+                <span className="text-2xl font-black tracking-tight" style={{ color: theme.primary }}>
                   {viewingGroup.totalMg > 0 ? viewingGroup.totalMg : viewingGroup.totalVials}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-70" style={{ color: theme.text }}>
+                <span className="text-xs font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>
                   {viewingGroup.totalMg > 0 ? (viewingGroup.unit || 'mg') : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')}
                 </span>
               </div>
-              <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 -mt-0.5" style={{ color: theme.text }}>
+              <div className="text-[10px] font-bold uppercase tracking-wide opacity-60 -mt-0.5" style={{ color: theme.text }}>
                 Total Stock
               </div>
             </div>
@@ -2862,9 +2862,9 @@ export default function Stockpile() {
           <div className="space-y-6">
             {/* Detailed Inventory List */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Beaker size={16} style={{ color: '#8ca68c' }} />
-                <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.text }}>Research Vials</h4>
+              <div className="flex items-center gap-2 mb-2">
+                <Beaker size={18} style={{ color: '#8ca68c' }} />
+                <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: theme.text }}>Research Vials</h4>
               </div>
               
               {Object.values(viewingGroup.variants)
@@ -2880,13 +2880,13 @@ export default function Stockpile() {
                       style={{ backgroundColor: '#8ca68c', opacity: 0.3 }}
                     />
 
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text }}>
-                        <span className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-semibold">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-xs font-bold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text }}>
+                        <span className="px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-bold">
                           {variant.mg} {variant.unit || 'mg'}
                         </span>
-                        <span className="opacity-30">•</span>
-                        <span className="opacity-50 font-medium">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
+                        <span className="opacity-40">•</span>
+                        <span className="opacity-70 font-semibold">{variant.totalVials} {variant.totalVials === 1 ? 'Vial' : 'Vials'}</span>
                       </div>
                       <div className="h-px flex-1 ml-4 opacity-10" style={{ backgroundColor: theme.text }} />
                     </div>
@@ -2903,15 +2903,15 @@ export default function Stockpile() {
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/10">
-                                <Package size={16} style={{ color: theme.primary }} />
+                              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/10">
+                                <Package size={18} style={{ color: theme.primary }} />
                               </div>
                               <div>
-                                <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                <div className="text-base font-bold" style={{ color: theme.text }}>
                                   {item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor'}
                                 </div>
                                 {item.date && (
-                                  <div className="text-[10px] font-normal opacity-40 uppercase tracking-tight" style={{ color: theme.text }}>
+                                  <div className="text-xs font-medium opacity-70 mt-0.5" style={{ color: theme.text }}>
                                     Acquired {new Date(item.date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                   </div>
                                 )}
@@ -2922,7 +2922,7 @@ export default function Stockpile() {
                               const useByStatus = getUseByStatus(item.useByDate);
                               return (
                                 <div 
-                                  className="px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide shadow-sm"
+                                  className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm"
                                   style={{
                                     backgroundColor: useByStatus?.status === 'expired' 
                                       ? 'rgba(239, 68, 68, 0.15)'
@@ -2942,30 +2942,30 @@ export default function Stockpile() {
                             })()}
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-black/5 dark:border-white/5">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Purity</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-black/5 dark:border-white/5">
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Purity</span>
+                              <span className="text-base font-bold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Batch #</span>
-                              <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Batch #</span>
+                              <span className="text-base font-bold truncate" style={{ color: theme.text }}>{item.batchNumber || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Cap Color</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Cap Color</span>
+                              <span className="text-base font-bold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[9px] font-medium uppercase tracking-wide opacity-40" style={{ color: theme.text }}>Exp. Date</span>
-                              <span className="text-sm font-semibold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Exp. Date</span>
+                              <span className="text-base font-bold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                           </div>
 
                           {item.notes && (
-                            <div className="mt-3 p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <div className="mt-3 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                               <div className="flex items-start gap-2">
-                                <Info size={12} className="mt-0.5 opacity-30" style={{ color: theme.text }} />
-                                <p className="text-xs leading-relaxed italic opacity-60 font-normal" style={{ color: theme.text }}>{item.notes}</p>
+                                <Info size={14} className="mt-0.5 opacity-50" style={{ color: theme.text }} />
+                                <p className="text-sm leading-relaxed italic opacity-70 font-normal" style={{ color: theme.text }}>{item.notes}</p>
                               </div>
                             </div>
                           )}

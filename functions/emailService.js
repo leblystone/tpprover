@@ -1158,6 +1158,45 @@ exports.sendPaymentSuccessfulEmail = async (userEmail, amount, currency, receipt
 };
 
 /**
+ * Send email change security notification
+ */
+exports.sendEmailChangeNotification = async (oldEmail, newEmail, timestamp, options = {}) => {
+  logger.info(`📧 sendEmailChangeNotification called for: ${oldEmail} -> ${newEmail}`);
+  
+  try {
+    const customTemplate = await loadEmailTemplate('emailChangeNotification');
+    if (customTemplate) {
+      logger.info('✅ Using custom email change notification template from Firestore');
+      const subject = customTemplate.subject || 'Security Alert: Email Address Changed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { oldEmail, newEmail, timestamp });
+      return sendEmail(oldEmail, subject, html, {
+        logToHistory: true,
+        type: 'email_change_notification',
+        recipientName: options.recipientName || null,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    } else {
+      logger.warn('⚠️ No custom email change notification template found in Firestore');
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom email change notification template, using default:', e);
+  }
+  
+  // Fallback to hardcoded template
+  logger.info('📧 Using hardcoded email change notification template');
+  const subject = 'Security Alert: Email Address Changed - The Pep Planner';
+  const html = emailTemplates.emailChangeNotificationEmail(oldEmail, newEmail, timestamp);
+  return sendEmail(oldEmail, subject, html, {
+    logToHistory: true,
+    type: 'email_change_notification',
+    recipientName: options.recipientName || null,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
+};
+
+/**
  * Send subscription cancelled email
  */
 exports.sendSubscriptionCancelledEmail = async (userEmail, planName, endDate) => {

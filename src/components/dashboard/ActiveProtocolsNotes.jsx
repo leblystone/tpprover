@@ -198,6 +198,31 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
         return diffDays;
     };
 
+    // Format peptides list with proper pluralization
+    const formatPeptidesList = (protocol) => {
+        if (!protocol.peptides || protocol.peptides.length === 0) {
+            return null;
+        }
+        
+        const peptideNames = protocol.peptides
+            .map(pep => pep.name || 'Unnamed Peptide')
+            .filter(name => name && name.trim() !== '');
+        
+        if (peptideNames.length === 0) {
+            return null;
+        }
+        
+        if (peptideNames.length === 1) {
+            return `Includes ${peptideNames[0]}`;
+        } else if (peptideNames.length === 2) {
+            return `Includes ${peptideNames[0]} and ${peptideNames[1]}`;
+        } else {
+            const lastPeptide = peptideNames[peptideNames.length - 1];
+            const otherPeptides = peptideNames.slice(0, -1).join(', ');
+            return `Includes ${otherPeptides}, and ${lastPeptide}`;
+        }
+    };
+
     if (activeProtocols.length === 0) {
         return (
             <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
@@ -277,6 +302,12 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 <span className="flex items-center gap-1 whitespace-nowrap">
                                                     <Clock size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
                                                     {duration}
+                                                </span>
+                                            )}
+                                            {formatPeptidesList(protocol) && (
+                                                <span className="flex items-center gap-1 whitespace-nowrap">
+                                                    <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                    {formatPeptidesList(protocol)}
                                                 </span>
                                             )}
                                         </div>

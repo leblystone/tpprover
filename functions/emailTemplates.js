@@ -3162,3 +3162,73 @@ exports.trialExtensionEmail = (userName, userEmail, daysAdded, newEndDate, admin
   return emailWrapper(content);
 };
 
+/**
+ * Email change security notification template
+ */
+exports.emailChangeNotificationEmail = (oldEmail, newEmail, timestamp) => {
+  const formattedDate = new Date(timestamp).toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">🔒 Email Address Changed</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi there,
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        This is a security notification to inform you that the email address associated with your The Pep Planner account has been changed.
+      </p>
+      
+      <div class="highlight-box" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #92400E;">⚠️ Security Alert</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Old Email:</strong> ${oldEmail}<br>
+          <strong>New Email:</strong> ${newEmail}<br>
+          <strong>Changed On:</strong> ${formattedDate}
+        </p>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>If you made this change:</strong> No action is needed. You can safely ignore this email. Your new email address will need to be verified before it becomes active.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong style="color: #DC2626;">If you did NOT make this change:</strong> Your account may have been compromised. Please take immediate action:
+      </p>
+      
+      <ul class="feature-list" style="margin: 16px 0; padding-left: 20px; color: ${COLORS.text};">
+        <li>Change your password immediately</li>
+        <li>Review your account settings</li>
+        <li>Contact support if you need assistance</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/account/profile" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🔐 Secure Your Account
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        For your security, we recommend enabling two-factor authentication if you haven't already.
+      </p>
+      
+      <hr class="divider" style="border: none; border-top: 1px solid ${COLORS.border}; margin: 32px 0;">
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin: 0;">
+        Questions or concerns? Contact us at support@thepepplanner.app<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Security Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

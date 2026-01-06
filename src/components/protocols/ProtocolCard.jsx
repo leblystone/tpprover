@@ -293,18 +293,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 <h3 className="font-semibold text-lg leading-tight" style={{ color: theme.text }}>
                                     {p.protocolName || 'Unnamed Protocol'}
                                 </h3>
-                                {!isPublicView && isActive && (
-                                    <div
-                                        className="px-2 py-0.5 text-[10px] uppercase font-bold rounded flex-shrink-0 shadow-sm"
-                                        style={{
-                                            background: theme.isDark ? 'rgba(200, 122, 92, 0.2)' : 'rgba(200, 122, 92, 0.1)',
-                                            color: '#c87a5c',
-                                            border: '1px solid rgba(200, 122, 92, 0.3)'
-                                        }}
-                                    >
-                                        Protocol Active
-                                    </div>
-                                )}
                             </div>
                             
                             {/* Image-style metadata: "1 ORDER" -> "N PEPTIDES" */}
@@ -316,7 +304,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 {isActive && p.startDate && (
                                     <div className="flex items-center gap-1">
                                         <Clock size={12} />
-                                        <span>Since {formatMMDDYYYY(new Date(p.startDate))}</span>
+                                        <span>Active since {formatMMDDYYYY(new Date(p.startDate))}</span>
                                     </div>
                                 )}
                             </div>

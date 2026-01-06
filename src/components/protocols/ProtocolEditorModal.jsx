@@ -501,7 +501,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         >
             <div className="space-y-4">
                 {/* PROTOCOL INFO Section Header */}
-                <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-4 mb-2">
                     <BookOpenCheck size={32} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
@@ -580,7 +580,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Peptides Section - Redesigned */}
                 <div className="space-y-4">
                     {/* Section Header */}
-                    <div className="flex items-center gap-4 mb-3 pt-2">
+                    <div className="flex items-center gap-4 mb-2">
                         <TestTube size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
                             <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
@@ -605,7 +605,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     )}
                     
                     {/* Peptide List */}
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {form.peptides?.map((p, index) => (
                             <div key={p.id || index} className="relative">
                                 {/* Optional: Peptide Number and Remove button if multiple */}
@@ -635,7 +635,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 />
                                 
                                 {index < form.peptides.length - 1 && (
-                                    <div className="mt-6 border-t border-dashed" style={{ borderColor: theme.border }}></div>
+                                    <div className="mt-4 border-t border-dashed" style={{ borderColor: theme.border }}></div>
                                 )}
                             </div>
                         ))}
@@ -659,7 +659,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
 
                 {/* PROTOCOL DURATION Section Header */}
-                <div className="flex items-center gap-4 mb-3 pt-2">
+                <div className="flex items-center gap-4 mb-2">
                     <CalendarClock size={32} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
@@ -970,7 +970,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
 
                 {/* EXTRA DETAILS & NOTES Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                     <div className="space-y-3">
                         <div className="flex items-center gap-4 mb-1">
                             <ImageUp size={32} style={{ color: theme.primary }} />

@@ -17,6 +17,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
         if (!isUnitDropdownOpen && !isAmountUnitDropdownOpen) return;
 
         const handleClickOutside = (event) => {
+            // Check if click is inside any dropdown container
             const isClickInside = event.target.closest('[data-dropdown-container]');
             if (!isClickInside) {
                 setIsUnitDropdownOpen(false);
@@ -24,10 +25,10 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
             }
         };
 
-        // Use a small delay to allow dropdown button click to register
+        // Small delay to allow dropdown button click handlers to execute first
         const timeoutId = setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
-        }, 100);
+        }, 0);
 
         return () => {
             clearTimeout(timeoutId);
@@ -271,7 +272,10 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             />
                             <button
                                 type="button"
-                                onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
+                                onClick={() => {
+                                    setIsUnitDropdownOpen(false); // Close quantity dropdown if open
+                                    setIsAmountUnitDropdownOpen(prev => !prev);
+                                }}
                                 onMouseDown={(e) => {
                                     // Prevent input blur when clicking dropdown button
                                     e.preventDefault()
@@ -417,7 +421,10 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             />
                             <button
                                 type="button"
-                                onClick={() => setIsUnitDropdownOpen(prev => !prev)}
+                                onClick={() => {
+                                    setIsAmountUnitDropdownOpen(false); // Close amount dropdown if open
+                                    setIsUnitDropdownOpen(prev => !prev);
+                                }}
                                 onMouseDown={(e) => {
                                     // Prevent input blur when clicking dropdown button
                                     e.preventDefault()
