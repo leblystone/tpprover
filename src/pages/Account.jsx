@@ -40,7 +40,7 @@ export default function Account() {
           <User size={32} style={{ color: theme.primary }} />
         </div>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Account</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Account</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -85,7 +85,7 @@ export default function Account() {
                     <Icon size={22} style={{ color: theme.primary }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black tracking-tight" style={{ color: theme.text }}>
+                    <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.text }}>
                       {section.title}
                     </h3>
                     <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>

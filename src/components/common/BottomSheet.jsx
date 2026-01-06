@@ -52,6 +52,11 @@ export default function BottomSheet({
 
   // Sync with open prop - with smooth animations
   useEffect(() => {
+    // If already open and staying open, don't re-animate
+    if (open && internalOpen) {
+      return;
+    }
+    
     // Clear any pending animations
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
@@ -63,18 +68,21 @@ export default function BottomSheet({
     if (open) {
       // Opening: render first with initial state (off-screen)
       setShouldRender(true);
-      setInternalOpen(false); // Start closed
-      
-      // Wait for DOM to render initial state, then animate
-      // Triple RAF ensures the browser has painted the initial state
-      rafRef.current = requestAnimationFrame(() => {
+      // Only animate if not already open
+      if (!internalOpen) {
+        setInternalOpen(false); // Start closed
+        
+        // Wait for DOM to render initial state, then animate
+        // Triple RAF ensures the browser has painted the initial state
         rafRef.current = requestAnimationFrame(() => {
           rafRef.current = requestAnimationFrame(() => {
-            setInternalOpen(true);
-            hapticsLight();
+            rafRef.current = requestAnimationFrame(() => {
+              setInternalOpen(true);
+              hapticsLight();
+            });
           });
         });
-      });
+      }
     } else {
       // Closing: ensure smooth animation
       // Reset drag state first for clean animation

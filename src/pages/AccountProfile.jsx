@@ -550,7 +550,7 @@ export default function AccountProfile() {
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Profile</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Profile</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -622,7 +622,7 @@ export default function AccountProfile() {
                           </button>
                         </div>
                       ) : (
-                        <div className="font-bold text-lg tracking-tight" style={{ color: theme.text }}>
+                        <div className="font-semibold text-lg tracking-tight" style={{ color: theme.text }}>
                           {user.email}
                         </div>
                       )}
@@ -717,7 +717,7 @@ export default function AccountProfile() {
                       <Lock size={22} style={{ color: theme.primary }} />
                     </div>
                     <div className="px-1">
-                      <div className="font-bold text-lg tracking-tight mb-1" style={{ color: theme.text }}>
+                      <div className="font-semibold text-lg tracking-tight mb-1" style={{ color: theme.text }}>
                         Change Password
                       </div>
                       <div className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
@@ -752,7 +752,7 @@ export default function AccountProfile() {
                         <Shield size={22} style={{ color: theme.mutedText }} />
                       </div>
                       <div className="px-1">
-                        <div className="font-bold text-lg tracking-tight mb-1" style={{ color: theme.text }}>
+                        <div className="font-semibold text-lg tracking-tight mb-1" style={{ color: theme.text }}>
                           Two-Factor Authentication
                         </div>
                         <div className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
@@ -1043,7 +1043,7 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
     <div>
       <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>{label}</div>
       <div 
-        className="font-bold text-lg tracking-tight" 
+        className="font-semibold text-lg tracking-tight" 
         style={{ 
           color: status === 'success' ? theme.primary : 
                  status === 'warning' ? '#F59E0B' : 
@@ -1072,7 +1072,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
           <div>
             <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email Status</div>
             <div 
-              className="font-bold text-lg tracking-tight" 
+              className="font-semibold text-lg tracking-tight" 
               style={{ 
                 color: isVerified ? theme.primary : '#F59E0B'
               }}

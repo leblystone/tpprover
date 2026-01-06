@@ -952,20 +952,20 @@ export default function Recon() {
 										} : undefined}
 									>
                                         {/* Header */}
-                                        <div className="flex items-start justify-between mb-2 gap-3">
+                                        <div className="flex items-start justify-between mb-3 gap-3">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-base truncate" style={{ color: theme.text }}>
+                                                <h3 className="font-semibold text-base mb-2 truncate" style={{ color: theme.text }}>
                                                     {item.name || item.peptide}
                                                 </h3>
-                                                <div className="flex items-center gap-1.5 opacity-60">
-                                                    <Package size={10} style={{ color: '#8ca68c' }} />
-                                                    <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                <div className="flex items-center gap-2 opacity-85">
+                                                    <Package size={12} style={{ color: '#8ca68c' }} />
+                                                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text }}>
                                                         {item.vendorId ? (vendorMap && vendorMap[item.vendorId]) : item.vendor || 'Unknown Source'}
                                                     </span>
                                                 </div>
                                             </div>
                                             
-                                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                                 {item.isDraft ? (
                                                     <div 
                                                         className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
@@ -981,8 +981,11 @@ export default function Recon() {
                                                         In Use
                                                     </div>
                                                 )}
-                                                <div className="text-[8px] font-bold opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
-                                                    {formatMMDDYYYY(item.date)}
+                                                <div className="flex items-center gap-1.5">
+                                                    <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
+                                                    <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
+                                                        {formatMMDDYYYY(item.date)}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -993,18 +996,18 @@ export default function Recon() {
                                             {Array.isArray(item.peptides) && item.peptides.length > 0 && (
                                                 <div className="relative pl-3">
                                                     <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                    <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                    <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                         <div className="flex items-center gap-1.5 flex-shrink-0">
                                                             <Beaker size={10} style={{ color: '#8ca68c' }} />
-                                                            Components
+                                                            Peptides
                                                         </div>
                                                         <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                     </div>
                                                     <div className="space-y-0.5">
                                                         {item.peptides.map((p, idx) => (
-                                                            <div key={idx} className="flex items-center justify-between text-[11px]">
-                                                                <span className="font-medium" style={{ color: theme.text }}>{p.name}</span>
-                                                                <span className="opacity-60" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
+                                                            <div key={idx} className="flex items-center justify-between text-[12px]">
+                                                                <span className="font-medium opacity-80" style={{ color: theme.text }}>{p.name}</span>
+                                                                <span className="opacity-80" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1014,10 +1017,10 @@ export default function Recon() {
                                             {/* Recon Details Section */}
                                             <div className="relative pl-3">
                                                 <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                                         <Calculator size={10} style={{ color: '#8ca68c' }} />
-                                                        Recon Data
+                                                        Reconstitution Info
                                                     </div>
                                                     <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                 </div>
@@ -1034,17 +1037,17 @@ export default function Recon() {
                                             {/* Delivery Section */}
                                             <div className="relative pl-3">
                                                 <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                                         <Pipette size={10} style={{ color: '#8ca68c' }} />
-                                                        Administration
+                                                        Delivery Method
                                                     </div>
                                                     <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {item.deliveryMethod === 'pen' && item.penColor ? (
                                                         <div 
-                                                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-semibold shadow-sm" 
+                                                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm" 
                                                             style={{ 
                                                                 background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
                                                                 color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
@@ -1054,13 +1057,13 @@ export default function Recon() {
                                                             <span>{item.penColor.startsWith('#') ? 'Custom' : item.penColor} Pen</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
                                                             <Pipette className="w-2.5 h-2.5 opacity-70" />
                                                             Syringe
                                                         </span>
                                                     )}
                                                     {item.administrationRoute && (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
                                                             {item.administrationRoute.toUpperCase()}
                                                         </span>
                                                     )}
@@ -1071,20 +1074,20 @@ export default function Recon() {
                                             {item.notes && (
                                                 <div className="relative pl-3">
                                                     <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                    <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                    <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                         <div className="flex items-center gap-1.5 flex-shrink-0">
                                                             <Info size={10} style={{ color: '#8ca68c' }} />
                                                             Notes
                                                         </div>
                                                         <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                     </div>
-                                                    <p className="text-[10px] leading-relaxed italic opacity-70" style={{ color: theme.text }}>{item.notes}</p>
+                                                    <p className="text-[11px] leading-relaxed italic opacity-70" style={{ color: theme.text }}>{item.notes}</p>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Footer */}
-                                        <div className="mt-3 pt-2 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                        <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
                                             <button 
                                                 className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
                                                 onClick={(e) => {
@@ -1109,10 +1112,10 @@ export default function Recon() {
                                                     }
                                                 }}
                                             >
-                                                <span className="text-[8px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
                                                     {item.isDraft ? 'Resume' : 'Details'}
                                                 </span>
-                                                <ChevronDown size={10} style={{ color: theme.primary }} strokeWidth={3} />
+                                                <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
                                             </button>
 
                                             <div className="absolute right-0 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
@@ -1196,28 +1199,31 @@ export default function Recon() {
                                                 onClick={() => setViewItem(item)}
                                             >
                                                 {/* Header */}
-                                                <div className="flex items-start justify-between mb-2 gap-3">
+                                                <div className="flex items-start justify-between mb-3 gap-3">
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-base truncate" style={{ color: theme.text }}>
+                                                        <h3 className="font-semibold text-base mb-2 truncate" style={{ color: theme.text }}>
                                                             {item.peptide || 'Unnamed research vial'}
                                                         </h3>
-                                                        <div className="flex items-center gap-1.5 opacity-60">
-                                                            <Package size={10} style={{ color: '#8ca68c' }} />
-                                                            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                        <div className="flex items-center gap-2 opacity-85">
+                                                            <Package size={12} style={{ color: '#8ca68c' }} />
+                                                            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text }}>
                                                                 {vendorName || 'Unknown Source'}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     
-                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                                         <div 
                                                             className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
                                                             style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)', color: theme.textLight }}
                                                         >
                                                             Archived
                                                         </div>
-                                                        <div className="text-[8px] font-bold opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
-                                                            {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
+                                                            <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
+                                                                {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1227,7 +1233,7 @@ export default function Recon() {
                                                     {/* Recon Details Section */}
                                                     <div className="relative pl-3">
                                                         <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                        <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                        <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                             <div className="flex items-center gap-1.5 flex-shrink-0">
                                                                 <FileText size={10} style={{ color: '#8ca68c' }} />
                                                                 Historical Data
@@ -1246,20 +1252,20 @@ export default function Recon() {
                                                     {item.notes && (
                                                         <div className="relative pl-3">
                                                             <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                            <div className="text-[9px] font-medium uppercase tracking-widest mb-1 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                            <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                                                     <Info size={10} style={{ color: '#8ca68c' }} />
                                                                     Notes
                                                                 </div>
                                                                 <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                             </div>
-                                                            <p className="text-[10px] leading-relaxed italic opacity-70 line-clamp-2" style={{ color: theme.text }}>{item.notes}</p>
+                                                            <p className="text-[11px] leading-relaxed italic opacity-70 line-clamp-2" style={{ color: theme.text }}>{item.notes}</p>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Footer */}
-                                                <div className="mt-3 pt-2 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                                <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
                                                     <button 
                                                         className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
                                                         onClick={(e) => {
@@ -1267,10 +1273,10 @@ export default function Recon() {
                                                             setViewItem(item);
                                                         }}
                                                     >
-                                                        <span className="text-[8px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+                                                        <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
                                                             Details
                                                         </span>
-                                                        <ChevronDown size={10} style={{ color: theme.primary }} strokeWidth={3} />
+                                                        <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
                                                     </button>
 
                                                     <div className="absolute right-0 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>

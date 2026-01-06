@@ -325,7 +325,7 @@ export default function AccountSubscription() {
             <ArrowLeft size={20} style={{ color: theme.text }} />
           </button>
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Research Subscription</h1>
+            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Research Subscription</h1>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
               <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -373,7 +373,7 @@ export default function AccountSubscription() {
                 <CreditCard size={22} style={{ color: theme.text, opacity: 0.6 }} />
               </div>
               <div>
-                <h3 className="text-lg font-black mb-1" style={{ color: theme.text }}>{status.label}</h3>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: theme.text }}>{status.label}</h3>
                 {getSource() && (
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.6 }}>
                     {getSource()}

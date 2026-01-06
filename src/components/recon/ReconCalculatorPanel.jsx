@@ -120,11 +120,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         const firstVendorId = prefill.peptides[0]?.vendorId || null;
         
         setForm(prev => ({
-          ...prev,
+          ...(prev || {}),
           vendor: vendors,
           vendorId: firstVendorId,
           cost: prefill.cost || (totalCost > 0 ? totalCost.toString() : ''),
-          dateAcquired: prefill.dateAcquired || prev.dateAcquired || '',
+          dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 
             id: pep.id || index + 1, 
@@ -154,27 +154,27 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         };
         const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
         setForm(prev => ({ 
-          ...prev, 
+          ...(prev || {}), 
           vendor: prefill.vendor || '', 
           vendorId: prefill.vendorId || null, // Include vendorId from prefill
           cost: costValue,
-          dateAcquired: prefill.dateAcquired || prev.dateAcquired || '',
+          dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
           peptides: [p] 
         }));
       }
       // Handle formData prefill (from modal or draft)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
         setForm(prev => ({
-          ...prev,
-          vendor: prefill.vendor !== undefined ? prefill.vendor : prev.vendor,
-          water: prefill.water !== undefined ? prefill.water : prev.water,
-          peptides: prefill.peptides || prev.peptides,
-          deliveryMethod: prefill.deliveryMethod || prev.deliveryMethod,
-          administrationRoute: prefill.administrationRoute || prev.administrationRoute,
-          penType: prefill.penType || prev.penType,
-          penColor: prefill.penColor || prev.penColor,
-          cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : prev.cost,
-          dateAcquired: prefill.dateAcquired !== undefined ? prefill.dateAcquired : prev.dateAcquired
+          ...(prev || {}),
+          vendor: prefill.vendor !== undefined ? prefill.vendor : (prev?.vendor || ''),
+          water: prefill.water !== undefined ? prefill.water : (prev?.water || ''),
+          peptides: prefill.peptides || (prev?.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }]),
+          deliveryMethod: prefill.deliveryMethod || (prev?.deliveryMethod || 'pipette'),
+          administrationRoute: prefill.administrationRoute || (prev?.administrationRoute || 'subq'),
+          penType: prefill.penType || (prev?.penType || ''),
+          penColor: prefill.penColor || (prev?.penColor || '#9ca3af'),
+          cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : (prev?.cost || ''),
+          dateAcquired: prefill.dateAcquired !== undefined ? prefill.dateAcquired : (prev?.dateAcquired || '')
         }));
       }
 

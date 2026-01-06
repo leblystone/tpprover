@@ -117,7 +117,7 @@ export default function SettingsLegal() {
           </button>
           <div className="flex items-center gap-2">
             <FileText size={20} style={{ color: theme.primary }} />
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Legal</h1>
+            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Legal</h1>
           </div>
         </div>
         <div className="flex items-center gap-2 ml-14">

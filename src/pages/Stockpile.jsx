@@ -52,6 +52,7 @@ export default function Stockpile() {
   const [viewingGroup, setViewingGroup] = useState(null) // For view modal
   const [previewImage, setPreviewImage] = useState(null)
   const [deleteOutOfStockGroup, setDeleteOutOfStockGroup] = useState(null) // For delete confirmation
+  const [isTransitioning, setIsTransitioning] = useState(false) // Track modal transitions
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' })
   const [isAmountFocused, setIsAmountFocused] = useState(false)
   const [isQuantityFocused, setIsQuantityFocused] = useState(false)
@@ -569,7 +570,21 @@ export default function Stockpile() {
       setShowOrderModal(true);
     }
   }
-  const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' }]))
+  const addManageRow = () => {
+    const newRowId = generateId();
+    setManageRows(prev => ([...prev, { id: newRowId, name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' }]));
+    // Auto-expand the new row and scroll into view smoothly
+    setTimeout(() => {
+      setExpandedManageRows(prev => ({ ...prev, [newRowId]: true }));
+      // Scroll to the new row after a brief delay to allow DOM update
+      setTimeout(() => {
+        const newRowElement = document.getElementById(`manage-row-${newRowId}`);
+        if (newRowElement) {
+          newRowElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    }, 50);
+  }
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
   
   const deleteManageRow = async (id) => {
@@ -1204,8 +1219,13 @@ export default function Stockpile() {
                             setShowUpgradeModal(true);
                             return;
                           }
+                          // Smooth transition: close view modal first, then open manage modal
+                          setIsTransitioning(true);
                           setViewingGroup(null);
-                          openManage(g.name);
+                          setTimeout(() => {
+                            openManage(g.name);
+                            setIsTransitioning(false);
+                          }, 450);
                         }}
                         onMergeIndividualItem={handleMergeIndividualItem}
                         onDeleteItem={async (item) => {
@@ -2114,18 +2134,29 @@ export default function Stockpile() {
 
       <BottomSheet 
         open={!!manageName} 
-        onClose={() => { setManageName(null); setManageRows([]); setShowHistory(false); clearManageSavedData(); }} 
+        onClose={() => { 
+          setIsTransitioning(false);
+          setManageName(null); 
+          setManageRows([]); 
+          setShowHistory(false); 
+          clearManageSavedData(); 
+        }} 
         title={`${manageName || 'Manage'}`}
         onBack={() => { 
-          // Go back to view details modal
+          // Smooth transition: close manage modal first, then open view modal
           const groupToView = groups.find(g => g.name === manageName);
+          setIsTransitioning(true);
           setManageName(null); 
           setManageRows([]); 
           setShowHistory(false); 
           clearManageSavedData();
-          if (groupToView) {
-            setViewingGroup(groupToView);
-          }
+          // Wait for close animation before opening view modal
+          setTimeout(() => {
+            if (groupToView) {
+              setViewingGroup(groupToView);
+            }
+            setIsTransitioning(false);
+          }, 450);
         }}
         titleExtra={
           <button 
@@ -2189,6 +2220,7 @@ export default function Stockpile() {
             
             return (
             <div
+              id={`manage-row-${row.id}`}
               key={row.id}
               className="transition-all"
             >
@@ -2201,7 +2233,11 @@ export default function Stockpile() {
                     : 'transparent',
                   borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'
                 }}
-                onClick={() => setExpandedManageRows(prev => ({ ...prev, [row.id]: !prev[row.id] }))}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Immediate state update for instant feedback
+                  setExpandedManageRows(prev => ({ ...prev, [row.id]: !prev[row.id] }));
+                }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
                     e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
@@ -2215,7 +2251,7 @@ export default function Stockpile() {
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Chevron */}
-                  <div className="flex-shrink-0 transition-transform duration-300 ease-in-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <div className="flex-shrink-0 transition-transform duration-150 ease-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', willChange: 'transform' }}>
                     <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
                   </div>
                   
@@ -2282,11 +2318,15 @@ export default function Stockpile() {
 
               {/* Expanded Edit Form */}
               <div 
-                className="overflow-hidden transition-all duration-300 ease-in-out"
+                className="overflow-hidden"
                 style={{ 
                   maxHeight: isExpanded ? '2000px' : '0',
                   opacity: isExpanded ? 1 : 0,
-                  transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)',
+                  transform: isExpanded ? 'translateY(0)' : 'translateY(-2px)',
+                  transition: isExpanded 
+                    ? 'max-height 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)'
+                    : 'max-height 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  willChange: 'max-height, opacity, transform',
                 }}
               >
                 <div className="p-3 space-y-4 border-t" style={{ borderColor: theme.border }}>
@@ -2661,8 +2701,13 @@ export default function Stockpile() {
             {/* Found a Vial */}
             <button
               onClick={() => {
-                openManage(outOfStockModalName);
+                // Smooth transition: close out of stock modal first, then open manage modal
+                setIsTransitioning(true);
                 setOutOfStockModalName(null);
+                setTimeout(() => {
+                  openManage(outOfStockModalName);
+                  setIsTransitioning(false);
+                }, 450);
               }}
               className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md text-left"
               style={{ 
@@ -2707,9 +2752,14 @@ export default function Stockpile() {
             {/* Restore from History */}
             <button
               onClick={() => {
-                openManage(outOfStockModalName);
+                // Smooth transition: close out of stock modal first, then open manage modal
+                setIsTransitioning(true);
                 setOutOfStockModalName(null);
-                setShowHistory(true);
+                setTimeout(() => {
+                  openManage(outOfStockModalName);
+                  setShowHistory(true);
+                  setIsTransitioning(false);
+                }, 450);
               }}
               className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md text-left"
               style={{ 
@@ -2781,8 +2831,14 @@ export default function Stockpile() {
                     setShowUpgradeModal(true);
                     return;
                   }
+                  // Smooth transition: close view modal first, then open manage modal
+                  setIsTransitioning(true);
                   setViewingGroup(null);
-                  openManage(viewingGroup.name);
+                  // Wait for close animation (400ms) before opening manage modal
+                  setTimeout(() => {
+                    openManage(viewingGroup.name);
+                    setIsTransitioning(false);
+                  }, 450); // Slightly longer than animation duration for smooth transition
                 }}
                 className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95"
                 style={{
