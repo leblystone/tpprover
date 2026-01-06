@@ -57,7 +57,7 @@ export default function Protocols() {
   const [endedProtocolName, setEndedProtocolName] = useState(null);
   const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
   const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
-  const [protocolFilter, setProtocolFilter] = useState('active'); // 'all' | 'active' | 'inactive'
+  const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -801,10 +801,12 @@ export default function Protocols() {
 
   // Organize protocols: active first, then inactive (alphabetically sorted)
   const organizedProtocols = React.useMemo(() => {
+    // Ensure filteredProtocols is always an array
+    const protocolsToOrganize = Array.isArray(filteredProtocols) ? filteredProtocols : [];
     const active = [];
     const inactive = [];
 
-    filteredProtocols.forEach(p => {
+    protocolsToOrganize.forEach(p => {
       const isActive = p.active === true || isActiveNow(p);
       if (isActive) {
         active.push(p);
@@ -841,6 +843,32 @@ export default function Protocols() {
     return false;
   }, []);
 
+  // Memoize dropdown options to prevent blank dropdown on first render
+  // Ensure organizedProtocols is always defined with safe defaults
+  const protocolFilterOptions = React.useMemo(() => {
+    const activeCount = organizedProtocols?.active?.length ?? 0;
+    const inactiveCount = organizedProtocols?.inactive?.length ?? 0;
+    const totalCount = activeCount + inactiveCount;
+    
+    return [
+      { 
+        value: 'all', 
+        label: `All Protocols (${totalCount})`,
+        icon: <List size={16} style={{ color: theme.textLight }} />
+      },
+      { 
+        value: 'active', 
+        label: `Active Only (${activeCount})`,
+        icon: <CheckCircle2 size={16} style={{ color: theme.primary }} />
+      },
+      { 
+        value: 'inactive', 
+        label: `Inactive Only (${inactiveCount})`,
+        icon: <XCircle size={16} style={{ color: '#6b7280' }} />
+      }
+    ];
+  }, [organizedProtocols?.active?.length, organizedProtocols?.inactive?.length, theme.textLight, theme.primary]);
+
   return (
     <>
       <ProtocolsTipsBanner theme={theme} />
@@ -856,23 +884,7 @@ export default function Protocols() {
                 <CustomDropdown
                   value={protocolFilter}
                   onChange={setProtocolFilter}
-                  options={[
-                    { 
-                      value: 'all', 
-                      label: `All Protocols (${organizedProtocols.active.length + organizedProtocols.inactive.length})`,
-                      icon: <List size={16} style={{ color: theme.textLight }} />
-                    },
-                    { 
-                      value: 'active', 
-                      label: `Active Only (${organizedProtocols.active.length})`,
-                      icon: <CheckCircle2 size={16} style={{ color: theme.primary }} />
-                    },
-                    { 
-                      value: 'inactive', 
-                      label: `Inactive Only (${organizedProtocols.inactive.length})`,
-                      icon: <XCircle size={16} style={{ color: '#6b7280' }} />
-                    }
-                  ]}
+                  options={protocolFilterOptions}
                   theme={theme}
                   placeholder="Filter protocols..."
                   outlined={true}

@@ -95,13 +95,14 @@ export default function CustomDropdown({
             </button>
 
             {/* Dropdown Menu */}
+            {isOpen && (
             <div 
-                className="absolute z-50 w-full mt-2 overflow-hidden transition-all duration-300 ease-in-out"
+                className="absolute z-50 w-full mt-2 overflow-hidden transition-all duration-200 ease-in-out"
                 style={{
-                    maxHeight: isOpen ? '400px' : '0',
-                    opacity: isOpen ? 1 : 0,
-                    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
-                    pointerEvents: isOpen ? 'auto' : 'none'
+                    maxHeight: '400px',
+                    opacity: 1,
+                    transform: 'translateY(0)',
+                    pointerEvents: 'auto'
                 }}
             >
                 <div 
@@ -115,7 +116,7 @@ export default function CustomDropdown({
                     }}
                 >
                     <div className="max-h-60 overflow-y-auto overflow-x-hidden">
-                        {options.map((option) => {
+                        {options && options.length > 0 ? options.map((option) => {
                             const isSelected = value === option.value;
                             return (
                                 <button
@@ -163,10 +164,15 @@ export default function CustomDropdown({
                                     )}
                                 </button>
                             );
-                        })}
+                        }) : (
+                            <div className="px-4 py-3 text-sm text-center" style={{ color: theme.textLight }}>
+                                No options available
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
+            )}
         </div>
     );
 }

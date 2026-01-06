@@ -19,7 +19,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     dateAcquired: '',
     peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] 
   });
-  const form = formData !== undefined ? formData : internalForm;
+  const form = (formData !== undefined && formData !== null) ? formData : internalForm;
   const setForm = setFormData !== undefined ? setFormData : setInternalForm;
   
   // Store setForm in ref to prevent dependency issues
@@ -36,7 +36,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   // Ensure peptides array always exists
   const safeForm = {
     ...form,
-    peptides: form.peptides && Array.isArray(form.peptides) ? form.peptides.map(p => ({
+    peptides: (form && form.peptides && Array.isArray(form.peptides)) ? form.peptides.map(p => ({
       ...p,
       mgUnit: p.mgUnit || 'mg' // Ensure mgUnit is always set
     })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
@@ -189,7 +189,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   
   // Sync form state FROM parent formData to local state (one-way sync)
   useEffect(() => {
-    if (formData !== undefined) {
+    if (formData !== undefined && formData !== null) {
       // Update local state to match parent formData
       if (formData.deliveryMethod && formData.deliveryMethod !== deliveryMethod) {
         setDeliveryMethod(formData.deliveryMethod);
@@ -201,7 +201,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         setPenColor(formData.penColor);
       }
     }
-  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor])
+  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor, deliveryMethod, administrationRoute, penColor])
 
   const totalMg = useMemo(() => {
     if (!safeForm.peptides || !Array.isArray(safeForm.peptides)) return 0;
@@ -284,7 +284,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     }
     
     // Fall back to dividing cost by doses per vial (default behavior)
-    if (form.cost && calc.dosesPerVial > 0) {
+    if (form?.cost && calc.dosesPerVial > 0) {
       return formatCurrency(Number(form.cost) / calc.dosesPerVial);
     }
     
@@ -1924,6 +1924,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
             
             // Ensure all form fields are included, and preserve stockpileId/quantityUsed in peptides
+            if (!form) {
+              console.error('Form data is null or undefined');
+              return;
+            }
+            
             const peptidesWithStockpile = (form.peptides || []).map(pep => ({
               ...pep,
               // Ensure stockpileId and quantityUsed are preserved
@@ -1987,6 +1992,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
               
               // Ensure all form fields are included, and preserve stockpileId/quantityUsed in peptides
+              if (!form) {
+                console.error('Form data is null or undefined');
+                return;
+              }
+              
               const peptidesWithStockpile = (form.peptides || []).map(pep => ({
                 ...pep,
                 // Ensure stockpileId and quantityUsed are preserved
