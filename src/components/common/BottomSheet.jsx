@@ -52,11 +52,6 @@ export default function BottomSheet({
 
   // Sync with open prop - with smooth animations
   useEffect(() => {
-    // If already open and staying open, don't re-animate
-    if (open && internalOpen) {
-      return;
-    }
-    
     // Clear any pending animations
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
@@ -66,9 +61,15 @@ export default function BottomSheet({
     }
 
     if (open) {
+      // If already rendered and open, skip animation to prevent lag on content updates
+      if (shouldRender && internalOpen) {
+        return;
+      }
+      
       // Opening: render first with initial state (off-screen)
       setShouldRender(true);
-      // Only animate if not already open
+      
+      // Only animate if not already open (prevents re-animation when content updates)
       if (!internalOpen) {
         setInternalOpen(false); // Start closed
         
@@ -82,6 +83,9 @@ export default function BottomSheet({
             });
           });
         });
+      } else {
+        // Already open, just ensure it stays open
+        setInternalOpen(true);
       }
     } else {
       // Closing: ensure smooth animation

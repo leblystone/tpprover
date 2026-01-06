@@ -394,18 +394,22 @@ export default function Stockpile() {
   )
   const [showHistory, setShowHistory] = useState(false)
   const openManage = (peptideName) => {
+    // Set name first to open modal immediately
     setManageName(peptideName)
-    // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
-    const matchesName = (itemName, targetName) => {
-      const normalizedItemName = itemName || ''
-      if (targetName === 'Unknown') {
-        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+    // Load rows asynchronously to prevent blocking UI
+    requestAnimationFrame(() => {
+      // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
+      const matchesName = (itemName, targetName) => {
+        const normalizedItemName = itemName || ''
+        if (targetName === 'Unknown') {
+          return normalizedItemName === '' || normalizedItemName === 'Unknown'
+        }
+        return normalizedItemName === targetName
       }
-      return normalizedItemName === targetName
-    }
-    const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
-    if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
-    setManageRows(rows)
+      const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
+      if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
+      setManageRows(rows)
+    })
   }
   
   // Handle stockpile updates when orders change (e.g., delivered status)
@@ -2208,7 +2212,7 @@ export default function Stockpile() {
                 </div>
               ))}
               {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
-                <div className="text-center py-2" style={{ color: theme.textLight }}>No history yet for this research material.</div>
+                <div className="text-center py-2" style={{ color: theme.textLight }}>No history yet.</div>
               )}
             </div>
           )}
@@ -2235,8 +2239,10 @@ export default function Stockpile() {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Immediate state update for instant feedback
-                  setExpandedManageRows(prev => ({ ...prev, [row.id]: !prev[row.id] }));
+                  e.preventDefault();
+                  // Immediate state update for instant feedback - use flushSync for instant DOM update
+                  const newState = !expandedManageRows[row.id];
+                  setExpandedManageRows(prev => ({ ...prev, [row.id]: newState }));
                 }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
@@ -2324,9 +2330,10 @@ export default function Stockpile() {
                   opacity: isExpanded ? 1 : 0,
                   transform: isExpanded ? 'translateY(0)' : 'translateY(-2px)',
                   transition: isExpanded 
-                    ? 'max-height 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)'
-                    : 'max-height 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    ? 'max-height 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 100ms cubic-bezier(0.4, 0, 0.2, 1), transform 100ms cubic-bezier(0.4, 0, 0.2, 1)'
+                    : 'max-height 120ms cubic-bezier(0.4, 0, 0.2, 1), opacity 80ms cubic-bezier(0.4, 0, 0.2, 1), transform 80ms cubic-bezier(0.4, 0, 0.2, 1)',
                   willChange: 'max-height, opacity, transform',
+                  pointerEvents: isExpanded ? 'auto' : 'none',
                 }}
               >
                 <div className="p-3 space-y-4 border-t" style={{ borderColor: theme.border }}>
@@ -2831,14 +2838,15 @@ export default function Stockpile() {
                     setShowUpgradeModal(true);
                     return;
                   }
-                  // Smooth transition: close view modal first, then open manage modal
-                  setIsTransitioning(true);
+                  // Open manage modal immediately - no delay needed when clicking from button
+                  const groupName = viewingGroup.name;
                   setViewingGroup(null);
-                  // Wait for close animation (400ms) before opening manage modal
-                  setTimeout(() => {
-                    openManage(viewingGroup.name);
-                    setIsTransitioning(false);
-                  }, 450); // Slightly longer than animation duration for smooth transition
+                  // Use requestAnimationFrame for smooth transition without blocking
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      openManage(groupName);
+                    });
+                  });
                 }}
                 className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95"
                 style={{

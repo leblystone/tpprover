@@ -29,26 +29,29 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     if (isSubmittedRef.current) return; // Don't load if form was just submitted
 
     isLoadingRef.current = true;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsedData = JSON.parse(saved);
-        if (parsedData.data && Object.keys(parsedData.data).length > 0) {
-          // Set previous data ref to prevent autosave from triggering
-          previousDataRef.current = JSON.parse(JSON.stringify(parsedData.data));
-          // Defer state update to avoid React queue issues
-          setTimeout(() => {
-          setFormDataRef.current(parsedData.data);
-          setLastSaved(new Date(parsedData.timestamp));
-            isLoadingRef.current = false;
-          }, 0);
-          return;
+    // Use requestAnimationFrame for non-blocking load
+    requestAnimationFrame(() => {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsedData = JSON.parse(saved);
+          if (parsedData.data && Object.keys(parsedData.data).length > 0) {
+            // Set previous data ref to prevent autosave from triggering
+            previousDataRef.current = JSON.parse(JSON.stringify(parsedData.data));
+            // Use another RAF to ensure UI is responsive
+            requestAnimationFrame(() => {
+              setFormDataRef.current(parsedData.data);
+              setLastSaved(new Date(parsedData.timestamp));
+              isLoadingRef.current = false;
+            });
+            return;
+          }
         }
+      } catch (error) {
+        console.warn('Failed to load auto-saved data:', error);
       }
-    } catch (error) {
-      console.warn('Failed to load auto-saved data:', error);
-    }
-    isLoadingRef.current = false;
+      isLoadingRef.current = false;
+    });
     // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);

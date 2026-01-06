@@ -587,9 +587,9 @@ export default function AccountProfile() {
                 }}>
                   {getUserInitials(user.email)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email</div>
                       {editingEmail ? (
                         <div className="flex items-center gap-2">
@@ -622,14 +622,22 @@ export default function AccountProfile() {
                           </button>
                         </div>
                       ) : (
-                        <div className="font-semibold text-lg tracking-tight" style={{ color: theme.text }}>
+                        <div 
+                          className="font-semibold tracking-tight whitespace-nowrap"
+                          style={{ 
+                            color: theme.text,
+                            fontSize: user.email 
+                              ? `${Math.max(12, Math.min(18, 18 - (user.email.length - 20) * 0.4))}px`
+                              : '1.125rem'
+                          }}
+                        >
                           {user.email}
                         </div>
                       )}
                     </div>
                     {!editingEmail && (
                       <button 
-                        className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all" 
+                        className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all shrink-0" 
                         style={{ color: theme.primary, backgroundColor: theme.primary + '10' }} 
                         onClick={() => { setEditingEmail(true); setEmailDraft(user.email || '') }}
                       >
