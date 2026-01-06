@@ -1588,10 +1588,10 @@ export default function Stockpile() {
           </button>
         </div>
       )}>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Error Display */}
           {saveError && (
-            <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span className="text-sm font-medium text-red-800">{saveError}</span>
@@ -1600,7 +1600,7 @@ export default function Stockpile() {
           )}
           
           {/* VIAL DETAILS Section Header */}
-          <div className="flex items-center gap-4 mb-3">
+          <div className="flex items-center gap-3 mb-2">
             <TestTube size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
               <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
@@ -1614,7 +1614,7 @@ export default function Stockpile() {
           </div>
 
           {/* Main form */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <TextInput 
               label="Peptide Name" 
                 value={form.name}
@@ -2077,7 +2077,7 @@ export default function Stockpile() {
           </div>
           
           {/* ORDER DETAILS Section Header */}
-          <div className="flex items-center gap-4 mb-3 pt-1">
+          <div className="flex items-center gap-3 mb-2">
             <PackageOpen size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
               <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
@@ -2107,7 +2107,7 @@ export default function Stockpile() {
           />
           
           {/* EXTRA DETAILS Section Header */}
-          <div className="flex items-center gap-4 mb-3 pt-1">
+          <div className="flex items-center gap-3 mb-2">
             <ImageUp size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
               <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
@@ -2121,7 +2121,7 @@ export default function Stockpile() {
           </div>
           
           {/* Documentation Upload */}
-          <div className="mt-4">
+          <div className="mt-3">
           <DocumentationUpload
             documentation={form.documentation}
             onChange={(documentation) => updateFormData({ documentation })}
@@ -2336,9 +2336,9 @@ export default function Stockpile() {
                   pointerEvents: isExpanded ? 'auto' : 'none',
                 }}
               >
-                <div className="p-3 space-y-4 border-t" style={{ borderColor: theme.border }}>
+                <div className="p-3 space-y-3 border-t" style={{ borderColor: theme.border }}>
                   {/* VIAL DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-2">
                     <TestTube size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                       <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
@@ -2516,7 +2516,7 @@ export default function Stockpile() {
                   />
 
                   {/* ORDER DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-3 pt-1">
+                  <div className="flex items-center gap-3 mb-2">
                     <PackageOpen size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                       <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
@@ -2580,7 +2580,7 @@ export default function Stockpile() {
                   />
 
                   {/* EXTRA DETAILS Section Header */}
-                  <div className="flex items-center gap-3 mb-3 pt-1">
+                  <div className="flex items-center gap-3 mb-2">
                     <ImageUp size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
                       <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
@@ -2859,9 +2859,9 @@ export default function Stockpile() {
             </div>
           )}
         >
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Detailed Inventory List */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker size={18} style={{ color: '#8ca68c' }} />
                 <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: theme.text }}>Research Vials</h4>
@@ -2880,7 +2880,7 @@ export default function Stockpile() {
                       style={{ backgroundColor: '#8ca68c', opacity: 0.3 }}
                     />
 
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="text-xs font-bold uppercase tracking-wide flex items-center gap-2" style={{ color: theme.text }}>
                         <span className="px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 font-bold">
                           {variant.mg} {variant.unit || 'mg'}
@@ -2942,7 +2942,7 @@ export default function Stockpile() {
                             })()}
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-black/5 dark:border-white/5">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
                             <div className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Purity</span>
                               <span className="text-base font-bold" style={{ color: theme.text }}>{item.purity ? `${item.purity}%` : 'N/A'}</span>

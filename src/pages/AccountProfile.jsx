@@ -98,12 +98,6 @@ export default function AccountProfile() {
   const [verificationCooldown, setVerificationCooldown] = useState(0)
   const [cloudCreatedAt, setCloudCreatedAt] = useState(null)
   
-  // Password re-authentication for email change
-  const [passwordConfirmOpen, setPasswordConfirmOpen] = useState(false)
-  const [passwordForEmailChange, setPasswordForEmailChange] = useState('')
-  const [showPasswordForEmailChange, setShowPasswordForEmailChange] = useState(false)
-  const [isReauthenticating, setIsReauthenticating] = useState(false)
-  
   // Password Reset States
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [passwordData, setPasswordData] = useState({
