@@ -203,6 +203,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 }
             }
             
+            // If protocolType is being changed to blended, initialize sharedFrequency from first peptide
+            if (field === 'protocolType' && value === 'blended' && prev.peptides && prev.peptides.length > 0) {
+                newState.sharedFrequency = prev.peptides[0].frequency || { type: 'daily', time: ['AM'] };
+                // Sync all peptides to use the shared frequency
+                newState.peptides = newState.peptides.map(p => ({
+                    ...p,
+                    frequency: newState.sharedFrequency
+                }));
+            }
+            
             // Update auto-save data
             updateFormData(newState);
             
@@ -216,6 +226,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             newPeptides[index] = updatedPeptide;
             const newState = { ...prev, peptides: newPeptides };
             
+            // If it's a blended protocol and the first peptide's frequency changed, update sharedFrequency
+            if (prev.protocolType === 'blended' && index === 0 && updatedPeptide.frequency) {
+                newState.sharedFrequency = updatedPeptide.frequency;
+                // Also sync to all other peptides
+                newState.peptides = newState.peptides.map((p, i) => 
+                    i === 0 ? p : { ...p, frequency: updatedPeptide.frequency }
+                );
+            }
+            
             // Update auto-save data
             updateFormData(newState);
             
@@ -225,9 +244,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     const addPeptide = () => {
         setForm(prev => {
+            // For blended protocols, use the shared frequency (or first peptide's frequency)
+            let newPeptideFrequency = { type: 'daily', time: ['AM'] };
+            if (prev.protocolType === 'blended' && prev.peptides && prev.peptides.length > 0) {
+                // Use sharedFrequency if available, otherwise use first peptide's frequency
+                newPeptideFrequency = prev.sharedFrequency || prev.peptides[0].frequency || { type: 'daily', time: ['AM'] };
+            }
+            
             const newState = {
                 ...prev,
-                peptides: [...(prev.peptides || []), { id: generateId(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }]
+                peptides: [...(prev.peptides || []), { id: generateId(), frequency: newPeptideFrequency, unitValue: '' }]
             };
             
             // Update auto-save data

@@ -40,10 +40,31 @@ const updateVisualViewportInsets = () => {
   const widthGap = window.innerWidth - viewport.width;
   const heightGap = window.innerHeight - viewport.height;
 
+  // Calculate bottom safe area (navigation bar)
+  const bottomGap = heightGap - top;
+  
+  // Detect Android devices (including Pixel)
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  
+  // For Android devices with gesture navigation, visualViewport might not detect the gesture bar
+  // Pixel 8 Pro and similar devices often use gesture navigation where the bar is part of the viewport
+  // Always apply minimum safe area padding for Android mobile devices to ensure buttons aren't hidden
+  let finalBottom = bottomGap;
+  if (isAndroid && bottomGap === 0) {
+    // Check if we're in a mobile viewport (not desktop/tablet)
+    const isMobileViewport = window.innerHeight < 1200;
+    
+    if (isMobileViewport) {
+      // Pixel 8 Pro gesture bar is typically 20px
+      // Apply this padding to ensure bottom buttons aren't hidden by gesture navigation bars
+      finalBottom = 20;
+    }
+  }
+
   root.style.setProperty('--android-safe-area-top', round(top));
   root.style.setProperty('--android-safe-area-left', round(left));
   root.style.setProperty('--android-safe-area-right', round(widthGap - left));
-  root.style.setProperty('--android-safe-area-bottom', round(heightGap - top));
+  root.style.setProperty('--android-safe-area-bottom', round(finalBottom));
 };
 
 const requestViewportUpdate = () => {

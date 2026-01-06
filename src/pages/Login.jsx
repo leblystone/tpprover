@@ -1676,10 +1676,18 @@ export default function Login() {
                     overflow: hidden !important;
                 }
             `}</style>
+            {/* Full-screen background wrapper - extends edge-to-edge */}
             <div 
-                className="min-h-screen flex flex-col items-center justify-center" 
+                className="fixed inset-0"
                 style={{ 
                     backgroundColor: theme.background,
+                    zIndex: 0
+                }}
+            />
+            {/* Content container with safe area padding */}
+            <div 
+                className="relative min-h-screen flex flex-col items-center justify-center z-10" 
+                style={{ 
                     // Top padding: base padding + safe area (for status bar/notch)
                     paddingTop: 'max(1rem, calc(1rem + var(--safe-area-top, env(safe-area-inset-top, 0px))))',
                     // Bottom padding: base padding + safe area (for bottom navigation/home indicator)

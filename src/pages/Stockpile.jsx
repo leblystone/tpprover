@@ -403,7 +403,7 @@ export default function Stockpile() {
       return normalizedItemName === targetName
     }
     const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
-    if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] })
+    if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
     setManageRows(rows)
   }
   
@@ -569,7 +569,7 @@ export default function Stockpile() {
       setShowOrderModal(true);
     }
   }
-  const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] }]))
+  const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' }]))
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
   
   const deleteManageRow = async (id) => {
@@ -2306,16 +2306,144 @@ export default function Stockpile() {
 
                   {/* Amount & Quantity in two columns */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <TextInput
-                      label="Amount"
-                      value={row.mg || ''}
-                      onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: v } : r))}
-                      placeholder="10"
-                      theme={theme}
-                      outlined={true}
-                      customTextColor={theme.isDark ? null : "#181A18"}
-                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                    />
+                    {/* Amount with Unit Dropdown */}
+                    <div className="relative">
+                      <div 
+                        className="flex items-stretch rounded-lg"
+                        style={{ 
+                          border: `1px solid ${(manageRowDropdowns[row.id]?.amountFocused || false) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                        }}
+                      >
+                        <input 
+                          type="text"
+                          id={`amount-input-${row.id}`}
+                          value={row.mg || ''}
+                          onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: e.target.value } : r))}
+                          onFocus={() => setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], amountFocused: true } }))}
+                          onBlur={(e) => {
+                            setTimeout(() => {
+                              const relatedTarget = e.relatedTarget || document.activeElement
+                              const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                              if (!isClickingDropdown && !(manageRowDropdowns[row.id]?.amountUnit)) {
+                                setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], amountFocused: false } }))
+                              }
+                            }, 150)
+                          }}
+                          placeholder=" "
+                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                          style={{
+                            backgroundColor: 'transparent',
+                            color: theme.isDark ? theme.text : '#181A18',
+                            border: 'none',
+                            paddingLeft: '12px',
+                            paddingRight: '8px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], amountUnit: !prev[row.id]?.amountUnit } }))}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                          data-dropdown-container
+                          style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            color: theme.isDark ? theme.text : '#181A18',
+                            minWidth: '100px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                          }}
+                        >
+                          <span className="text-sm font-semibold">
+                            {(row.mgUnit || 'mg')}
+                          </span>
+                          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                      {/* Dropdown positioned outside flex container, aligned with button */}
+                      {(manageRowDropdowns[row.id]?.amountUnit) && (
+                        <div 
+                          className="absolute z-[9999] rounded-lg shadow-lg border overflow-hidden"
+                          data-dropdown-container
+                          style={{
+                            top: '100%',
+                            right: '0',
+                            marginTop: '4px',
+                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                            borderColor: theme.border,
+                            minWidth: '100px',
+                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          {[
+                            { value: 'mg', label: 'mg' },
+                            { value: 'mL', label: 'mL' },
+                            { value: 'g', label: 'g' },
+                            { value: 'IU', label: 'IU' }
+                          ].map((option, optIdx) => (
+                            <React.Fragment key={option.value}>
+                              {optIdx > 0 && (
+                                <div 
+                                  className="h-px mx-2"
+                                  style={{ backgroundColor: theme.border }}
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onTouchStart={(e) => e.preventDefault()}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mgUnit: option.value } : r))
+                                  setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], amountUnit: false } }))
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                style={{
+                                  color: (row.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                  backgroundColor: 'transparent',
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                  e.currentTarget.style.color = theme.primary;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.color = (row.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                }}
+                              >
+                                {option.label}
+                              </button>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                      <label 
+                        htmlFor={`amount-input-${row.id}`}
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                          fontSize: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '0.75rem' : '0.9375rem',
+                          top: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '-8px' : '14px',
+                          left: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '12px' : '16px',
+                          padding: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '0 4px' : '0',
+                          background: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          color: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? theme.primary : (theme.textLight || theme.text),
+                          fontWeight: 500
+                        }}
+                      >
+                        Amount
+                      </label>
+                    </div>
                     <TextInput
                       label="Quantity"
                       value={row.quantity || ''}
