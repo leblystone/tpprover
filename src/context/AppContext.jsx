@@ -2219,16 +2219,33 @@ export function AppProvider({ children }) {
                                         console.log('🔒 Skipping vendors update from sample data clear - in protection window');
                                     }
                                 }
-                                // CRITICAL: Restore task completion data from cloud (needed for streak)
+                                // CRITICAL: Merge task completion data from cloud (needed for streak)
+                                // Don't overwrite - merge to preserve any local completions
                                 if (freshData.taskCompletion) {
-                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(freshData.taskCompletion));
+                                    const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                    // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
+                                    const merged = { ...freshData.taskCompletion };
+                                    Object.keys(localTaskCompletion).forEach(date => {
+                                        if (!merged[date]) merged[date] = {};
+                                        Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
+                                            if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                            merged[date][timeSlot] = {
+                                                ...(merged[date][timeSlot] || {}),
+                                                ...(localTaskCompletion[date][timeSlot] || {})
+                                            };
+                                        });
+                                    });
+                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
                                     // Dispatch event to notify components
                                     window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
                                         detail: { source: 'cloud-sync' }
                                     }));
                                 }
                                 if (freshData.calendarDone) {
-                                    localStorage.setItem('tpprover_calendar_done', JSON.stringify(freshData.calendarDone));
+                                    const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+                                    // Merge calendar done data (local takes precedence)
+                                    const merged = { ...freshData.calendarDone, ...localCalendarDone };
+                                    localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                                 }
                                 if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
                                 if (freshData.stockpile) {
@@ -2448,16 +2465,33 @@ export function AppProvider({ children }) {
                                     : freshData.protocolHistory;
                                 localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
                             }
-                            // CRITICAL: Restore task completion data from cloud (needed for streak)
+                            // CRITICAL: Merge task completion data from cloud (needed for streak)
+                            // Don't overwrite - merge to preserve any local completions
                             if (freshData.taskCompletion) {
-                                localStorage.setItem('tpprover_task_completion', JSON.stringify(freshData.taskCompletion));
+                                const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
+                                const merged = { ...freshData.taskCompletion };
+                                Object.keys(localTaskCompletion).forEach(date => {
+                                    if (!merged[date]) merged[date] = {};
+                                    Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
+                                        if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                        merged[date][timeSlot] = {
+                                            ...(merged[date][timeSlot] || {}),
+                                            ...(localTaskCompletion[date][timeSlot] || {})
+                                        };
+                                    });
+                                });
+                                localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
                                 // Dispatch event to notify components
                                 window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
                                     detail: { source: 'cloud-sync' }
                                 }));
                             }
                             if (freshData.calendarDone) {
-                                localStorage.setItem('tpprover_calendar_done', JSON.stringify(freshData.calendarDone));
+                                const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+                                // Merge calendar done data (local takes precedence)
+                                const merged = { ...freshData.calendarDone, ...localCalendarDone };
+                                localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                             }
             }
             
