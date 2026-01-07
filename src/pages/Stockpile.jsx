@@ -44,6 +44,7 @@ export default function Stockpile() {
   const [stockpileFilter, setStockpileFilter] = useState('view all') // 'view all' | 'low' | 'well stocked'
   const [showStockpileSearch, setShowStockpileSearch] = useState(false)
   const [stockpileSearchQuery, setStockpileSearchQuery] = useState('')
+  const [isClosingSearch, setIsClosingSearch] = useState(false)
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
@@ -1080,9 +1081,9 @@ export default function Stockpile() {
             
             {/* Filter and Search */}
             <div className="mb-6">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {/* Stock Status Filter - Dropdown */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <CustomDropdown
                     value={stockpileFilter}
                     onChange={setStockpileFilter}
@@ -1111,9 +1112,16 @@ export default function Stockpile() {
                 </div>
 
                 {/* Search Input - Inline with Dropdown */}
-                <div className="relative" style={{ width: showStockpileSearch ? '250px' : 'auto' }}>
+                <div 
+                  className="relative overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0"
+                  style={{ 
+                    width: showStockpileSearch ? '200px' : '48px',
+                    minWidth: showStockpileSearch ? '200px' : '48px',
+                    maxWidth: showStockpileSearch ? '200px' : '48px'
+                  }}
+                >
                   {showStockpileSearch ? (
-                    <div className="relative">
+                    <div className={`relative ${isClosingSearch ? 'animate-slide-out' : 'animate-slide-in'}`}>
                       <input
                         type="text"
                         value={stockpileSearchQuery}
@@ -1126,12 +1134,17 @@ export default function Stockpile() {
                           backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                           color: theme.isDark ? theme.text : '#181A18',
                           boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.1)',
-                          minWidth: '200px'
+                          width: '100%',
+                          maxWidth: '200px'
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Escape') {
-                            setShowStockpileSearch(false)
-                            setStockpileSearchQuery('')
+                            setIsClosingSearch(true)
+                            setTimeout(() => {
+                              setShowStockpileSearch(false)
+                              setStockpileSearchQuery('')
+                              setIsClosingSearch(false)
+                            }, 300)
                           }
                         }}
                         onBlur={(e) => {
@@ -1139,7 +1152,11 @@ export default function Stockpile() {
                           if (!e.currentTarget.parentElement.contains(e.relatedTarget)) {
                             // Only close if search is empty
                             if (!stockpileSearchQuery.trim()) {
-                              setShowStockpileSearch(false)
+                              setIsClosingSearch(true)
+                              setTimeout(() => {
+                                setShowStockpileSearch(false)
+                                setIsClosingSearch(false)
+                              }, 300)
                             }
                           }
                         }}
@@ -1148,7 +1165,11 @@ export default function Stockpile() {
                         type="button"
                         onClick={() => {
                           setStockpileSearchQuery('')
-                          setShowStockpileSearch(false)
+                          setIsClosingSearch(true)
+                          setTimeout(() => {
+                            setShowStockpileSearch(false)
+                            setIsClosingSearch(false)
+                          }, 300)
                         }}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded transition-colors"
                         style={{
@@ -3165,6 +3186,36 @@ export default function Stockpile() {
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
       />
+
+      {/* Slide Animation Styles */}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes slideOut {
+          from {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+        }
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out;
+        }
+        .animate-slide-out {
+          animation: slideOut 0.3s ease-in;
+        }
+      `}</style>
     </section>
   )
 }

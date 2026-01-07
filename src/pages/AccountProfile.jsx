@@ -349,6 +349,19 @@ export default function AccountProfile() {
         console.warn('Failed to send security notification:', notificationError)
       }
       
+      // Send custom verification notification to new email
+      try {
+        const functions = getFunctions(getApp(), 'us-central1')
+        const sendEmailChangeVerificationNotification = httpsCallable(functions, 'sendEmailChangeVerificationNotification')
+        await sendEmailChangeVerificationNotification({
+          newEmail: emailDraft,
+          oldEmail: oldEmail
+        })
+      } catch (verificationError) {
+        // Don't fail the email change if verification notification fails, but log it
+        console.warn('Failed to send verification notification:', verificationError)
+      }
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: 'Verification email sent to new address. Please verify your new email.', type: 'success' } 
       }))
@@ -1122,25 +1135,6 @@ export default function AccountProfile() {
         }
       >
         <div className="space-y-4">
-          {/* Disclaimer */}
-          <div 
-            className="p-4 rounded-xl border-2 flex items-start gap-3"
-            style={{ 
-              backgroundColor: theme.primary + '10',
-              borderColor: theme.primary + '30'
-            }}
-          >
-            <AlertCircle size={20} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
-            <div className="flex-1">
-              <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
-                Email Verification Required
-              </div>
-              <div className="text-xs leading-relaxed opacity-80" style={{ color: theme.text }}>
-                After changing your email address, you'll need to verify your new email. A verification email will be sent to your new address, and your email status will be set to unverified until you complete verification.
-              </div>
-            </div>
-          </div>
-
           {/* Email Input */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold" style={{ color: theme.text }}>
@@ -1168,6 +1162,20 @@ export default function AccountProfile() {
               </div>
             )}
           </div>
+
+          {/* Disclaimer */}
+          <div 
+            className="p-3 rounded-xl flex items-start gap-2"
+            style={{ 
+              backgroundColor: theme.primary + '10',
+              borderColor: theme.primary + '30'
+            }}
+          >
+            <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+            <div className="text-xs leading-relaxed opacity-80" style={{ color: theme.text }}>
+              You'll need to verify your new email address. A verification email will be sent after you save.
+            </div>
+          </div>
         </div>
       </BottomSheet>
 
@@ -1182,18 +1190,6 @@ export default function AccountProfile() {
         theme={theme}
       >
         <div className="space-y-4">
-          <div 
-            className="p-3 rounded-xl"
-            style={{ backgroundColor: theme.primary + '10' }}
-          >
-            <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
-              Security Verification Required
-            </div>
-            <div className="text-xs opacity-80" style={{ color: theme.text }}>
-              For your security, please enter your password to confirm this email change.
-            </div>
-          </div>
-
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
               Current Password
@@ -1227,16 +1223,19 @@ export default function AccountProfile() {
                 {showPasswordForEmailChange ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            <div className="text-xs opacity-80 mt-2" style={{ color: theme.text }}>
+              For your security, please enter your password to confirm this email change.
+            </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-2">
             <button
               onClick={() => {
                 setPasswordConfirmOpen(false)
                 setPasswordForEmailChange('')
               }}
               disabled={isReauthenticating}
-              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+              className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
               style={{ 
                 backgroundColor: theme.secondary, 
                 color: theme.text,
@@ -1248,7 +1247,7 @@ export default function AccountProfile() {
             <button
               onClick={handlePasswordConfirm}
               disabled={isReauthenticating || !passwordForEmailChange}
-              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ 
                 backgroundColor: passwordForEmailChange && !isReauthenticating ? theme.primary : theme.mutedText, 
                 color: theme.primaryText || '#FFFFFF'

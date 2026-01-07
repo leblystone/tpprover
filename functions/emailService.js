@@ -1158,6 +1158,45 @@ exports.sendPaymentSuccessfulEmail = async (userEmail, amount, currency, receipt
 };
 
 /**
+ * Send email change verification notification to new email
+ */
+exports.sendEmailChangeVerificationNotification = async (newEmail, oldEmail, options = {}) => {
+  logger.info(`📧 sendEmailChangeVerificationNotification called for: ${newEmail}`);
+  
+  try {
+    const customTemplate = await loadEmailTemplate('emailChangeVerification');
+    if (customTemplate) {
+      logger.info('✅ Using custom email change verification template from Firestore');
+      const subject = customTemplate.subject || 'Verify Your New Email Address - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { newEmail, oldEmail });
+      return sendEmail(newEmail, subject, html, {
+        logToHistory: true,
+        type: 'email_change_verification',
+        recipientName: options.recipientName || null,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    } else {
+      logger.warn('⚠️ No custom email change verification template found in Firestore');
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom email change verification template, using default:', e);
+  }
+  
+  // Fallback to hardcoded template
+  logger.info('📧 Using hardcoded email change verification template');
+  const subject = 'Verify Your New Email Address - The Pep Planner';
+  const html = emailTemplates.emailChangeVerificationEmail(newEmail, oldEmail);
+  return sendEmail(newEmail, subject, html, {
+    logToHistory: true,
+    type: 'email_change_verification',
+    recipientName: options.recipientName || null,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
+};
+
+/**
  * Send email change security notification
  */
 exports.sendEmailChangeNotification = async (oldEmail, newEmail, timestamp, options = {}) => {

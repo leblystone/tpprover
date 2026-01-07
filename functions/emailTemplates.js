@@ -3232,3 +3232,52 @@ exports.emailChangeNotificationEmail = (oldEmail, newEmail, timestamp) => {
   return emailWrapper(content);
 };
 
+/**
+ * Email change verification notification template (sent to new email)
+ */
+exports.emailChangeVerificationEmail = (newEmail, oldEmail) => {
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">📧 Verify Your New Email Address</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi there,
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        You've requested to change your The Pep Planner account email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>.
+      </p>
+      
+      <div class="highlight-box" style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #1E40AF;">📬 Check Your Inbox</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          You should receive a verification email from Firebase shortly. Please check your inbox (and spam folder) for an email with the subject "Verify your email for The Pep Planner".
+        </p>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>To complete the email change:</strong>
+      </p>
+      
+      <ul class="feature-list" style="margin: 16px 0; padding-left: 20px; color: ${COLORS.text};">
+        <li>Check your inbox for the verification email</li>
+        <li>Click the verification link in that email</li>
+        <li>Your email address will be updated once verified</li>
+      </ul>
+
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        If you didn't request this email change, please contact support immediately at support@thepepplanner.app
+      </p>
+      
+      <hr class="divider" style="border: none; border-top: 1px solid ${COLORS.border}; margin: 32px 0;">
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin: 0;">
+        Questions? Contact us at support@thepepplanner.app<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

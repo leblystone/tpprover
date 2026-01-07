@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
-import { Pen, Droplets, Pipette, TestTube, Calendar, ChevronDown } from 'lucide-react';
+import DosingScheduleEditor from './DosingScheduleEditor';
+import { Pen, Droplets, Pipette, TestTube, Calendar, ChevronDown, TrendingUp } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
@@ -106,8 +107,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     return (
         <div className="space-y-4">
                 {/* Peptide Information - Horizontal Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-end">
-                    <div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
+                    <div className="lg:col-span-2">
                         <TextInput 
                             label="Peptide Name" 
                             value={item.name || ''} 
@@ -120,27 +121,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         />
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-3 items-end">
-                        <div className="col-span-2">
-                        <CombinedDosageInput
-                            value={item.dosage || { amount: '', unit: 'mcg' }}
-                            onChange={(newDosage) => {
-                                // Update only dosage, do NOT sync to units text box
-                                onChange({ 
-                                    ...item, 
-                                    dosage: newDosage
-                                });
-                            }}
-                            theme={theme}
-                            deliveryMethod={item.deliveryMethod}
-                            placeholder="250"
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
-                    
-                        <div className="col-span-1">
+                    <div>
                         <TextInput
                             label="Units"
                             value={item.unitValue || ''}
@@ -154,8 +135,94 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow
                         />
-                        </div>
                     </div>
+                </div>
+
+                {/* Dosage Type Toggle & Input */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <TestTube size={14} className="opacity-50" style={{ color: theme.text }} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            Dosage Schedule
+                        </span>
+                    </div>
+                    
+                    {/* Dosage Type Toggle */}
+                    <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                // Switch to fixed dose - clear titration if exists
+                                const updated = { ...item };
+                                if (updated.titration && updated.titration.length > 0) {
+                                    updated.titration = [];
+                                }
+                                onChange(updated);
+                            }}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                (!item.titration || item.titration.length === 0) ? 'text-white shadow-sm' : 'text-gray-500'
+                            }`}
+                            style={(!item.titration || item.titration.length === 0) ? { backgroundColor: theme.primary } : {}}
+                        >
+                            <Pipette size={12} />
+                            Fixed Dose
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                // Switch to titration - initialize if empty
+                                const updated = { ...item };
+                                if (!updated.titration || updated.titration.length === 0) {
+                                    updated.titration = [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'days' }];
+                                }
+                                onChange(updated);
+                            }}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                (item.titration && item.titration.length > 0) ? 'text-white shadow-sm' : 'text-gray-500'
+                            }`}
+                            style={(item.titration && item.titration.length > 0) ? { backgroundColor: theme.primary } : {}}
+                        >
+                            <TrendingUp size={12} />
+                            Titration
+                        </button>
+                    </div>
+
+                    {/* Fixed Dose Input */}
+                    {(!item.titration || item.titration.length === 0) && (
+                        <div className="grid grid-cols-1 gap-3">
+                            <CombinedDosageInput
+                                value={item.dosage || { amount: '', unit: 'mcg' }}
+                                onChange={(newDosage) => {
+                                    onChange({ 
+                                        ...item, 
+                                        dosage: newDosage
+                                    });
+                                }}
+                                theme={theme}
+                                deliveryMethod={item.deliveryMethod}
+                                placeholder="250"
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow
+                            />
+                        </div>
+                    )}
+
+                    {/* Titration Schedule Editor */}
+                    {(item.titration && item.titration.length > 0) && (
+                        <div className="mt-2">
+                            <DosingScheduleEditor
+                                titration={item.titration}
+                                onChange={(newTitration) => {
+                                    onChange({
+                                        ...item,
+                                        titration: newTitration
+                                    });
+                                }}
+                                theme={theme}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* DELIVERY & FREQUENCY - Side by Side on Desktop */}

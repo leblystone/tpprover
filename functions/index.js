@@ -2127,6 +2127,60 @@ exports.sendEmailChangeNotification = onCall(
   }
 );
 
+/**
+ * Send email change verification notification to new email
+ */
+exports.sendEmailChangeVerificationNotification = onCall(
+  {
+    cors: true,
+    secrets: ['RESEND_API_KEY']
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated to send email change verification notification');
+    }
+
+    const { newEmail, oldEmail } = request.data;
+
+    if (!newEmail || !oldEmail) {
+      throw new HttpsError('invalid-argument', 'newEmail and oldEmail are required');
+    }
+
+    logger.info(`📧 Sending email change verification notification to: ${newEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      
+      // Get user info for logging
+      const userId = request.auth.uid;
+      const userRecord = await admin.auth().getUser(userId).catch(() => null);
+      const userName = userRecord?.displayName || null;
+      
+      const success = await emailService.sendEmailChangeVerificationNotification(
+        newEmail,
+        oldEmail,
+        {
+          userId: userId,
+          recipientName: userName,
+          sentBy: 'system'
+        }
+      );
+      
+      if (success) {
+        logger.info(`✅ Email change verification notification sent successfully to: ${newEmail}`);
+        return { success: true, message: 'Verification notification sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send email change verification notification to: ${newEmail}`);
+        return { success: false, message: 'Failed to send verification notification' };
+      }
+    } catch (error) {
+      logger.error('❌ Error sending email change verification notification:', error);
+      throw new HttpsError('internal', `Failed to send verification notification: ${error.message}`);
+    }
+  }
+);
+
 // Check and clean up blocked account (for admin use)
 // This function can see disabled accounts that client SDK cannot
 exports.checkAndCleanBlockedAccount = onCall(

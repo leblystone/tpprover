@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
@@ -27,6 +27,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [isWashoutFocused, setIsWashoutFocused] = useState(false);
     const [isDurationUnitDropdownOpen, setIsDurationUnitDropdownOpen] = useState(false);
     const [isWashoutUnitDropdownOpen, setIsWashoutUnitDropdownOpen] = useState(false);
+    // Accordion state: track which peptides are expanded
+    const [expandedPeptides, setExpandedPeptides] = useState(new Set([0])); // First peptide expanded by default
+    const [isTimelineExpanded, setIsTimelineExpanded] = useState(true);
+    const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(true);
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -189,6 +193,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
         
         setForm(initialData);
+        
+        // Initialize expanded peptides - expand first one by default
+        if (initialData.peptides && initialData.peptides.length > 0) {
+            setExpandedPeptides(new Set([0]));
+        } else {
+            setExpandedPeptides(new Set());
+        }
     }, [open, protocol]);
     
     const handleChange = (field, value) => {
@@ -256,10 +267,26 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 peptides: [...(prev.peptides || []), { id: generateId(), frequency: newPeptideFrequency, unitValue: '' }]
             };
             
+            // Auto-expand the newly added peptide
+            const newIndex = newState.peptides.length - 1;
+            setExpandedPeptides(prev => new Set([...prev, newIndex]));
+            
             // Update auto-save data
             updateFormData(newState);
             
             return newState;
+        });
+    };
+
+    const togglePeptideExpanded = (index) => {
+        setExpandedPeptides(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(index)) {
+                newSet.delete(index);
+            } else {
+                newSet.add(index);
+            }
+            return newSet;
         });
     };
 
@@ -269,6 +296,23 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 ...prev,
                 peptides: prev.peptides.filter((_, i) => i !== index)
             };
+            
+            // Update expanded peptides - remove the deleted index and adjust others
+            setExpandedPeptides(prevExpanded => {
+                const newExpanded = new Set();
+                prevExpanded.forEach(expandedIndex => {
+                    if (expandedIndex < index) {
+                        newExpanded.add(expandedIndex);
+                    } else if (expandedIndex > index) {
+                        newExpanded.add(expandedIndex - 1);
+                    }
+                });
+                // If no peptides expanded, expand the first one
+                if (newExpanded.size === 0 && newState.peptides.length > 0) {
+                    newExpanded.add(0);
+                }
+                return newExpanded;
+            });
             
             // Update auto-save data
             updateFormData(newState);
@@ -500,18 +544,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             <div className="space-y-4">
-                {/* PROTOCOL INFO Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <BookOpenCheck size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Research Basics
-                            </span>
-                        </div>
-                    </div>
+                {/* PROTOCOL INFO Section Header - Reduced weight */}
+                <div className="flex items-center gap-3 mb-2">
+                    <BookOpenCheck size={20} style={{ color: theme.primary }} />
+                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
                 </div>
 
                 {/* Protocol Basics - Compact Layout */}
@@ -577,72 +613,120 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* Peptides Section - Redesigned */}
-                <div className="space-y-4">
-                    {/* Section Header */}
-                    <div className="flex items-center gap-4 mb-2">
-                        <TestTube size={32} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Dosage & Schedule
-                                </span>
-                            </div>
-                        </div>
+                {/* Peptides Section - Accordion Structure */}
+                <div className="space-y-3">
+                    {/* Section Header - Reduced visual weight */}
+                    <div className="flex items-center gap-3 mb-2">
+                        <TestTube size={20} style={{ color: theme.primary }} />
+                        <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-50" style={{ color: theme.textLight }}>
+                            Dosage & Schedule
+                        </span>
                     </div>
 
                     {/* Shared Settings for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
-                        <div className="p-3 rounded-lg border" 
+                        <div className="p-2.5 rounded-lg border text-xs" 
                              style={{ borderColor: theme.primary + '20', backgroundColor: theme.primary + '05' }}>
-                            <p className="text-xs font-medium" style={{ color: theme.text }}>
+                            <p className="font-medium" style={{ color: theme.text }}>
                                 <span className="font-bold uppercase mr-1" style={{ color: theme.primary }}>Blended:</span>
-                                All peptides in this protocol share the same delivery method and schedule.
+                                All peptides share the same delivery method and schedule.
                             </p>
                         </div>
                     )}
                     
-                    {/* Peptide List */}
-                    <div className="space-y-4">
-                        {form.peptides?.map((p, index) => (
-                            <div key={p.id || index} className="relative">
-                                {/* Optional: Peptide Number and Remove button if multiple */}
-                                {form.peptides.length > 1 && (
-                                    <div className="flex items-center justify-between mb-2 px-1">
-                                        <span className="text-xs font-black uppercase tracking-widest opacity-30" style={{ color: theme.text }}>
-                                            Peptide {index + 1}
-                                        </span>
-                                        <button 
-                                            onClick={() => removePeptide(index)}
-                                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-red-50 transition-colors"
-                                            style={{ color: '#ef4444' }}
-                                        >
-                                            Remove
-                                        </button>
+                    {/* Peptide List - Accordion Cards */}
+                    <div className="space-y-2">
+                        {form.peptides?.map((p, index) => {
+                            const isExpanded = expandedPeptides.has(index);
+                            const peptideName = p.name || `Peptide ${index + 1}`;
+                            const dosageSummary = p.titration && p.titration.length > 0 
+                                ? `${p.titration.length} step${p.titration.length > 1 ? 's' : ''} titration`
+                                : p.dosage?.amount 
+                                    ? `${p.dosage.amount} ${p.dosage.unit || 'mcg'}`
+                                    : 'No dosage set';
+                            const frequencySummary = p.frequency?.type === 'daily' 
+                                ? `Daily ${p.frequency?.time?.join('/') || 'AM'}`
+                                : p.frequency?.type === 'weekly'
+                                    ? `Weekly (${p.frequency?.days?.length || 0} days)`
+                                    : p.frequency?.type || 'Not set';
+                            
+                            return (
+                                <div 
+                                    key={p.id || index} 
+                                    className="rounded-lg border transition-all"
+                                    style={{ 
+                                        borderColor: isExpanded ? theme.primary + '40' : theme.border,
+                                        backgroundColor: isExpanded ? theme.cardBackground : (theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)')
+                                    }}
+                                >
+                                    {/* Accordion Header */}
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePeptideExpanded(index)}
+                                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                                            {isExpanded ? (
+                                                <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                                            ) : (
+                                                <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
+                                                    {peptideName}
+                                                </div>
+                                                {!isExpanded && (
+                                                    <div className="text-xs mt-0.5 flex items-center gap-2 flex-wrap" style={{ color: theme.textLight }}>
+                                                        <span>{dosageSummary}</span>
+                                                        <span className="opacity-30">•</span>
+                                                        <span>{frequencySummary}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {form.peptides.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removePeptide(index);
+                                                }}
+                                                className="ml-2 px-2 py-1 text-xs font-medium rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                                                style={{ color: '#ef4444' }}
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </button>
+
+                                    {/* Accordion Content */}
+                                    <div 
+                                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                                        style={{
+                                            maxHeight: isExpanded ? '2000px' : '0',
+                                            opacity: isExpanded ? 1 : 0
+                                        }}
+                                    >
+                                        <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
+                                            <PeptideSubForm
+                                                item={p}
+                                                onChange={(updated) => handlePeptideChange(index, updated)}
+                                                onRemove={() => removePeptide(index)}
+                                                protocolType={form.protocolType}
+                                                isFirstPeptide={index === 0}
+                                                theme={theme}
+                                                isOnlyItem={form.peptides.length === 1}
+                                            />
+                                        </div>
                                     </div>
-                                )}
-                                
-                                <PeptideSubForm
-                                    item={p}
-                                    onChange={(updated) => handlePeptideChange(index, updated)}
-                                    onRemove={() => removePeptide(index)}
-                                    protocolType={form.protocolType}
-                                    isFirstPeptide={index === 0}
-                                    theme={theme}
-                                    isOnlyItem={form.peptides.length === 1}
-                                />
-                                
-                                {index < form.peptides.length - 1 && (
-                                    <div className="mt-4 border-t border-dashed" style={{ borderColor: theme.border }}></div>
-                                )}
-                            </div>
-                        ))}
+                                </div>
+                            );
+                        })}
                     </div>
 
-                    {/* Add Peptide Button - More subtle */}
-                    <div className="flex justify-center pt-2">
+                    {/* Add Peptide Button */}
+                    <div className="flex justify-center pt-1">
                         <button
                             onClick={addPeptide}
                             className="flex items-center gap-2 px-4 py-2 rounded-full border-2 border-dashed transition-all hover:scale-105"
@@ -658,22 +742,33 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* PROTOCOL DURATION Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <CalendarClock size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Timeline & Washout
-                            </span>
+                {/* PROTOCOL DURATION Section - Collapsible */}
+                <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <button
+                        type="button"
+                        onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-3">
+                            <CalendarClock size={20} style={{ color: theme.primary }} />
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
                         </div>
-                    </div>
-                </div>
+                        {isTimelineExpanded ? (
+                            <ChevronDown size={16} style={{ color: theme.textLight }} />
+                        ) : (
+                            <ChevronRight size={16} style={{ color: theme.textLight }} />
+                        )}
+                    </button>
 
-                {/* Duration Content */}
-                <div className="space-y-3">
+                    {/* Duration Content - Collapsible */}
+                    <div 
+                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        style={{
+                            maxHeight: isTimelineExpanded ? '500px' : '0',
+                            opacity: isTimelineExpanded ? 1 : 0
+                        }}
+                    >
+                        <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -967,55 +1062,66 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             )}
                         </div>
                     </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* EXTRA DETAILS & NOTES Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-4 mb-1">
-                            <ImageUp size={32} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
-                                <div className="flex items-center gap-2 ml-1">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                        Notes & Records
-                                    </span>
-                                </div>
-                            </div>
+                {/* EXTRA DETAILS & NOTES Section - Collapsible */}
+                <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <button
+                        type="button"
+                        onClick={() => setIsAdditionalDetailsExpanded(!isAdditionalDetailsExpanded)}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-3">
+                            <ImageUp size={20} style={{ color: theme.primary }} />
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
                         </div>
-                        <TextInput 
-                            label="Notes"
-                            value={form.notes || ''} 
-                            onChange={v => handleChange('notes', v)} 
-                            theme={theme} 
-                            placeholder="Add any personal notes for this protocol..." 
-                            multiline 
-                            rows={3}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
+                        {isAdditionalDetailsExpanded ? (
+                            <ChevronDown size={16} style={{ color: theme.textLight }} />
+                        ) : (
+                            <ChevronRight size={16} style={{ color: theme.textLight }} />
+                        )}
+                    </button>
 
-                    {/* Scheduling Preview - Now sits nicely next to notes on desktop */}
-                    {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-4 mb-1">
-                                <BookOpenCheck size={32} style={{ color: theme.primary }} />
-                                <div className="flex flex-col gap-0.5">
-                                    <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
-                                    <div className="flex items-center gap-2 ml-1">
-                                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                            Study Timeline
-                                        </span>
-                                    </div>
+                    {/* Additional Details Content - Collapsible */}
+                    <div 
+                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        style={{
+                            maxHeight: isAdditionalDetailsExpanded ? '800px' : '0',
+                            opacity: isAdditionalDetailsExpanded ? 1 : 0
+                        }}
+                    >
+                        <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-3">
+                                <div className="space-y-3">
+                                    <TextInput 
+                                        label="Notes"
+                                        value={form.notes || ''} 
+                                        onChange={v => handleChange('notes', v)} 
+                                        theme={theme} 
+                                        placeholder="Add any personal notes for this protocol..." 
+                                        multiline 
+                                        rows={3}
+                                        outlined={true}
+                                        customTextColor={theme.isDark ? null : "#181A18"}
+                                        customShadow
+                                    />
                                 </div>
+
+                                {/* Scheduling Preview */}
+                                {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <BookOpenCheck size={16} style={{ color: theme.primary }} />
+                                            <span className="text-sm font-semibold" style={{ color: theme.text }}>Preview</span>
+                                        </div>
+                                        <SchedulingPreview protocol={form} theme={theme} />
+                                    </div>
+                                )}
                             </div>
-                            <SchedulingPreview protocol={form} theme={theme} />
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 {/* Research Insights Footer - Minimal & Clean */}
