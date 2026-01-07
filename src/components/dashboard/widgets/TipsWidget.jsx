@@ -229,7 +229,7 @@ const TipsWidget = ({ widget, theme }) => {
         style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Helpful Tips
             <Lightbulb size={16} style={{ color: theme.primary }} />
           </h3>

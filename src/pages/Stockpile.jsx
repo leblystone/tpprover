@@ -1332,8 +1332,30 @@ export default function Stockpile() {
                               dateAcquired: item.date || ''
                             };
                             localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                            navigate('/app/recon');
-                          } catch { }
+                            
+                            // Try navigation with error handling
+                            try {
+                              navigate('/app/recon');
+                            } catch (navError) {
+                              console.error('❌ Navigation error:', navError);
+                              // Fallback: use window.location if navigate fails
+                              window.location.href = '/app/recon';
+                            }
+                          } catch (error) {
+                            console.error('❌ Error preparing recon data:', error);
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { 
+                                message: 'Failed to open reconstitution calculator. Please try again.', 
+                                type: 'error' 
+                              } 
+                            }));
+                            // Still try to navigate as fallback
+                            try {
+                              navigate('/app/recon');
+                            } catch {
+                              window.location.href = '/app/recon';
+                            }
+                          }
                         }}
                         onPreviewImage={setPreviewImage}
                         getUseByStatus={getUseByStatus}
@@ -1609,10 +1631,10 @@ export default function Stockpile() {
           </button>
         </div>
       )}>
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Error Display */}
           {saveError && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+            <div className="p-2 rounded-lg bg-red-50 border border-red-200">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span className="text-sm font-medium text-red-800">{saveError}</span>
@@ -1621,10 +1643,10 @@ export default function Stockpile() {
           )}
           
           {/* VIAL DETAILS Section Header */}
-          <div className="flex items-center gap-3 mb-2">
-            <TestTube size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-1">
+            <TestTube size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -1635,7 +1657,7 @@ export default function Stockpile() {
           </div>
 
           {/* Main form */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <TextInput 
               label="Peptide Name" 
                 value={form.name}
@@ -1647,7 +1669,7 @@ export default function Stockpile() {
               customTextColor={theme.isDark ? null : "#181A18"}
             />
             {/* Amount & Quantity in two columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="relative">
                 <div 
                   className="flex items-stretch rounded-lg"
@@ -1673,7 +1695,7 @@ export default function Stockpile() {
                     }, 150)
                   }}
                   placeholder=" "
-                  className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                  className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
                   style={{
                     backgroundColor: 'transparent',
                     color: theme.isDark ? theme.text : '#181A18',
@@ -1687,7 +1709,7 @@ export default function Stockpile() {
                   onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
                   onMouseDown={(e) => e.preventDefault()}
                   onTouchStart={(e) => e.preventDefault()}
-                  className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   data-dropdown-container
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
@@ -1814,7 +1836,7 @@ export default function Stockpile() {
                     }, 150)
                   }}
                   placeholder=" "
-                  className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
+                  className="flex-1 px-3 py-2 outline-none min-w-0 rounded-l-lg"
                   style={{
                     backgroundColor: 'transparent',
                     color: theme.isDark ? theme.text : '#181A18',
@@ -1826,7 +1848,7 @@ export default function Stockpile() {
                   onClick={() => setIsUnitDropdownOpen(prev => !prev)}
                   onMouseDown={(e) => e.preventDefault()}
                   onTouchStart={(e) => e.preventDefault()}
-                  className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   data-dropdown-container
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
@@ -1971,7 +1993,7 @@ export default function Stockpile() {
                   }, 150)
                 }}
                 placeholder=" "
-                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
                 style={{
                   backgroundColor: 'transparent',
                   color: theme.isDark ? theme.text : '#181A18',
@@ -2098,10 +2120,10 @@ export default function Stockpile() {
           </div>
           
           {/* ORDER DETAILS Section Header */}
-          <div className="flex items-center gap-3 mb-2">
-            <PackageOpen size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-1">
+            <PackageOpen size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -2114,7 +2136,7 @@ export default function Stockpile() {
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
           
           {/* Purity & Batch Number in two columns */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
             <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           </div>
@@ -2128,10 +2150,10 @@ export default function Stockpile() {
           />
           
           {/* EXTRA DETAILS Section Header */}
-          <div className="flex items-center gap-3 mb-2">
-            <ImageUp size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-1">
+            <ImageUp size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -2400,7 +2422,7 @@ export default function Stockpile() {
                             }, 150)
                           }}
                           placeholder=" "
-                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                          className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
                           style={{
                             backgroundColor: 'transparent',
                             color: theme.isDark ? theme.text : '#181A18',
@@ -2414,7 +2436,7 @@ export default function Stockpile() {
                           onClick={() => setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], amountUnit: !prev[row.id]?.amountUnit } }))}
                           onMouseDown={(e) => e.preventDefault()}
                           onTouchStart={(e) => e.preventDefault()}
-                          className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                          className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                           data-dropdown-container
                           style={{ 
                             borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,

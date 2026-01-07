@@ -11,7 +11,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
       <div className="relative h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Incoming Orders
               <Truck size={20} style={{ color: theme.primary }} />
             </h3>
@@ -70,9 +70,9 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
       {/* Consistent Header */}
       <div className="px-4 py-3 border-b rounded-t-xl" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Incoming Orders
-            <Truck size={20} style={{ color: theme.primary }} />
+            <Truck size={18} style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} position="right" />

@@ -15,7 +15,7 @@ const BadgesWidget = ({ widget, theme }) => {
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Badges
             <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
           </h3>

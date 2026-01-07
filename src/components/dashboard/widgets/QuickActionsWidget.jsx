@@ -51,9 +51,9 @@ const QuickActionsWidget = ({ widget, theme }) => {
     <div className="h-full flex flex-col overflow-hidden">
       <div className={`px-4 py-2 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider" style={{ color: theme.text }}>
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Quick Actions
-            <Zap size={14} style={{ color: theme.primary }} className="opacity-80" />
+            <Zap size={18} style={{ color: theme.primary }} className="opacity-80" />
           </h3>
           <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
         </div>

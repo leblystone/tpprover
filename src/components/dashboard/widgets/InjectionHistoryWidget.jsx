@@ -44,8 +44,8 @@ export default function InjectionHistoryWidget({ theme }) {
       <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Pipette size={20} style={{ color: theme.primary }} />
-            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+            <Pipette size={18} style={{ color: theme.primary }} />
+            <h3 className="text-base font-bold" style={{ color: theme.text }}>
               View History
             </h3>
           </div>
@@ -71,8 +71,8 @@ export default function InjectionHistoryWidget({ theme }) {
       <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Pipette size={20} style={{ color: theme.primary }} />
-            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+            <Pipette size={18} style={{ color: theme.primary }} />
+            <h3 className="text-base font-bold" style={{ color: theme.text }}>
               View History
             </h3>
           </div>
