@@ -1331,16 +1331,32 @@ export default function Stockpile() {
                               quantityUsed: 1,
                               dateAcquired: item.date || ''
                             };
-                            localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
                             
-                            // Try navigation with error handling
+                            // Save prefill data to localStorage
                             try {
-                              navigate('/app/recon');
-                            } catch (navError) {
-                              console.error('❌ Navigation error:', navError);
-                              // Fallback: use window.location if navigate fails
-                              window.location.href = '/app/recon';
+                              localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
+                            } catch (storageError) {
+                              console.error('❌ Failed to save prefill data:', storageError);
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { 
+                                  message: 'Failed to save data. Please try again.', 
+                                  type: 'error' 
+                                } 
+                              }));
+                              return;
                             }
+                            
+                            // Navigate to recon page with a small delay to ensure localStorage is set
+                            // Use requestAnimationFrame to ensure DOM is ready
+                            requestAnimationFrame(() => {
+                              try {
+                                navigate('/app/recon');
+                              } catch (navError) {
+                                console.error('❌ Navigation error:', navError);
+                                // Fallback: use window.location if navigate fails
+                                window.location.href = '/app/recon';
+                              }
+                            });
                           } catch (error) {
                             console.error('❌ Error preparing recon data:', error);
                             window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -1350,11 +1366,13 @@ export default function Stockpile() {
                               } 
                             }));
                             // Still try to navigate as fallback
-                            try {
-                              navigate('/app/recon');
-                            } catch {
-                              window.location.href = '/app/recon';
-                            }
+                            setTimeout(() => {
+                              try {
+                                navigate('/app/recon');
+                              } catch {
+                                window.location.href = '/app/recon';
+                              }
+                            }, 100);
                           }
                         }}
                         onPreviewImage={setPreviewImage}
