@@ -1,5 +1,5 @@
 import { generateId } from './string';
-import { getLocalDateString } from './date';
+import { getLocalDateString, getLocalTimestamp } from './date';
 
 const PROTOCOL_HISTORY_KEY = 'tpprover_protocol_history';
 
@@ -87,8 +87,8 @@ export function saveProtocolHistoryEntry(entry) {
             skippedReconstitution: entry.skippedReconstitution || null, // Store skipped reconstitution data
             vialsAddedDuring: [],
             notes: [], // Array to store protocol notes (during and follow-up)
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            createdAt: getLocalTimestamp(),
+            updatedAt: getLocalTimestamp()
         };
         
         allHistory.push(newEntry);
@@ -116,7 +116,7 @@ export function updateProtocolHistoryEntry(historyId, updates) {
         allHistory[index] = {
             ...allHistory[index],
             ...updates,
-            updatedAt: new Date().toISOString()
+            updatedAt: getLocalTimestamp()
         };
         
         localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
@@ -189,7 +189,7 @@ export function addVialToActiveProtocol(protocolId, vialData) {
         ...existingVials,
         {
             ...vialData,
-            addedDate: new Date().toISOString()
+            addedDate: getLocalTimestamp()
         }
     ];
     
@@ -240,14 +240,14 @@ export function migrateProtocolHistoryEntries() {
             if (!migratedEntry.createdAt) {
                 // Use startDate if available, otherwise current time
                 migratedEntry.createdAt = migratedEntry.startDate 
-                    ? new Date(migratedEntry.startDate).toISOString()
-                    : new Date().toISOString();
+                    ? getLocalTimestamp(new Date(migratedEntry.startDate))
+                    : getLocalTimestamp();
             }
             
             if (!migratedEntry.updatedAt) {
                 // Use endDate if available, otherwise createdAt
                 migratedEntry.updatedAt = migratedEntry.endDate
-                    ? new Date(migratedEntry.endDate).toISOString()
+                    ? getLocalTimestamp(new Date(migratedEntry.endDate))
                     : migratedEntry.createdAt;
             }
             
@@ -423,7 +423,7 @@ export function migrateProtocolHistoryCompletionStatus() {
                 return {
                     ...entry,
                     completionStatus: newCompletionStatus,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: getLocalTimestamp()
                 };
             }
             
@@ -512,12 +512,12 @@ export function addNoteToProtocolHistory(historyId, noteData) {
             tags: noteData.tags || [],
             linkedDate: noteData.linkedDate || null,
             rating: noteData.rating || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            createdAt: getLocalTimestamp(),
+            updatedAt: getLocalTimestamp()
         };
         
         entry.notes.push(newNote);
-        entry.updatedAt = new Date().toISOString();
+        entry.updatedAt = getLocalTimestamp();
         
         localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
         return true;
@@ -551,10 +551,10 @@ export function updateNoteInProtocolHistory(historyId, noteId, updates) {
         entry.notes[noteIndex] = {
             ...entry.notes[noteIndex],
             ...updates,
-            updatedAt: new Date().toISOString()
+            updatedAt: getLocalTimestamp()
         };
         
-        entry.updatedAt = new Date().toISOString();
+        entry.updatedAt = getLocalTimestamp();
         localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
         return true;
     } catch (error) {
@@ -579,7 +579,7 @@ export function deleteNoteFromProtocolHistory(historyId, noteId) {
         }
         
         entry.notes = entry.notes.filter(n => n.id !== noteId);
-        entry.updatedAt = new Date().toISOString();
+        entry.updatedAt = getLocalTimestamp();
         localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
         return true;
     } catch (error) {

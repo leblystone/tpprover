@@ -4,7 +4,7 @@ import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, B
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
-import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
+import { formatMMDDYYYY, getLocalDateString, getLocalTimestamp } from '../../utils/date';
 import { formatCurrency } from '../../utils/currencyUtils';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
@@ -282,7 +282,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             try {
                 const saveData = {
                     data: currentState,
-                    timestamp: new Date().toISOString()
+                    timestamp: getLocalTimestamp()
                 };
                 localStorage.setItem(storageKey, JSON.stringify(saveData));
                 setLastSaved(new Date());
