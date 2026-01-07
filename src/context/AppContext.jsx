@@ -64,6 +64,21 @@ export function AppProvider({ children }) {
             return 0;
         }
     })());
+    // Protection window for vendors (similar to scheduledBuys)
+    const lastLocalVendorsUpdateRef = useRef((() => {
+        try {
+            const stored = localStorage.getItem('tpprover_vendors_lastUpdate');
+            const timestamp = stored ? parseInt(stored, 10) : 0;
+            // Only respect timestamps within last 15 seconds (protection window for page refresh)
+            if (Date.now() - timestamp < 15000) {
+                console.log('🔒 Restoring vendors protection from localStorage, age:', Date.now() - timestamp, 'ms');
+                return timestamp;
+            }
+            return 0;
+        } catch {
+            return 0;
+        }
+    })());
     
     // Track in-progress deletions to prevent race conditions
     const deletingSupplementsRef = useRef(new Set());
@@ -1687,6 +1702,14 @@ export function AppProvider({ children }) {
                     mergedVendor.needsCompletion = mergedVendor.isStub;
                 }
 
+                // CRITICAL: Update protection window timestamp to prevent real-time listener from overwriting
+                lastLocalVendorsUpdateRef.current = Date.now();
+                try {
+                    localStorage.setItem('tpprover_vendors_lastUpdate', String(Date.now()));
+                } catch (e) {
+                    console.warn('⚠️ Failed to save vendors protection timestamp:', e);
+                }
+
                 return list.map((vendor, index) => index === existingIndex ? mergedVendor : vendor);
             }
 
@@ -1703,12 +1726,34 @@ export function AppProvider({ children }) {
                 createdVendor.needsCompletion = createdVendor.isStub;
             }
 
+            // CRITICAL: Update protection window timestamp to prevent real-time listener from overwriting
+            lastLocalVendorsUpdateRef.current = Date.now();
+            try {
+                localStorage.setItem('tpprover_vendors_lastUpdate', String(Date.now()));
+            } catch (e) {
+                console.warn('⚠️ Failed to save vendors protection timestamp:', e);
+            }
+
             return [createdVendor, ...list];
         });
     };
 
     const updateVendor = (updatedVendor) => {
-        setVendors(prev => prev.map(v => v.id === updatedVendor.id ? updatedVendor : v));
+        // CRITICAL: Update timestamp and protection window when vendor is updated
+        const vendorWithTimestamp = {
+            ...updatedVendor,
+            updatedAt: new Date().toISOString()
+        };
+        
+        // Update protection window timestamp to prevent real-time listener from overwriting
+        lastLocalVendorsUpdateRef.current = Date.now();
+        try {
+            localStorage.setItem('tpprover_vendors_lastUpdate', String(Date.now()));
+        } catch (e) {
+            console.warn('⚠️ Failed to save vendors protection timestamp:', e);
+        }
+        
+        setVendors(prev => prev.map(v => v.id === vendorWithTimestamp.id ? vendorWithTimestamp : v));
     };
 
     const deleteVendor = async (vendorId) => {
@@ -2084,35 +2129,119 @@ export function AppProvider({ children }) {
                             const freshData = await loadAppData(userId);
                             if (freshData) {
                                 // Filter out ALL mock items since sample data was cleared
+                                // CRITICAL: Still merge to protect any unsaved local changes
                                 if (freshData.protocols) {
                                     const filtered = freshData.protocols.filter(p => !p.isMock);
-                                    setProtocols(filtered);
+                                    // Merge with local protocols instead of overwriting
+                                    const localProtocols = protocols || [];
+                                    const mergedProtocols = mergeWithTimestamps(
+                                        localProtocols,
+                                        filtered,
+                                        'protocols',
+                                        getDeletionTracking().protocols
+                                    );
+                                    setProtocols(mergedProtocols);
                                 }
                                 if (freshData.reconItems) {
                                     const filtered = freshData.reconItems.filter(r => !r.isMock);
-                                    setReconItems(filtered);
+                                    // Merge with local reconItems instead of overwriting
+                                    const localReconItems = reconItems || [];
+                                    const mergedReconItems = mergeWithTimestamps(
+                                        localReconItems,
+                                        filtered,
+                                        'reconItems',
+                                        getDeletionTracking().reconItems
+                                    );
+                                    setReconItems(mergedReconItems);
                                 }
-                                if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                                if (freshData.reconHistory) {
+                                    // Merge with local reconHistory instead of overwriting
+                                    const localReconHistory = reconHistory || [];
+                                    const mergedReconHistory = mergeWithTimestamps(
+                                        localReconHistory,
+                                        freshData.reconHistory,
+                                        'reconHistory',
+                                        getDeletionTracking().reconHistory
+                                    );
+                                    setReconHistory(mergedReconHistory);
+                                }
                                 if (freshData.supplements) {
                                     const filtered = freshData.supplements.filter(s => !s.isMock);
-                                    setSupplements(filtered);
+                                    // Merge with local supplements instead of overwriting
+                                    const localSupplements = supplements || [];
+                                    const mergedSupplements = mergeWithTimestamps(
+                                        localSupplements,
+                                        filtered,
+                                        'supplements',
+                                        getDeletionTracking().supplements
+                                    );
+                                    setSupplements(mergedSupplements);
                                 }
                                 if (freshData.orders) {
                                     const filtered = freshData.orders.filter(o => !o.isMock);
-                                    setOrders(filtered);
+                                    // Merge with local orders instead of overwriting
+                                    const localOrders = orders || [];
+                                    const mergedOrders = mergeWithTimestamps(
+                                        localOrders,
+                                        filtered,
+                                        'orders',
+                                        getDeletionTracking().orders
+                                    );
+                                    setOrders(mergedOrders);
                                 }
                                 if (freshData.metrics) {
                                     const filtered = freshData.metrics.filter(m => !m.isMock);
-                                    setMetrics(filtered);
+                                    // Merge with local metrics instead of overwriting
+                                    const localMetrics = metrics || [];
+                                    const mergedMetrics = mergeWithTimestamps(
+                                        localMetrics,
+                                        filtered,
+                                        'metrics',
+                                        getDeletionTracking().metrics
+                                    );
+                                    setMetrics(mergedMetrics);
                                 }
                                 if (freshData.vendors) {
-                                    const filtered = freshData.vendors.filter(v => !v.isMock);
-                                    setVendors(filtered);
+                                    // Check protection window before applying vendor updates
+                                    const timeSinceUpdate = Date.now() - lastLocalVendorsUpdateRef.current;
+                                    if (timeSinceUpdate >= 15000) {
+                                        const filtered = freshData.vendors.filter(v => !v.isMock);
+                                        // Merge with local vendors instead of overwriting
+                                        const localVendors = vendors || [];
+                                        const mergedVendors = mergeWithTimestamps(
+                                            localVendors,
+                                            filtered,
+                                            'vendors',
+                                            getDeletionTracking().vendors
+                                        );
+                                        setVendors(mergedVendors);
+                                    } else {
+                                        console.log('🔒 Skipping vendors update from sample data clear - in protection window');
+                                    }
+                                }
+                                // CRITICAL: Restore task completion data from cloud (needed for streak)
+                                if (freshData.taskCompletion) {
+                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(freshData.taskCompletion));
+                                    // Dispatch event to notify components
+                                    window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+                                        detail: { source: 'cloud-sync' }
+                                    }));
+                                }
+                                if (freshData.calendarDone) {
+                                    localStorage.setItem('tpprover_calendar_done', JSON.stringify(freshData.calendarDone));
                                 }
                                 if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
                                 if (freshData.stockpile) {
                                     const filtered = freshData.stockpile.filter(s => !s.isMock);
-                                    setStockpile(filtered);
+                                    // Merge with local stockpile instead of overwriting
+                                    const localStockpile = stockpile || [];
+                                    const mergedStockpile = mergeWithTimestamps(
+                                        localStockpile,
+                                        filtered,
+                                        'stockpile',
+                                        getDeletionTracking().stockpile
+                                    );
+                                    setStockpile(mergedStockpile);
                                 }
                                 if (freshData.scheduledBuys) {
                                     // Check protection window before applying
@@ -2165,8 +2294,12 @@ export function AppProvider({ children }) {
                 updateTimeoutId = setTimeout(async () => {
                     try {
                         const now = Date.now();
-                        // Prevent update loops - ignore if we just sent an update
-                        if (now - lastRemoteUpdateTimeRef.current < 2000) {
+                        // Prevent update loops - ignore if we just applied a remote update
+                        // But allow cross-device updates after a short debounce (1 second)
+                        const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
+                        if (timeSinceLastUpdate < 1000) {
+                            // Very recent update - might be our own save triggering the listener
+                            // Wait a bit longer to ensure this is a true cross-device update
                             return;
                         }
 
@@ -2179,49 +2312,122 @@ export function AppProvider({ children }) {
                         
                         if (freshData) {
                             // Filter out mock items if sample data was cleared
+                            // CRITICAL: Merge all data types instead of overwriting to prevent data loss
                             if (freshData.protocols) {
-                const filtered = sampleDataCleared 
+                                const filtered = sampleDataCleared 
                                     ? freshData.protocols.filter(p => !p.isMock)
                                     : freshData.protocols;
-                                setProtocols(filtered);
+                                // Merge with local protocols instead of overwriting
+                                const localProtocols = protocols || [];
+                                const mergedProtocols = mergeWithTimestamps(
+                                    localProtocols,
+                                    filtered,
+                                    'protocols',
+                                    getDeletionTracking().protocols
+                                );
+                                setProtocols(mergedProtocols);
                             }
                             if (freshData.reconItems) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.reconItems.filter(r => !r.isMock)
                                     : freshData.reconItems;
-                                setReconItems(filtered);
+                                // Merge with local reconItems instead of overwriting
+                                const localReconItems = reconItems || [];
+                                const mergedReconItems = mergeWithTimestamps(
+                                    localReconItems,
+                                    filtered,
+                                    'reconItems',
+                                    getDeletionTracking().reconItems
+                                );
+                                setReconItems(mergedReconItems);
                             }
-                            if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                            if (freshData.reconHistory) {
+                                // Merge with local reconHistory instead of overwriting
+                                const localReconHistory = reconHistory || [];
+                                const mergedReconHistory = mergeWithTimestamps(
+                                    localReconHistory,
+                                    freshData.reconHistory,
+                                    'reconHistory',
+                                    getDeletionTracking().reconHistory
+                                );
+                                setReconHistory(mergedReconHistory);
+                            }
                             if (freshData.supplements) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.supplements.filter(s => !s.isMock)
                                     : freshData.supplements;
-                                setSupplements(filtered);
+                                // Merge with local supplements instead of overwriting
+                                const localSupplements = supplements || [];
+                                const mergedSupplements = mergeWithTimestamps(
+                                    localSupplements,
+                                    filtered,
+                                    'supplements',
+                                    getDeletionTracking().supplements
+                                );
+                                setSupplements(mergedSupplements);
                             }
                             if (freshData.orders) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.orders.filter(o => !o.isMock)
                                     : freshData.orders;
-                                setOrders(filtered);
+                                // Merge with local orders instead of overwriting
+                                const localOrders = orders || [];
+                                const mergedOrders = mergeWithTimestamps(
+                                    localOrders,
+                                    filtered,
+                                    'orders',
+                                    getDeletionTracking().orders
+                                );
+                                setOrders(mergedOrders);
                             }
                             if (freshData.metrics) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.metrics.filter(m => !m.isMock)
                                     : freshData.metrics;
-                                setMetrics(filtered);
+                                // Merge with local metrics instead of overwriting
+                                const localMetrics = metrics || [];
+                                const mergedMetrics = mergeWithTimestamps(
+                                    localMetrics,
+                                    filtered,
+                                    'metrics',
+                                    getDeletionTracking().metrics
+                                );
+                                setMetrics(mergedMetrics);
                             }
                             if (freshData.vendors) {
-                                const filtered = sampleDataCleared 
-                                    ? freshData.vendors.filter(v => !v.isMock)
-                                    : freshData.vendors;
-                                setVendors(filtered);
+                                // Check protection window before applying vendor updates
+                                const timeSinceUpdate = Date.now() - lastLocalVendorsUpdateRef.current;
+                                if (timeSinceUpdate >= 15000) {
+                                    const filtered = sampleDataCleared 
+                                        ? freshData.vendors.filter(v => !v.isMock)
+                                        : freshData.vendors;
+                                    // Merge with local vendors instead of overwriting
+                                    const localVendors = vendors || [];
+                                    const mergedVendors = mergeWithTimestamps(
+                                        localVendors,
+                                        filtered,
+                                        'vendors',
+                                        getDeletionTracking().vendors
+                                    );
+                                    setVendors(mergedVendors);
+                                } else {
+                                    console.log('🔒 Skipping vendors update from remote sync - in protection window');
+                                }
                             }
                             if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
                             if (freshData.stockpile) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.stockpile.filter(s => !s.isMock)
                                     : freshData.stockpile;
-                                setStockpile(filtered);
+                                // Merge with local stockpile instead of overwriting
+                                const localStockpile = stockpile || [];
+                                const mergedStockpile = mergeWithTimestamps(
+                                    localStockpile,
+                                    filtered,
+                                    'stockpile',
+                                    getDeletionTracking().stockpile
+                                );
+                                setStockpile(mergedStockpile);
                             }
                             if (freshData.scheduledBuys) {
                                 // Check protection window before applying
@@ -2241,6 +2447,17 @@ export function AppProvider({ children }) {
                                     ? freshData.protocolHistory.filter(h => !h.isMock)
                                     : freshData.protocolHistory;
                                 localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
+                            }
+                            // CRITICAL: Restore task completion data from cloud (needed for streak)
+                            if (freshData.taskCompletion) {
+                                localStorage.setItem('tpprover_task_completion', JSON.stringify(freshData.taskCompletion));
+                                // Dispatch event to notify components
+                                window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+                                    detail: { source: 'cloud-sync' }
+                                }));
+                            }
+                            if (freshData.calendarDone) {
+                                localStorage.setItem('tpprover_calendar_done', JSON.stringify(freshData.calendarDone));
                             }
             }
             
