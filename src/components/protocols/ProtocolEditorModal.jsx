@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2 } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
@@ -36,7 +36,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         if (saving) {
             return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
         }
-        return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+        // Use primaryDark as the base to make it darker than toggle buttons (which use theme.primary)
+        // Start with primaryDark and go to an even darker shade for depth
+        const darkBase = theme?.primaryDark || theme?.primary;
+        // For a more pronounced darker effect, use primaryDark as the lighter part and create a darker end
+        return `linear-gradient(135deg, ${darkBase} 0%, ${darkBase} 100%)`;
     };
     const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
     const primaryActionHoverShadow = theme?.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
@@ -489,26 +493,40 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             maxHeight="90vh"
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
-                    {form?.id ? (
+                    <div className="flex items-center gap-3">
                         <button
-                            onClick={() => onDelete?.(form)}
-                            className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                            type="button"
+                            onClick={handleClose}
+                            className="px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
                             style={{
-                                background: terracottaGradient,
-                                color: '#ffffff',
-                                border: 'none',
-                                boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = terracottaHoverGradient;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = terracottaGradient;
+                                backgroundColor: 'transparent',
+                                color: theme?.text || '#111827',
+                                border: 'none'
                             }}
                         >
-                            Delete
+                            Cancel
                         </button>
-                    ) : <span />}
+                        {form?.id && (
+                            <button
+                                onClick={() => onDelete?.(form)}
+                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                                style={{
+                                    background: terracottaGradient,
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = terracottaHoverGradient;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = terracottaGradient;
+                                }}
+                            >
+                                Delete
+                            </button>
+                        )}
+                    </div>
                     <div className="flex items-center gap-3 ml-auto">
                         {saveError && (
                             <span className="text-sm font-medium" style={{ color: theme?.error || '#b91c1c' }}>
@@ -519,26 +537,51 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             type="button"
                             onClick={handleFinalSave}
                             disabled={isSavingToProtocols || isReadOnly}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap min-w-fit"
+                            className="px-6 py-3 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 whitespace-nowrap min-w-fit flex items-center justify-center gap-2"
                             style={{
                                 background: getPrimaryActionGradient(isSavingToProtocols || isReadOnly),
                                 color: (isSavingToProtocols || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
                                 border: 'none',
-                                boxShadow: (isSavingToProtocols || isReadOnly) ? 'none' : primaryActionDefaultShadow
+                                boxShadow: (isSavingToProtocols || isReadOnly) 
+                                    ? 'none' 
+                                    : theme?.isDark
+                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
                             }}
                             onMouseEnter={(e) => {
                                 if (isSavingToProtocols || isReadOnly) return;
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = theme?.isDark
+                                    ? '0 6px 25px rgba(127, 158, 149, 0.5), 0 0 0 1px rgba(127, 158, 149, 0.2)'
+                                    : '0 6px 25px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.15)';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+                                e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) 
+                                    ? 'none' 
+                                    : theme?.isDark
+                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)';
                                 e.currentTarget.style.background = getPrimaryActionGradient(isSavingToProtocols || isReadOnly);
                             }}
                             title={isReadOnly ? "Upgrade to save protocols" : "Save protocol changes"}
                         >
-                            {isSavingToProtocols ? 'Saving…' : (isReadOnly ? 'Save Protocol (Upgrade Required)' : 'Save Protocol')}
+                            {isSavingToProtocols ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    <span>Saving…</span>
+                                </>
+                            ) : isReadOnly ? (
+                                <>
+                                    <Lock size={18} />
+                                    <span>Save Protocol (Upgrade Required)</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Check size={18} />
+                                    <span>Save Protocol</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

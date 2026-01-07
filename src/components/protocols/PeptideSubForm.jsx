@@ -3,7 +3,7 @@ import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
-import { Pen, Droplets, Pipette, ChevronDown, TrendingUp } from 'lucide-react';
+import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
@@ -235,7 +235,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             </div>
 
                             <div className="space-y-3">
-                                <div className="grid grid-cols-3 gap-2 p-1 rounded-lg" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                                <div className="grid grid-cols-2 gap-1.5">
                                     <button 
                                         type="button"
                                         onClick={() => {
@@ -250,14 +250,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : 'transparent',
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
                                             color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : 'transparent'
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pipette' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
                                         }}
                                     >
-                                        <Pipette size={14} /> Syringe
+                                        <Pipette size={14} />
+                                        <span>Syringe</span>
                                     </button>
                                     <button 
                                         type="button"
@@ -272,14 +274,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : 'transparent',
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
                                             color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : 'transparent'
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.border,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pen' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
                                         }}
                                     >
-                                        <Pen size={14} /> Pen
+                                        <Pen size={14} />
+                                        <span>Pen</span>
                                     </button>
                                     <button 
                                         type="button"
@@ -294,14 +298,41 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : 'transparent',
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
                                             color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : 'transparent'
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.border,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'nasal' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
                                         }}
                                     >
-                                        <Droplets size={14} /> Nasal
+                                        <SprayCan size={14} />
+                                        <span>Nasal</span>
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            // Batch all changes into a single state update to prevent lag
+                                            const updates = { 
+                                                ...item, 
+                                                deliveryMethod: 'topical'
+                                            };
+                                            // Topical doesn't need special unit handling like nasal
+                                            if (item.dosage?.unit === 'sprays') {
+                                                updates.dosage = { ...item.dosage, unit: 'mcg' };
+                                            }
+                                            onChange(updates);
+                                        }}
+                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        style={{
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'topical' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
+                                            color: (item.deliveryMethod || 'pipette') === 'topical' ? theme.textOnPrimary : theme.text,
+                                            borderColor: (item.deliveryMethod || 'pipette') === 'topical' ? theme.primary : theme.border,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'topical' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
+                                        }}
+                                    >
+                                        <Hand size={14} />
+                                        <span>Topical</span>
                                     </button>
                                 </div>
                                 
@@ -381,7 +412,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                             style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
                                         >
-                                            {type === 'custom' ? 'X Days' : type}
+                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
                                         </button>
                                     ))}
                                 </div>
@@ -414,10 +445,22 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 )}
 
                                 {item.frequency?.type === 'custom' && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold uppercase opacity-40">Every</span>
-                                        <input type="text" value={item.frequency?.customDays || ''} onChange={e => handleFrequencyChange('customDays', e.target.value)} placeholder="3" className="w-12 px-2 py-1 text-xs border rounded" />
-                                        <span className="text-xs font-bold uppercase opacity-40">Days</span>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Every</span>
+                                        <div className="w-20">
+                                            <TextInput 
+                                                label="" 
+                                                value={item.frequency?.customDays || ''} 
+                                                onChange={v => handleFrequencyChange('customDays', v)} 
+                                                theme={theme} 
+                                                placeholder="3" 
+                                                type="number" 
+                                                outlined={true}
+                                                customTextColor={theme.isDark ? null : "#181A18"}
+                                                customShadow
+                                            />
+                                        </div>
+                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Days</span>
                                     </div>
                                 )}
 
