@@ -118,6 +118,8 @@ export default function Login() {
     const emailFromUrl = searchParams.get('email');
     const lifetimeCode = searchParams.get('lifetime'); // Lifetime access code from redemption page
     const annualCode = searchParams.get('annual'); // Annual subscription code from redemption page
+    const testIntro = searchParams.get('testIntro') === 'true'; // Testing: Force show intro
+    const skipIntro = searchParams.get('skipIntro') === 'true'; // Testing: Force skip intro
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     
@@ -155,8 +157,12 @@ export default function Login() {
     
     // Check if user has seen intro (localStorage, no auth needed)
     // Only show intro for native apps and installed PWAs (not browser users)
-    // TEMPORARILY DISABLED - intro will be rebuilt later
-    const [showIntro, setShowIntro] = useState(false);
+    // Testing: Use ?testIntro=true to force show, ?skipIntro=true to force skip
+    const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro') === 'true';
+    const shouldShowIntroByPlatform = shouldShowIntro() && !hasSeenIntro;
+    const [showIntro, setShowIntro] = useState(
+        testIntro ? true : (skipIntro ? false : shouldShowIntroByPlatform)
+    );
     
     const handleIntroComplete = () => {
         setShowIntro(false);

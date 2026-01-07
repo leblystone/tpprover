@@ -181,7 +181,7 @@ const ComplianceWidget = ({ widget, theme }) => {
             </div>
             
             <div 
-              className="text-3xl font-bold mb-1" 
+              className="text-2xl lg:text-xl font-bold mb-1" 
               style={{ color: getComplianceColor(complianceData.compliancePct) }}
             >
               {complianceData.compliancePct}%
@@ -193,7 +193,7 @@ const ComplianceWidget = ({ widget, theme }) => {
           </div>
 
           <div className="text-center">
-            <div className="text-2xl font-bold mb-1" style={{ color: theme.primary }}>
+            <div className="text-xl lg:text-lg font-bold mb-1" style={{ color: theme.primary }}>
               {complianceData.streak}
             </div>
             <div className="text-xs" style={{ color: theme.textLight }}>

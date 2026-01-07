@@ -277,7 +277,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
 
             {/* Current Intake */}
             <div className="text-center">
-              <div className="text-2xl font-bold" style={{ color: theme.text }}>
+              <div className="text-xl lg:text-lg font-bold" style={{ color: theme.text }}>
                 {currentUnit.abbrev === 'liters' ? todayData.glasses.toFixed(1) : Math.round(todayData.glasses)}
               </div>
               <div className="text-xs" style={{ color: theme.textLight }}>
@@ -570,7 +570,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                   <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t" style={{ borderColor: theme.border }}>
                     <div className="text-center">
                       <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Avg Daily</div>
-                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                      <div className="text-base lg:text-sm font-bold" style={{ color: theme.primary }}>
                         {graphData.filter(d => d.amount > 0).length > 0
                           ? (graphData.reduce((sum, d) => sum + d.amount, 0) / graphData.filter(d => d.amount > 0).length).toFixed(1)
                           : '0'}
@@ -579,14 +579,14 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                     </div>
                     <div className="text-center">
                       <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Best Day</div>
-                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                      <div className="text-base lg:text-sm font-bold" style={{ color: theme.primary }}>
                         {Math.max(...graphData.map(d => d.amount), 0).toFixed(1)}
                       </div>
                       <div className="text-xs opacity-60" style={{ color: theme.textLight }}>{currentUnit.abbrev}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Days Tracked</div>
-                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                      <div className="text-base lg:text-sm font-bold" style={{ color: theme.primary }}>
                         {graphData.filter(d => d.amount > 0).length}
                       </div>
                       <div className="text-xs opacity-60" style={{ color: theme.textLight }}>of 30</div>

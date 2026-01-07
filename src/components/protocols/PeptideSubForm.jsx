@@ -3,7 +3,7 @@ import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
-import { Pen, Droplets, Pipette, TestTube, Calendar, ChevronDown, TrendingUp } from 'lucide-react';
+import { Pen, Droplets, Pipette, ChevronDown, TrendingUp } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
@@ -106,43 +106,24 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
     return (
         <div className="space-y-4">
-                {/* Peptide Information - Horizontal Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
-                    <div className="lg:col-span-2">
-                        <TextInput 
-                            label="Peptide Name" 
-                            value={item.name || ''} 
-                            onChange={v => handleChange('name', v)} 
-                            theme={theme} 
-                            placeholder="e.g., BPC-157, Lipo-C"
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
-                    
-                    <div>
-                        <TextInput
-                            label="Units"
-                            value={item.unitValue || ''}
-                            onChange={v => onChange({ 
-                                ...item, 
-                                unitValue: v
-                            })}
-                            placeholder="10"
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
+                {/* Peptide Information */}
+                <div>
+                    <TextInput 
+                        label="Peptide Name" 
+                        value={item.name || ''} 
+                        onChange={v => handleChange('name', v)} 
+                        theme={theme} 
+                        placeholder="e.g., BPC-157, Lipo-C"
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow
+                    />
                 </div>
 
                 {/* Dosage Type Toggle & Input */}
                 <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <TestTube size={14} className="opacity-50" style={{ color: theme.text }} />
-                        <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                    <div className="mb-1">
+                        <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                             Dosage Schedule
                         </span>
                     </div>
@@ -159,7 +140,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 }
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
                                 (!item.titration || item.titration.length === 0) ? 'text-white shadow-sm' : 'text-gray-500'
                             }`}
                             style={(!item.titration || item.titration.length === 0) ? { backgroundColor: theme.primary } : {}}
@@ -177,7 +158,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 }
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
                                 (item.titration && item.titration.length > 0) ? 'text-white shadow-sm' : 'text-gray-500'
                             }`}
                             style={(item.titration && item.titration.length > 0) ? { backgroundColor: theme.primary } : {}}
@@ -189,22 +170,39 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                     {/* Fixed Dose Input */}
                     {(!item.titration || item.titration.length === 0) && (
-                        <div className="grid grid-cols-1 gap-3">
-                            <CombinedDosageInput
-                                value={item.dosage || { amount: '', unit: 'mcg' }}
-                                onChange={(newDosage) => {
-                                    onChange({ 
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2">
+                                <CombinedDosageInput
+                                    value={item.dosage || { amount: '', unit: 'mcg' }}
+                                    onChange={(newDosage) => {
+                                        onChange({ 
+                                            ...item, 
+                                            dosage: newDosage
+                                        });
+                                    }}
+                                    theme={theme}
+                                    deliveryMethod={item.deliveryMethod}
+                                    placeholder="250"
+                                    outlined={true}
+                                    customTextColor={theme.isDark ? null : "#181A18"}
+                                    customShadow
+                                />
+                            </div>
+                            <div className="col-span-1">
+                                <TextInput
+                                    label="Units"
+                                    value={item.unitValue || ''}
+                                    onChange={v => onChange({ 
                                         ...item, 
-                                        dosage: newDosage
-                                    });
-                                }}
-                                theme={theme}
-                                deliveryMethod={item.deliveryMethod}
-                                placeholder="250"
-                                outlined={true}
-                                customTextColor={theme.isDark ? null : "#181A18"}
-                                customShadow
-                            />
+                                        unitValue: v
+                                    })}
+                                    placeholder="10"
+                                    theme={theme}
+                                    outlined={true}
+                                    customTextColor={theme.isDark ? null : "#181A18"}
+                                    customShadow
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -230,9 +228,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
                         {/* Delivery Column */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-1">
-                                <Droplets size={14} className="opacity-50" style={{ color: theme.text }} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            <div className="mb-1">
+                                <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Delivery Method {protocolType === 'blended' && <span className="lowercase">(shared)</span>}
                                 </span>
                             </div>
@@ -253,7 +250,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
                                             backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : 'transparent',
                                             color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
@@ -275,7 +272,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
                                             backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : 'transparent',
                                             color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
@@ -297,7 +294,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all`}
+                                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
                                         style={{
                                             backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : 'transparent',
                                             color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
@@ -316,7 +313,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 key={type}
                                                 type="button"
                                                 onClick={() => handleChange('injectionType', type)}
-                                                className={`flex-1 py-1.5 text-[10px] font-bold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                                className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                                 style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary } : {}}
                                             >
                                                 {type}
@@ -368,9 +365,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                         {/* Frequency Column */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-1">
-                                <Calendar size={14} className="opacity-50" style={{ color: theme.text }} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            <div className="mb-1">
+                                <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
                             </div>
@@ -382,7 +378,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             key={type} 
                                             type="button" 
                                             onClick={() => handleFrequencyChange('type', type)}
-                                            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                             style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
                                         >
                                             {type === 'custom' ? 'X Days' : type}
@@ -403,7 +399,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             const isSelected = isDaySelected(day, item.frequency?.days);
                                             return (
                                                 <button key={day} type="button" onClick={() => toggleDay(day)}
-                                                    className="flex-1 min-w-[35px] py-1 text-[9px] font-bold rounded border transition-all"
+                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded border transition-all"
                                                     style={{
                                                         backgroundColor: isSelected ? theme.primary : 'transparent',
                                                         borderColor: isSelected ? theme.primary : theme.border,
@@ -419,9 +415,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                                 {item.frequency?.type === 'custom' && (
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold uppercase opacity-40">Every</span>
+                                        <span className="text-xs font-bold uppercase opacity-40">Every</span>
                                         <input type="text" value={item.frequency?.customDays || ''} onChange={e => handleFrequencyChange('customDays', e.target.value)} placeholder="3" className="w-12 px-2 py-1 text-xs border rounded" />
-                                        <span className="text-[10px] font-bold uppercase opacity-40">Days</span>
+                                        <span className="text-xs font-bold uppercase opacity-40">Days</span>
                                     </div>
                                 )}
 
@@ -436,7 +432,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                     const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
                                                     handleFrequencyChange('time', next.length === 0 ? ['AM'] : next);
                                                 }}
-                                                className={`flex-1 py-1 text-[10px] font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                                 style={active ? { backgroundColor: theme.primary } : {}}
                                             >
                                                 {t}

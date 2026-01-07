@@ -32,7 +32,7 @@ const BadgesWidget = ({ widget, theme }) => {
             <div className="flex items-center justify-center mb-2">
               <Trophy size={32} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
             </div>
-            <div className="text-2xl font-bold" style={{ color: theme.text }}>
+            <div className="text-xl lg:text-lg font-bold" style={{ color: theme.text }}>
               {earnedCount}/{totalBadges}
             </div>
             <div className="text-xs" style={{ color: theme.textLight }}>

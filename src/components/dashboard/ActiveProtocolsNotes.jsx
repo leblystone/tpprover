@@ -226,7 +226,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     if (activeProtocols.length === 0) {
         return (
             <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-sm lg:text-base font-semibold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
                         <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
@@ -245,7 +245,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     return (
         <>
             <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: theme.white }}>
-                <h3 className="text-sm lg:text-base font-semibold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
                         <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
@@ -290,41 +290,25 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                     </div>
 
                                     {/* Protocol Details */}
-                                    <div className="flex items-center justify-between gap-2 lg:gap-3 text-xs lg:text-sm" style={{ color: theme.textLight }}>
-                                        <div className="flex flex-wrap items-center gap-2 lg:gap-3 min-w-0 overflow-hidden">
-                                            {startDate && (
-                                                <span className="flex items-center gap-1 whitespace-nowrap">
-                                                    <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                    {startDate}
-                                                </span>
-                                            )}
-                                            {duration && (
-                                                <span className="flex items-center gap-1 whitespace-nowrap">
-                                                    <Clock size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                    {duration}
-                                                </span>
-                                            )}
-                                            {formatPeptidesList(protocol) && (
-                                                <span className="flex items-center gap-1 whitespace-nowrap">
-                                                    <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                    {formatPeptidesList(protocol)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleAddNoteClick(protocol);
-                                            }}
-                                            className="px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors flex items-center gap-1.5 lg:gap-2 flex-shrink-0 hover:opacity-90 whitespace-nowrap"
-                                            style={{ 
-                                                backgroundColor: theme.primary,
-                                                color: '#ffffff'
-                                            }}
-                                        >
-                                            <Plus size={12} className="lg:w-3.5 lg:h-3.5" strokeWidth={2.5} />
-                                            Add Note
-                                        </button>
+                                    <div className="flex flex-wrap items-center gap-2 lg:gap-3 text-xs lg:text-sm" style={{ color: theme.textLight }}>
+                                        {startDate && (
+                                            <span className="flex items-center gap-1 whitespace-nowrap">
+                                                <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                {startDate}
+                                            </span>
+                                        )}
+                                        {duration && (
+                                            <span className="flex items-center gap-1 whitespace-nowrap">
+                                                <Clock size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                {duration}
+                                            </span>
+                                        )}
+                                        {formatPeptidesList(protocol) && (
+                                            <span className="flex items-center gap-1 whitespace-nowrap">
+                                                <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                {formatPeptidesList(protocol)}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Latest Note Preview */}
@@ -355,6 +339,22 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Add Note Button - Moved to bottom */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAddNoteClick(protocol);
+                                        }}
+                                        className="w-full mt-2 lg:mt-3 px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 lg:gap-2 hover:opacity-90"
+                                        style={{ 
+                                            backgroundColor: theme.primary,
+                                            color: '#ffffff'
+                                        }}
+                                    >
+                                        <Plus size={12} className="lg:w-3.5 lg:h-3.5" strokeWidth={2.5} />
+                                        Add Note
+                                    </button>
                                 </div>
                             </div>
                         );

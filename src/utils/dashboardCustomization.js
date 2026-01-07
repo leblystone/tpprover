@@ -112,13 +112,15 @@ export const DEFAULT_WIDGETS = [
     settings: {}
   },
   {
-    id: 'inventory',
-    type: WIDGET_TYPES.INVENTORY,
-    title: 'Stockpile',
-    size: WIDGET_SIZES.SMALL,
+    id: 'supplements',
+    type: WIDGET_TYPES.SUPPLEMENTS,
+    title: 'Supplements',
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 3, y: 0 },
     enabled: true,
-    settings: {}
+    settings: {
+      showSchedule: true
+    }
   },
   {
     id: 'active_protocols_notes',
@@ -131,17 +133,15 @@ export const DEFAULT_WIDGETS = [
       // No maxItems limit - show all active protocols
     }
   },
-  // Row 1 - Supplements before Incoming Orders
+  // Row 1 - Inventory moved here
   {
-    id: 'supplements',
-    type: WIDGET_TYPES.SUPPLEMENTS,
-    title: 'Supplements',
-    size: WIDGET_SIZES.MEDIUM,
+    id: 'inventory',
+    type: WIDGET_TYPES.INVENTORY,
+    title: 'Stockpile',
+    size: WIDGET_SIZES.SMALL,
     position: { x: 0, y: 1 },
     enabled: true,
-    settings: {
-      showSchedule: true
-    }
+    settings: {}
   },
   {
     id: 'upcoming_order',
@@ -535,7 +535,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.8'; // UPDATED: Added Action Items widget and fixed position conflicts
+    const currentVersion = '3.9'; // UPDATED: Supplements widget moved to third position
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
@@ -585,6 +585,27 @@ export const loadDashboardLayout = () => {
         if (dontForgetWidget) {
           filtered.push(dontForgetWidget);
         }
+      }
+      
+      // Ensure supplements widget is present and in third position (for users upgrading to version 3.9+)
+      let supplementsWidget = filtered.find(w => w.id === 'supplements' || w.type === WIDGET_TYPES.SUPPLEMENTS);
+      if (supplementsWidget) {
+        // Force update position to third position (x:3, y:0)
+        supplementsWidget.position = { x: 3, y: 0 };
+        supplementsWidget.enabled = true;
+      } else {
+        // Add supplements widget if it doesn't exist
+        const defaultSupplementsWidget = DEFAULT_WIDGETS.find(w => w.id === 'supplements');
+        if (defaultSupplementsWidget) {
+          filtered.push(defaultSupplementsWidget);
+          supplementsWidget = defaultSupplementsWidget;
+        }
+      }
+      
+      // Ensure inventory widget is moved to row 1 when supplements is in third position
+      const inventoryWidget = filtered.find(w => w.id === 'inventory' || w.type === WIDGET_TYPES.INVENTORY);
+      if (inventoryWidget && supplementsWidget && supplementsWidget.position?.x === 3) {
+        inventoryWidget.position = { x: 0, y: 1 };
       }
       
       return compactGrid(filtered);
@@ -642,6 +663,17 @@ export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
       // Force update active_protocols_notes widget size to SMALL (changed from MEDIUM)
       if (merged.id === 'active_protocols_notes' || merged.type === 'active_protocols_notes') {
         merged.size = WIDGET_SIZES.SMALL;
+      }
+      
+      // Force update supplements widget position to third position (x:3, y:0)
+      if (merged.id === 'supplements' || merged.type === WIDGET_TYPES.SUPPLEMENTS) {
+        merged.position = { x: 3, y: 0 };
+      }
+      
+      // Force update inventory widget position to first position of row 1 (x:0, y:1)
+      // This ensures inventory moves to where supplements was, making supplements the third widget
+      if (merged.id === 'inventory' || merged.type === WIDGET_TYPES.INVENTORY) {
+        merged.position = { x: 0, y: 1 };
       }
       
       return merged;

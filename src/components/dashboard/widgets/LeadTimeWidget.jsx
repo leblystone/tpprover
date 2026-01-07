@@ -70,7 +70,7 @@ const LeadTimeWidget = ({ widget, theme }) => {
               </div>
               
               <div 
-                className="text-3xl font-bold mb-1" 
+                className="text-2xl lg:text-xl font-bold mb-1" 
                 style={{ color: getLeadTimeColor(parseFloat(leadTimeData.avgLeadTime)) }}
               >
                 {leadTimeData.avgLeadTime}
@@ -83,7 +83,7 @@ const LeadTimeWidget = ({ widget, theme }) => {
 
             <div className="grid grid-cols-2 gap-4 w-full text-center">
               <div>
-                <div className="text-lg font-semibold" style={{ color: theme.success }}>
+                <div className="text-base lg:text-sm font-semibold" style={{ color: theme.success }}>
                   {leadTimeData.fastestDelivery}d
                 </div>
                 <div className="text-xs" style={{ color: theme.textLight }}>
@@ -92,7 +92,7 @@ const LeadTimeWidget = ({ widget, theme }) => {
               </div>
               
               <div>
-                <div className="text-lg font-semibold" style={{ color: theme.error }}>
+                <div className="text-base lg:text-sm font-semibold" style={{ color: theme.error }}>
                   {leadTimeData.slowestDelivery}d
                 </div>
                 <div className="text-xs" style={{ color: theme.textLight }}>

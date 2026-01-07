@@ -381,7 +381,7 @@ const GoalsOnlyWidget = ({
                   <Edit size={20} style={{ color: theme.textOnPrimary }} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold" style={{ color: theme.textOnPrimary }}>
+                  <h3 className="text-lg lg:text-base font-bold" style={{ color: theme.textOnPrimary }}>
                     View/Edit Goals
                   </h3>
                   <p className="text-sm opacity-90" style={{ color: theme.textOnPrimary }}>
@@ -546,7 +546,7 @@ const GoalsOnlyWidget = ({
               {goals.length === 0 && archivedGoals.length === 0 ? (
                 <div className="text-center py-8">
                   <Edit size={48} className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
-                  <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                  <h4 className="text-base lg:text-sm font-semibold mb-2" style={{ color: theme.text }}>
                     No Goals
                   </h4>
                   <p className="text-sm" style={{ color: theme.textLight }}>
@@ -573,7 +573,7 @@ const GoalsOnlyWidget = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <h3 className="text-lg font-bold mb-2" style={{ color: theme.text }}>
+              <h3 className="text-base lg:text-sm font-bold mb-2" style={{ color: theme.text }}>
                 Delete Goal?
               </h3>
               <p className="text-sm mb-6" style={{ color: theme.textLight }}>

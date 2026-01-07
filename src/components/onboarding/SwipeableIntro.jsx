@@ -163,6 +163,8 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
   const prevScreen = INTRO_SCREENS[currentIndex - 1];
   
   console.log('🎬 SwipeableIntro rendering screen:', currentScreen?.title);
+  console.log('🎬 Current index:', currentIndex, 'Total screens:', INTRO_SCREENS.length);
+  console.log('🎬 Screen data:', currentScreen);
 
   // Calculate background gradient based on swipe position
   const getBackgroundGradient = () => {
@@ -340,6 +342,10 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                     className="h-20 w-20 rounded-full shadow-2xl object-cover mx-auto border-4"
                     style={{ 
                       borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)'
+                    }}
+                    onError={(e) => {
+                      console.error('❌ Logo failed to load');
+                      e.target.style.display = 'none';
                     }}
                   />
                 </div>

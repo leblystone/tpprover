@@ -104,7 +104,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   if (filteredTasks.length === 0) {
     return (
       <div className="h-full flex flex-col">
-        <div className={`px-2 sm:px-4 py-2 sm:py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
               Today's Research
@@ -129,7 +129,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   if (filteredTasks.length <= 3) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
-      <div className={`px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
             Today's Research
@@ -299,7 +299,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   // Default full layout for many tasks
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className={`px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             {widget.title}

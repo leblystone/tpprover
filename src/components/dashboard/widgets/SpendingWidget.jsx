@@ -147,7 +147,7 @@ const SpendingWidget = ({ widget, theme }) => {
             <DollarSign size={24} style={{ color: theme.primary }} />
           </div>
           
-          <div className="text-2xl font-bold mb-1" style={{ color: theme.text }}>
+          <div className="text-xl lg:text-lg font-bold mb-1" style={{ color: theme.text }}>
             ${spendingData.lastMonthSpend.toFixed(2)}
           </div>
           

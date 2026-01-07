@@ -20,7 +20,7 @@ const CompactMetricWidget = ({
       
       <div className="flex items-center gap-2">
         <div 
-          className="text-2xl font-bold" 
+          className="text-xl lg:text-lg font-bold" 
           style={{ color: displayColor }}
         >
           {value}

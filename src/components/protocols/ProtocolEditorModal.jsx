@@ -28,9 +28,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [isDurationUnitDropdownOpen, setIsDurationUnitDropdownOpen] = useState(false);
     const [isWashoutUnitDropdownOpen, setIsWashoutUnitDropdownOpen] = useState(false);
     // Accordion state: track which peptides are expanded
-    const [expandedPeptides, setExpandedPeptides] = useState(new Set([0])); // First peptide expanded by default
-    const [isTimelineExpanded, setIsTimelineExpanded] = useState(true);
-    const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(true);
+    const [expandedPeptides, setExpandedPeptides] = useState(new Set()); // Will be set in useEffect
+    const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+    const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(false);
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -194,11 +194,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         
         setForm(initialData);
         
-        // Initialize expanded peptides - expand first one by default
+        // Initialize expanded peptides - always expand only the first peptide (index 0)
+        // This applies to both new protocols and existing protocols being edited
         if (initialData.peptides && initialData.peptides.length > 0) {
-            setExpandedPeptides(new Set([0]));
+            setExpandedPeptides(new Set([0])); // Only first peptide expanded
         } else {
-            setExpandedPeptides(new Set());
+            setExpandedPeptides(new Set()); // No peptides, nothing to expand
         }
     }, [open, protocol]);
     
@@ -544,14 +545,35 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             <div className="space-y-4">
-                {/* PROTOCOL INFO Section Header - Reduced weight */}
-                <div className="flex items-center gap-3 mb-2">
-                    <BookOpenCheck size={20} style={{ color: theme.primary }} />
-                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
+                {/* PROTOCOL INFO Section Header */}
+                <div className="flex items-center gap-2 mb-1">
+                    <BookOpenCheck size={28} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5">
+                        <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
+                        <div className="flex items-center gap-2 ml-1">
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Name & Purpose
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Protocol Basics - Compact Layout */}
                 <div className="flex flex-col gap-4">
+                    <div className="w-full">
+                        <TextInput
+                            label="Purpose/Goal"
+                            value={form.purpose || ''}
+                            onChange={v => handleChange('purpose', v)}
+                            placeholder="Weight Loss, Recovery, etc."
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
                         <div className="lg:col-span-8">
                             <TextInput
@@ -598,30 +620,22 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             </div>
                         </div>
                     </div>
-
-                    <div className="w-full">
-                        <TextInput
-                            label="Purpose/Goal"
-                            value={form.purpose || ''}
-                            onChange={v => handleChange('purpose', v)}
-                            placeholder="Weight Loss, Recovery, etc."
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
                 </div>
 
                 {/* Peptides Section - Accordion Structure */}
                 <div className="space-y-3">
-                    {/* Section Header - Reduced visual weight */}
-                    <div className="flex items-center gap-3 mb-2">
-                        <TestTube size={20} style={{ color: theme.primary }} />
-                        <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-50" style={{ color: theme.textLight }}>
-                            Dosage & Schedule
-                        </span>
+                    {/* Section Header */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <TestTube size={28} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Dosage & Schedule
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Shared Settings for Blended Protocols */}
@@ -641,7 +655,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             const isExpanded = expandedPeptides.has(index);
                             const peptideName = p.name || `Peptide ${index + 1}`;
                             const dosageSummary = p.titration && p.titration.length > 0 
-                                ? `${p.titration.length} step${p.titration.length > 1 ? 's' : ''} titration`
+                                ? `${p.titration.length} phase${p.titration.length > 1 ? 's' : ''} titration`
                                 : p.dosage?.amount 
                                     ? `${p.dosage.amount} ${p.dosage.unit || 'mcg'}`
                                     : 'No dosage set';
@@ -708,7 +722,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             opacity: isExpanded ? 1 : 0
                                         }}
                                     >
-                                        <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
+                                        <div className="px-3 pb-3 pt-4 border-t" style={{ borderColor: theme.border }}>
                                             <PeptideSubForm
                                                 item={p}
                                                 onChange={(updated) => handlePeptideChange(index, updated)}
@@ -749,9 +763,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
-                        <div className="flex items-center gap-3">
-                            <CalendarClock size={20} style={{ color: theme.primary }} />
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                        <div className="flex items-center gap-2">
+                            <CalendarClock size={28} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                                <div className="flex items-center gap-2 ml-1">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                        Timeline & Washout
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         {isTimelineExpanded ? (
                             <ChevronDown size={16} style={{ color: theme.textLight }} />
@@ -768,7 +790,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             opacity: isTimelineExpanded ? 1 : 0
                         }}
                     >
-                        <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
+                        <div className="px-3 pb-3 pt-4 border-t space-y-3" style={{ borderColor: theme.border }}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1073,9 +1095,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         onClick={() => setIsAdditionalDetailsExpanded(!isAdditionalDetailsExpanded)}
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
-                        <div className="flex items-center gap-3">
-                            <ImageUp size={20} style={{ color: theme.primary }} />
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
+                        <div className="flex items-center gap-2">
+                            <ImageUp size={28} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
+                                <div className="flex items-center gap-2 ml-1">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                        Notes & Preview
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         {isAdditionalDetailsExpanded ? (
                             <ChevronDown size={16} style={{ color: theme.textLight }} />

@@ -18,11 +18,9 @@ export default function CombinedDosageInput({
     const [isFocused, setIsFocused] = useState(false);
     const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
     // Determine units to display based on delivery method
-    const displayUnits = units || (
-        deliveryMethod === 'nasal' 
-            ? ['sprays'] // Only sprays for nasal
-            : ['mcg', 'mg', 'mL'] // Default units for pipette/pen
-    );
+    // Match the recon calculator: mcg, mg, mL, iu, and sprays
+    // Always include all units to match recon calculator
+    const displayUnits = units || ['mcg', 'mg', 'mL', 'iu', 'sprays'];
 
     // Close dropdown when delivery method changes
     useEffect(() => {
@@ -100,7 +98,7 @@ export default function CombinedDosageInput({
                         }}
                     >
                         <span className="text-sm font-semibold">
-                            {currentUnit}
+                            {currentUnit === 'iu' ? 'IU' : currentUnit}
                         </span>
                         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -150,7 +148,7 @@ export default function CombinedDosageInput({
                                                 e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
                                             }}
                             >
-                                {unit}
+                                {unit === 'iu' ? 'IU' : unit}
                             </button>
                                     </React.Fragment>
                         ))}
@@ -221,7 +219,7 @@ export default function CombinedDosageInput({
                     }}
                 >
                     <span className="text-sm font-semibold">
-                        {currentUnit}
+                        {currentUnit === 'iu' ? 'IU' : currentUnit}
                     </span>
                     <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -271,7 +269,7 @@ export default function CombinedDosageInput({
                                             e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
                                         }}
                         >
-                            {unit}
+                            {unit === 'iu' ? 'IU' : unit}
                         </button>
                                 </React.Fragment>
                     ))}
