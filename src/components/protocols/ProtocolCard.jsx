@@ -304,7 +304,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 {isActive && p.startDate && (
                                     <div className="flex items-center gap-1">
                                         <Clock size={12} />
-                                        <span>Active since {formatMMDDYYYY(new Date(p.startDate))}</span>
+                                        <span>Active since {formatMMDDYYYY(parseDateString(p.startDate))}</span>
                                     </div>
                                 )}
                             </div>
@@ -699,23 +699,29 @@ function renderDateRange(p, isActive) {
         if (!isActive) return ''
         return 'Not started'
     }
-    const start = new Date(p.startDate)
+    // CRITICAL: Use parseDateString instead of new Date() to avoid timezone issues
+    const start = parseDateString(p.startDate);
+    if (!start) return 'Invalid date';
+    const startNormalized = normalizeToMidnight(start);
+    
     // Base end
-    let end = p.endDate ? new Date(p.endDate) : null
+    let end = p.endDate ? parseDateString(p.endDate) : null;
+    if (end) end = normalizeToMidnight(end);
+    
     if (!end && p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
-        end = new Date(start)
+        end = new Date(startNormalized)
         const unit = String(p.duration.unit).toLowerCase()
         const count = Number(p.duration.count) || 0
         if (unit.includes('day')) end.setDate(end.getDate() + count - 1)
         else if (unit.includes('week')) end.setDate(end.getDate() + (count * 7) - 1)
         else if (unit.includes('month')) { end.setMonth(end.getMonth() + count); end.setDate(end.getDate() - 1) }
     }
-    // Guard: never earlier than start
-    if (end && end < start) end = new Date(start)
+    // Guard: never earlier than start (normalized comparison)
+    if (end && normalizeToMidnight(end) < startNormalized) end = new Date(startNormalized)
     // Apply washout if enabled
     let washEnd = null
     if (end && p.washout?.enabled && p.washout?.count > 0 && p.washout?.unit) {
-        const wStart = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1)
+        const wStart = normalizeToMidnight(new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1))
         washEnd = new Date(wStart)
         const wUnit = String(p.washout.unit).toLowerCase()
         const wCount = Number(p.washout.count) || 0
@@ -724,7 +730,7 @@ function renderDateRange(p, isActive) {
         else if (wUnit.includes('month')) { washEnd.setMonth(washEnd.getMonth() + wCount); washEnd.setDate(washEnd.getDate() - 1) }
     }
     const displayEnd = washEnd || end
-    const startStr = formatMMDDYYYY(start)
+    const startStr = formatMMDDYYYY(startNormalized)
     
     // If active and no end date: "date started - Current"
     if (isActive && !displayEnd) {
