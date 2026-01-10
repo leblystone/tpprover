@@ -1379,6 +1379,126 @@ exports.sendGiftExpiringSoonEmail = async (recipientEmail, planName, daysLeft, g
 };
 
 /**
+ * Send Squarespace activation email (for new users who purchased on Squarespace)
+ */
+exports.sendSquarespaceActivationEmail = async (userEmail, customerName, planKey, activationToken) => {
+  try {
+    const customTemplate = await loadEmailTemplate('squarespaceActivation');
+    if (customTemplate) {
+      const activationLink = `https://thepepplanner.com/activate?token=${activationToken}`;
+      const subject = customTemplate.subject || 'Activate Your The Pep Planner Account 🧬';
+      const html = generateEmailHTML(customTemplate, { 
+        userEmail, 
+        customerName, 
+        planKey, 
+        activationLink, 
+        activationToken 
+      });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'squarespace-activation',
+        recipientName: customerName
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom Squarespace activation template, using default:', e);
+  }
+  
+  // Fallback to default template
+  const activationLink = `https://thepepplanner.com/activate?token=${activationToken}`;
+  const planName = planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime';
+  const subject = 'Activate Your The Pep Planner Account 🧬';
+  
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #344E41;">Welcome to The Pep Planner! 🧬</h2>
+      <p>Hi ${customerName || 'there'},</p>
+      <p>Thank you for your purchase! Your ${planName} subscription is ready to activate.</p>
+      <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+        <p style="margin: 0; font-weight: 600; color: #344E41;">What's Next?</p>
+        <p style="margin: 8px 0 0 0;">Click below to activate your account and start using The Pep Planner app. This will only take a moment!</p>
+      </div>
+      <center>
+        <a href="${activationLink}" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 24px 0;">
+          Activate My Account
+        </a>
+      </center>
+      <p style="font-size: 14px; color: #666; margin-top: 24px;">
+        <strong>Note:</strong> You may have received emails from Squarespace about your order. This email is specifically to activate your app access.
+      </p>
+      <p style="font-size: 14px; color: #666;">
+        This activation link expires in 30 days. If you have any questions, contact us at contact@thepepplanner.com
+      </p>
+      <p style="font-size: 14px; color: #999; margin-top: 32px;">
+        Or copy this link: ${activationLink}
+      </p>
+    </div>
+  `;
+  
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'squarespace-activation',
+    recipientName: customerName
+  });
+};
+
+/**
+ * Send Squarespace subscription activated email (for existing users)
+ */
+exports.sendSquarespaceSubscriptionActivatedEmail = async (userEmail, customerName, planKey) => {
+  try {
+    const customTemplate = await loadEmailTemplate('squarespaceActivated');
+    if (customTemplate) {
+      const planName = planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime';
+      const subject = customTemplate.subject || 'Your Subscription is Now Active! ✅';
+      const html = generateEmailHTML(customTemplate, { 
+        userEmail, 
+        customerName, 
+        planKey, 
+        planName 
+      });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'squarespace-activated',
+        recipientName: customerName
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom Squarespace activated template, using default:', e);
+  }
+  
+  // Fallback to default template
+  const planName = planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime';
+  const subject = 'Your Subscription is Now Active! ✅';
+  
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #344E41;">Subscription Activated! 🎉</h2>
+      <p>Hi ${customerName || 'there'},</p>
+      <p>Great news! Your ${planName} subscription from Squarespace is now active.</p>
+      <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+        <p style="margin: 0; font-weight: 600; color: #344E41;">You're all set!</p>
+        <p style="margin: 8px 0 0 0;">Log in to The Pep Planner app to start tracking your research.</p>
+      </div>
+      <center>
+        <a href="https://thepepplanner.com/dashboard" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 24px 0;">
+          Go to Dashboard
+        </a>
+      </center>
+      <p style="font-size: 14px; color: #666; margin-top: 24px;">
+        Need help? Contact us at contact@thepepplanner.com
+      </p>
+    </div>
+  `;
+  
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'squarespace-activated',
+    recipientName: customerName
+  });
+};
+
+/**
  * Send custom announcement/maintenance email
  * Use this for app-wide announcements, maintenance notices, downtime alerts, etc.
  */

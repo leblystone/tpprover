@@ -46,9 +46,11 @@ const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
 const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
 const Blog = lazyWithRetry(() => import('./pages/Blog.jsx'), 'Blog')
+const FAQ = lazyWithRetry(() => import('./pages/FAQ.jsx'), 'FAQ')
 const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), 'DeleteAccount')
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
 const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'), 'VerifyEmail')
+const ActivateAccount = lazyWithRetry(() => import('./pages/ActivateAccount.jsx'), 'ActivateAccount')
 const RedeemGift = lazyWithRetry(() => import('./pages/RedeemGift.jsx'), 'RedeemGift')
 const GiftSuccess = lazyWithRetry(() => import('./pages/GiftSuccess.jsx'), 'GiftSuccess')
 const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'), 'RedeemLifetime')
@@ -144,6 +146,11 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/faq',
+    element: <FAQ />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/reset-password',
     element: <ResetPassword />,
     errorElement: <NotFound />,
@@ -151,6 +158,11 @@ export const router = createBrowserRouter([
   {
     path: '/verify-email',
     element: <VerifyEmail />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/activate',
+    element: <ActivateAccount />,
     errorElement: <NotFound />,
   },
   {

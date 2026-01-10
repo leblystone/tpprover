@@ -288,14 +288,36 @@ export function useSubscriptionAccess() {
         const daysLeftDisplay = endDate ? Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24))) : 0;
 
         // Active paid subscription (monthly, annual)
-        if (effectiveSubscription.status === 'active' && effectiveSubscription.interval !== 'trial') {
+        // Also handle canceled subscriptions with cancelAtPeriodEnd (access continues until period end)
+        const isCanceledButActive = effectiveSubscription.status === 'canceled' && 
+                                    effectiveSubscription.cancelAtPeriodEnd && 
+                                    timeLeft > 0;
+        
+        if ((effectiveSubscription.status === 'active' || isCanceledButActive) && 
+            effectiveSubscription.interval !== 'trial') {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
             isReadOnly: false,
             showUpgradePrompt: false,
             daysRemaining: daysLeftDisplay,
-            subscriptionStatus: 'active',
+            subscriptionStatus: isCanceledButActive ? 'canceled' : 'active',
+            subscriptionInterval: effectiveSubscription.interval,
+            cancelAtPeriodEnd: effectiveSubscription.cancelAtPeriodEnd || false,
+          });
+          return;
+        }
+
+        // Handle past_due status (usually has grace period)
+        if (effectiveSubscription.status === 'past_due' && timeLeft > 0) {
+          // Give grace period - still allow access but show warning
+          setAccessInfo({
+            hasAccess: true,
+            isTrialExpired: false,
+            isReadOnly: false,
+            showUpgradePrompt: true, // Show upgrade prompt for past_due
+            daysRemaining: daysLeftDisplay,
+            subscriptionStatus: 'past_due',
             subscriptionInterval: effectiveSubscription.interval,
           });
           return;
@@ -317,7 +339,7 @@ export function useSubscriptionAccess() {
           return;
         }
 
-        // Trial expired or canceled subscription
+        // Trial expired or canceled subscription (past period end)
         console.log('❌ Trial EXPIRED or canceled - READ-ONLY MODE');
         setAccessInfo({
           hasAccess: false,

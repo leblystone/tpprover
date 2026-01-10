@@ -4606,6 +4606,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
           <tr>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Subscription Status</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Source</th>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
           </tr>
@@ -4636,6 +4637,16 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.dotColor }} />
                     {status.label}
                 </span>
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+                {(() => {
+                  const source = user.subscription?.paymentProvider || user.subscription?.source;
+                  if (source === 'stripe') return 'Stripe';
+                  if (source === 'googleplay' || source === 'google_play') return 'Google Play';
+                  if (source === 'appstore' || source === 'apple') return 'App Store';
+                  if (source === 'squarespace') return 'Squarespace';
+                  return source ? source.charAt(0).toUpperCase() + source.slice(1) : '—';
+                })()}
               </td>
               <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
                   {user.lastActive?.toDate ? user.lastActive.toDate().toLocaleDateString() : 'Never'}

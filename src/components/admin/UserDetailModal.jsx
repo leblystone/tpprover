@@ -479,6 +479,23 @@ export default function UserDetailModal({
                       {subscriptionStatus}
                     </span>
                   </div>
+                  {/* Subscription Source */}
+                  {(user.subscription?.source || user.subscription?.paymentProvider) && (
+                    <div className="flex items-center justify-between p-3 rounded-lg"
+                      style={{ backgroundColor: enhancedTheme.background + '60' }}>
+                      <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Source:</span>
+                      <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
+                        {(() => {
+                          const source = user.subscription?.paymentProvider || user.subscription?.source;
+                          if (source === 'stripe') return 'Stripe';
+                          if (source === 'googleplay' || source === 'google_play') return 'Google Play';
+                          if (source === 'appstore' || source === 'apple') return 'App Store';
+                          if (source === 'squarespace') return 'Squarespace';
+                          return source || 'Unknown';
+                        })()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-4 rounded-lg text-center"
