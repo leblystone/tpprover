@@ -319,23 +319,68 @@ export default function Protocols() {
   // 🔧 MIGRATION: Fix endDate for ALL existing protocols (active & inactive) - runs once
   useEffect(() => {
     const migrationKey = 'tpprover_enddate_migration_v2';
-    if (localStorage.getItem(migrationKey)) return; // Already migrated
+    console.log('🔧 Migration check - already run?', localStorage.getItem(migrationKey));
+    console.log('🔧 Protocols available:', protocols.length);
+    
+    // FORCE RUN FOR DEBUGGING - remove this later
+    if (localStorage.getItem(migrationKey)) {
+      console.log('⚠️ Migration was marked as done, but forcing re-run for debugging');
+      localStorage.removeItem(migrationKey);
+    }
+    
+    if (!protocols || protocols.length === 0) {
+      console.log('⚠️ No protocols available yet, skipping migration');
+      return;
+    }
     
     let migratedCount = 0;
-    protocols.forEach(p => {
-      if (!p?.startDate) return;
+    console.log('🔧 Starting migration loop through', protocols.length, 'protocols');
+    protocols.forEach((p, index) => {
+      console.log(`🔍 [${index}] Checking protocol:`, { 
+        name: p.name || p.protocolName, 
+        startDate: p.startDate,
+        currentEndDate: p.endDate,
+        hasPeptides: p.peptides?.length,
+        duration: p.duration,
+        peptideFrequencies: p.peptides?.map(pep => ({ name: pep.name, type: pep.frequency?.type, onDays: pep.frequency?.onDays, offDays: pep.frequency?.offDays }))
+      });
+      if (!p?.startDate) {
+        console.log(`  ⏭️ Skipping - no startDate`);
+        return;
+      }
       
       // Recalculate endDate using centralized date utilities
       const start = parseDateString(p.startDate);
-      if (!start) return;
+      if (!start) {
+        console.log(`  ⏭️ Skipping - couldn't parse startDate`);
+        return;
+      }
       const startNormalized = normalizeToMidnight(start);
       let newEndDate = null;
       
       // Check for cycle-based peptides
       const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
-      if (cyclePeptide && p.duration && p.duration.count > 0 && p.duration.unit && !p.duration.noEnd) {
+      console.log('🔄 Found cycle peptide?', cyclePeptide?.name, cyclePeptide?.frequency);
+      
+      // SPECIAL CASE: Ongoing cycles - calculate far-future endDate for scheduling
+      if (cyclePeptide && p.duration?.noEnd) {
         const onDays = Number(cyclePeptide.frequency.onDays) || 0;
         const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+        console.log('🔄 Ongoing cycle detected!', { onDays, offDays });
+        
+        if (onDays > 0) {
+          // For ongoing cycles, schedule 1 year ahead for calendar purposes
+          const end = new Date(startNormalized);
+          end.setFullYear(end.getFullYear() + 1);
+          newEndDate = getLocalDateString(end);
+          console.log('🔄 Calculated ongoing cycle endDate (1 year ahead):', newEndDate);
+        }
+      }
+      // Regular cycle with set duration
+      else if (cyclePeptide && p.duration && p.duration.count > 0 && p.duration.unit && !p.duration.noEnd) {
+        const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+        const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+        console.log('🔄 Cycle params:', { onDays, offDays, duration: p.duration });
         
         if (onDays > 0) {
           const durationInDays = (() => {
@@ -356,6 +401,7 @@ export default function Protocols() {
           const end = new Date(startNormalized);
           end.setDate(end.getDate() + total - 1);
           newEndDate = getLocalDateString(end);
+          console.log('🔄 Calculated cycle endDate:', newEndDate, 'from', durationInDays, 'duration days');
         }
       }
       
@@ -372,16 +418,21 @@ export default function Protocols() {
           end.setDate(end.getDate() - 1);
         }
         newEndDate = getLocalDateString(end);
+        console.log('📅 Calculated standard endDate:', newEndDate);
       }
       
       // Update if endDate changed
       if (newEndDate && newEndDate !== p.endDate) {
+        console.log('✅ Updating protocol:', p.name, 'from', p.endDate, 'to', newEndDate);
         updateProtocol({ ...p, endDate: newEndDate });
         migratedCount++;
+      } else {
+        console.log('  ℹ️ No update needed - endDate already correct or no new endDate calculated');
       }
     });
     
     localStorage.setItem(migrationKey, 'true');
+    console.log(`✅ Migration complete: ${migratedCount} protocol(s) updated`);
     if (migratedCount > 0) {
       console.log(`✅ Migrated ${migratedCount} protocol(s) with corrected endDates`);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -1730,7 +1781,19 @@ export default function Protocols() {
                   const startNormalized = normalizeToMidnight(start);
                   let end = null;
                   const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
-                  if (cyclePeptide) {
+                  
+                  // SPECIAL CASE: Ongoing cycles - calculate far-future endDate for scheduling
+                  if (cyclePeptide && p.duration?.noEnd) {
+                      const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+                      const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+                      if (onDays > 0) {
+                          // For ongoing cycles, schedule 1 year ahead for calendar purposes
+                          end = new Date(startNormalized);
+                          end.setFullYear(end.getFullYear() + 1);
+                      }
+                  }
+                  // Regular cycle with set duration
+                  else if (cyclePeptide) {
                       const onDays = Number(cyclePeptide.frequency.onDays) || 0;
                       const offDays = Number(cyclePeptide.frequency.offDays) || 0;
                       if (onDays > 0 && p.duration && p.duration.count > 0 && p.duration.unit) {
@@ -2133,7 +2196,19 @@ export default function Protocols() {
                     let end = null;
                     // Prefer cycle if present
                     const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
-                    if (cyclePeptide) {
+                    
+                    // SPECIAL CASE: Ongoing cycles - calculate far-future endDate for scheduling
+                    if (cyclePeptide && p.duration?.noEnd) {
+                        const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+                        const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+                        if (onDays > 0) {
+                            // For ongoing cycles, schedule 1 year ahead for calendar purposes
+                            end = new Date(startNormalized);
+                            end.setFullYear(end.getFullYear() + 1);
+                        }
+                    }
+                    // Regular cycle with set duration
+                    else if (cyclePeptide) {
                         const onDays = Number(cyclePeptide.frequency.onDays) || 0;
                         const offDays = Number(cyclePeptide.frequency.offDays) || 0;
                         if (onDays > 0 && p.duration && p.duration.count > 0 && p.duration.unit) {

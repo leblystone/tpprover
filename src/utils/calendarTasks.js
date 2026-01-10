@@ -173,6 +173,15 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     // Parse onDays and offDays, handling both string and number formats
                     const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
                     const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
+                    console.log('🔄 Cycle Debug (Blended):', {
+                        peptideName: peptides[0]?.name,
+                        onDays: on,
+                        offDays: off,
+                        freqOnDays: freq.onDays,
+                        freqOffDays: freq.offDays,
+                        protocolStartDate: protocolStartDate?.toDateString(),
+                        dateChecking: dateNormalized?.toDateString()
+                    });
                     if (on > 0 && off >= 0) {
                         const cycleLen = on + off;
                         if (cycleLen > 0) {
@@ -183,6 +192,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                                 // dayInCycle ranges from 0 to (cycleLen - 1)
                                 // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
                                 const dayInCycle = dayDiff % cycleLen;
+                                console.log('🔄 Cycle Calculation:', { dayDiff, cycleLen, dayInCycle, shouldSchedule: dayInCycle < on });
                                 if (dayInCycle < on) {
                                     isScheduledToday = true;
                                 }
@@ -305,6 +315,15 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         // Parse onDays and offDays, handling both string and number formats
                         const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
                         const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
+                        console.log('🔄 Cycle Debug (Separate):', {
+                            peptideName: pep?.name,
+                            onDays: on,
+                            offDays: off,
+                            freqOnDays: freq.onDays,
+                            freqOffDays: freq.offDays,
+                            protocolStartDate: protocolStartDate?.toDateString(),
+                            dateChecking: dateNormalized?.toDateString()
+                        });
                         if (on > 0 && off >= 0) {
                             const cycleLen = on + off;
                             if (cycleLen > 0) {
@@ -315,6 +334,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                                     // dayInCycle ranges from 0 to (cycleLen - 1)
                                     // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
                                     const dayInCycle = dayDiff % cycleLen;
+                                    console.log('🔄 Cycle Calculation:', { dayDiff, cycleLen, dayInCycle, shouldSchedule: dayInCycle < on });
                                     if (dayInCycle < on) {
                                         isScheduledToday = true;
                                     }
