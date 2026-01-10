@@ -449,15 +449,22 @@ export default function Calendar() {
                               }
                               break;
                           case 'cycle':
-                              const on = Number(freq.onDays) || 0;
-                              const off = Number(freq.offDays) || 0;
-                              if (on > 0) {
+                              // Parse onDays and offDays, handling both string and number formats
+                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
+                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
+                              if (on > 0 && off >= 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0) {
-                                      const dayInCycle = dayDiff % cycleLen;
-                                      if (dayInCycle < on) {
-                                          isScheduledToday = true;
+                                  if (cycleLen > 0) {
+                                      // CRITICAL: Calculate day difference using normalized dates
+                                      // dayDiff = 0 means it's the start day (first "on" day)
+                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                      if (dayDiff !== null && dayDiff >= 0) {
+                                          // dayInCycle ranges from 0 to (cycleLen - 1)
+                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
+                                          const dayInCycle = dayDiff % cycleLen;
+                                          if (dayInCycle < on) {
+                                              isScheduledToday = true;
+                                          }
                                       }
                                   }
                               }
@@ -503,15 +510,22 @@ export default function Calendar() {
                               }
                               break;
                           case 'cycle':
-                              const on = Number(freq.onDays) || 0;
-                              const off = Number(freq.offDays) || 0;
-                              if (on > 0) {
+                              // Parse onDays and offDays, handling both string and number formats
+                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
+                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
+                              if (on > 0 && off >= 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0) {
-                                      const dayInCycle = dayDiff % cycleLen;
-                                      if (dayInCycle < on) {
-                                          isScheduledToday = true;
+                                  if (cycleLen > 0) {
+                                      // CRITICAL: Calculate day difference using normalized dates
+                                      // dayDiff = 0 means it's the start day (first "on" day)
+                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                      if (dayDiff !== null && dayDiff >= 0) {
+                                          // dayInCycle ranges from 0 to (cycleLen - 1)
+                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
+                                          const dayInCycle = dayDiff % cycleLen;
+                                          if (dayInCycle < on) {
+                                              isScheduledToday = true;
+                                          }
                                       }
                                   }
                               }
@@ -657,15 +671,22 @@ export default function Calendar() {
                               }
                               break;
                           case 'cycle':
-                              const on = Number(freq.onDays) || 0;
-                              const off = Number(freq.offDays) || 0;
-                              if (on > 0) {
+                              // Parse onDays and offDays, handling both string and number formats
+                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
+                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
+                              if (on > 0 && off >= 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0) {
-                                      const dayInCycle = dayDiff % cycleLen;
-                                      if (dayInCycle < on) {
-                                          isScheduledToday = true;
+                                  if (cycleLen > 0) {
+                                      // CRITICAL: Calculate day difference using normalized dates
+                                      // dayDiff = 0 means it's the start day (first "on" day)
+                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                      if (dayDiff !== null && dayDiff >= 0) {
+                                          // dayInCycle ranges from 0 to (cycleLen - 1)
+                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
+                                          const dayInCycle = dayDiff % cycleLen;
+                                          if (dayInCycle < on) {
+                                              isScheduledToday = true;
+                                          }
                                       }
                                   }
                               }

@@ -226,7 +226,8 @@ export default function Protocols() {
     // Skip if we already checked today
     if (lastCheck === today) return;
     
-    const todayOnly = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+    // Use centralized date normalization
+    const todayOnly = normalizeToMidnight(new Date());
     let hasUpdates = false;
     const autoCompletedProtocols = [];
     
@@ -315,12 +316,89 @@ export default function Protocols() {
     }
   }, [protocols, updateProtocol]);
 
+  // 🔧 MIGRATION: Fix endDate for ALL existing protocols (active & inactive) - runs once
+  useEffect(() => {
+    const migrationKey = 'tpprover_enddate_migration_v2';
+    if (localStorage.getItem(migrationKey)) return; // Already migrated
+    
+    let migratedCount = 0;
+    protocols.forEach(p => {
+      if (!p?.startDate) return;
+      
+      // Recalculate endDate using centralized date utilities
+      const start = parseDateString(p.startDate);
+      if (!start) return;
+      const startNormalized = normalizeToMidnight(start);
+      let newEndDate = null;
+      
+      // Check for cycle-based peptides
+      const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
+      if (cyclePeptide && p.duration && p.duration.count > 0 && p.duration.unit && !p.duration.noEnd) {
+        const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+        const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+        
+        if (onDays > 0) {
+          const durationInDays = (() => {
+            const count = Number(p.duration.count);
+            const unit = String(p.duration.unit).toLowerCase();
+            if (unit.includes('day')) return count;
+            if (unit.includes('week')) return count * 7;
+            if (unit.includes('month')) return count * 30;
+            return 0;
+          })();
+          
+          const fullCycles = Math.floor(durationInDays / onDays);
+          const remainingOn = durationInDays % onDays;
+          let total = fullCycles * (onDays + offDays);
+          if (remainingOn > 0) total += remainingOn;
+          else if (fullCycles > 0) total -= offDays;
+          
+          const end = new Date(startNormalized);
+          end.setDate(end.getDate() + total - 1);
+          newEndDate = getLocalDateString(end);
+        }
+      }
+      
+      // Fallback to standard duration calculation
+      if (!newEndDate && p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
+        const end = new Date(startNormalized);
+        const unit = String(p.duration.unit).toLowerCase();
+        const count = Number(p.duration.count) || 0;
+        
+        if (unit.includes('day')) end.setDate(end.getDate() + count - 1);
+        else if (unit.includes('week')) end.setDate(end.getDate() + (count * 7) - 1);
+        else if (unit.includes('month')) {
+          end.setMonth(end.getMonth() + count);
+          end.setDate(end.getDate() - 1);
+        }
+        newEndDate = getLocalDateString(end);
+      }
+      
+      // Update if endDate changed
+      if (newEndDate && newEndDate !== p.endDate) {
+        updateProtocol({ ...p, endDate: newEndDate });
+        migratedCount++;
+      }
+    });
+    
+    localStorage.setItem(migrationKey, 'true');
+    if (migratedCount > 0) {
+      console.log(`✅ Migrated ${migratedCount} protocol(s) with corrected endDates`);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: `Fixed ${migratedCount} protocol date${migratedCount > 1 ? 's' : ''}!`, type: 'success' } 
+      }));
+    }
+  }, [protocols, updateProtocol]);
+
   const projectedDates = React.useMemo(() => {
     if (!startConfirm || !startDate) return { protocolStartDate: null, protocolEndDate: null, washoutStartDate: null, washoutEndDate: null };
 
     const { duration, washout, peptides } = startConfirm;
-    const start = new Date(new Date(startDate).getTime() + new Date(startDate).getTimezoneOffset() * 60000);
+    // CRITICAL: Use centralized date parsing to avoid timezone issues
+    const start = parseDateString(startDate);
+    if (!start) return { protocolStartDate: null, protocolEndDate: null, washoutStartDate: null, washoutEndDate: null };
     
+    const startNormalized = normalizeToMidnight(start);
     let endDate = null;
 
     // Prioritize cycle-based calculation if available
@@ -348,14 +426,14 @@ export default function Protocols() {
                 totalDays -= offDays; // Don't add last washout period if it ends on a full cycle
             }
             
-            endDate = new Date(start);
-            endDate.setDate(endDate.getDate() + totalDays -1);
+            endDate = new Date(startNormalized);
+            endDate.setDate(endDate.getDate() + totalDays - 1);
         }
     }
     
     // Fallback to original duration logic if no cycle is found
     if (!endDate && duration && !duration.noEnd && duration.count > 0 && duration.unit) {
-        endDate = new Date(start);
+        endDate = new Date(startNormalized);
         const count = Number(duration.count);
         if (duration.unit.toLowerCase().includes('day')) endDate.setDate(endDate.getDate() + count - 1);
         else if (duration.unit.toLowerCase().includes('week')) endDate.setDate(endDate.getDate() + (count * 7) - 1);
@@ -382,7 +460,7 @@ export default function Protocols() {
     }
     
     return {
-      protocolStartDate: formatMMDDYYYY(start),
+      protocolStartDate: formatMMDDYYYY(startNormalized),
       protocolEndDate: endDate ? formatMMDDYYYY(endDate) : 'Ongoing',
       washoutStartDate: washoutStartDate ? formatMMDDYYYY(washoutStartDate) : null,
       washoutEndDate: washoutEndDate ? formatMMDDYYYY(washoutEndDate) : null,
@@ -393,21 +471,25 @@ export default function Protocols() {
     try {
       if (p?.active !== true) return false
       if (!p?.startDate) return false
-      const today = new Date()
-      const s = new Date(p.startDate)
-      if (today < new Date(s.getFullYear(), s.getMonth(), s.getDate())) return false
+      const today = normalizeToMidnight(new Date());
+      const s = parseDateString(p.startDate);
+      if (!s) return false;
+      const startNormalized = normalizeToMidnight(s);
+      if (today < startNormalized) return false
       // explicit end date wins
       if (p.endDate) {
-        const e = new Date(p.endDate)
-        return today <= new Date(e.getFullYear(), e.getMonth(), e.getDate())
+        const e = parseDateString(p.endDate);
+        if (!e) return false;
+        const endNormalized = normalizeToMidnight(e);
+        return today <= endNormalized;
       }
       const d = p.duration || {}
       if (d.noEnd || !d.count || !d.unit) return true
-      const e = new Date(s)
+      const e = new Date(startNormalized)
       if (String(d.unit).toLowerCase() === 'day') e.setDate(e.getDate() + Number(d.count))
       else if (String(d.unit).toLowerCase() === 'week') e.setDate(e.getDate() + Number(d.count) * 7)
       else if (String(d.unit).toLowerCase() === 'month') e.setMonth(e.getMonth() + Number(d.count))
-      return today <= new Date(e.getFullYear(), e.getMonth(), e.getDate())
+      return today <= normalizeToMidnight(e)
     } catch { return false }
   }, [])
 
@@ -1642,7 +1724,10 @@ export default function Protocols() {
           const computeEndDate = (p) => {
               try {
                   if (!p?.startDate) return p.endDate || null;
-                  const start = new Date(p.startDate);
+                  // CRITICAL: Use centralized date parsing
+                  const start = parseDateString(p.startDate);
+                  if (!start) return p.endDate || null;
+                  const startNormalized = normalizeToMidnight(start);
                   let end = null;
                   const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
                   if (cyclePeptide) {
@@ -1661,12 +1746,12 @@ export default function Protocols() {
                           const remainingOn = durationInDays % onDays;
                           let total = fullCycles * (onDays + offDays);
                           if (remainingOn > 0) total += remainingOn; else if (fullCycles > 0) total -= offDays;
-                          end = new Date(start);
+                          end = new Date(startNormalized);
                           end.setDate(end.getDate() + total - 1);
                       }
                   }
                   if (!end && p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
-                      end = new Date(start);
+                      end = new Date(startNormalized);
                       const unit = String(p.duration.unit).toLowerCase();
                       const count = Number(p.duration.count) || 0;
                       if (unit.includes('day')) end.setDate(end.getDate() + count - 1);
@@ -2041,7 +2126,10 @@ export default function Protocols() {
             const computeEndDate = (p) => {
                 try {
                     if (!p?.startDate) return null;
-                    const start = new Date(p.startDate);
+                    // CRITICAL: Use centralized date parsing
+                    const start = parseDateString(p.startDate);
+                    if (!start) return null;
+                    const startNormalized = normalizeToMidnight(start);
                     let end = null;
                     // Prefer cycle if present
                     const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
@@ -2061,13 +2149,13 @@ export default function Protocols() {
                             const remainingOn = durationInDays % onDays;
                             let total = fullCycles * (onDays + offDays);
                             if (remainingOn > 0) total += remainingOn; else if (fullCycles > 0) total -= offDays;
-                            end = new Date(start);
+                            end = new Date(startNormalized);
                             // For scheduling days inclusively, ensure exact number of ON days are counted
                             end.setDate(end.getDate() + total - 1);
                         }
                     }
                     if (!end && p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
-                        end = new Date(start);
+                        end = new Date(startNormalized);
                         const unit = String(p.duration.unit).toLowerCase();
                         const count = Number(p.duration.count) || 0;
                         // Inclusive end: 5 days means start..start+4

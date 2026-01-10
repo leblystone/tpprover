@@ -65,4 +65,52 @@ export function formatMMDDYYYY(value) {
   return String(value);
 }
 
+/**
+ * Parses a date string into a local Date object.
+ * Handles YYYY-MM-DD format in local time to avoid timezone conversion issues.
+ * @param {string|Date} dateString - Date string (YYYY-MM-DD) or Date object
+ * @returns {Date|null} Parsed Date object in local time, or null if invalid
+ */
+export function parseDateString(dateString) {
+    if (!dateString) return null;
+    if (dateString instanceof Date) return dateString;
+    if (typeof dateString !== 'string') return new Date(dateString);
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return new Date(dateString); // Fallback for other formats
+    const [year, month, day] = parts.map(Number);
+    // Create date in local timezone (month is 0-indexed)
+    return new Date(year, month - 1, day);
+}
+
+/**
+ * Normalizes a date to midnight in local time.
+ * CRITICAL: This ensures we're always working with the correct calendar day
+ * and prevents timezone-related day boundary issues.
+ * @param {Date} date - Date object to normalize
+ * @returns {Date|null} Normalized Date object set to midnight local time, or null if invalid
+ */
+export function normalizeToMidnight(date) {
+    if (!date) return null;
+    // Extract year/month/day in local time to avoid any timezone conversion issues
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    // Create new date with all time components explicitly set to 0
+    const normalized = new Date(year, month, day, 0, 0, 0, 0);
+    return normalized;
+}
+
+/**
+ * Calculates the difference in days between two dates.
+ * Uses normalized dates to ensure accurate day calculations.
+ * @param {Date} date1 - First date (earlier date)
+ * @param {Date} date2 - Second date (later date)
+ * @returns {number|null} Number of days difference (date2 - date1), or null if invalid
+ */
+export function getDayDifference(date1, date2) {
+    const normalized1 = normalizeToMidnight(date1);
+    const normalized2 = normalizeToMidnight(date2);
+    if (!normalized1 || !normalized2) return null;
+    return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
+}
 
