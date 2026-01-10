@@ -153,7 +153,8 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
             let isScheduledToday = false;
 
             if (!ps) continue;
-            const protocolStartDate = normalizeToMidnight(ps);
+            // ps from getWindows is already normalized, so use it directly
+            const protocolStartDate = ps;
             if (!protocolStartDate || !dateNormalized) continue;
 
             switch (freq.type) {
@@ -169,10 +170,14 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 case 'cycle':
                     const on = Number(freq.onDays) || 0;
                     const off = Number(freq.offDays) || 0;
-                    if (on > 0) {
+                    if (on > 0 && off >= 0) {
                         const cycleLen = on + off;
+                        // CRITICAL: Calculate day difference using normalized dates
+                        // dayDiff = 0 means it's the start day (first "on" day)
                         const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
                         if (dayDiff !== null && dayDiff >= 0) {
+                            // dayInCycle ranges from 0 to (cycleLen - 1)
+                            // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
                             const dayInCycle = dayDiff % cycleLen;
                             if (dayInCycle < on) {
                                 isScheduledToday = true;
