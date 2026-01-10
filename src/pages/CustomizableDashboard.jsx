@@ -435,6 +435,9 @@ export default function CustomizableDashboard() {
       // Get today's scheduled tasks using the same logic as Calendar
       const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems);
       
+      // Get the date key for today to check completion status
+      const todayKey = toKey(finalToday);
+      
       const tasks = [];
       
       // Convert Calendar's scheduled data format to Dashboard task format
@@ -466,9 +469,9 @@ export default function CustomizableDashboard() {
               protocolId: pep.protocolId
             };
             
-            // Generate stable task ID and check completion status
+            // Generate stable task ID and check completion status for today's date
             const taskId = generateTaskId(task);
-            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            const wasCompleted = isTaskCompleted(taskId, todayKey, timeSlot);
             task.completed = wasCompleted;
             task.stableTaskId = taskId;
             tasks.push(task);
@@ -489,9 +492,9 @@ export default function CustomizableDashboard() {
               completed: false,
             };
             
-            // Generate stable task ID and check completion status
+            // Generate stable task ID and check completion status for today's date
             const taskId = generateTaskId(task);
-            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            const wasCompleted = isTaskCompleted(taskId, todayKey, timeSlot);
             task.completed = wasCompleted;
             task.stableTaskId = taskId;
             tasks.push(task);

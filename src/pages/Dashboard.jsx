@@ -17,7 +17,7 @@ import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import { calculateRecon } from '../utils/recon'
 import useLocalStorage from '../utils/hooks'
-import { formatMMDDYYYY } from '../utils/date'
+import { formatMMDDYYYY, parseDateString } from '../utils/date'
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted } from '../utils/taskCompletion'
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { debugTaskCompletion } from '../utils/taskPersistence'
@@ -360,20 +360,8 @@ export default function Dashboard() {
       timezoneOffset: calendarRawDate.getTimezoneOffset()
     });
     
-    // Helper to safely parse YYYY-MM-DD strings into local time dates (prevents timezone issues)
-    const parseDateString = (dateString) => {
-      if (!dateString) return null;
-      if (dateString instanceof Date) return dateString;
-      if (typeof dateString !== 'string') return new Date(dateString);
-      const parts = dateString.split('-');
-      if (parts.length === 3) {
-        const [year, month, day] = parts.map(Number);
-        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-          return new Date(year, month - 1, day);
-        }
-      }
-      return new Date(dateString);
-    };
+    // CENTRALIZED: Use shared date utilities to ensure consistency
+    // parseDateString is now imported from '../utils/date'
 
     // Use Calendar's shared logic to calculate today's scheduled tasks
     let peptideTasks = []
@@ -393,6 +381,9 @@ export default function Dashboard() {
       // Get today's scheduled tasks using the same logic as Calendar
       // Use Calendar's exact date calculation to ensure perfect sync
       const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems)
+      
+      // Get the date key for today to check completion status
+      const todayKey = toKey(finalToday);
       
       console.log('📊 Dashboard: Received scheduled data', {
         timeSlots: Object.keys(scheduledData.bySlot || {}),
@@ -423,9 +414,9 @@ export default function Dashboard() {
               administrationRoute: pep.administrationRoute
             };
             
-            // Generate stable task ID and check completion status
+            // Generate stable task ID and check completion status for today's date
             const taskId = generateTaskId(task);
-            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            const wasCompleted = isTaskCompleted(taskId, todayKey, timeSlot);
             task.completed = wasCompleted;
             task.stableTaskId = taskId;
             peptideTasks.push(task);
@@ -446,9 +437,9 @@ export default function Dashboard() {
               completed: false,
             };
             
-            // Generate stable task ID and check completion status
+            // Generate stable task ID and check completion status for today's date
             const taskId = generateTaskId(task);
-            const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+            const wasCompleted = isTaskCompleted(taskId, todayKey, timeSlot);
             task.completed = wasCompleted;
             task.stableTaskId = taskId;
             peptideTasks.push(task);

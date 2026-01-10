@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
+import { formatMMDDYYYY, getLocalDateString, parseDateString, normalizeToMidnight } from '../utils/date'
 import BottomSheet from '../components/common/BottomSheet'
 import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
@@ -235,9 +235,10 @@ export default function Protocols() {
       if (p.active === false || p.endDate || !p.startDate) return;
       
       // Calculate expected end date
+      // CRITICAL: Use centralized date parsing to avoid timezone issues
       let calculatedEndDate = null;
-      const start = new Date(p.startDate);
-      const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const start = parseDateString(p.startDate);
+      const startOnly = normalizeToMidnight(start);
       
       if (p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
         calculatedEndDate = new Date(startOnly);
