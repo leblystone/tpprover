@@ -52,6 +52,19 @@
   status = 200
   force = false
 
+# SEO files - ensure they're accessible
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/sitemap.xml"
+  status = 200
+  force = false
+
 # SPA fallback - must be last
 [[redirects]]
   from = "/*"

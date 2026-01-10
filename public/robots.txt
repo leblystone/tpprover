@@ -1,0 +1,24 @@
+# robots.txt for The Pep Planner
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private routes
+Disallow: /app
+Disallow: /login
+Disallow: /admin
+Disallow: /api
+
+# Allow public pages
+Allow: /
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+
+# Sitemap location
+Sitemap: https://thepepplanner.app/sitemap.xml
+
+# Crawl-delay (optional, helps prevent server overload)
+Crawl-delay: 1
+

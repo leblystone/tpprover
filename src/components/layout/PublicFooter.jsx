@@ -14,10 +14,10 @@ export default function PublicFooter() {
       { label: 'About', path: '/about' }
     ],
     support: [
+      { label: 'FAQ', path: '/faq' },
       { label: 'Contact', path: '/contact' },
       { label: 'Help Center', path: '/contact' },
-      { label: 'Community', path: '/contact' },
-      { label: 'Status', path: '/contact' }
+      { label: 'Community', path: '/contact' }
     ],
     legal: [
       { label: 'Privacy Policy', path: '/privacy' },
