@@ -2495,24 +2495,45 @@ export default function Protocols() {
                           </button>
                         )}
                         {(showAddNoteForm || editingNote) && (
-                          <button
-                            onClick={() => {
-                              if (showAddNoteForm) {
-                                handleAddNote();
-                              } else if (editingNote) {
-                                handleSaveEditNote();
-                              }
-                            }}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                            style={{ 
-                              backgroundColor: theme.primary, 
-                              color: theme.textOnPrimary || '#ffffff',
-                              border: 'none'
-                            }}
-                          >
-                            <Check size={18} />
-                            Save Note
-                          </button>
+                          <>
+                            <button
+                              onClick={() => {
+                                if (showAddNoteForm) {
+                                  setShowAddNoteForm(false);
+                                  setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
+                                  setShowLinkedDate(false);
+                                } else if (editingNote) {
+                                  setEditingNote(null);
+                                }
+                              }}
+                              className="px-4 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-70"
+                              style={{ 
+                                backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                color: theme.text,
+                                border: 'none'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (showAddNoteForm) {
+                                  handleAddNote();
+                                } else if (editingNote) {
+                                  handleSaveEditNote();
+                                }
+                              }}
+                              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                              style={{ 
+                                backgroundColor: theme.primary, 
+                                color: theme.textOnPrimary || '#ffffff',
+                                border: 'none'
+                              }}
+                            >
+                              <Check size={18} />
+                              Save Note
+                            </button>
+                          </>
                         )}
                       </>
                     )}
@@ -2912,28 +2933,7 @@ export default function Protocols() {
                       )}
                     </div>
 
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditingNote(null)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                        style={{ 
-                          backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                          color: theme.text
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveEditNote}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                        style={{ 
-                          backgroundColor: theme.primary, 
-                          color: theme.textOnPrimary 
-                        }}
-                      >
-                        Save Changes
-                      </button>
-                    </div>
+                    {/* Cancel button removed - use footer Cancel instead */}
                   </div>
                 )}
 
