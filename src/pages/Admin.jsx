@@ -3285,8 +3285,8 @@ function Admin() {
                           <div className="flex items-center gap-3">
                             <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
                             <div className="flex items-center gap-2 px-3 py-1">
-                              <span className="text-xs font-medium" style={{ color: theme.textLight }}>
-                                Ticket Closed {selectedTicket.closedAt ? `· ${(() => {
+                              <span className="text-xs" style={{ color: theme.textLight }}>
+                                Closed {selectedTicket.closedAt ? `· ${(() => {
                                   try {
                                     const date = selectedTicket.closedAt.toDate ? selectedTicket.closedAt.toDate() : new Date(selectedTicket.closedAt);
                                     return date.toLocaleDateString('en-US', {
