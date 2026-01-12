@@ -2779,10 +2779,15 @@ export default function Protocols() {
                           setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
                           setShowLinkedDate(false);
                         }}
-                        className="p-1 rounded hover:bg-opacity-20"
-                        style={{ color: theme.textLight }}
+                        className="text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{ 
+                          backgroundColor: 'transparent',
+                          color: theme.textLight,
+                          border: 'none',
+                          padding: '4px 8px'
+                        }}
                       >
-                        <X size={18} />
+                        Cancel
                       </button>
                     </div>
 
@@ -2847,35 +2852,6 @@ export default function Protocols() {
                           />
                         </div>
                       )}
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setShowAddNoteForm(false);
-                          setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
-                          setShowLinkedDate(false);
-                        }}
-                        className="text-sm font-medium transition-opacity hover:opacity-70"
-                        style={{ 
-                          backgroundColor: 'transparent',
-                          color: theme.textLight,
-                          padding: '10px 20px',
-                          border: 'none'
-                        }}
-                      >
-                        Close
-                      </button>
-                      <button
-                        onClick={handleAddNote}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                        style={{ 
-                          backgroundColor: theme.primary, 
-                          color: theme.textOnPrimary 
-                        }}
-                      >
-                        Save Note
-                      </button>
                     </div>
                   </div>
                 )}
