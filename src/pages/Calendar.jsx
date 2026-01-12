@@ -62,6 +62,20 @@ function getDayDifference(date1, date2) {
     return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
 }
 
+// Helper to normalize day names to short format (Mon, Tue, etc.)
+// This ensures compatibility between stored day names (which may be full or short format)
+// and the short format returned by toLocaleDateString
+function normalizeDayName(day) {
+    if (!day) return day;
+    const dayMap = {
+        'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu',
+        'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun',
+        'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed', 'thursday': 'Thu',
+        'friday': 'Fri', 'saturday': 'Sat', 'sunday': 'Sun'
+    };
+    return dayMap[day] || day;
+}
+
 function getWindows(p) {
     try {
       if (!p?.startDate) return { start: null, end: null, washStart: null, washEnd: null }
@@ -442,7 +456,9 @@ export default function Calendar() {
                               break;
                           case 'weekly':
                               const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              if (freq.days?.includes(dayName)) {
+                              // Normalize stored days to short format for comparison
+                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
+                              if (normalizedDays.includes(dayName)) {
                                   isScheduledToday = true;
                               }
                               break;
@@ -503,7 +519,9 @@ export default function Calendar() {
                               break;
                           case 'weekly':
                               const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              if (freq.days?.includes(dayName)) {
+                              // Normalize stored days to short format for comparison
+                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
+                              if (normalizedDays.includes(dayName)) {
                                   isScheduledToday = true;
                               }
                               break;
@@ -664,7 +682,9 @@ export default function Calendar() {
                               break;
                           case 'weekly':
                               const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              if (freq.days?.includes(dayName)) {
+                              // Normalize stored days to short format for comparison
+                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
+                              if (normalizedDays.includes(dayName)) {
                                   isScheduledToday = true;
                               }
                               break;
