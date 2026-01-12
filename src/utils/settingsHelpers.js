@@ -84,6 +84,80 @@ export function getLocalTimezone() {
 }
 
 /**
+ * Load notification settings from Firestore
+ * This ensures settings sync across devices/platforms
+ */
+export async function loadNotificationSettingsFromFirestore() {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    const { db } = await import('../config/firebase');
+    
+    // Get current user from localStorage
+    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+    if (!user?.email && !user?.uid) {
+      // User not logged in, return null
+      return null;
+    }
+
+    // Use uid if available, otherwise use email
+    const userId = user.uid || user.email?.toLowerCase();
+    if (!userId) {
+      return null;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data();
+    const firestoreSettings = userData.notificationSettings;
+    const firestoreRegionSettings = userData.settings?.region;
+
+    if (!firestoreSettings) {
+      return null;
+    }
+
+    // Map Firestore structure back to localStorage structure
+    const notificationSettings = {
+      push: firestoreSettings.push === true,
+      billing: firestoreSettings.billing === true,
+      researchReminders: firestoreSettings.researchReminders === true,
+      researchReminderTime: firestoreSettings.researchReminderTime || '08:00',
+      // AM/PM reminder settings
+      researchRemindersAM: firestoreSettings.researchRemindersAM === true,
+      researchReminderTimeAM: firestoreSettings.researchReminderTimeAM || '08:00',
+      researchRemindersPM: firestoreSettings.researchRemindersPM === true,
+      researchReminderTimePM: firestoreSettings.researchReminderTimePM || '18:00',
+      groupBuys: firestoreSettings.groupBuys === true,
+      lowStockAlerts: firestoreSettings.lowStockAlerts === true,
+      orderStatusUpdates: firestoreSettings.orderStatusUpdates === true,
+      washoutReminders: firestoreSettings.washoutReminders === true,
+      cycleReminders: firestoreSettings.cycleReminders === true,
+    };
+
+    // Also get timezone if available
+    const regionSettings = firestoreRegionSettings ? {
+      timeZone: firestoreRegionSettings.timeZone || getLocalTimezone()
+    } : null;
+
+    if (import.meta.env.DEV) {
+      console.log('📥 Notification settings loaded from Firestore:', notificationSettings);
+    }
+
+    return {
+      notifications: notificationSettings,
+      region: regionSettings
+    };
+  } catch (error) {
+    console.error('❌ Failed to load notification settings from Firestore:', error);
+    return null;
+  }
+}
+
+/**
  * Sync notification settings to Firestore
  * This ensures the scheduled functions can read user preferences
  */
@@ -123,6 +197,11 @@ export async function syncNotificationSettingsToFirestore() {
         billing: settings.notifications.billing === true,
         researchReminders: settings.notifications.researchReminders === true,
         researchReminderTime: settings.notifications.researchReminderTime || '08:00', // HH:mm format
+        // AM/PM reminder settings
+        researchRemindersAM: settings.notifications.researchRemindersAM === true,
+        researchReminderTimeAM: settings.notifications.researchReminderTimeAM || '08:00',
+        researchRemindersPM: settings.notifications.researchRemindersPM === true,
+        researchReminderTimePM: settings.notifications.researchReminderTimePM || '18:00',
         groupBuys: settings.notifications.groupBuys === true,
         lowStockAlerts: settings.notifications.lowStockAlerts === true,
         orderStatusUpdates: settings.notifications.orderStatusUpdates === true,

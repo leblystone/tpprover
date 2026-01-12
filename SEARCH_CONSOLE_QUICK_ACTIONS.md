@@ -166,3 +166,4 @@ The FAQ page I created includes:
 
 **You're all set!** The FAQ page with schema markup is the single most important thing for AI search discovery. Once it's indexed, AI search engines will start citing your answers. 🚀
 
+

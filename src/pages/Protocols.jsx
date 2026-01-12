@@ -392,10 +392,14 @@ export default function Protocols() {
     const entries = [];
     let currentMonthYear = null;
     
-    historyEntriesForManage.forEach((entry) => {
-      const startDate = new Date(entry.startDate);
-      const month = startDate.toLocaleDateString('en-US', { month: 'short' });
-      const year = startDate.getFullYear();
+    // Filter for finished entries (must have endDate) for grouping, but include ongoing too
+    const finishedEntries = historyEntriesForManage.filter(entry => entry.endDate);
+    
+    finishedEntries.forEach((entry) => {
+      // Use endDate for grouping (like main history tab)
+      const endDate = new Date(entry.endDate);
+      const month = endDate.toLocaleDateString('en-US', { month: 'short' });
+      const year = endDate.getFullYear();
       const monthYearKey = `${month} ${year}`;
       
       if (monthYearKey !== currentMonthYear) {
@@ -404,14 +408,14 @@ export default function Protocols() {
           key: monthYearKey,
           month,
           year,
-          date: startDate
+          date: endDate
         });
         currentMonthYear = monthYearKey;
       }
       
-      const endDate = entry.endDate ? new Date(entry.endDate) : null;
+      const startDate = new Date(entry.startDate);
       let durationDays = 0;
-      if (endDate) {
+      if (entry.endDate) {
         durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
       }
       
@@ -459,11 +463,11 @@ export default function Protocols() {
       }
       
       entries.push({
-        type: 'entry',
+        type: 'protocol',
         historyEntry: entry,
         durationDays,
         startDate: formatMMDDYYYY(entry.startDate),
-        endDate: entry.endDate ? formatMMDDYYYY(entry.endDate) : 'Ongoing',
+        endDate: formatMMDDYYYY(entry.endDate),
         completionStatus
       });
     });
@@ -3066,193 +3070,209 @@ export default function Protocols() {
 
             {manageTab === 'history' && (
               <div className="relative">
-                {timelineEntriesForManage.length > 0 ? (
-                  <div className="relative pl-8 md:pl-12">
-                    {/* Vertical timeline line */}
-                    <div 
-                      className="absolute left-0 top-0 bottom-0 w-0.5"
-                      style={{ 
-                        backgroundColor: theme.border || (theme.isDark ? '#374151' : '#e5e7eb'),
-                        marginLeft: '1.5rem',
-                        zIndex: 1
-                      }}
-                    />
+                {(() => {
+                  // Helper function to get icon for completion status
+                  const getStatusIcon = (status) => {
+                    switch (status) {
+                      case 'completed':
+                        return CheckCircle2;
+                      case 'ended_early':
+                        return XCircle;
+                      case 'rescheduled':
+                        return Clock;
+                      default:
+                        return FlaskConical;
+                    }
+                  };
 
-                    {/* Timeline entries */}
-                    <div className="space-y-6">
-                      {timelineEntriesForManage.map((entry, index) => {
-                        if (entry.type === 'header') {
-                          return (
-                            <div key={entry.key} className="relative flex items-center">
-                              <div 
-                                className="absolute left-0 w-4 h-4 rounded-full border-2 -ml-8 md:-ml-12 z-10"
-                                style={{ 
-                                  backgroundColor: theme.cardBackground || theme.background,
-                                  borderColor: theme.primary,
-                                  marginLeft: '-1.5rem'
-                                }}
-                              />
-                              <h3 
-                                className="text-lg font-bold uppercase tracking-wider pl-4"
-                                style={{ color: theme.text }}
-                              >
-                                {entry.month} {entry.year}
-                              </h3>
-                            </div>
-                          );
-                        } else {
-                          const statusBadge = getStatusBadge(entry.completionStatus);
-                          const StatusIcon = statusBadge?.icon;
-                          
-                          return (
-                            <div key={entry.historyEntry.id} className="relative pl-4">
-                              <div 
-                                className="absolute left-0 w-3 h-3 rounded-full -ml-8 md:-ml-12 z-10"
-                                style={{ 
-                                  backgroundColor: theme.primary,
-                                  marginLeft: '-1.5rem',
-                                  marginTop: '0.5rem',
-                                  border: `2px solid ${theme.cardBackground || theme.background}`
-                                }}
-                              />
-                              
-                              <button
-                                onClick={() => setSelectedHistoryEntryForManage(entry.historyEntry)}
-                                className="w-full text-left p-4 pb-16 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
-                                style={{ 
-                                  backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
-                                  border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
-                                  boxShadow: theme.isDark 
-                                    ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
-                                    : '0 2px 4px rgba(0, 0, 0, 0.05)'
-                                }}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="font-semibold text-base" style={{ color: theme.text }}>
-                                        {entry.historyEntry.protocolName || manageConfirm?.protocolName || 'Unnamed Protocol'}
-                                      </span>
-                                      {manageConfirm?.emoji && (
-                                        <span className="text-lg">{manageConfirm.emoji}</span>
-                                      )}
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
-                                      <span className="flex items-center gap-1">
-                                        <Clock size={14} />
-                                        {entry.startDate} → {entry.endDate}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    {entry.durationDays > 0 && (
-                                      <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                      </span>
-                                    )}
-                                    <div className="opacity-50">
-                                      <ChevronDown 
-                                        size={20} 
-                                        className="transform rotate-[-90deg]"
-                                        style={{ color: theme.textLight }}
-                                      />
-                                    </div>
-                                  </div>
+                  if (timelineEntriesForManage.length > 0) {
+                    return (
+                      <div className="relative">
+                        {/* Timeline entries */}
+                        <div className="space-y-3">
+                          {timelineEntriesForManage.map((entry, index) => {
+                            if (entry.type === 'header') {
+                              // Month/Year header - simplified without timeline node
+                              return (
+                                <div key={entry.key} className="relative flex items-center mb-3 mt-4 first:mt-0">
+                                  <h3 
+                                    className="text-sm font-semibold uppercase tracking-wider"
+                                    style={{ color: theme.textLight }}
+                                  >
+                                    {entry.month} {entry.year}
+                                  </h3>
                                 </div>
-                                
-                                <div className="absolute bottom-2 right-2 flex items-center gap-2 justify-end">
-                                  {statusBadge && StatusIcon && (
-                                    <span 
-                                      className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 whitespace-nowrap"
+                              );
+                            } else {
+                              // Protocol entry
+                              const historyEntry = entry.historyEntry;
+                              const statusBadge = getStatusBadge(entry.completionStatus);
+                              const StatusIcon = statusBadge?.icon;
+                              const TimelineIcon = getStatusIcon(entry.completionStatus);
+                              const isHovered = hoveredHistoryId === historyEntry.id;
+                              
+                              return (
+                                <div 
+                                  key={historyEntry.id} 
+                                  className="relative group"
+                                  onMouseEnter={() => setHoveredHistoryId(historyEntry.id)}
+                                  onMouseLeave={() => setHoveredHistoryId(null)}
+                                >
+                                  {/* Floating icon node - only visible on hover */}
+                                  {isHovered && (
+                                    <div 
+                                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20"
                                       style={{ 
-                                        backgroundColor: statusBadge.bgColor,
-                                        color: statusBadge.textColor
+                                        backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: `2px solid ${theme.primary}`,
+                                        boxShadow: theme.isDark 
+                                          ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
                                       }}
                                     >
-                                      <StatusIcon size={12} />
-                                      {statusBadge.label}
-                                    </span>
+                                      <TimelineIcon 
+                                        size={18} 
+                                        style={{ color: theme.primary }}
+                                      />
+                                    </div>
                                   )}
-                                  {(() => {
-                                    const hasFollowUp = entry.historyEntry.notes && 
-                                      Array.isArray(entry.historyEntry.notes) && 
-                                      entry.historyEntry.notes.some(n => n.type === 'follow_up');
-                                    if (!hasFollowUp && entry.historyEntry.endDate) {
-                                      return (
-                                        <span 
-                                          className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap"
-                                          style={{ 
-                                            backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                                            color: theme.textLight
-                                          }}
-                                        >
-                                          No Follow-Up
-                                        </span>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                                
-                                {(() => {
-                                  const hasFollowUp = entry.historyEntry.notes && 
-                                    Array.isArray(entry.historyEntry.notes) && 
-                                    entry.historyEntry.notes.some(n => n.type === 'follow_up');
-                                  if (!hasFollowUp && entry.historyEntry.endDate) {
-                                    return (
-                                      <div className="absolute bottom-2 left-2 right-2">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFollowUpProtocolForManage(manageConfirm);
-                                            setFollowUpHistoryIdForManage(entry.historyEntry.id);
-                                          }}
-                                          className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2"
-                                          style={{
-                                            background: terracottaGradient,
-                                            color: '#ffffff',
-                                            boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
-                                          }}
-                                          onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = terracottaHoverGradient;
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = terracottaGradient;
-                                          }}
-                                        >
-                                          <FileText size={14} />
-                                          Complete Follow-Up Assessment
-                                        </button>
+                                  
+                                  {/* Protocol card with glassmorphism */}
+                                  <button
+                                    onClick={() => setSelectedHistoryEntryForManage(historyEntry)}
+                                    className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
+                                    style={{ 
+                                      backgroundColor: theme.isDark 
+                                        ? 'rgba(31, 41, 55, 0.6)' 
+                                        : 'rgba(255, 255, 255, 0.7)',
+                                      backdropFilter: 'blur(20px)',
+                                      WebkitBackdropFilter: 'blur(20px)',
+                                      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+                                      boxShadow: theme.isDark 
+                                        ? '0 4px 16px rgba(0, 0, 0, 0.3)' 
+                                        : '0 4px 16px rgba(0, 0, 0, 0.08)'
+                                    }}
+                                  >
+                                    <div className="flex gap-4 p-4">
+                                      {/* Main content */}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                          {manageConfirm?.emoji && (
+                                            <span className="text-xl">{manageConfirm.emoji}</span>
+                                          )}
+                                          <span className="font-semibold text-base" style={{ color: theme.text }}>
+                                            {historyEntry.protocolName || manageConfirm?.protocolName || manageConfirm?.name || 'Unnamed Protocol'}
+                                          </span>
+                                        </div>
+                                        
+                                        {/* Status badge - inline */}
+                                        {statusBadge && StatusIcon && (
+                                          <div className="inline-block mt-1.5">
+                                            <span 
+                                              className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
+                                              style={{ 
+                                                backgroundColor: statusBadge.bgColor,
+                                                color: statusBadge.textColor
+                                              }}
+                                            >
+                                              <StatusIcon size={12} />
+                                              {statusBadge.label}
+                                            </span>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Terracotta Follow-Up Assessment Prompt Button */}
+                                        {(() => {
+                                          const hasFollowUp = historyEntry.notes && 
+                                            Array.isArray(historyEntry.notes) && 
+                                            historyEntry.notes.some(n => n.type === 'follow_up');
+                                          if (!hasFollowUp && historyEntry.endDate) {
+                                            return (
+                                              <div className="mt-2">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFollowUpProtocolForManage(manageConfirm);
+                                                    setFollowUpHistoryIdForManage(historyEntry.id);
+                                                  }}
+                                                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                                                  style={{
+                                                    background: terracottaGradient,
+                                                    color: '#ffffff',
+                                                    boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
+                                                  }}
+                                                  onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = terracottaHoverGradient;
+                                                  }}
+                                                  onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = terracottaGradient;
+                                                  }}
+                                                >
+                                                  <FileText size={12} />
+                                                  Complete Follow-Up
+                                                </button>
+                                              </div>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
                                       </div>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                              </button>
-                            </div>
-                          );
-                        }
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
-                    <div
-                      className="px-4 py-2 rounded-full mb-3"
-                      style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                        border: `1px solid ${theme.border}`,
-                        display: 'inline-block'
-                      }}
-                    >
-                      <span className="text-sm font-medium" style={{ color: theme.text }}>
-                        You haven't researched this one yet!
-                      </span>
-                    </div>
-                  </div>
-                )}
+                                      
+                                      {/* Sidebar with dates and duration */}
+                                      <div className="flex-shrink-0 w-32 text-right space-y-0.5 border-l pl-4" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+                                        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                                          {entry.startDate}
+                                        </div>
+                                        <div className="text-xs" style={{ color: theme.textLight }}>
+                                          →
+                                        </div>
+                                        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                                          {entry.endDate}
+                                        </div>
+                                        {entry.durationDays > 0 && (
+                                          <div className="pt-1.5 mt-1.5 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+                                            <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                                              {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                            </div>
+                                          </div>
+                                        )}
+                                        <div className="pt-1.5 flex justify-end">
+                                          <ChevronDown 
+                                            size={16} 
+                                            className="transform rotate-[-90deg] opacity-50"
+                                            style={{ color: theme.textLight }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </button>
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
+                        <div
+                          className="px-4 py-2 rounded-full mb-3"
+                          style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            border: `1px solid ${theme.border}`,
+                            display: 'inline-block'
+                          }}
+                        >
+                          <span className="text-sm font-medium" style={{ color: theme.text }}>
+                            You haven't researched this one yet!
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
               </div>
             )}
             </div>

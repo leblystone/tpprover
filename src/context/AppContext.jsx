@@ -9,6 +9,7 @@ import {
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps
 } from '../services/cloudStorage';
+import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
 import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
@@ -309,6 +310,38 @@ export function AppProvider({ children }) {
                 // Check user preferences from cloud storage
                 const cloudPreferences = await loadUserPreferences(userId);
                 const hasThemeInCloud = cloudPreferences?.theme;
+                
+                // Load notification/reminder settings from Firestore and merge with localStorage
+                try {
+                    const firestoreSettings = await loadNotificationSettingsFromFirestore();
+                    if (firestoreSettings) {
+                        // Get current localStorage settings
+                        const currentSettings = loadSettings() || getDefaultSettings();
+                        
+                        // Merge Firestore settings with localStorage (Firestore takes precedence for notifications)
+                        const mergedSettings = {
+                            ...currentSettings,
+                            notifications: {
+                                ...currentSettings.notifications,
+                                ...firestoreSettings.notifications
+                            },
+                            region: {
+                                ...currentSettings.region,
+                                ...firestoreSettings.region
+                            }
+                        };
+                        
+                        // Save merged settings back to localStorage
+                        saveSettings(mergedSettings);
+                        
+                        if (import.meta.env.DEV) {
+                            console.log('✅ Notification settings synced from Firestore to localStorage');
+                        }
+                    }
+                } catch (settingsError) {
+                    console.warn('⚠️ Failed to load notification settings from Firestore:', settingsError);
+                    // Don't block app load if settings sync fails
+                }
                 
                 // Check if this is a recently created account (within last 24 hours)
                 // This catches accounts created just before the theme reset fix was deployed

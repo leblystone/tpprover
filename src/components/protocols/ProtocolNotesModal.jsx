@@ -429,12 +429,6 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         <div className="flex-1">
                                             <div className="text-xs mb-1" style={{ color: theme.textLight }}>
                                                 {formatMMDDYYYY(note.createdAt)}
-                                                {note.linkedDate && (
-                                                    <span className="ml-2 flex items-center gap-1">
-                                                        <Calendar size={12} />
-                                                        Linked to {formatMMDDYYYY(note.linkedDate)}
-                                                    </span>
-                                                )}
                                             </div>
                                             {note.content && (
                                                 <p className="text-sm mt-2 whitespace-pre-wrap" style={{ color: theme.text }}>

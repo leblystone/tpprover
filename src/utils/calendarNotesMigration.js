@@ -195,3 +195,4 @@ export function hasCalendarNotes(calendarNotes, dateKey) {
     return dayData && Array.isArray(dayData.notes) && dayData.notes.length > 0;
 }
 
+

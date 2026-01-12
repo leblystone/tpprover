@@ -41,8 +41,17 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     const handleFrequencyChange = (field, value) => {
         const newFreq = { ...(item.frequency || { type: 'daily' }), [field]: value };
         // Ensure a default time-of-day so scheduling appears on calendar
-        if (!Array.isArray(newFreq.time) || newFreq.time.length === 0) {
-            newFreq.time = ['AM'];
+        // Only default when the time field is being changed or time is empty
+        if (field === 'time') {
+            // When time field is being changed, ensure it's not empty
+            if (!Array.isArray(newFreq.time) || newFreq.time.length === 0) {
+                newFreq.time = ['AM'];
+            }
+        } else {
+            // When other fields change, preserve existing time or default to AM
+            if (!newFreq.time || !Array.isArray(newFreq.time) || newFreq.time.length === 0) {
+                newFreq.time = ['AM'];
+            }
         }
         if (field === 'type' && value !== 'weekly') newFreq.days = [];
         if (field === 'type' && value !== 'cycle') {
