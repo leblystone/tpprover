@@ -29,7 +29,8 @@ export default function BottomSheet({
   children, 
   footer, 
   maxHeight = '90vh',
-  snapPoints = [0.9] // Default to single snap point at 90% height
+  snapPoints = [0.9], // Default to single snap point at 90% height
+  centerTitle = false
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -260,71 +261,124 @@ export default function BottomSheet({
 
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-b" 
+          className={`flex items-center px-6 py-3 flex-shrink-0 border-b ${centerTitle ? 'justify-center relative' : 'justify-between'}`}
           style={{ 
             backgroundColor: headerBackground,
             color: headerTextColor,
             borderColor: theme?.border || 'rgba(0,0,0,0.1)'
           }}
         >
-          <div className="flex items-center gap-3">
-            {onBack && (
-              <button 
+          {centerTitle ? (
+            <>
+              {/* Left side - Back button */}
+              {onBack && (
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    hapticsLight();
+                    if (isDragging) {
+                      setIsDragging(false);
+                      setDragStart(null);
+                      setDragOffset(0);
+                    }
+                    onBack();
+                  }}
+                  className="absolute left-4 p-1 rounded-full transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
+                  style={{ 
+                    color: headerTextColor,
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              )}
+              
+              {/* Centered title */}
+              <h3 className="text-lg font-semibold text-center" style={{ color: headerTextColor }}>
+                {title}
+              </h3>
+              
+              {/* Right side - Close button */}
+              <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   hapticsLight();
-                  // Reset any drag state before closing
                   if (isDragging) {
                     setIsDragging(false);
                     setDragStart(null);
                     setDragOffset(0);
                   }
-                  // Call onBack - the useEffect will handle the smooth animation
-                  onBack();
+                  onClose();
                 }}
-                className="p-1 rounded-full -ml-2 transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
+                className="absolute right-4 p-1 rounded-full transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10"
                 style={{ 
                   color: headerTextColor,
                   WebkitTapHighlightColor: 'transparent'
                 }}
               >
-                <ChevronLeft size={20} />
+                <X size={20} />
               </button>
-            )}
-            <h3 className="text-lg font-semibold" style={{ color: headerTextColor }}>
-              {title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-3">
-            {titleExtra && (
-              <div className="text-sm opacity-90" style={{ color: headerTextColor }}>
-                {titleExtra}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                {onBack && (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      hapticsLight();
+                      if (isDragging) {
+                        setIsDragging(false);
+                        setDragStart(null);
+                        setDragOffset(0);
+                      }
+                      onBack();
+                    }}
+                    className="p-1 rounded-full -ml-2 transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
+                    style={{ 
+                      color: headerTextColor,
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                )}
+                <h3 className="text-lg font-semibold" style={{ color: headerTextColor }}>
+                  {title}
+                </h3>
               </div>
-            )}
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                hapticsMedium();
-                // Reset any drag state before closing
-                if (isDragging) {
-                  setIsDragging(false);
-                  setDragStart(null);
-                  setDragOffset(0);
-                }
-                // Call onClose - the useEffect will handle the smooth animation
-                onClose();
-              }}
-              className="p-1.5 rounded-full transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
-              style={{ 
-                color: headerTextColor,
-                WebkitTapHighlightColor: 'transparent'
-              }}
-            >
-              <X size={24} />
-            </button>
-          </div>
+              <div className="flex items-center gap-3">
+                {titleExtra && (
+                  <div className="text-sm opacity-90" style={{ color: headerTextColor }}>
+                    {titleExtra}
+                  </div>
+                )}
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    hapticsMedium();
+                    if (isDragging) {
+                      setIsDragging(false);
+                      setDragStart(null);
+                      setDragOffset(0);
+                    }
+                    onClose();
+                  }}
+                  className="p-1.5 rounded-full transition-colors touch-manipulation hover:bg-black/10 dark:hover:bg-white/10" 
+                  style={{ 
+                    color: headerTextColor,
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Content */}

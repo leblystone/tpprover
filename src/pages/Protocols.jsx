@@ -2367,7 +2367,8 @@ export default function Protocols() {
             setHistoryProtocol(null); // Ensure history modal is also closed
             setHistoryFromManage(false);
           }}
-          title={`Manage "${manageConfirm.protocolName}"`}
+          title={manageConfirm.protocolName || 'Protocol'}
+          centerTitle={true}
           theme={theme}
           maxHeight="85vh"
           footer={
