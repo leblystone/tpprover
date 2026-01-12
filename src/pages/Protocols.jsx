@@ -1917,6 +1917,10 @@ export default function Protocols() {
             setManageConfirm(null);
             setHistoryProtocol(null); // Ensure history modal is also closed
           }}
+          onBack={() => {
+            setManageConfirm(null);
+            setHistoryProtocol(null); // Ensure history modal is also closed
+          }}
           title={`Manage "${manageConfirm.protocolName}"`}
           theme={theme}
           maxHeight="90vh"
