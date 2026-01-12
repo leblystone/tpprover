@@ -112,7 +112,11 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     if (compact && !isActive) {
         return (
             <>
-                <div className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover" style={{ backgroundColor: theme.cardBackground }}>
+                <div 
+                    className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover cursor-pointer" 
+                    style={{ backgroundColor: theme.cardBackground }}
+                    onClick={() => !isPublicView && onEditClick(p)}
+                >
                     <div className="flex-grow">
                         <div className="font-semibold text-base mb-2" style={{ color: theme.text }}>
                             {p.protocolName || 'Unnamed Protocol'}
