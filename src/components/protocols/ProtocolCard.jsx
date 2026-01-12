@@ -283,7 +283,16 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     backgroundColor: theme.cardBackground,
                     borderColor: isActive ? `${theme.primary}30` : 'transparent'
                 }}
-                onClick={() => !isPublicView && onStartClick(p, { manage: isActive })}
+                onClick={() => {
+                    if (isPublicView) return;
+                    // Active protocols: open manage view
+                    // Inactive protocols: open edit/details view
+                    if (isActive) {
+                        onStartClick(p, { manage: true });
+                    } else {
+                        onEditClick(p);
+                    }
+                }}
             >
                 <div className="flex-grow">
                     {/* Header */}
