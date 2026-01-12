@@ -7,7 +7,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -29,11 +29,17 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
+import { encodeShareData } from '../utils/share';
+import { toPng } from 'html-to-image';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import SharedProtocolCard from '../components/share/SharedProtocolCard';
+import { useRef, useMemo } from 'react';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
@@ -65,18 +71,427 @@ export default function Protocols() {
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
+  // Inline tab content state
+  const [notes, setNotes] = useState([]);
+  const [showAddNoteForm, setShowAddNoteForm] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [newNote, setNewNote] = useState({ 
+    content: '', 
+    tags: [], 
+    linkedDate: getLocalDateString() 
+  });
+  const [showLinkedDate, setShowLinkedDate] = useState(false);
+  const [notesHistoryEntryId, setNotesHistoryEntryId] = useState(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const shareCardRef = useRef(null);
+  const [selectedHistoryEntryForManage, setSelectedHistoryEntryForManage] = useState(null);
+  const [followUpProtocolForManage, setFollowUpProtocolForManage] = useState(null);
+  const [followUpHistoryIdForManage, setFollowUpHistoryIdForManage] = useState(null);
+  
+  const NOTE_TAGS = [
+    { id: 'progress', label: 'Progress Update' },
+    { id: 'side_effects', label: 'Side Effects' },
+    { id: 'adjustment', label: 'Dosage Adjustment' },
+    { id: 'observation', label: 'Observation' },
+    { id: 'question', label: 'Question' }
+  ];
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
     const handleHistoryUpdate = () => {
       setHistoryRefreshKey(prev => prev + 1);
+      // Reload notes if notes tab is active
+      if (manageTab === 'notes' && manageConfirm) {
+        loadNotesForManage();
+      }
     };
     
     window.addEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
     return () => {
       window.removeEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
     };
-  }, []);
+  }, [manageTab, manageConfirm]);
+
+  // Load notes when notes tab is active
+  useEffect(() => {
+    if (manageTab === 'notes' && manageConfirm) {
+      loadNotesForManage();
+    }
+  }, [manageTab, manageConfirm]);
+
+  // Load notes for manage modal
+  const loadNotesForManage = () => {
+    if (!manageConfirm?.id) return;
+    
+    const activeEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+    if (activeEntry) {
+      setNotesHistoryEntryId(activeEntry.id);
+      setNotes(activeEntry.notes || []);
+    } else {
+      setNotesHistoryEntryId(null);
+      setNotes([]);
+    }
+  };
+
+  // Notes helper functions
+  const handleTagToggle = (tagId, isEditing = false) => {
+    if (isEditing && editingNote) {
+      setEditingNote({
+        ...editingNote,
+        tags: editingNote.tags.includes(tagId)
+          ? editingNote.tags.filter(id => id !== tagId)
+          : [...editingNote.tags, tagId]
+      });
+    } else {
+      setNewNote({
+        ...newNote,
+        tags: newNote.tags.includes(tagId)
+          ? newNote.tags.filter(id => id !== tagId)
+          : [...newNote.tags, tagId]
+      });
+    }
+  };
+
+  const handleAddNote = () => {
+    if (!newNote.content.trim() && newNote.tags.length === 0) {
+      setShowAddNoteForm(false);
+      return;
+    }
+
+    if (!notesHistoryEntryId) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Protocol must be started to add notes.', type: 'error' } 
+      }));
+      return;
+    }
+
+    const noteData = {
+      type: 'during',
+      content: newNote.content.trim(),
+      tags: newNote.tags,
+      linkedDate: showLinkedDate ? newNote.linkedDate : null
+    };
+
+    if (addNoteToProtocolHistory(notesHistoryEntryId, noteData)) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Note added successfully.', type: 'success' } 
+      }));
+      window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+      loadNotesForManage();
+      setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
+      setShowLinkedDate(false);
+      setShowAddNoteForm(false);
+    } else {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Failed to add note.', type: 'error' } 
+      }));
+    }
+  };
+
+  const handleSaveEditNote = () => {
+    if (!editingNote || !notesHistoryEntryId) return;
+
+    if (!editingNote.content.trim() && editingNote.tags.length === 0) {
+      handleDeleteNote(editingNote.id);
+      return;
+    }
+
+    const updates = {
+      content: editingNote.content.trim(),
+      tags: editingNote.tags,
+      linkedDate: editingNote.showLinkedDate ? editingNote.linkedDate : null
+    };
+
+    if (updateNoteInProtocolHistory(notesHistoryEntryId, editingNote.id, updates)) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Note updated successfully.', type: 'success' } 
+      }));
+      window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+      loadNotesForManage();
+      setEditingNote(null);
+    } else {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Failed to update note.', type: 'error' } 
+      }));
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNote({ ...note });
+  };
+
+  const handleDeleteNote = (noteId) => {
+    if (!notesHistoryEntryId) return;
+
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      if (deleteNoteFromProtocolHistory(notesHistoryEntryId, noteId)) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Note deleted successfully.', type: 'success' } 
+        }));
+        window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+        loadNotesForManage();
+        if (editingNote?.id === noteId) {
+          setEditingNote(null);
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to delete note.', type: 'error' } 
+        }));
+      }
+    }
+  };
+
+  // Share helper functions
+  const getShareUrl = () => {
+    if (!manageConfirm) return '';
+    const shareData = {
+      type: 'protocol',
+      protocol: manageConfirm
+    };
+    const encodedData = encodeShareData(shareData);
+    if (!encodedData) return '';
+    return `${window.location.origin}/rover/protocol/share/${encodedData}`;
+  };
+
+  const handleShareImage = async () => {
+    if (shareCardRef.current === null) {
+      console.error('Card ref is null');
+      return;
+    }
+
+    const node = shareCardRef.current;
+
+    try {
+      const rect = node.getBoundingClientRect();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const dataUrl = await toPng(node, { 
+        cacheBust: true,
+        width: rect.width,
+        height: rect.height,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        },
+        skipFonts: false,
+        skipAutoScale: true,
+        useCORS: true,
+        allowTaint: true,
+        fontEmbedCSS: false,
+        filter: (node) => {
+          if (node.tagName === 'LINK' && node.href && node.href.includes('fonts.googleapis.com')) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "shared-card.png", { type: blob.type });
+
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                      window.Capacitor || 
+                      window.location.protocol === 'capacitor:';
+      
+      if (isMobile && window.Capacitor) {
+        try {
+          const base64Data = dataUrl.split(',')[1];
+          const fileName = `shared-card-${Date.now()}.png`;
+          const result = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: Directory.Cache,
+          });
+          
+          await Share.share({
+            title: `Check out this Protocol`,
+            text: `Shared from The Pep Planner`,
+            url: result.uri,
+            dialogTitle: 'Share Image',
+          });
+          
+          setTimeout(async () => {
+            try {
+              await Filesystem.deleteFile({
+                path: fileName,
+                directory: Directory.Cache,
+              });
+            } catch (cleanupError) {
+              console.log('Could not clean up temporary file:', cleanupError);
+            }
+          }, 5000);
+        } catch (error) {
+          console.error('Error with Capacitor native share:', error);
+          // Fallback to download
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'shared-card.png';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `Check out this Protocol`,
+          text: `Shared from The Pep Planner`,
+          files: [file],
+        });
+      } else {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'shared-card.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Error generating share image:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Could not generate image. Please try copying the link instead.', type: 'error' } 
+      }));
+    }
+  };
+
+  const handleCopyLink = () => {
+    const url = getShareUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Link copied to clipboard!', type: 'success' } 
+      }));
+      setTimeout(() => {
+        setShareCopied(false);
+      }, 2000);
+    });
+  };
+
+  // History helper functions and data
+  const historyEntriesForManage = useMemo(() => {
+    if (!manageConfirm?.id) return [];
+    const entries = getProtocolHistoryEntries(manageConfirm.id);
+    return entries.sort((a, b) => {
+      const aTimestamp = a.updatedAt ? new Date(a.updatedAt) : (a.createdAt ? new Date(a.createdAt) : new Date(a.startDate));
+      const bTimestamp = b.updatedAt ? new Date(b.updatedAt) : (b.createdAt ? new Date(b.createdAt) : new Date(b.startDate));
+      return bTimestamp.getTime() - aTimestamp.getTime();
+    });
+  }, [manageConfirm?.id, historyRefreshKey]);
+
+  const timelineEntriesForManage = useMemo(() => {
+    const entries = [];
+    let currentMonthYear = null;
+    
+    historyEntriesForManage.forEach((entry) => {
+      const startDate = new Date(entry.startDate);
+      const month = startDate.toLocaleDateString('en-US', { month: 'short' });
+      const year = startDate.getFullYear();
+      const monthYearKey = `${month} ${year}`;
+      
+      if (monthYearKey !== currentMonthYear) {
+        entries.push({
+          type: 'header',
+          key: monthYearKey,
+          month,
+          year,
+          date: startDate
+        });
+        currentMonthYear = monthYearKey;
+      }
+      
+      const endDate = entry.endDate ? new Date(entry.endDate) : null;
+      let durationDays = 0;
+      if (endDate) {
+        durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      }
+      
+      let completionStatus = 'unknown';
+      if (entry.endDate) {
+        if (entry.completionStatus === 'completed' || entry.completionStatus === 'ended_early' || entry.completionStatus === 'rescheduled') {
+          completionStatus = entry.completionStatus;
+        } else {
+          const protocolData = entry.protocolData || {};
+          let duration = protocolData.duration || manageConfirm?.duration;
+          
+          let expectedDurationDays = null;
+          if (duration && !duration.noEnd && duration.count > 0 && duration.unit) {
+            const unit = String(duration.unit).toLowerCase();
+            const count = Number(duration.count) || 0;
+            
+            if (unit.includes('day')) {
+              expectedDurationDays = count;
+            } else if (unit.includes('week')) {
+              expectedDurationDays = count * 7;
+            } else if (unit.includes('month')) {
+              expectedDurationDays = count * 30;
+            }
+          }
+          
+          if (expectedDurationDays !== null && durationDays > 0) {
+            const diffDays = durationDays - expectedDurationDays;
+            if (Math.abs(diffDays) <= 2) {
+              completionStatus = 'completed';
+            } else if (diffDays < -2) {
+              completionStatus = 'ended_early';
+            } else {
+              completionStatus = 'completed';
+            }
+          } else {
+            if (entry.endType === 'completed') {
+              completionStatus = 'completed';
+            } else if (entry.endType === 'manual') {
+              completionStatus = durationDays <= 2 ? 'completed' : 'ended_early';
+            } else {
+              completionStatus = 'ended_early';
+            }
+          }
+        }
+      }
+      
+      entries.push({
+        type: 'entry',
+        historyEntry: entry,
+        durationDays,
+        startDate: formatMMDDYYYY(entry.startDate),
+        endDate: entry.endDate ? formatMMDDYYYY(entry.endDate) : 'Ongoing',
+        completionStatus
+      });
+    });
+    
+    return entries;
+  }, [historyEntriesForManage, manageConfirm]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'completed':
+        return {
+          icon: CalendarCheck,
+          label: 'Completed',
+          bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
+          textColor: '#dcfce7'
+        };
+      case 'ended_early':
+        return {
+          icon: CalendarX,
+          label: 'Ended Early',
+          bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
+          textColor: '#fee2e2'
+        };
+      case 'rescheduled':
+        return {
+          icon: Clock,
+          label: 'Rescheduled',
+          bgColor: theme.isDark ? '#78350f' : '#fef3c7',
+          textColor: theme.isDark ? '#fcd34d' : '#92400e'
+        };
+      default:
+        return null;
+    }
+  };
+
+  const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+  const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
 
   // Migrate existing protocol history entries on mount (assign IDs, preserve all data)
   useEffect(() => {
@@ -2197,66 +2612,608 @@ export default function Protocols() {
             )}
 
             {manageTab === 'notes' && (
-              <div className="py-4">
-                <button
-                  onClick={() => setIsNotesModalOpen(true)}
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                    color: theme.textOnPrimary || '#ffffff'
-                  }}
-                >
-                  Open Notes
-                </button>
-                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-                  Notes functionality will be available inline in a future update.
-                </p>
+              <div className="space-y-4">
+                {/* Add Note Button */}
+                {!showAddNoteForm && !editingNote && (
+                  <button
+                    onClick={() => setShowAddNoteForm(true)}
+                    className="w-full p-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+                    style={{ 
+                      backgroundColor: theme.primary, 
+                      color: theme.textOnPrimary 
+                    }}
+                  >
+                    <Plus size={18} />
+                    Add Note
+                  </button>
+                )}
+
+                {/* Add Note Form */}
+                {showAddNoteForm && (
+                  <div className="p-4 rounded-lg space-y-4" style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    border: `1px solid ${theme.border}`
+                  }}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold" style={{ color: theme.text }}>New Note</h3>
+                      <button
+                        onClick={() => {
+                          setShowAddNoteForm(false);
+                          setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
+                          setShowLinkedDate(false);
+                        }}
+                        className="p-1 rounded hover:bg-opacity-20"
+                        style={{ color: theme.textLight }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <textarea
+                      value={newNote.content}
+                      onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                      placeholder="Add your note here..."
+                      className="w-full p-3 rounded-lg text-sm resize-none"
+                      rows={4}
+                      style={{
+                        backgroundColor: theme.isDark ? '#111827' : '#ffffff',
+                        border: `1px solid ${theme.border}`,
+                        color: theme.text
+                      }}
+                    />
+
+                    <div>
+                      <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
+                        Tags
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {NOTE_TAGS.map(tag => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleTagToggle(tag.id)}
+                            className="px-2 py-1 rounded text-xs font-medium transition-all"
+                            style={{
+                              backgroundColor: newNote.tags.includes(tag.id)
+                                ? theme.primary
+                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                              color: newNote.tags.includes(tag.id)
+                                ? theme.textOnPrimary
+                                : theme.text,
+                              border: `1px solid ${newNote.tags.includes(tag.id) ? theme.primary : theme.border}`
+                            }}
+                          >
+                            {tag.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-semibold mb-2" style={{ color: theme.text }}>
+                        <input
+                          type="checkbox"
+                          checked={showLinkedDate}
+                          onChange={(e) => setShowLinkedDate(e.target.checked)}
+                          className="rounded"
+                          style={{ accentColor: theme.primary }}
+                        />
+                        <Calendar size={14} />
+                        <span>Show in calendar</span>
+                      </label>
+                      {showLinkedDate && (
+                        <div className="mt-2">
+                          <GlassmorphismDatePicker
+                            value={newNote.linkedDate}
+                            onChange={(date) => setNewNote({ ...newNote, linkedDate: date })}
+                            theme={theme}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setShowAddNoteForm(false);
+                          setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
+                          setShowLinkedDate(false);
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        style={{ 
+                          backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                          color: theme.text
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAddNote}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        style={{ 
+                          backgroundColor: theme.primary, 
+                          color: theme.textOnPrimary 
+                        }}
+                      >
+                        Save Note
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit Note Form */}
+                {editingNote && (
+                  <div className="p-4 rounded-lg space-y-4" style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    border: `1px solid ${theme.border}`
+                  }}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold" style={{ color: theme.text }}>Edit Note</h3>
+                      <button
+                        onClick={() => setEditingNote(null)}
+                        className="p-1 rounded hover:bg-opacity-20"
+                        style={{ color: theme.textLight }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <textarea
+                      value={editingNote.content || ''}
+                      onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                      placeholder="Add your note here..."
+                      className="w-full p-3 rounded-lg text-sm resize-none"
+                      rows={4}
+                      style={{
+                        backgroundColor: theme.isDark ? '#111827' : '#ffffff',
+                        border: `1px solid ${theme.border}`,
+                        color: theme.text
+                      }}
+                    />
+
+                    <div>
+                      <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
+                        Tags
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {NOTE_TAGS.map(tag => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleTagToggle(tag.id, true)}
+                            className="px-2 py-1 rounded text-xs font-medium transition-all"
+                            style={{
+                              backgroundColor: editingNote.tags?.includes(tag.id)
+                                ? theme.primary
+                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                              color: editingNote.tags?.includes(tag.id)
+                                ? theme.textOnPrimary
+                                : theme.text,
+                              border: `1px solid ${editingNote.tags?.includes(tag.id) ? theme.primary : theme.border}`
+                            }}
+                          >
+                            {tag.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-semibold mb-2" style={{ color: theme.text }}>
+                        <input
+                          type="checkbox"
+                          checked={editingNote.showLinkedDate || false}
+                          onChange={(e) => setEditingNote({ 
+                            ...editingNote, 
+                            showLinkedDate: e.target.checked 
+                          })}
+                          className="rounded"
+                          style={{ accentColor: theme.primary }}
+                        />
+                        <Calendar size={14} />
+                        <span>Show in calendar</span>
+                      </label>
+                      {editingNote.showLinkedDate && (
+                        <div className="mt-2">
+                          <GlassmorphismDatePicker
+                            value={editingNote.linkedDate || getLocalDateString()}
+                            onChange={(date) => setEditingNote({ ...editingNote, linkedDate: date })}
+                            theme={theme}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setEditingNote(null)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        style={{ 
+                          backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                          color: theme.text
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveEditNote}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        style={{ 
+                          backgroundColor: theme.primary, 
+                          color: theme.textOnPrimary 
+                        }}
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes List */}
+                {!showAddNoteForm && !editingNote && (
+                  <div className="space-y-3">
+                    {notes.length === 0 ? (
+                      <div className="text-center py-8" style={{ color: theme.textLight }}>
+                        <FileText size={48} className="mx-auto mb-3 opacity-50" />
+                        <p>No notes yet. Add your first note to track progress!</p>
+                      </div>
+                    ) : (
+                      notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="p-4 rounded-lg"
+                          style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            border: `1px solid ${theme.border}`
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1">
+                              <div className="text-xs mb-1" style={{ color: theme.textLight }}>
+                                {formatMMDDYYYY(note.createdAt)}
+                                {note.linkedDate && (
+                                  <span className="ml-2 flex items-center gap-1">
+                                    <Calendar size={12} />
+                                    Linked to {formatMMDDYYYY(note.linkedDate)}
+                                  </span>
+                                )}
+                              </div>
+                              {note.content && (
+                                <p className="text-sm mt-2 whitespace-pre-wrap" style={{ color: theme.text }}>
+                                  {note.content}
+                                </p>
+                              )}
+                              {note.tags && note.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {note.tags.map(tagId => {
+                                    const tag = NOTE_TAGS.find(t => t.id === tagId);
+                                    return tag ? (
+                                      <span
+                                        key={tagId}
+                                        className="px-2 py-0.5 rounded text-xs font-medium"
+                                        style={{
+                                          backgroundColor: theme.primary + '20',
+                                          color: theme.primary
+                                        }}
+                                      >
+                                        {tag.label}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleEditNote({ ...note, showLinkedDate: !!note.linkedDate })}
+                                className="p-1.5 rounded hover:bg-opacity-20 transition-all"
+                                style={{ color: theme.textLight }}
+                                title="Edit note"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteNote(note.id)}
+                                className="p-1.5 rounded hover:bg-opacity-20 transition-all"
+                                style={{ color: theme.textLight }}
+                                title="Delete note"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            {manageTab === 'share' && (
-              <div className="py-4">
-                <button
-                  onClick={() => setIsShareModalOpen(true)}
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                    color: theme.textOnPrimary || '#ffffff'
-                  }}
-                >
-                  Open Share
-                </button>
-                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-                  Share functionality will be available inline in a future update.
-                </p>
+            {manageTab === 'share' && manageConfirm && (
+              <div className="space-y-4">
+                {/* Header Section */}
+                <div className="pt-2">
+                  <div className="flex items-center gap-4 mb-4">
+                    <Eye size={32} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5 flex-1">
+                      <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
+                      <div className="flex items-center gap-2 ml-1">
+                        <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                          Shareable Content
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview Card */}
+                <div className="flex justify-center w-full overflow-x-auto pb-2">
+                  <div 
+                    ref={shareCardRef} 
+                    className="bg-white rounded-2xl shadow-lg inline-block max-w-full" 
+                    style={{ 
+                      fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      padding: '0'
+                    }}
+                  >
+                    <SharedProtocolCard protocol={manageConfirm} isPublicView={true} theme={theme} />
+                  </div>
+                </div>
+
+                {/* Share Actions */}
+                <div className="flex w-full gap-3 pt-4">
+                  <button 
+                    onClick={handleShareImage} 
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
+                    style={{ 
+                      backgroundColor: theme.primary, 
+                      color: theme.textOnPrimary || '#ffffff'
+                    }}
+                  >
+                    <Image size={18} />
+                    Share Image
+                  </button>
+                  <button 
+                    onClick={handleCopyLink} 
+                    disabled={shareCopied} 
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                    style={{ 
+                      borderColor: shareCopied ? theme.primary : theme.border, 
+                      backgroundColor: shareCopied ? `${theme.primary}15` : 'transparent', 
+                      color: shareCopied ? theme.primary : theme.text 
+                    }}
+                  >
+                    {shareCopied ? <Check size={18} /> : <Copy size={18} />}
+                    {shareCopied ? 'Copied!' : 'Copy Link'}
+                  </button>
+                </div>
               </div>
             )}
 
             {manageTab === 'history' && (
-              <div className="py-4">
-                <button
-                  onClick={() => {
-                    const protocolToManage = manageConfirm;
-                    setManageConfirm(null);
-                    setManageTab('manage');
-                    setHistoryProtocol(protocolToManage);
-                    setHistoryFromManage(true);
-                  }}
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                    color: theme.textOnPrimary || '#ffffff'
-                  }}
-                >
-                  Open History
-                </button>
-                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-                  History functionality will be available inline in a future update.
-                </p>
+              <div className="relative">
+                {timelineEntriesForManage.length > 0 ? (
+                  <div className="relative pl-8 md:pl-12">
+                    {/* Vertical timeline line */}
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 w-0.5"
+                      style={{ 
+                        backgroundColor: theme.border || (theme.isDark ? '#374151' : '#e5e7eb'),
+                        marginLeft: '1.5rem',
+                        zIndex: 1
+                      }}
+                    />
+
+                    {/* Timeline entries */}
+                    <div className="space-y-6">
+                      {timelineEntriesForManage.map((entry, index) => {
+                        if (entry.type === 'header') {
+                          return (
+                            <div key={entry.key} className="relative flex items-center">
+                              <div 
+                                className="absolute left-0 w-4 h-4 rounded-full border-2 -ml-8 md:-ml-12 z-10"
+                                style={{ 
+                                  backgroundColor: theme.cardBackground || theme.background,
+                                  borderColor: theme.primary,
+                                  marginLeft: '-1.5rem'
+                                }}
+                              />
+                              <h3 
+                                className="text-lg font-bold uppercase tracking-wider pl-4"
+                                style={{ color: theme.text }}
+                              >
+                                {entry.month} {entry.year}
+                              </h3>
+                            </div>
+                          );
+                        } else {
+                          const statusBadge = getStatusBadge(entry.completionStatus);
+                          const StatusIcon = statusBadge?.icon;
+                          
+                          return (
+                            <div key={entry.historyEntry.id} className="relative pl-4">
+                              <div 
+                                className="absolute left-0 w-3 h-3 rounded-full -ml-8 md:-ml-12 z-10"
+                                style={{ 
+                                  backgroundColor: theme.primary,
+                                  marginLeft: '-1.5rem',
+                                  marginTop: '0.5rem',
+                                  border: `2px solid ${theme.cardBackground || theme.background}`
+                                }}
+                              />
+                              
+                              <button
+                                onClick={() => setSelectedHistoryEntryForManage(entry.historyEntry)}
+                                className="w-full text-left p-4 pb-16 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] relative"
+                                style={{ 
+                                  backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
+                                  border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
+                                  boxShadow: theme.isDark 
+                                    ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
+                                    : '0 2px 4px rgba(0, 0, 0, 0.05)'
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="font-semibold text-base" style={{ color: theme.text }}>
+                                        {entry.historyEntry.protocolName || manageConfirm?.protocolName || 'Unnamed Protocol'}
+                                      </span>
+                                      {manageConfirm?.emoji && (
+                                        <span className="text-lg">{manageConfirm.emoji}</span>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
+                                      <span className="flex items-center gap-1">
+                                        <Clock size={14} />
+                                        {entry.startDate} → {entry.endDate}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {entry.durationDays > 0 && (
+                                      <span className="text-sm font-medium" style={{ color: theme.textLight }}>
+                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    <div className="opacity-50">
+                                      <ChevronDown 
+                                        size={20} 
+                                        className="transform rotate-[-90deg]"
+                                        style={{ color: theme.textLight }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="absolute bottom-2 right-2 flex items-center gap-2 justify-end">
+                                  {statusBadge && StatusIcon && (
+                                    <span 
+                                      className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 whitespace-nowrap"
+                                      style={{ 
+                                        backgroundColor: statusBadge.bgColor,
+                                        color: statusBadge.textColor
+                                      }}
+                                    >
+                                      <StatusIcon size={12} />
+                                      {statusBadge.label}
+                                    </span>
+                                  )}
+                                  {(() => {
+                                    const hasFollowUp = entry.historyEntry.notes && 
+                                      Array.isArray(entry.historyEntry.notes) && 
+                                      entry.historyEntry.notes.some(n => n.type === 'follow_up');
+                                    if (!hasFollowUp && entry.historyEntry.endDate) {
+                                      return (
+                                        <span 
+                                          className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap"
+                                          style={{ 
+                                            backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                            color: theme.textLight
+                                          }}
+                                        >
+                                          No Follow-Up
+                                        </span>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                                
+                                {(() => {
+                                  const hasFollowUp = entry.historyEntry.notes && 
+                                    Array.isArray(entry.historyEntry.notes) && 
+                                    entry.historyEntry.notes.some(n => n.type === 'follow_up');
+                                  if (!hasFollowUp && entry.historyEntry.endDate) {
+                                    return (
+                                      <div className="absolute bottom-2 left-2 right-2">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFollowUpProtocolForManage(manageConfirm);
+                                            setFollowUpHistoryIdForManage(entry.historyEntry.id);
+                                          }}
+                                          className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                                          style={{
+                                            background: terracottaGradient,
+                                            color: '#ffffff',
+                                            boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = terracottaHoverGradient;
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = terracottaGradient;
+                                          }}
+                                        >
+                                          <FileText size={14} />
+                                          Complete Follow-Up Assessment
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </button>
+                            </div>
+                          );
+                        }
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
+                    <div
+                      className="px-4 py-2 rounded-full mb-3"
+                      style={{
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                        border: `1px solid ${theme.border}`,
+                        display: 'inline-block'
+                      }}
+                    >
+                      <span className="text-sm font-medium" style={{ color: theme.text }}>
+                        You haven't researched this one yet!
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
         </div>
         </BottomSheet>
+      )}
+
+      {/* History Detail Modal - From Manage Tab */}
+      <ProtocolHistoryDetailModal
+        open={!!selectedHistoryEntryForManage}
+        onClose={() => setSelectedHistoryEntryForManage(null)}
+        historyEntry={selectedHistoryEntryForManage}
+        theme={theme}
+        stockpile={stockpile}
+      />
+
+      {/* Follow-Up Modal - From Manage Tab */}
+      {followUpProtocolForManage && (
+        <ProtocolFollowUpModal
+          open={!!followUpProtocolForManage}
+          onClose={() => {
+            setFollowUpProtocolForManage(null);
+            setFollowUpHistoryIdForManage(null);
+            window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+          }}
+          protocol={followUpProtocolForManage}
+          historyEntryId={followUpHistoryIdForManage}
+          theme={theme}
+          onSave={() => {
+            setFollowUpProtocolForManage(null);
+            setFollowUpHistoryIdForManage(null);
+            window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+          }}
+        />
       )}
 
       {/* Delete Confirmation Modal - From Manage Modal */}
