@@ -1191,33 +1191,33 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Delete Section - Only show for existing protocols */}
                 {form?.id && onDelete && (
                     <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
-                        <div className="p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.1)' : 'rgba(200, 122, 92, 0.05)' }}>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-1" style={{ color: theme.text }}>Delete Protocol</h4>
-                                    <p className="text-xs" style={{ color: theme.textLight }}>
-                                        This action cannot be undone. All protocol data will be permanently deleted.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => onDelete?.(form)}
-                                    className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
-                                    style={{
-                                        background: terracottaGradient,
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = terracottaHoverGradient;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = terracottaGradient;
-                                    }}
-                                >
-                                    Delete
-                                </button>
+                        <div className="p-5 rounded-lg space-y-4" style={{ backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.1)' : 'rgba(200, 122, 92, 0.05)' }}>
+                            <div>
+                                <h4 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Delete Protocol</h4>
+                                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                                    This action cannot be undone. All protocol data will be permanently deleted.
+                                </p>
                             </div>
+                            <button
+                                onClick={() => onDelete?.(form)}
+                                className="w-full px-5 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                                style={{
+                                    background: terracottaGradient,
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = terracottaHoverGradient;
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = terracottaGradient;
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                }}
+                            >
+                                Delete Protocol
+                            </button>
                         </div>
                     </div>
                 )}
