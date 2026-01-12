@@ -83,6 +83,13 @@ export default function Protocols() {
     linkedDate: getLocalDateString() 
   });
   const [showLinkedDate, setShowLinkedDate] = useState(false);
+  
+  // Reset showLinkedDate when form opens/closes
+  useEffect(() => {
+    if (!showAddNoteForm) {
+      setShowLinkedDate(false);
+    }
+  }, [showAddNoteForm]);
   const [notesHistoryEntryId, setNotesHistoryEntryId] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const shareCardRef = useRef(null);
@@ -2521,12 +2528,11 @@ export default function Protocols() {
                         )}
                         {(showAddNoteForm || editingNote) && (
                           <>
-                            <button
-                              onClick={() => {
-                                if (showAddNoteForm) {
-                                  setShowAddNoteForm(false);
-                                  setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
-                                  setShowLinkedDate(false);
+                          <button
+                            onClick={() => {
+                              if (showAddNoteForm) {
+                                setShowAddNoteForm(false);
+                                setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
                                 } else if (editingNote) {
                                   setEditingNote(null);
                                 }
@@ -2777,7 +2783,6 @@ export default function Protocols() {
                         onClick={() => {
                           setShowAddNoteForm(false);
                           setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
-                          setShowLinkedDate(false);
                         }}
                         className="text-sm font-medium transition-opacity hover:opacity-70"
                         style={{ 
