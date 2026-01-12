@@ -2609,7 +2609,7 @@ export default function Protocols() {
 
 
             {manageTab === 'edit' && (
-              <div className="h-full -mx-6 -my-4">
+              <div className="h-full w-full overflow-x-hidden">
                 {/* Render the full editor modal inline */}
                 <ProtocolEditorModal
                   open={true}

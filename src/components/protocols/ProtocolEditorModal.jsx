@@ -469,7 +469,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     // Main content that can be rendered with or without BottomSheet wrapper
     const editorContent = (
-        <div className={embedded ? "space-y-4 p-4" : "space-y-4"}>
+        <div className={embedded ? "space-y-4 w-full max-w-full overflow-x-hidden" : "space-y-4"}>
                 {/* PROTOCOL INFO Section Header */}
                 <div className="flex items-center gap-2 mb-1">
                     <BookOpenCheck size={28} style={{ color: theme.primary }} />
