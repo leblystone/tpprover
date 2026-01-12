@@ -57,6 +57,7 @@ export default function Protocols() {
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
   const [manageTab, setManageTab] = useState('manage'); // 'manage' | 'edit' | 'notes' | 'share' | 'history'
+  const [editFromManage, setEditFromManage] = useState(null); // Track if editing from manage modal
   const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2188,7 +2189,14 @@ export default function Protocols() {
 
       <ProtocolEditorModal
         open={!!editing}
-        onClose={() => setEditing(null)}
+        onClose={() => {
+          // If we came from manage modal, restore it
+          if (editFromManage) {
+            setManageConfirm(editFromManage);
+            setEditFromManage(null);
+          }
+          setEditing(null);
+        }}
         theme={theme}
         protocol={editing}
         onSave={(data) => {
@@ -2272,6 +2280,12 @@ export default function Protocols() {
             window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', { detail: { protocolUpdated: true } }));
           } catch (e) {
             console.warn('Failed to save protocol draft:', e);
+          }
+          
+          // If we came from manage modal, restore it with updated data
+          if (editFromManage) {
+            setManageConfirm(finalProtocol);
+            setEditFromManage(null);
           }
           
           setEditing(null); 
@@ -2465,7 +2479,17 @@ export default function Protocols() {
             <div className="flex-shrink-0">
               <Tabs
                 value={manageTab}
-                onChange={setManageTab}
+                onChange={(newTab) => {
+                  if (newTab === 'edit') {
+                    // Open editor modal and track that we came from manage
+                    setEditFromManage(manageConfirm);
+                    setManageConfirm(null); // Hide manage modal
+                    setManageTab('manage'); // Reset tab for when we return
+                    handleEditClick(manageConfirm);
+                  } else {
+                    setManageTab(newTab);
+                  }
+                }}
                 options={[
                   { value: 'manage', label: 'Manage' },
                   { value: 'edit', label: 'Edit' },
@@ -2593,28 +2617,6 @@ export default function Protocols() {
               </>
             )}
 
-            {manageTab === 'edit' && (
-              <div className="py-4">
-                <button
-                  onClick={() => {
-                    const protocolToEdit = manageConfirm;
-                    setManageConfirm(null);
-                    setManageTab('manage');
-                    handleEditClick(protocolToEdit);
-                  }}
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                    color: theme.textOnPrimary || '#ffffff'
-                  }}
-                >
-                  Open Editor
-                </button>
-                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-                  Opens the full protocol editor with all editing capabilities.
-                </p>
-              </div>
-            )}
 
             {manageTab === 'notes' && (
               <div className="space-y-4">
@@ -3253,6 +3255,7 @@ export default function Protocols() {
             deleteProtocol(deleteFromEditor.id);
             setEditing(null);
             setDeleteFromEditor(null);
+            setEditFromManage(null); // Don't restore manage modal after deletion
             window.dispatchEvent(new CustomEvent('tpp:toast', { 
               detail: { message: 'Protocol deleted successfully', type: 'success' } 
             }));
