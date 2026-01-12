@@ -50,6 +50,7 @@ export default function Protocols() {
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
+  const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -1895,7 +1896,16 @@ export default function Protocols() {
 
       <ProtocolHistoryModal
         open={!!historyProtocol}
-        onClose={() => setHistoryProtocol(null)}
+        onClose={() => {
+          setHistoryProtocol(null);
+          setHistoryFromManage(false);
+        }}
+        onBack={historyFromManage ? () => {
+          // Restore manage modal when back is clicked
+          setHistoryProtocol(null);
+          setManageConfirm(historyProtocol);
+          setHistoryFromManage(false);
+        } : undefined}
         protocol={historyProtocol}
         theme={theme}
         onStartProtocol={handleStartClick}
@@ -1916,10 +1926,12 @@ export default function Protocols() {
           onClose={() => {
             setManageConfirm(null);
             setHistoryProtocol(null); // Ensure history modal is also closed
+            setHistoryFromManage(false);
           }}
           onBack={() => {
             setManageConfirm(null);
             setHistoryProtocol(null); // Ensure history modal is also closed
+            setHistoryFromManage(false);
           }}
           title={`Manage "${manageConfirm.protocolName}"`}
           theme={theme}
@@ -2087,8 +2099,12 @@ export default function Protocols() {
               
               <button
                 onClick={() => {
+                  // Store the manage protocol before opening history
+                  const protocolToManage = manageConfirm;
                   setManageConfirm(null);
-                  setHistoryProtocol(manageConfirm);
+                  setHistoryProtocol(protocolToManage);
+                  // Store a flag to restore manage modal on back
+                  setHistoryFromManage(true);
                 }}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
                 style={{

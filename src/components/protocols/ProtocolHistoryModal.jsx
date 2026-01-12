@@ -7,7 +7,7 @@ import { getProtocolHistoryEntries } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 
-export default function ProtocolHistoryModal({ open, onClose, protocol, theme, onStartProtocol }) {
+export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, theme, onStartProtocol }) {
     const { stockpile } = useAppContext();
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
     const [followUpProtocol, setFollowUpProtocol] = useState(null);
@@ -170,7 +170,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme, o
             <BottomSheet
                 open={open}
                 onClose={onClose}
-                onBack={onClose}
+                onBack={onBack || onClose}
                 title={`History for "${protocol.protocolName || 'Protocol'}"`}
                 theme={theme}
                 maxHeight="90vh"
