@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faStripe, faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
+// Note: Squarespace doesn't have a FontAwesome icon, we'll use a custom SVG or text
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -142,6 +143,12 @@ export default function AccountSubscription() {
                  sub?.source === 'appstore') {
           paymentProvider = 'apple'
         }
+        // Squarespace indicators
+        else if (sub?.squarespaceSubscriptionId || 
+                 sub?.squarespaceOrderId ||
+                 sub?.source === 'squarespace') {
+          paymentProvider = 'squarespace'
+        }
         // Stripe indicators (check last, as these might be null for other providers)
         else if (sub?.stripeCustomerId || sub?.customerId || sub?.stripeSubscriptionId) {
           paymentProvider = 'stripe'
@@ -153,6 +160,8 @@ export default function AccountSubscription() {
             paymentProvider = 'googleplay'
           } else if (sub.paymentProvider === 'apple') {
             paymentProvider = 'apple'
+          } else if (sub.paymentProvider === 'squarespace') {
+            paymentProvider = 'squarespace'
           } else if (sub.paymentProvider === 'stripe') {
             paymentProvider = 'stripe'
           }
@@ -161,6 +170,8 @@ export default function AccountSubscription() {
             paymentProvider = 'googleplay'
           } else if (sub.source === 'apple') {
             paymentProvider = 'apple'
+          } else if (sub.source === 'squarespace') {
+            paymentProvider = 'squarespace'
           } else if (sub.source === 'stripe' || sub.paymentMethodId) {
             paymentProvider = 'stripe'
           }
@@ -211,6 +222,25 @@ export default function AccountSubscription() {
             duration: 6000
           } 
         }))
+        return
+      }
+
+      if (paymentProvider === 'squarespace') {
+        // Squarespace subscriptions must be managed through Squarespace customer portal
+        // Get Squarespace site URL from config
+        const { getEnvVar } = await import('../config/appConfig')
+        const squarespaceSiteUrl = getEnvVar('VITE_SQUARESPACE_SITE_URL') || 'https://www.thepepplanner.com'
+        const portalUrl = `${squarespaceSiteUrl}/account/subscriptions`
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Opening Squarespace customer portal to manage your subscription...', 
+            type: 'info' 
+          } 
+        }))
+        
+        // Open Squarespace customer portal in new tab
+        window.open(portalUrl, '_blank')
         return
       }
 
@@ -303,10 +333,12 @@ export default function AccountSubscription() {
     // Check paymentProvider field (used by backend)
     if (sub.paymentProvider === 'googleplay') return 'VIA GOOGLE PLAY'
     if (sub.paymentProvider === 'apple') return 'VIA APPLE'
+    if (sub.paymentProvider === 'squarespace') return 'VIA SQUARESPACE'
     if (sub.paymentProvider === 'stripe') return 'VIA STRIPE'
     // Fallback checks for older data
     if (sub.source === 'google_play') return 'VIA GOOGLE PLAY'
     if (sub.source === 'apple') return 'VIA APPLE'
+    if (sub.source === 'squarespace') return 'VIA SQUARESPACE'
     if (sub.source === 'stripe' || sub.paymentMethodId) return 'VIA STRIPE'
     if (sub.interval === 'lifetime' && !sub.paymentMethodId && !sub.paymentProvider) return 'LIFETIME KIT REDEMPTION'
     return ''
@@ -628,11 +660,31 @@ export default function AccountSubscription() {
                 style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#000000' }}
               />
             </div>
+
+            {/* Squarespace Logo */}
+            <div 
+              className="flex items-center justify-center px-5 py-3 rounded-xl transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+              }}
+            >
+              <span 
+                style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '600',
+                  color: theme.isDark ? '#ffffff' : '#222222',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                Squarespace
+              </span>
+            </div>
           </div>
 
           <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>
             The Pep Planner does not store or process any private payment information. 
-            All payments are securely handled exclusively through Stripe, Google Play, and Apple App Store.
+            All payments are securely handled exclusively through Stripe, Google Play, Apple App Store, and Squarespace.
           </p>
         </div>
       </div>

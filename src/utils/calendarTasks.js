@@ -38,20 +38,6 @@ function getDayDifference(date1, date2) {
     return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
 }
 
-// Helper to normalize day names to short format (Mon, Tue, etc.)
-// This ensures compatibility between stored day names (which may be full or short format)
-// and the short format returned by toLocaleDateString
-function normalizeDayName(day) {
-    if (!day) return day;
-    const dayMap = {
-        'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu',
-        'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun',
-        'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed', 'thursday': 'Thu',
-        'friday': 'Fri', 'saturday': 'Sat', 'sunday': 'Sun'
-    };
-    return dayMap[day] || day;
-}
-
 // Helper to get protocol date windows
 function getWindows(p) {
     try {
@@ -83,10 +69,8 @@ function getNormalizedPeptides(p) {
         : [{ name: p.name || p.peptide, dosage: p.dosage, frequency: p.frequency }];
     return basePeptides.map(pep => {
         const f = pep?.frequency || {};
-        // Normalize frequency type (case-insensitive)
-        const type = (f.type || 'daily').toLowerCase();
+        const type = f.type || 'daily';
         const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['AM'];
-        // Preserve all frequency properties including onDays, offDays, days, etc.
         return { ...pep, frequency: { ...f, type, time } };
     });
 }
@@ -179,39 +163,24 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     break;
                 case 'weekly':
                     const dayName = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
-                    // Normalize stored days to short format for comparison
-                    const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
-                    if (normalizedDays.includes(dayName)) {
+                    if (freq.days?.includes(dayName)) {
                         isScheduledToday = true;
                     }
                     break;
                 case 'cycle':
-                    // Parse onDays and offDays, handling both string and number formats
-                    const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
-                    const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
-                    console.log('🔄 Cycle Debug (Blended):', {
-                        peptideName: peptides[0]?.name,
-                        onDays: on,
-                        offDays: off,
-                        freqOnDays: freq.onDays,
-                        freqOffDays: freq.offDays,
-                        protocolStartDate: protocolStartDate?.toDateString(),
-                        dateChecking: dateNormalized?.toDateString()
-                    });
+                    const on = Number(freq.onDays) || 0;
+                    const off = Number(freq.offDays) || 0;
                     if (on > 0 && off >= 0) {
                         const cycleLen = on + off;
-                        if (cycleLen > 0) {
-                            // CRITICAL: Calculate day difference using normalized dates
-                            // dayDiff = 0 means it's the start day (first "on" day)
-                            const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
-                            if (dayDiff !== null && dayDiff >= 0) {
-                                // dayInCycle ranges from 0 to (cycleLen - 1)
-                                // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
-                                const dayInCycle = dayDiff % cycleLen;
-                                console.log('🔄 Cycle Calculation:', { dayDiff, cycleLen, dayInCycle, shouldSchedule: dayInCycle < on });
-                                if (dayInCycle < on) {
-                                    isScheduledToday = true;
-                                }
+                        // CRITICAL: Calculate day difference using normalized dates
+                        // dayDiff = 0 means it's the start day (first "on" day)
+                        const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
+                        if (dayDiff !== null && dayDiff >= 0) {
+                            // dayInCycle ranges from 0 to (cycleLen - 1)
+                            // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
+                            const dayInCycle = dayDiff % cycleLen;
+                            if (dayInCycle < on) {
+                                isScheduledToday = true;
                             }
                         }
                     }
@@ -313,8 +282,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 let isScheduledToday = false;
 
                 if (!ps) return;
-                // ps from getWindows is already normalized, so use it directly
-                const protocolStartDate = ps;
+                const protocolStartDate = normalizeToMidnight(ps);
                 if (!protocolStartDate || !dateNormalized) return;
 
                 switch (freq.type) {
@@ -323,39 +291,20 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         break;
                     case 'weekly':
                         const dayName = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
-                        // Normalize stored days to short format for comparison
-                        const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
-                        if (normalizedDays.includes(dayName)) {
+                        if (freq.days?.includes(dayName)) {
                             isScheduledToday = true;
                         }
                         break;
                     case 'cycle':
-                        // Parse onDays and offDays, handling both string and number formats
-                        const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
-                        const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
-                        console.log('🔄 Cycle Debug (Separate):', {
-                            peptideName: pep?.name,
-                            onDays: on,
-                            offDays: off,
-                            freqOnDays: freq.onDays,
-                            freqOffDays: freq.offDays,
-                            protocolStartDate: protocolStartDate?.toDateString(),
-                            dateChecking: dateNormalized?.toDateString()
-                        });
-                        if (on > 0 && off >= 0) {
+                        const on = Number(freq.onDays) || 0;
+                        const off = Number(freq.offDays) || 0;
+                        if (on > 0) {
                             const cycleLen = on + off;
-                            if (cycleLen > 0) {
-                                // CRITICAL: Calculate day difference using normalized dates
-                                // dayDiff = 0 means it's the start day (first "on" day)
-                                const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
-                                if (dayDiff !== null && dayDiff >= 0) {
-                                    // dayInCycle ranges from 0 to (cycleLen - 1)
-                                    // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
-                                    const dayInCycle = dayDiff % cycleLen;
-                                    console.log('🔄 Cycle Calculation:', { dayDiff, cycleLen, dayInCycle, shouldSchedule: dayInCycle < on });
-                                    if (dayInCycle < on) {
-                                        isScheduledToday = true;
-                                    }
+                            const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
+                            if (dayDiff !== null && dayDiff >= 0) {
+                                const dayInCycle = dayDiff % cycleLen;
+                                if (dayInCycle < on) {
+                                    isScheduledToday = true;
                                 }
                             }
                         }
