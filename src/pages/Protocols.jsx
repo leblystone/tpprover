@@ -2373,6 +2373,7 @@ export default function Protocols() {
           maxHeight="85vh"
           footer={
             <div className="w-full flex items-center gap-3">
+                {/* Left side - Close/Cancel button */}
                 <button
                     type="button"
                     onClick={() => {
@@ -2390,88 +2391,164 @@ export default function Protocols() {
                 >
                     {manageTab === 'manage' ? 'Cancel' : 'Close'}
                 </button>
-                <div className="flex-1" />
-                {manageTab === 'manage' && (
-                  <button
-                      type="button"
-                      onClick={() => {
-                              if (manageConfirm) {
-                                  updateProtocol(manageConfirm);
-                                  
-                                  // Update history entry with current linkedItems (for complete data preservation)
-                                  try {
-                                      const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
-                                      if (activeHistoryEntry) {
-                                          // Extract skipped reconstitution data from linkedItems
-                                          const skippedReconstitution = {};
-                                          const linkedItems = manageConfirm.linkedItems || {};
-                                          Object.entries(linkedItems).forEach(([peptideId, item]) => {
-                                              if (item.status === 'skipped' && item.deliveryMethod) {
-                                                  const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
-                                                  skippedReconstitution[peptideId] = {
-                                                      peptideName: peptide?.name || 'Unknown',
-                                                      deliveryMethod: item.deliveryMethod
-                                                  };
-                                              }
-                                          });
-                                          
-                                          // Update history entry with complete linkedItems and skipped reconstitution
-                                          const updatedProtocolData = {
-                                              ...(activeHistoryEntry.protocolData || {}),
-                                              linkedItems: linkedItems // Save complete linkedItems for reference
-                                          };
-                                          
-                                          updateProtocolHistoryEntry(activeHistoryEntry.id, {
-                                              protocolData: updatedProtocolData,
-                                              skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
-                                          });
-                                      }
-                                  } catch (e) {
-                                      console.warn('Failed to update protocol history with linkedItems:', e);
-                                  }
-                                  
-                                  // Save to protocol draft for real-time sync with tasks/calendar
-                                  try {
-                                      const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
-                                      localStorage.setItem(draftKey, JSON.stringify({
-                                          data: manageConfirm,
-                                          timestamp: new Date().toISOString()
-                                      }));
+                
+                {/* Center - Tab-specific buttons */}
+                <div className="flex-1 flex items-center justify-center gap-3">
+                    {/* Manage Tab - Save Changes */}
+                    {manageTab === 'manage' && (
+                      <button
+                          type="button"
+                          onClick={() => {
+                                  if (manageConfirm) {
+                                      updateProtocol(manageConfirm);
                                       
-                                      // Emit event so TasksWidget and Calendar pick up the changes immediately
-                                      window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
-                                          detail: { storageKey: draftKey, formData: manageConfirm }
+                                      // Update history entry with current linkedItems (for complete data preservation)
+                                      try {
+                                          const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                                          if (activeHistoryEntry) {
+                                              // Extract skipped reconstitution data from linkedItems
+                                              const skippedReconstitution = {};
+                                              const linkedItems = manageConfirm.linkedItems || {};
+                                              Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                                  if (item.status === 'skipped' && item.deliveryMethod) {
+                                                      const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
+                                                      skippedReconstitution[peptideId] = {
+                                                          peptideName: peptide?.name || 'Unknown',
+                                                          deliveryMethod: item.deliveryMethod
+                                                      };
+                                                  }
+                                              });
+                                              
+                                              // Update history entry with complete linkedItems and skipped reconstitution
+                                              const updatedProtocolData = {
+                                                  ...(activeHistoryEntry.protocolData || {}),
+                                                  linkedItems: linkedItems // Save complete linkedItems for reference
+                                              };
+                                              
+                                              updateProtocolHistoryEntry(activeHistoryEntry.id, {
+                                                  protocolData: updatedProtocolData,
+                                                  skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+                                              });
+                                          }
+                                      } catch (e) {
+                                          console.warn('Failed to update protocol history with linkedItems:', e);
+                                      }
+                                      
+                                      // Save to protocol draft for real-time sync with tasks/calendar
+                                      try {
+                                          const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
+                                          localStorage.setItem(draftKey, JSON.stringify({
+                                              data: manageConfirm,
+                                              timestamp: new Date().toISOString()
+                                          }));
+                                          
+                                          // Emit event so TasksWidget and Calendar pick up the changes immediately
+                                          window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+                                              detail: { storageKey: draftKey, formData: manageConfirm }
+                                          }));
+                                      } catch (e) {
+                                          console.warn('Failed to save protocol draft:', e);
+                                      }
+                                      
+                                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                          detail: { message: 'Protocol updated successfully!', type: 'success' } 
                                       }));
-                                  } catch (e) {
-                                      console.warn('Failed to save protocol draft:', e);
                                   }
-                                  
-                                  window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                      detail: { message: 'Protocol updated successfully!', type: 'success' } 
-                                  }));
-                              }
-                              setManageConfirm(null);
-                              setManageTab('manage');
-                              setHistoryProtocol(null); // Ensure history modal is also closed
+                                  setManageConfirm(null);
+                                  setManageTab('manage');
+                                  setHistoryProtocol(null); // Ensure history modal is also closed
+                              }}
+                          className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
+                          style={{ 
+                              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                              color: theme.textOnPrimary || '#ffffff',
+                              border: 'none'
                           }}
-                      className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
-                      style={{ 
-                          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                          color: theme.textOnPrimary || '#ffffff',
-                          border: 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                          e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
-                      }}
-                      onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
-                      }}
-                  >
-                      Save Changes
-                  </button>
-                )}
+                          onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                          }}
+                      >
+                          Save Changes
+                      </button>
+                    )}
+
+                    {/* Notes Tab - Add Note or Save Note */}
+                    {manageTab === 'notes' && (
+                      <>
+                        {!showAddNoteForm && !editingNote && (
+                          <button
+                            onClick={() => setShowAddNoteForm(true)}
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                            style={{ 
+                              backgroundColor: theme.primary, 
+                              color: theme.textOnPrimary || '#ffffff',
+                              border: 'none'
+                            }}
+                          >
+                            <Plus size={18} />
+                            Add Note
+                          </button>
+                        )}
+                        {(showAddNoteForm || editingNote) && (
+                          <button
+                            onClick={() => {
+                              if (showAddNoteForm) {
+                                handleAddNote();
+                              } else if (editingNote) {
+                                handleSaveEditNote();
+                              }
+                            }}
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                            style={{ 
+                              backgroundColor: theme.primary, 
+                              color: theme.textOnPrimary || '#ffffff',
+                              border: 'none'
+                            }}
+                          >
+                            <Check size={18} />
+                            Save Note
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Share Tab - Share Image and Copy Link */}
+                    {manageTab === 'share' && (
+                      <>
+                        <button 
+                          onClick={handleShareImage} 
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" 
+                          style={{ 
+                            backgroundColor: theme.primary, 
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none'
+                          }}
+                        >
+                          <Image size={18} />
+                          Share Image
+                        </button>
+                        <button 
+                          onClick={handleCopyLink} 
+                          disabled={shareCopied} 
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all hover:scale-[1.02] active:scale-95" 
+                          style={{ 
+                            borderColor: shareCopied ? theme.primary : theme.border, 
+                            backgroundColor: shareCopied ? `${theme.primary}15` : 'transparent', 
+                            color: shareCopied ? theme.primary : theme.text,
+                            opacity: shareCopied ? 1 : 1
+                          }}
+                        >
+                          {shareCopied ? <Check size={18} /> : <Copy size={18} />}
+                          {shareCopied ? 'Copied!' : 'Copy Link'}
+                        </button>
+                      </>
+                    )}
+                </div>
             </div>
         }
         >
@@ -2638,20 +2715,6 @@ export default function Protocols() {
 
             {manageTab === 'notes' && (
               <div className="space-y-4">
-                {/* Add Note Button */}
-                {!showAddNoteForm && !editingNote && (
-                  <button
-                    onClick={() => setShowAddNoteForm(true)}
-                    className="w-full p-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-                    style={{ 
-                      backgroundColor: theme.primary, 
-                      color: theme.textOnPrimary 
-                    }}
-                  >
-                    <Plus size={18} />
-                    Add Note
-                  </button>
-                )}
 
                 {/* Add Note Form */}
                 {showAddNoteForm && (
@@ -2987,33 +3050,6 @@ export default function Protocols() {
                   </div>
                 </div>
 
-                {/* Share Actions */}
-                <div className="flex w-full gap-3 pt-4">
-                  <button 
-                    onClick={handleShareImage} 
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
-                    style={{ 
-                      backgroundColor: theme.primary, 
-                      color: theme.textOnPrimary || '#ffffff'
-                    }}
-                  >
-                    <Image size={18} />
-                    Share Image
-                  </button>
-                  <button 
-                    onClick={handleCopyLink} 
-                    disabled={shareCopied} 
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
-                    style={{ 
-                      borderColor: shareCopied ? theme.primary : theme.border, 
-                      backgroundColor: shareCopied ? `${theme.primary}15` : 'transparent', 
-                      color: shareCopied ? theme.primary : theme.text 
-                    }}
-                  >
-                    {shareCopied ? <Check size={18} /> : <Copy size={18} />}
-                    {shareCopied ? 'Copied!' : 'Copy Link'}
-                  </button>
-                </div>
               </div>
             )}
 
