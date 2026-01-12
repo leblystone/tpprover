@@ -7,7 +7,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -21,6 +21,8 @@ import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import ProtocolsTipsBanner from '../components/protocols/ProtocolsTipsBanner';
 import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
 import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
+import ShareModal from '../components/common/ShareModal';
+import ProtocolNotesModal from '../components/protocols/ProtocolNotesModal';
 import { useAppContext } from '../context/AppContext';
 import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -58,6 +60,8 @@ export default function Protocols() {
   const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
   const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -2045,6 +2049,91 @@ export default function Protocols() {
         }
         >
           <div className="space-y-4">
+            {/* Action Bar - Quick Actions */}
+            <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: theme.border }}>
+              <button
+                onClick={() => {
+                  setManageConfirm(null);
+                  handleEditClick(manageConfirm);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+                }}
+              >
+                <EditIcon size={16} />
+                <span>Edit</span>
+              </button>
+              
+              <button
+                onClick={() => setIsNotesModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+                }}
+              >
+                <NotebookPen size={16} />
+                <span>Notes</span>
+              </button>
+              
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+                }}
+              >
+                <Share2 size={16} />
+                <span>Share</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setManageConfirm(null);
+                  setHistoryProtocol(manageConfirm);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+                }}
+              >
+                <History size={16} />
+                <span>History</span>
+              </button>
+            </div>
+            
             {/* PROTOCOL SETTINGS Section Header */}
             <div className="flex items-center gap-4 mb-3">
               <Settings size={32} style={{ color: theme.primary }} />
@@ -2354,6 +2443,30 @@ export default function Protocols() {
         actionAttempted="modify protocols"
         theme={theme}
       />
+
+      {/* Notes Modal for active protocols */}
+      {manageConfirm && (
+        <ProtocolNotesModal
+          open={isNotesModalOpen}
+          onClose={() => setIsNotesModalOpen(false)}
+          protocol={manageConfirm}
+          theme={theme}
+        />
+      )}
+
+      {/* Share Modal */}
+      {manageConfirm && (
+        <ShareModal
+          open={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          theme={theme}
+          title="Protocol"
+          shareUrl={`${window.location.origin}/rover/protocols/${manageConfirm.id}`}
+          CardComponent={ProtocolCard}
+          cardProps={{ item: manageConfirm, theme, isPublicView: true }}
+          shareData={{ ...manageConfirm, type: 'protocol' }}
+        />
+      )}
     </>
   )
 }
