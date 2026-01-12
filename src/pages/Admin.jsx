@@ -56,6 +56,7 @@ import UserDetailModal from '../components/admin/UserDetailModal';
 import VersionManager from '../components/admin/VersionManager';
 import SingleMessageSender from '../components/admin/SingleMessageSender';
 import SecurityManager from '../components/admin/SecurityManager';
+import AccountDeletionHistory from '../components/admin/AccountDeletionHistory';
 import InAppNotificationManager from '../components/admin/InAppNotificationManager';
 
 const handleImpersonateUser = async (uid) => {
@@ -2011,6 +2012,7 @@ function Admin() {
             ],
             settings: [
               { id: 'security', label: 'Security', icon: Shield, color: '#E58A7A' },
+              { id: 'deletions', label: 'Deletions', icon: Trash2, color: '#dc2626' },
               { id: 'version', label: 'App Version', icon: Smartphone, color: '#7F9E95' },
               { id: 'agreements', label: 'Legal', icon: FileCheck, color: '#6B7D7A' }
             ]
@@ -4062,6 +4064,10 @@ function Admin() {
 
         {activeTab === 'security' && (
           <SecurityManager theme={theme} />
+        )}
+
+        {activeTab === 'deletions' && (
+          <AccountDeletionHistory theme={theme} />
         )}
 
         {activeTab === 'agreements' && (

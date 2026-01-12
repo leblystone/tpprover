@@ -114,3 +114,32 @@ export function getDayDifference(date1, date2) {
     return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Formats a date to include both date and time
+ * @param {Date} date - Date object to format
+ * @returns {string} Formatted date string (MM/DD/YYYY HH:MM AM/PM)
+ */
+export function formatDateTime(date) {
+  if (!date) return '';
+  try {
+    if (!(date instanceof Date)) {
+      date = new Date(date);
+    }
+    if (isNaN(date.getTime())) return '';
+    
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const y = date.getFullYear();
+    let h = date.getHours();
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    const hour = String(h).padStart(2, '0');
+    
+    return `${m}/${d}/${y} ${hour}:${min} ${ampm}`;
+  } catch {
+    return '';
+  }
+}
+
