@@ -8,7 +8,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
 import { generateId } from '../../utils/string';
 
-export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade }) {
+export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade, embedded = false }) {
 
     const createEmpty = () => ({
         protocolName: '',
@@ -467,28 +467,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         onClose();
     };
 
-    return (
-        <BottomSheet 
-            open={open}
-            onClose={handleClose}
-            onBack={handleClose}
-            title={
-                form?.protocolName 
-                    ? (form?.id ? `Editing: ${form.protocolName}` : `New: ${form.protocolName}`)
-                    : (form?.id ? "Edit Protocol" : "New Protocol")
-            }
-            titleExtra={
-                <AutoSaveIndicator 
-                    isSaving={isSaving}
-                    lastSaved={lastSaved}
-                    theme={theme}
-                    compact={true}
-                    iconOnly={true}
-                />
-            }
-            theme={theme}
-            maxHeight="90vh"
-            footer={
+    // Main content that can be rendered with or without BottomSheet wrapper
+    const editorContent = (
+        <>
+            <div className="space-y-4">
                 <div className="w-full flex items-center justify-between gap-3">
                     <button
                         type="button"
@@ -1252,6 +1234,111 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
             )}
+        </>
+    );
+
+    // If embedded, return just the content without the BottomSheet wrapper
+    if (embedded) {
+        return editorContent;
+    }
+
+    // Otherwise, render with full BottomSheet modal
+    return (
+        <BottomSheet 
+            open={open}
+            onClose={handleClose}
+            onBack={handleClose}
+            title={
+                form?.protocolName 
+                    ? (form?.id ? `Editing: ${form.protocolName}` : `New: ${form.protocolName}`)
+                    : (form?.id ? "Edit Protocol" : "New Protocol")
+            }
+            titleExtra={
+                <AutoSaveIndicator 
+                    isSaving={isSaving}
+                    lastSaved={lastSaved}
+                    theme={theme}
+                    compact={true}
+                    iconOnly={true}
+                />
+            }
+            theme={theme}
+            maxHeight="90vh"
+            footer={
+                <div className="w-full flex items-center justify-between gap-3">
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        className="px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{
+                            backgroundColor: 'transparent',
+                            color: theme?.text || '#111827',
+                            border: 'none'
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <div className="flex items-center gap-3 ml-auto">
+                        {saveError && (
+                            <span className="text-sm font-medium" style={{ color: theme?.error || '#b91c1c' }}>
+                                {saveError}
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleFinalSave}
+                            disabled={isSavingToProtocols || isReadOnly}
+                            className="px-6 py-3 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 whitespace-nowrap min-w-fit flex items-center justify-center gap-2"
+                            style={{
+                                background: getPrimaryActionGradient(isSavingToProtocols || isReadOnly),
+                                color: (isSavingToProtocols || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+                                border: 'none',
+                                boxShadow: (isSavingToProtocols || isReadOnly) 
+                                    ? 'none' 
+                                    : theme?.isDark
+                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (isSavingToProtocols || isReadOnly) return;
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = theme?.isDark
+                                    ? '0 6px 25px rgba(127, 158, 149, 0.5), 0 0 0 1px rgba(127, 158, 149, 0.2)'
+                                    : '0 6px 25px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) 
+                                    ? 'none' 
+                                    : theme?.isDark
+                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)';
+                                e.currentTarget.style.background = getPrimaryActionGradient(isSavingToProtocols || isReadOnly);
+                            }}
+                            title={isReadOnly ? "Upgrade to save protocols" : "Save protocol changes"}
+                        >
+                            {isSavingToProtocols ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    <span>Saving…</span>
+                                </>
+                            ) : isReadOnly ? (
+                                <>
+                                    <Lock size={18} />
+                                    <span>Save Protocol (Upgrade Required)</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Check size={18} />
+                                    <span>Save Protocol</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            }
+        >
+            {editorContent}
         </BottomSheet>
     );
 }
