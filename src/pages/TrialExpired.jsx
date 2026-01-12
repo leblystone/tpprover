@@ -11,7 +11,7 @@ import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
 import { isAndroid } from '../utils/platform';
 import { getAndroidSubscriptionMessage } from '../utils/paymentCompliance';
 import { subscribe } from '../services/payment/paymentService';
-import { exportToCSV } from '../utils/export';
+import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export';
 import DeleteAccountModal from '../components/common/DeleteAccountModal';
 import DataViewModal from '../components/common/DataViewModal';
 
@@ -21,7 +21,7 @@ export default function TrialExpired() {
   const { user } = useAppContext();
   const { 
     protocols, orders, stockpile, vendors, reconItems, reconHistory, 
-    supplements, metrics, calendarNotes, scheduledBuys 
+    supplements, metrics, calendarNotes, scheduledBuys, glossary, goals, protocolHistory
   } = useAppContext();
   const founderOffer = useFounderOffer();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -81,8 +81,8 @@ export default function TrialExpired() {
     }
   };
 
-  const handleExportData = () => {
-    const data = {
+  const getAllData = () => {
+    return {
       protocols: protocols || [],
       orders: orders || [],
       stockpile: stockpile || [],
@@ -93,25 +93,35 @@ export default function TrialExpired() {
       reconItems: reconItems || [],
       reconHistory: reconHistory || [],
       metrics: metrics || [],
+      glossary: glossary || [],
+      goals: goals || [],
+      protocolHistory: protocolHistory || [],
     };
-    
-    const allData = [
-      ...data.protocols.map(d => ({ type: 'protocol', ...d })),
-      ...data.orders.map(d => ({ type: 'order', ...d })),
-      ...data.stockpile.map(d => ({ type: 'stockpile', ...d })),
-      ...data.supplements.map(d => ({ type: 'supplement', ...d })),
-      ...data.vendors.map(d => ({ type: 'vendor', ...d })),
-      ...data.scheduledBuys.map(d => ({ type: 'scheduled_buy', ...d })),
-      ...data.reconItems.map(d => ({ type: 'recon_item', ...d })),
-      ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
-      ...data.metrics.map(d => ({ type: 'metric', ...d })),
-    ];
-    
-    exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
+  };
+
+  const handleExportCSV = () => {
+    const data = getAllData();
+    exportUserDataToCSV(data);
     
     window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { message: 'Data exported successfully!', type: 'success' } 
+      detail: { message: 'Data exported successfully as CSV!', type: 'success' } 
     }));
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const data = getAllData();
+      await exportUserDataToPDF(data, null, theme);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Data exported successfully as PDF!', type: 'success' } 
+      }));
+    } catch (error) {
+      console.error('PDF export error:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'PDF export failed. Please try again.', type: 'error' } 
+      }));
+    }
   };
 
   const plans = [
@@ -269,7 +279,7 @@ export default function TrialExpired() {
               View Data
             </button>
             <button
-              onClick={handleExportData}
+              onClick={handleExportCSV}
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
@@ -278,6 +288,17 @@ export default function TrialExpired() {
             >
               <Download size={16} />
               Export CSV
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                color: theme?.text
+              }}
+            >
+              <FileText size={16} />
+              Export PDF
             </button>
           </div>
         </div>
@@ -318,7 +339,10 @@ export default function TrialExpired() {
         supplements,
         metrics,
         calendarNotes,
-        scheduledBuys
+        scheduledBuys,
+        glossary,
+        goals,
+        protocolHistory
       }}
     />
     </>

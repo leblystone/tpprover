@@ -4,8 +4,8 @@ import { themes, defaultThemeName } from '../theme/themes';
 
 // Field mappings for organized CSV exports
 const FIELD_ORDER = {
-  protocol: ['protocolName', 'name', 'linkedItems', 'duration', 'washout', 'notes', 'startDate', 'endDate'],
-  order: ['item', 'vendor', 'status', 'orderDate', 'shippedDate', 'deliveredDate', 'trackingNumber', 'cost', 'quantity', 'notes'],
+  protocol: ['protocolName', 'name', 'linkedItems', 'duration', 'washout', 'notes', 'startDate', 'endDate', 'status'],
+  order: ['item', 'vendor', 'status', 'orderDate', 'deliveredDate', 'cost', 'quantity', 'notes'],
   stockpile: ['name', 'peptide', 'quantity', 'unit', 'mg', 'vendor', 'batch', 'expiration', 'location', 'notes'],
   vendor: ['name', 'type', 'website', 'email', 'phone', 'rating', 'paymentMethods', 'shippingMethods', 'notes'],
   supplement: ['name', 'type', 'brand', 'dosage', 'frequency', 'purpose', 'notes'],
@@ -16,11 +16,11 @@ const FIELD_ORDER = {
   calendar_note: ['date', 'note'],
   glossary: ['term', 'definition', 'category'],
   goal: ['title', 'targetDate', 'completed', 'createdAt', 'archived', 'archivedAt'],
-  protocol_history: ['protocolName', 'startDate', 'endDate', 'notes', 'vials', 'reconstitutionData']
+  protocol_history: ['protocolName', 'startDate', 'endDate', 'completionStatus', 'notes', 'followUpNotes']
 };
 
 // Fields to exclude from exports (backend/admin only) - all lowercase for comparison
-const EXCLUDED_FIELDS = ['id', '_id', 'uid', 'userid', 'createdat', 'updatedat', 'timestamp', 'servertimestamp', 'blendmode', 'protocoltype', 'endtype'];
+const EXCLUDED_FIELDS = ['id', '_id', 'uid', 'userid', 'createdat', 'updatedat', 'timestamp', 'servertimestamp', 'blendmode', 'protocoltype', 'endtype', 'peptides', 'protocoldata', 'reconstitutiondata', 'skippedreconstitution', 'vialsaddedduring', 'vials', 'protocolid', 'needscompletion', 'reliability'];
 
 // Helper function to check if a field should be excluded
 function shouldExcludeField(fieldName) {
@@ -125,8 +125,12 @@ function formatProtocolLinkedItems(protocol, stockpile = []) {
 
 // Improved CSV export with organized sections
 export function exportUserDataToCSV(data, filename = null) {
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const defaultFilename = `the-pep-planner-data-${dateStr}.csv`;
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = now.getFullYear();
+  const dateStr = `${month}-${day}-${year}`;
+  const defaultFilename = `The Pep Planner ${dateStr}.csv`;
   filename = filename || defaultFilename;
   
   const csvLines = [];
@@ -134,9 +138,13 @@ export function exportUserDataToCSV(data, filename = null) {
   // Add BOM for proper UTF-8 encoding in Excel
   csvLines.push('\uFEFF');
   
-  // Header
-  csvLines.push('The Pep Planner - Research Data Export');
-  csvLines.push(`Exported: ${new Date().toLocaleString()}`);
+  // Professional header with branding
+  csvLines.push('═══════════════════════════════════════════════════════════════');
+  csvLines.push('                    THE PEP PLANNER');
+  csvLines.push('                  Research Data Export');
+  csvLines.push('═══════════════════════════════════════════════════════════════');
+  csvLines.push('');
+  csvLines.push(`Exported: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`);
   csvLines.push('');
   
   // Convert calendarNotes object to array if needed
@@ -155,42 +163,52 @@ export function exportUserDataToCSV(data, filename = null) {
     return protocol;
   });
 
-  // Flatten protocol history notes for export
+  // Flatten protocol history notes for export with proper formatting
   const protocolHistoryWithNotes = (data.protocolHistory || []).map(entry => {
     const notes = entry.notes || [];
     const duringNotes = notes.filter(n => n.type === 'during').map(n => n.content).join(' | ');
     const followUpNotes = notes.filter(n => n.type === 'follow_up').map(n => n.content).join(' | ');
+    // Format completion status
+    let completionStatus = '';
+    if (entry.completionStatus === 'completed') completionStatus = 'Completed';
+    else if (entry.completionStatus === 'active') completionStatus = 'Active';
+    else if (entry.completionStatus === 'cancelled') completionStatus = 'Cancelled';
+    else if (entry.endDate) completionStatus = 'Completed';
+    else completionStatus = 'Active';
     return {
       ...entry,
       notes: duringNotes || '',
       followUpNotes: followUpNotes || '',
-      notesCount: notes.length
+      notesCount: notes.length,
+      completionStatus: completionStatus
     };
   });
 
-  // Export each data type in its own section
+  // Export each data type in its own section with proper labels
   const dataTypes = [
-    { key: 'protocols', label: 'PROTOCOLS', data: processedProtocols },
-    { key: 'protocolHistory', label: 'PROTOCOL HISTORY', data: protocolHistoryWithNotes },
-    { key: 'orders', label: 'ORDERS', data: data.orders || [] },
-    { key: 'stockpile', label: 'STOCKPILE', data: data.stockpile || [] },
-    { key: 'vendors', label: 'VENDORS', data: data.vendors || [] },
-    { key: 'supplements', label: 'SUPPLEMENTS', data: data.supplements || [] },
-    { key: 'reconItems', label: 'RECONSTITUTED ITEMS', data: data.reconItems || [] },
-    { key: 'reconHistory', label: 'RECONSTITUTION HISTORY', data: data.reconHistory || [] },
-    { key: 'scheduledBuys', label: 'SCHEDULED BUYS', data: data.scheduledBuys || [] },
-    { key: 'metrics', label: 'METRICS', data: data.metrics || [] },
-    { key: 'calendarNotes', label: 'CALENDAR NOTES', data: calendarNotesArray },
-    { key: 'goals', label: 'GOALS', data: data.goals || [] },
-    { key: 'glossary', label: 'GLOSSARY', data: data.glossary || [] },
+    { key: 'protocols', label: 'Protocols', data: processedProtocols },
+    { key: 'protocolHistory', label: 'Protocol History', data: protocolHistoryWithNotes },
+    { key: 'orders', label: 'Orders', data: data.orders || [] },
+    { key: 'stockpile', label: 'Stockpile', data: data.stockpile || [] },
+    { key: 'vendors', label: 'Vendors', data: data.vendors || [] },
+    { key: 'supplements', label: 'Supplements', data: data.supplements || [] },
+    { key: 'reconItems', label: 'Reconstituted Items', data: data.reconItems || [] },
+    { key: 'reconHistory', label: 'Reconstitution History', data: data.reconHistory || [] },
+    { key: 'scheduledBuys', label: 'Scheduled Buys', data: data.scheduledBuys || [] },
+    { key: 'metrics', label: 'Metrics', data: data.metrics || [] },
+    { key: 'calendarNotes', label: 'Calendar Notes', data: calendarNotesArray },
+    { key: 'goals', label: 'Goals', data: data.goals || [] },
+    { key: 'glossary', label: 'Glossary', data: data.glossary || [] },
   ];
   
   dataTypes.forEach(({ key, label, data: items }) => {
     if (items.length === 0) return;
     
-    // Section header
+    // Professional section header
     csvLines.push('');
-    csvLines.push(`=== ${label} (${items.length} items) ===`);
+    csvLines.push('─────────────────────────────────────────────────────────────');
+    csvLines.push(`${label} (${items.length} ${items.length === 1 ? 'item' : 'items'})`);
+    csvLines.push('─────────────────────────────────────────────────────────────');
     
     // Get ordered fields for this data type
     const typeKey = key === 'reconItems' ? 'recon_item' : 
@@ -205,10 +223,10 @@ export function exportUserDataToCSV(data, filename = null) {
     const headers = getOrderedFields(typeKey, firstItem);
     
     if (headers.length > 0) {
-      // Add headers
+      // Add headers with proper formatting
       csvLines.push(headers.map(h => csvEscape(formatFieldName(h))).join(','));
       
-      // Add data rows
+      // Add data rows with formatted values
       items.forEach(item => {
         const values = headers.map(h => csvEscape(formatValue(item[h], false, h)));
         csvLines.push(values.join(','));
@@ -216,14 +234,28 @@ export function exportUserDataToCSV(data, filename = null) {
     }
   });
   
-  // Summary
+  // Professional summary section
   csvLines.push('');
-  csvLines.push('=== SUMMARY ===');
+  csvLines.push('═══════════════════════════════════════════════════════════════');
+  csvLines.push('                            SUMMARY');
+  csvLines.push('═══════════════════════════════════════════════════════════════');
+  csvLines.push('');
+  
+  let totalItems = 0;
   dataTypes.forEach(({ label, data: items }) => {
     if (items.length > 0) {
-      csvLines.push(`${label}: ${items.length} items`);
+      totalItems += items.length;
+      csvLines.push(`${label}: ${items.length} ${items.length === 1 ? 'item' : 'items'}`);
     }
   });
+  
+  csvLines.push('');
+  csvLines.push(`Total Items: ${totalItems}`);
+  csvLines.push('');
+  csvLines.push('═══════════════════════════════════════════════════════════════');
+  csvLines.push('This export contains all your research data from The Pep Planner.');
+  csvLines.push('Your data is always yours - export anytime, anywhere.');
+  csvLines.push('═══════════════════════════════════════════════════════════════');
   
   const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8' });
   downloadBlob(blob, filename);
@@ -281,8 +313,12 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
   const textLightRgb = hexToRgb(activeTheme.textLight);
   const backgroundRgb = hexToRgb(activeTheme.background);
   
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const defaultFilename = `the-pep-planner-data-${dateStr}.pdf`;
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = now.getFullYear();
+  const dateStr = `${month}-${day}-${year}`;
+  const defaultFilename = `The Pep Planner ${dateStr}.pdf`;
   filename = filename || defaultFilename;
   
   const doc = new jsPDF();
@@ -368,11 +404,19 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
       const notes = entry.notes || [];
       const duringNotes = notes.filter(n => n.type === 'during').map(n => n.content).join(' | ');
       const followUpNotes = notes.filter(n => n.type === 'follow_up').map(n => n.content).join(' | ');
+      // Format completion status
+      let completionStatus = '';
+      if (entry.completionStatus === 'completed') completionStatus = 'Completed';
+      else if (entry.completionStatus === 'active') completionStatus = 'Active';
+      else if (entry.completionStatus === 'cancelled') completionStatus = 'Cancelled';
+      else if (entry.endDate) completionStatus = 'Completed';
+      else completionStatus = 'Active';
       return {
         ...entry,
         notes: duringNotes || '',
         followUpNotes: followUpNotes || '',
-        notesCount: notes.length
+        notesCount: notes.length,
+        completionStatus: completionStatus
       };
     }) },
     { key: 'orders', label: 'Orders', data: data.orders || [] },
@@ -432,41 +476,63 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
       const availableWidth = pageWidth - margins;
       const numColumns = headers.length;
       
-      // Build column styles with proper widths - distribute evenly but cap at reasonable max
+      // Build column styles with proper widths - adjust for tables with many columns
       const columnStyles = {};
-      const baseWidth = availableWidth / numColumns;
-      const maxWidth = 35; // Max width per column in mm
-      const minWidth = 12; // Min width per column in mm
-      const columnWidth = Math.max(Math.min(baseWidth, maxWidth), minWidth);
       
-      headers.forEach((_, index) => {
-        columnStyles[index] = { 
-          cellWidth: columnWidth,
-          overflow: 'linebreak',
-          cellPadding: 2,
-          minCellHeight: 4
-        };
-      });
+      // For tables with many columns (like orders), use smaller widths and allow horizontal overflow
+      if (numColumns > 8) {
+        // Use smaller font and tighter spacing for wide tables
+        const baseWidth = Math.max(availableWidth / numColumns, 8); // Minimum 8mm per column
+        headers.forEach((_, index) => {
+          columnStyles[index] = { 
+            cellWidth: baseWidth,
+            overflow: 'linebreak',
+            cellPadding: 1.5,
+            minCellHeight: 3,
+            fontSize: 6 // Smaller font for wide tables
+          };
+        });
+      } else {
+        // Normal table sizing
+        const baseWidth = availableWidth / numColumns;
+        const maxWidth = 35; // Max width per column in mm
+        const minWidth = 12; // Min width per column in mm
+        const columnWidth = Math.max(Math.min(baseWidth, maxWidth), minWidth);
+        
+        headers.forEach((_, index) => {
+          columnStyles[index] = { 
+            cellWidth: columnWidth,
+            overflow: 'linebreak',
+            cellPadding: 2,
+            minCellHeight: 4
+          };
+        });
+      }
+      
+      // Adjust font size for wide tables
+      const baseFontSize = numColumns > 8 ? 6 : 7;
+      const headerFontSize = numColumns > 8 ? 7 : 8;
       
       autoTable(doc, {
         head: [tableHeaders],
         body: tableData,
         startY: yPos,
         styles: { 
-          fontSize: 7, 
-          cellPadding: 2,
+          fontSize: baseFontSize, 
+          cellPadding: numColumns > 8 ? 1.5 : 2,
           textColor: [textRgb.r, textRgb.g, textRgb.b],
           lineColor: [primaryRgb.r * 0.3, primaryRgb.g * 0.3, primaryRgb.b * 0.3],
           lineWidth: 0.1,
           overflow: 'linebreak',
-          minCellHeight: 4
+          minCellHeight: numColumns > 8 ? 3 : 4
         },
         headStyles: { 
           fillColor: [primaryRgb.r, primaryRgb.g, primaryRgb.b],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
-          overflow: 'linebreak'
+          fontSize: headerFontSize,
+          overflow: 'linebreak',
+          cellPadding: numColumns > 8 ? 1.5 : 2
         },
         alternateRowStyles: { 
           fillColor: [backgroundRgb.r, backgroundRgb.g, backgroundRgb.b]
@@ -474,7 +540,7 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
         margin: { left: 14, right: 14 },
         columnStyles: columnStyles,
         theme: 'grid',
-        tableWidth: 'auto',
+        tableWidth: numColumns > 8 ? 'wrap' : 'auto', // Wrap for very wide tables
         showHead: 'everyPage'
       });
       
@@ -570,12 +636,129 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
   doc.save(filename);
 }
 
-// Format field names for display
+// Format field names for display with proper capitalization
 function formatFieldName(field) {
+  // Handle common abbreviations and special cases
+  const specialCases = {
+    'protocolName': 'Protocol Name',
+    'orderDate': 'Order Date',
+    'shippedDate': 'Shipped Date',
+    'deliveredDate': 'Delivered Date',
+    'scheduledDate': 'Scheduled Date',
+    'startDate': 'Start Date',
+    'endDate': 'End Date',
+    'targetDate': 'Target Date',
+    'reconDate': 'Reconstitution Date',
+    'useByDate': 'Use By Date',
+    'trackingNumber': 'Tracking Number',
+    'publicOrderNumber': 'Public Order Number',
+    'shippingCost': 'Shipping Cost',
+    'shippingStatus': 'Shipping Status',
+    'shippingMethods': 'Shipping Methods',
+    'paymentMethods': 'Payment Methods',
+    'linkedItems': 'Linked Items',
+    'batchNumber': 'Batch Number',
+    'capColor': 'Cap Color',
+    'penColor': 'Pen Color',
+    'deliveryMethod': 'Delivery Method',
+    'administrationRoute': 'Administration Route',
+    'peptideAmount': 'Peptide Amount',
+    'totalVolume': 'Total Volume',
+    'bacWater': 'Bac Water',
+    'reconItem': 'Reconstitution Item',
+    'completionStatus': 'Completion Status',
+    'followUpNotes': 'Follow-up Notes',
+    'notesCount': 'Notes Count',
+    'protocolHistory': 'Protocol History',
+    'calendarNotes': 'Calendar Notes',
+    'scheduledBuys': 'Scheduled Buys',
+    'reconHistory': 'Reconstitution History',
+    'reconItems': 'Reconstituted Items'
+  };
+  
+  if (specialCases[field]) {
+    return specialCases[field];
+  }
+  
   return field
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, str => str.toUpperCase())
     .trim();
+}
+
+// Format frequency for display
+function formatFrequency(frequency) {
+  if (!frequency) return '';
+  if (typeof frequency === 'string') return frequency;
+  if (typeof frequency === 'object') {
+    const type = frequency.type || 'daily';
+    if (type === 'daily') {
+      const times = Array.isArray(frequency.time) ? frequency.time.join(', ') : (frequency.time || '');
+      return times ? `Daily (${times})` : 'Daily';
+    }
+    if (type === 'weekly' && frequency.days) {
+      const days = Array.isArray(frequency.days) ? frequency.days.join(', ') : frequency.days;
+      return `Weekly (${days})`;
+    }
+    if (type === 'cycle') {
+      return `Cycle: ${frequency.onDays || '-'} on / ${frequency.offDays || '-'} off`;
+    }
+    if (type === 'custom') {
+      return frequency.customDays ? `Every ${frequency.customDays} days` : 'Custom';
+    }
+    return type;
+  }
+  return String(frequency);
+}
+
+// Format dosage for display
+function formatDosage(dosage) {
+  if (!dosage) return '';
+  if (typeof dosage === 'string') return dosage;
+  if (typeof dosage === 'number') return String(dosage);
+  if (typeof dosage === 'object') {
+    if (dosage.amount !== undefined && dosage.amount !== null && dosage.unit) {
+      return `${dosage.amount} ${dosage.unit}`;
+    }
+    if (dosage.amount !== undefined && dosage.amount !== null) {
+      return String(dosage.amount);
+    }
+    return '';
+  }
+  return String(dosage);
+}
+
+// Format peptides array for user-friendly display
+function formatPeptides(peptides) {
+  if (!peptides || !Array.isArray(peptides) || peptides.length === 0) return '';
+  
+  return peptides.map(pep => {
+    const parts = [];
+    
+    // Peptide name
+    if (pep.name) {
+      parts.push(pep.name.trim());
+    }
+    
+    // Dosage
+    if (pep.dosage) {
+      const dosageStr = formatDosage(pep.dosage);
+      if (dosageStr) parts.push(dosageStr);
+    }
+    
+    // Frequency
+    if (pep.frequency) {
+      const freqStr = formatFrequency(pep.frequency);
+      if (freqStr) parts.push(freqStr);
+    }
+    
+    // Delivery method
+    if (pep.deliveryMethod) {
+      parts.push(pep.deliveryMethod);
+    }
+    
+    return parts.join(' • ');
+  }).join(' | ');
 }
 
 // Format values for display
@@ -602,39 +785,130 @@ function formatValue(value, forPDF = false, fieldName = '') {
     return value; // Already formatted by formatProtocolLinkedItems
   }
   
+  // Special handling for peptides field - format as user-friendly list
+  if (fieldName === 'peptides') {
+    return formatPeptides(value);
+  }
+  
+  // Special handling for frequency field
+  if (fieldName === 'frequency') {
+    return formatFrequency(value);
+  }
+  
+  // Special handling for dosage field
+  if (fieldName === 'dosage') {
+    return formatDosage(value);
+  }
+  
+  // Special handling for status/active fields
+  if (fieldName === 'status' || fieldName === 'active') {
+    if (typeof value === 'boolean') {
+      return formatBoolean(value);
+    }
+    if (value === 'active' || value === 'Active') return 'Active';
+    if (value === 'inactive' || value === 'Inactive') return 'Inactive';
+    if (value === 'completed' || value === 'Completed') return 'Completed';
+    if (value === 'cancelled' || value === 'Cancelled') return 'Cancelled';
+    if (value === 'delivered' || value === 'Delivered') return 'Delivered';
+    if (value === 'shipped' || value === 'Shipped') return 'Shipped';
+    if (value === 'orderPlaced' || value === 'Order Placed') return 'Order Placed';
+    // Capitalize first letter of status
+    return String(value).charAt(0).toUpperCase() + String(value).slice(1).toLowerCase();
+  }
+  
+  // Special handling for completionStatus
+  if (fieldName === 'completionStatus') {
+    if (value === 'completed') return 'Completed';
+    if (value === 'active') return 'Active';
+    if (value === 'cancelled') return 'Cancelled';
+    return String(value).charAt(0).toUpperCase() + String(value).slice(1).toLowerCase();
+  }
+  
+  // Format dates consistently - handle both date strings and Date objects
+  if (fieldName.toLowerCase().includes('date') && value) {
+    try {
+      let date;
+      if (value instanceof Date) {
+        date = value;
+      } else if (typeof value === 'string') {
+        // Handle ISO timestamps and date strings
+        date = new Date(value);
+      } else {
+        return String(value);
+      }
+      
+      if (!isNaN(date.getTime())) {
+        // Format as "Jan 12, 2026" for readability
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      }
+    } catch (e) {
+      // If date parsing fails, return as is
+    }
+  }
+  
   if (typeof value === 'object') {
     if (Array.isArray(value)) {
+      // Special handling for arrays of objects (like notes in protocol history)
+      if (value.length > 0 && typeof value[0] === 'object' && value[0].content) {
+        // Protocol history notes
+        return value.map(note => note.content || '').filter(Boolean).join(forPDF ? ' | ' : '; ');
+      }
+      // For simple arrays (strings, numbers), just join them
+      if (value.length > 0 && (typeof value[0] === 'string' || typeof value[0] === 'number')) {
+        return value.join(forPDF ? ', ' : ', ');
+      }
+      // For arrays of objects, format each item nicely
       return value.map(item => {
         if (typeof item === 'boolean') return formatBoolean(item);
-        if (typeof item === 'object') {
+        if (typeof item === 'object' && item !== null) {
           // Check if it's a duration or washout object
           if (item.count && item.unit) {
             const count = item.count;
             const unit = String(item.unit).toLowerCase();
             return `${count} ${unit}${count !== '1' ? 's' : ''}`;
           }
-          return JSON.stringify(item);
+          // For other objects, try to format nicely - show only key user-facing info
+          const readable = [];
+          if (item.name) readable.push(item.name);
+          if (item.title) readable.push(item.title);
+          if (item.term) readable.push(item.term);
+          if (item.amount !== undefined && item.unit) readable.push(`${item.amount} ${item.unit}`);
+          if (item.type && !['id', '_id'].includes(item.type.toLowerCase())) readable.push(item.type);
+          // For vials, show peptide name if available
+          if (item.peptide) readable.push(item.peptide);
+          return readable.length > 0 ? readable.join(' • ') : '';
         }
         return String(item);
-      }).join(forPDF ? '; ' : ', ');
+      }).join(forPDF ? ' | ' : '; ');
     }
     if (value instanceof Date) {
       return value.toLocaleDateString();
     }
-    // For objects, try to make them readable
+    // For objects, try to make them readable - but skip technical fields
     const pairs = Object.entries(value)
       .filter(([k, v]) => {
         // Filter out excluded fields
         if (EXCLUDED_FIELDS.includes(k.toLowerCase())) return false;
         if (shouldExcludeField(k)) return false;
+        // Filter out technical/internal fields
+        if (['id', '_id', 'uid', 'userId', 'createdAt', 'updatedAt', 'timestamp', 'serverTimestamp'].includes(k.toLowerCase())) return false;
         return v != null;
       })
       .map(([k, v]) => {
         if (k === 'duration') return formatDuration(v);
         if (k === 'washout') return formatWashout(v);
+        if (k === 'frequency') return formatFrequency(v);
+        if (k === 'dosage') return formatDosage(v);
         if (typeof v === 'boolean') return `${k}: ${formatBoolean(v)}`;
+        if (typeof v === 'object' && !Array.isArray(v)) {
+          // For nested objects, just show key info
+          if (v.name) return `${k}: ${v.name}`;
+          if (v.amount && v.unit) return `${k}: ${v.amount} ${v.unit}`;
+          return ''; // Skip complex nested objects
+        }
         return `${k}: ${v}`;
       })
+      .filter(Boolean) // Remove empty strings
       .join(forPDF ? '; ' : ', ');
     return pairs || '';
   }

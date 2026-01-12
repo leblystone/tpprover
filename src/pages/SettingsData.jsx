@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, RotateCcw, Database, AlertCircle, Trash2, Download } from 'lucide-react'
-import { exportToCSV } from '../utils/export'
+import { ArrowLeft, RotateCcw, Database, AlertCircle, Trash2, Download, FileText } from 'lucide-react'
+import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { useFirebase } from '../context/FirebaseContext'
 import { useAppContext } from '../context/AppContext'
@@ -89,8 +89,8 @@ export default function SettingsData() {
     }
   }
 
-  const exportAll = () => {
-    const data = {
+  const getAllData = () => {
+    return {
       protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
       orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
       stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
@@ -102,25 +102,35 @@ export default function SettingsData() {
       reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
       reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
       metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
-    }
-    const allData = [
-      ...data.protocols.map(d => ({ type: 'protocol', ...d })),
-      ...data.orders.map(d => ({ type: 'order', ...d })),
-      ...data.stockpile.map(d => ({ type: 'stockpile', ...d })),
-      ...data.supplements.map(d => ({ type: 'supplement', ...d })),
-      ...data.glossary.map(d => ({ type: 'glossary', ...d })),
-      ...data.vendors.map(d => ({ type: 'vendor', ...d })),
-      ...data.scheduledBuys.map(d => ({ type: 'scheduled_buy', ...d })),
-      ...data.reconItems.map(d => ({ type: 'recon_item', ...d })),
-      ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
-      ...data.metrics.map(d => ({ type: 'metric', ...d })),
-    ];
-    exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
+      goals: JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]'),
+      protocolHistory: JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]'),
+    };
+  };
+
+  const exportAllCSV = () => {
+    const data = getAllData();
+    exportUserDataToCSV(data);
     
     window.dispatchEvent(new CustomEvent('tpp:toast', { 
       detail: { message: 'Backup exported successfully as CSV!', type: 'success' } 
     }));
-  }
+  };
+
+  const exportAllPDF = async () => {
+    try {
+      const data = getAllData();
+      await exportUserDataToPDF(data, null, theme);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Backup exported successfully as PDF!', type: 'success' } 
+      }));
+    } catch (error) {
+      console.error('PDF export error:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'PDF export failed. Please try again.', type: 'error' } 
+      }));
+    }
+  };
 
   const parseCSVLine = (line) => {
     const result = [];
@@ -570,10 +580,19 @@ export default function SettingsData() {
               <button 
                 className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
                 style={{ borderColor: theme.border, color: theme.text }}
-                onClick={exportAll}
+                onClick={exportAllCSV}
               >
                 <Download size={14} />
                 Export CSV Backup
+              </button>
+              
+              <button 
+                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
+                style={{ borderColor: theme.border, color: theme.text }}
+                onClick={exportAllPDF}
+              >
+                <FileText size={14} />
+                Export PDF Backup
               </button>
             </div>
           </div>
