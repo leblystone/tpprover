@@ -491,12 +491,21 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     </div>
                                 )}
                                 
-                                <div className="flex items-center gap-2.5">
-                                    <Clock size={14} className="opacity-50" style={{ color: theme.textLight }} />
-                                    <span className="text-sm font-medium" style={{ color: theme.text }}>
-                                        {renderDateRange(p, isActive) || 'Not started'}
-                                    </span>
-                                </div>
+                                {/* Only show date range if protocol has an end date (not ongoing) */}
+                                {(() => {
+                                    const dateRange = renderDateRange(p, isActive);
+                                    const isOngoing = p.duration?.noEnd || (!p.endDate && isActive);
+                                    // Hide date range section for ongoing protocols
+                                    if (isOngoing || !dateRange) return null;
+                                    return (
+                                        <div className="flex items-center gap-2.5">
+                                            <Clock size={14} className="opacity-50" style={{ color: theme.textLight }} />
+                                            <span className="text-sm font-medium" style={{ color: theme.text }}>
+                                                {dateRange}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <SectionDivider label="PEPTIDES" theme={theme} icon={<Beaker size={12} />} />
