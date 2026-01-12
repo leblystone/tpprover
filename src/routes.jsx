@@ -55,6 +55,7 @@ const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'),
 const RedeemAnnual = lazyWithRetry(() => import('./pages/RedeemAnnual.jsx'), 'RedeemAnnual')
 const TestAnnualCheckout = lazyWithRetry(() => import('./pages/TestAnnualCheckout.jsx'), 'TestAnnualCheckout')
 const TrialExpired = lazyWithRetry(() => import('./pages/TrialExpired.jsx'), 'TrialExpired')
+const SubscriptionExpired = lazyWithRetry(() => import('./pages/SubscriptionExpired.jsx'), 'SubscriptionExpired')
 
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
@@ -204,6 +205,7 @@ export const router = createBrowserRouter([
           { path: 'account/security', element: <Navigate to="/app/account/profile" replace /> },
           { path: 'account/legal', element: <AccountLegal /> },
           { path: 'trial-expired', element: <TrialExpired /> },
+          { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },

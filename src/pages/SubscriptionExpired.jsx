@@ -18,7 +18,7 @@ import DataViewModal from '../components/common/DataViewModal';
 export default function SubscriptionExpired() {
   const theme = themes[defaultThemeName];
   const navigate = useNavigate();
-  const { user } = useAppContext();
+  const { user, subscription } = useAppContext();
   const { 
     protocols, orders, stockpile, vendors, reconItems, reconHistory, 
     supplements, metrics, calendarNotes, scheduledBuys, glossary, goals, protocolHistory
@@ -26,6 +26,17 @@ export default function SubscriptionExpired() {
   const founderOffer = useFounderOffer();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDataModal, setShowDataModal] = useState(false);
+
+  // Calculate subscription end date + 1 day for safety
+  const getSubscriptionEndDate = () => {
+    if (!subscription?.currentPeriodEnd) return null;
+    const endDate = new Date(subscription.currentPeriodEnd);
+    // Add 1 day for safety
+    endDate.setDate(endDate.getDate() + 1);
+    return endDate;
+  };
+
+  const subscriptionEndDate = getSubscriptionEndDate();
 
   const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
 
@@ -178,6 +189,15 @@ export default function SubscriptionExpired() {
           <p className="text-base" style={{ color: theme.textLight }}>
             Resubscribe to continue your research
           </p>
+          {subscriptionEndDate && (
+            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+              Your subscription ended on {subscriptionEndDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })}
+            </p>
+          )}
         </div>
 
         {/* Subscription Section (Conversion First) */}
@@ -289,28 +309,30 @@ export default function SubscriptionExpired() {
               <Eye size={16} />
               View Data
             </button>
-            <button
-              onClick={handleExportCSV}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
-                color: theme?.text
-              }}
-            >
-              <Download size={16} />
-              Export CSV
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
-                color: theme?.text
-              }}
-            >
-              <FileText size={16} />
-              Export PDF
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExportCSV}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  color: theme?.text
+                }}
+              >
+                <Download size={16} />
+                Export CSV
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  color: theme?.text
+                }}
+              >
+                <FileText size={16} />
+                Export PDF
+              </button>
+            </div>
           </div>
         </div>
 
