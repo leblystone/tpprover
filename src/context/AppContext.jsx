@@ -16,6 +16,16 @@ import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { registerAppDataGetter } from '../utils/safeReload';
+import { 
+    migrateCalendarNotesToIdBased, 
+    replaceCalendarNotesForDate, 
+    addCalendarNote as addCalendarNoteUtil,
+    updateCalendarNote as updateCalendarNoteUtil,
+    deleteCalendarNote as deleteCalendarNoteUtil,
+    getCalendarNoteText,
+    getCalendarNotesForDate,
+    hasCalendarNotes
+} from '../utils/calendarNotesMigration';
 
 const AppContext = createContext();
 
@@ -155,7 +165,19 @@ export function AppProvider({ children }) {
             if (savedVendors) setVendors(JSON.parse(savedVendors));
             
             const savedNotes = localStorage.getItem('tpprover_calendar_notes');
-            if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
+            if (savedNotes) {
+                const parsed = JSON.parse(savedNotes);
+                // Migrate old format to new ID-based format
+                const migrated = migrateCalendarNotesToIdBased(parsed);
+                setCalendarNotes(migrated);
+                // Save migrated data back to localStorage
+                try {
+                    localStorage.setItem('tpprover_calendar_notes', JSON.stringify(migrated));
+                    console.log('✅ Migrated calendar notes to ID-based format');
+                } catch (e) {
+                    console.error('Failed to save migrated calendar notes:', e);
+                }
+            }
 
             const savedStockpile = localStorage.getItem('tpprover_stockpile');
             if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
@@ -582,11 +604,11 @@ export function AppProvider({ children }) {
                         // Calendar notes - merge objects
                         const localNotes = localStorage.getItem('tpprover_calendar_notes');
                         if (localNotes) {
-                            const localNotesObj = JSON.parse(localNotes);
-                            const cloudNotesObj = cloudAppData.calendarNotes || {};
+                            const localNotesObj = migrateCalendarNotesToIdBased(JSON.parse(localNotes));
+                            const cloudNotesObj = migrateCalendarNotesToIdBased(cloudAppData.calendarNotes || {});
                             setCalendarNotes({ ...cloudNotesObj, ...localNotesObj });
                         } else if (cloudAppData.calendarNotes) {
-                            setCalendarNotes(cloudAppData.calendarNotes);
+                            setCalendarNotes(migrateCalendarNotesToIdBased(cloudAppData.calendarNotes));
                         }
                         
                         // Task completion data - merge objects (prefer local for recent completions)
@@ -632,7 +654,7 @@ export function AppProvider({ children }) {
                     if (cloudAppData.orders) setOrders(cloudAppData.orders);
                     if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
                     if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
-                    if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
+                    if (cloudAppData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(cloudAppData.calendarNotes));
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                         if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
                         
@@ -705,7 +727,8 @@ export function AppProvider({ children }) {
                     const savedNotes = localStorage.getItem('tpprover_calendar_notes');
                     if (savedNotes) {
                         const parsed = JSON.parse(savedNotes);
-                        setCalendarNotes(parsed);
+                        const migrated = migrateCalendarNotesToIdBased(parsed);
+                        setCalendarNotes(migrated);
                         console.log(`✅ Recovered calendar notes from localStorage`);
                     }
 
@@ -1036,7 +1059,7 @@ export function AppProvider({ children }) {
                                         });
                                         setVendors(migratedVendors);
                                     }
-                                    if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
+                                    if (firebaseData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(firebaseData.calendarNotes));
                                     if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
                                     if (firebaseData.scheduledBuys) {
                                         // Check if we recently made a local update (within last 15 seconds)
@@ -2067,8 +2090,22 @@ export function AppProvider({ children }) {
         }
     };
 
+    // Legacy function for backward compatibility - replaces all notes for a date with single note
     const updateCalendarNote = (dateKey, text) => {
-        setCalendarNotes(prev => ({...prev, [dateKey]: text}));
+        setCalendarNotes(prev => replaceCalendarNotesForDate(prev, dateKey, text));
+    };
+
+    // New ID-based note management functions
+    const addCalendarNoteWithId = (dateKey, text) => {
+        setCalendarNotes(prev => addCalendarNoteUtil(prev, dateKey, text));
+    };
+
+    const updateCalendarNoteById = (dateKey, noteId, text) => {
+        setCalendarNotes(prev => updateCalendarNoteUtil(prev, dateKey, noteId, text));
+    };
+
+    const deleteCalendarNoteById = (dateKey, noteId) => {
+        setCalendarNotes(prev => deleteCalendarNoteUtil(prev, dateKey, noteId));
     };
 
     // Real-time cross-browser sync listener
@@ -2247,7 +2284,7 @@ export function AppProvider({ children }) {
                                     const merged = { ...freshData.calendarDone, ...localCalendarDone };
                                     localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                                 }
-                                if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                                if (freshData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(freshData.calendarNotes));
                                 if (freshData.stockpile) {
                                     const filtered = freshData.stockpile.filter(s => !s.isMock);
                                     // Merge with local stockpile instead of overwriting
@@ -2431,7 +2468,7 @@ export function AppProvider({ children }) {
                                     console.log('🔒 Skipping vendors update from remote sync - in protection window');
                                 }
                             }
-                            if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                            if (freshData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(freshData.calendarNotes));
                             if (freshData.stockpile) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.stockpile.filter(s => !s.isMock)
@@ -2590,7 +2627,8 @@ export function AppProvider({ children }) {
             const savedNotes = localStorage.getItem('tpprover_calendar_notes');
             if (savedNotes && savedNotes !== '{}') {
                 const parsed = JSON.parse(savedNotes);
-                setCalendarNotes(parsed);
+                const migrated = migrateCalendarNotesToIdBased(parsed);
+                setCalendarNotes(migrated);
                 recoveredCount++;
             }
 
@@ -2723,6 +2761,12 @@ export function AppProvider({ children }) {
         updateSupplement,
         deleteSupplement,
         updateCalendarNote,
+        addCalendarNoteWithId,
+        updateCalendarNoteById,
+        deleteCalendarNoteById,
+        getCalendarNoteText,
+        getCalendarNotesForDate,
+        hasCalendarNotes,
         recoverDataFromLocalStorage,
         forceFirebaseReload,
         isLoading,

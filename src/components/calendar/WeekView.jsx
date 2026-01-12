@@ -12,6 +12,7 @@ import { useFirebase } from '../../context/FirebaseContext';
 import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic';
 import { areGroupBuysEnabled } from '../../utils/featureSettings';
 import { getNotesForDate } from '../../utils/protocolHistory';
+import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration';
 import Modal from '../common/Modal';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
@@ -146,7 +147,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' })
     const isToday = toKey(date) === toKey(new Date())
     const dayKey = toKey(date)
-    const dayNotes = entries[dayKey]
+    // Get note text from new ID-based structure
+    const dayNotesText = entries[dayKey] ? getCalendarNoteText(entries, dayKey) : ''
     const dayScheduled = scheduled[dayKey]
     
     // Get protocol notes for this date
@@ -367,7 +369,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 <Edit size={14} />
               </button>
             </div>
-            {dayNotes && (
+            {dayNotesText && (
               <div 
                 onClick={() => onNotesClick(date)}
                 className="p-2 rounded-md border text-xs cursor-pointer mt-1 hover:opacity-90"
@@ -378,9 +380,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 }}
                 title="View or edit notes"
               >
-                {typeof dayNotes === 'string' ? dayNotes : 
-                 typeof dayNotes === 'object' && dayNotes.text ? dayNotes.text : 
-                 String(dayNotes)}
+                {dayNotesText}
               </div>
             )}
             

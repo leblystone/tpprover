@@ -3309,11 +3309,80 @@ function Admin() {
                     {/* Response Input */}
                     {selectedTicket.status !== 'closed' && (
                       <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+                        {/* Quick Response Templates */}
+                        <div className="mb-3">
+                          <label className="text-xs font-semibold mb-2 block" style={{ color: theme.textLight }}>
+                            Quick Responses
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setTicketResponseText("Hey! 👋\n\nGood news - we've fixed this on our end! Just refresh your browser or update the app and you should be all set.\n\nIf it's still acting up after refreshing, shoot us another message and we'll take another look.\n\n- Pep Planner Team")}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ 
+                                backgroundColor: theme.primary + '20', 
+                                color: theme.primary,
+                                border: `1px solid ${theme.primary}40`
+                              }}
+                              title="Issue resolved - refresh app"
+                            >
+                              ✅ Issue Resolved
+                            </button>
+                            <button
+                              onClick={() => setTicketResponseText("Hey! 👋\n\nLove this idea! We're adding it to our feature wishlist and will definitely consider it for future updates.\n\nWe can't promise when (or if) it'll make it in, but we really appreciate you sharing your thoughts - it helps us build something better!\n\n- Pep Planner Team")}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ 
+                                backgroundColor: theme.warning + '20', 
+                                color: theme.warning,
+                                border: `1px solid ${theme.warning}40`
+                              }}
+                              title="Thank you for suggestion"
+                            >
+                              💡 Feature Request
+                            </button>
+                            <button
+                              onClick={() => setTicketResponseText("Hey! 👋\n\nThanks for reaching out! To help us figure this out, could you share a bit more info?\n\n• What device/browser are you using?\n• What were you doing right before this happened?\n• What did you expect vs. what actually happened?\n\nThis'll help us track it down faster!\n\n- Pep Planner Team")}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ 
+                                backgroundColor: theme.info + '20', 
+                                color: theme.info,
+                                border: `1px solid ${theme.info}40`
+                              }}
+                              title="Request more information"
+                            >
+                              🔍 Need More Info
+                            </button>
+                            <button
+                              onClick={() => setTicketResponseText("Hey! 👋\n\nThanks for flagging this! We're digging into it now and working on a fix.\n\nWe'll update you once we've got more info or have it sorted out. Hang tight!\n\n- Pep Planner Team")}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ 
+                                backgroundColor: theme.secondary + '20', 
+                                color: theme.secondary,
+                                border: `1px solid ${theme.secondary}40`
+                              }}
+                              title="Investigating the issue"
+                            >
+                              🔧 Investigating
+                            </button>
+                            <button
+                              onClick={() => setTicketResponseText("Hey! 👋\n\nThanks for reaching out - happy to help!\n\n")}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ 
+                                backgroundColor: theme.success + '20', 
+                                color: theme.success,
+                                border: `1px solid ${theme.success}40`
+                              }}
+                              title="Custom response with greeting"
+                            >
+                              ✏️ Custom
+                            </button>
+                          </div>
+                        </div>
+
                         <textarea
                           value={ticketResponseText}
                           onChange={(e) => setTicketResponseText(e.target.value)}
-                          placeholder="Type your response..."
-                          rows={3}
+                          placeholder="Type your response or select a quick response above..."
+                          rows={6}
                           className="w-full p-3 border rounded-lg text-sm mb-2"
                           style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
                         />

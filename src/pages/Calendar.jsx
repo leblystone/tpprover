@@ -21,6 +21,11 @@ import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import InjectionSiteSelector from '../components/common/InjectionSiteSelector'
 import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings'
 import { useHorizontalSwipe } from '../utils/useSwipeGesture'
+import { 
+  migrateCalendarNotesToIdBased, 
+  getCalendarNoteText, 
+  hasCalendarNotes as hasCalendarNotesUtil 
+} from '../utils/calendarNotesMigration'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -199,18 +204,11 @@ export default function Calendar() {
       const raw = localStorage.getItem('tpprover_calendar_notes'); 
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Migrate old string format to object format
-        const migrated = {};
-        for (const key in parsed) {
-          if (typeof parsed[key] === 'string') {
-            // Old format: string, migrate to object
-            migrated[key] = { text: parsed[key] };
-          } else if (parsed[key] && typeof parsed[key] === 'object') {
-            // Already in object format, extract just the text (ignore isMock)
-            migrated[key] = { text: parsed[key].text || '' };
-          }
-        }
+        // Migrate to new ID-based format
+        const migrated = migrateCalendarNotesToIdBased(parsed);
         setEntries(migrated);
+        // Save migrated format back to localStorage
+        localStorage.setItem('tpprover_calendar_notes', JSON.stringify(migrated));
       }
     } catch {}
     // Load done data from unified completion system
@@ -1235,7 +1233,8 @@ export default function Calendar() {
   const handleSaveDay = (text) => {
     if (!activeDay) return
     const key = toKey(activeDay);
-    setEntries(prev => ({ ...prev, [key]: { text } }))
+    // Use updateCalendarNote from context which now handles ID-based structure
+    updateCalendarNote(key, text);
     setActiveDay(null)
   }
 
@@ -1246,7 +1245,8 @@ export default function Calendar() {
       }
       if (!editingNotesFor) return;
       const key = toKey(editingNotesFor);
-      setEntries(prev => ({ ...prev, [key]: { text } }));
+      // Use updateCalendarNote from context which now handles ID-based structure
+      updateCalendarNote(key, text);
   }
 
   const handlePrev = () => {
@@ -1353,7 +1353,7 @@ export default function Calendar() {
           open={!!editingNotesFor}
           onClose={() => setEditingNotesFor(null)}
           theme={theme}
-          notes={editingNotesFor ? entries[toKey(editingNotesFor)]?.text : ''}
+          notes={editingNotesFor ? getCalendarNoteText(entries, toKey(editingNotesFor)) : ''}
           onSave={handleSaveNotes}
       />
 

@@ -5,6 +5,8 @@ import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { areWashoutIconsEnabled, areGroupBuysEnabled } from '../../utils/featureSettings'
+import { getNotesForDate } from '../../utils/protocolHistory'
+import { getCalendarNoteText } from '../../utils/calendarNotesMigration'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -165,9 +167,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                 {week.map((d, i) => {
                     const key = d ? toKey(d) : ''
                     const entryText = d && entries[key] ? 
-                        (typeof entries[key] === 'string' ? entries[key].slice(0, 40) : 
-                         typeof entries[key] === 'object' && entries[key].text ? entries[key].text.slice(0, 40) : 
-                         '') : ''
+                        getCalendarNoteText(entries, key).slice(0, 40) : ''
                     const sched = (d && scheduled[key]) || {}
                     const peptides = Array.from(new Set([
                         ...(sched.bySlot?.AM?.peptides || []), 

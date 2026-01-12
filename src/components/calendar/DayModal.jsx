@@ -13,6 +13,7 @@ import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic'
 import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
+import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {})
 
@@ -299,7 +300,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' })
   const isToday = toKey(date) === toKey(new Date())
   const dayKey = toKey(date)
-  const dayNotes = entries[dayKey]
+  // Get note text from new ID-based structure
+  const dayNotesText = entries[dayKey] ? getCalendarNoteText(entries, dayKey) : ''
   const dayScheduled = scheduled[dayKey]
   
   // Get protocol notes for this date
@@ -541,7 +543,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   <Edit size={16} />
                 </button>
               </div>
-              {dayNotes ? (
+              {dayNotesText ? (
                 <div 
                   onClick={() => onNotesClick(date)}
                   className="p-3 rounded-md border text-sm cursor-pointer hover:opacity-90"
@@ -552,9 +554,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   }}
                   title="View or edit notes"
                 >
-                  {typeof dayNotes === 'string' ? dayNotes : 
-                   typeof dayNotes === 'object' && dayNotes.text ? dayNotes.text : 
-                   String(dayNotes)}
+                  {dayNotesText}
                 </div>
               ) : (
                 <div 
