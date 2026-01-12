@@ -306,16 +306,8 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 <h3 className="font-semibold text-lg leading-tight" style={{ color: theme.text }}>
                                     {p.protocolName || 'Unnamed Protocol'}
                                 </h3>
-                            </div>
-                            
-                            {/* Image-style metadata: "1 ORDER" -> "N PEPTIDES" */}
-                            <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>
-                                <div className="flex items-center gap-1">
-                                    <Beaker size={12} />
-                                    <span>{p.peptides?.length || 0} Peptides</span>
-                                </div>
                                 {isActive && p.startDate && (
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>
                                         <Clock size={12} />
                                         <span>Active since {formatMMDDYYYY(parseDateString(p.startDate))}</span>
                                     </div>
