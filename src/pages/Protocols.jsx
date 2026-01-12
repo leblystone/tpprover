@@ -54,6 +54,7 @@ export default function Protocols() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteFromEditor, setDeleteFromEditor] = useState(null);
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
   const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
@@ -1860,8 +1861,8 @@ export default function Protocols() {
         }}
         onDelete={(toDel) => {
           if (!toDel) return
-          deleteProtocol(toDel.id);
-          setEditing(null)
+          // Show confirmation modal instead of deleting immediately
+          setDeleteFromEditor(toDel);
         }}
       />
 
@@ -2234,7 +2235,7 @@ export default function Protocols() {
         </BottomSheet>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal - From Manage Modal */}
       <ConfirmationModal
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
@@ -2250,6 +2251,28 @@ export default function Protocols() {
         }}
         title="Delete Protocol?"
         message={`Are you sure you want to delete "${deleteConfirm?.protocolName || deleteConfirm?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
+        theme={theme}
+      />
+
+      {/* Delete Confirmation Modal - From Editor Modal */}
+      <ConfirmationModal
+        open={!!deleteFromEditor}
+        onClose={() => setDeleteFromEditor(null)}
+        onConfirm={() => {
+          if (deleteFromEditor) {
+            deleteProtocol(deleteFromEditor.id);
+            setEditing(null);
+            setDeleteFromEditor(null);
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { message: 'Protocol deleted successfully', type: 'success' } 
+            }));
+          }
+        }}
+        title="Delete Protocol?"
+        message={`Are you sure you want to delete "${deleteFromEditor?.protocolName || deleteFromEditor?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         type="delete"
