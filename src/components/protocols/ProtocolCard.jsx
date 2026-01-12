@@ -745,9 +745,10 @@ function renderDateRange(p, isActive) {
     const displayEnd = washEnd || end
     const startStr = formatMMDDYYYY(startNormalized)
     
-    // If active and no end date: "date started - Current"
-    if (isActive && !displayEnd) {
-        return `${startStr} - Current`
+    // If active and no end date (ongoing): return empty - only "Active since" will show
+    // Also check if duration.noEnd is true (even if endDate exists from migration)
+    if (isActive && (!displayEnd || p.duration?.noEnd)) {
+        return ''
     }
     
     // If inactive with no history (no end date): blank
