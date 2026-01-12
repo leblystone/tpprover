@@ -56,8 +56,10 @@ export default function SubscriptionGuard({ children }) {
     return null; // Brief loading state
   }
 
-  // If trial is expired and trying to access protected routes, redirect
-  if (isTrialExpired && !hasAccess && !isAllowedRoute) {
+  // CRITICAL: Block access if user doesn't have access (trial expired, subscription expired, or no subscription)
+  // This ensures unpaid users cannot access protected routes
+  if (!hasAccess && !isAllowedRoute) {
+    // Redirect to trial-expired page (handles both trial and subscription expired cases)
     return <Navigate to="/app/trial-expired" replace />;
   }
 

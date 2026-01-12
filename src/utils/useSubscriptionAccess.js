@@ -317,8 +317,24 @@ export function useSubscriptionAccess() {
           return;
         }
 
-        // Trial expired or canceled subscription
-        console.log('❌ Trial EXPIRED or canceled - READ-ONLY MODE');
+        // Cancelled subscription - still active until currentPeriodEnd
+        // When a subscription is cancelled, it remains active until the end of the current billing period
+        if (effectiveSubscription.status === 'canceled' && timeLeft > 0) {
+          console.log('⚠️ Subscription cancelled but still active until period end - FULL ACCESS');
+          setAccessInfo({
+            hasAccess: true,
+            isTrialExpired: false,
+            isReadOnly: false,
+            showUpgradePrompt: daysLeftDisplay <= 7, // Show prompt in last week
+            daysRemaining: daysLeftDisplay,
+            subscriptionStatus: 'canceled',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+          return;
+        }
+
+        // Trial expired or canceled subscription (after period end)
+        console.log('❌ Trial EXPIRED or subscription ENDED - LOCKOUT');
         setAccessInfo({
           hasAccess: false,
           isTrialExpired: true,
