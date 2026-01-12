@@ -2373,7 +2373,7 @@ export default function Protocols() {
           maxHeight="85vh"
           footer={
             <div className="w-full flex items-center gap-3">
-                {/* Left side - Close/Cancel button */}
+                {/* Left side - Close button */}
                 <button
                     type="button"
                     onClick={() => {
@@ -2382,14 +2382,13 @@ export default function Protocols() {
                     }}
                     className="text-sm font-medium transition-opacity hover:opacity-70"
                     style={{ 
-                        backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                        color: theme.text,
+                        backgroundColor: 'transparent',
+                        color: theme.textLight,
                         padding: '10px 20px',
-                        borderRadius: '8px',
                         border: 'none'
                     }}
                 >
-                    {manageTab === 'manage' ? 'Cancel' : 'Close'}
+                    Close
                 </button>
                 
                 {/* Right side - Tab-specific buttons */}
@@ -2532,14 +2531,15 @@ export default function Protocols() {
                                   setEditingNote(null);
                                 }
                               }}
-                              className="px-4 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-70"
+                              className="text-sm font-medium transition-opacity hover:opacity-70"
                               style={{ 
-                                backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                                color: theme.text,
+                                backgroundColor: 'transparent',
+                                color: theme.textLight,
+                                padding: '10px 20px',
                                 border: 'none'
                               }}
                             >
-                              Cancel
+                              Close
                             </button>
                             <button
                               onClick={() => {
@@ -2856,13 +2856,15 @@ export default function Protocols() {
                           setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
                           setShowLinkedDate(false);
                         }}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        className="text-sm font-medium transition-opacity hover:opacity-70"
                         style={{ 
-                          backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                          color: theme.text
+                          backgroundColor: 'transparent',
+                          color: theme.textLight,
+                          padding: '10px 20px',
+                          border: 'none'
                         }}
                       >
-                        Cancel
+                        Close
                       </button>
                       <button
                         onClick={handleAddNote}
