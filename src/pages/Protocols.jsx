@@ -50,6 +50,7 @@ export default function Protocols() {
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
+  const [manageTab, setManageTab] = useState('manage'); // 'manage' | 'edit' | 'notes' | 'share' | 'history'
   const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1926,11 +1927,13 @@ export default function Protocols() {
           open={true}
           onClose={() => {
             setManageConfirm(null);
+            setManageTab('manage'); // Reset to manage tab when closing
             setHistoryProtocol(null); // Ensure history modal is also closed
             setHistoryFromManage(false);
           }}
           onBack={() => {
             setManageConfirm(null);
+            setManageTab('manage'); // Reset to manage tab when closing
             setHistoryProtocol(null); // Ensure history modal is also closed
             setHistoryFromManage(false);
           }}
@@ -1941,7 +1944,10 @@ export default function Protocols() {
             <div className="w-full flex items-center gap-3">
                 <button
                     type="button"
-                    onClick={() => setManageConfirm(null)}
+                    onClick={() => {
+                      setManageConfirm(null);
+                      setManageTab('manage');
+                    }}
                     className="text-sm font-medium transition-opacity hover:opacity-70"
                     style={{ 
                         backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
@@ -1951,286 +1957,304 @@ export default function Protocols() {
                         border: 'none'
                     }}
                 >
-                    Cancel
+                    {manageTab === 'manage' ? 'Cancel' : 'Close'}
                 </button>
                 <div className="flex-1" />
-                <button
-                    type="button"
-                    onClick={() => {
-                            if (manageConfirm) {
-                                updateProtocol(manageConfirm);
-                                
-                                // Update history entry with current linkedItems (for complete data preservation)
-                                try {
-                                    const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
-                                    if (activeHistoryEntry) {
-                                        // Extract skipped reconstitution data from linkedItems
-                                        const skippedReconstitution = {};
-                                        const linkedItems = manageConfirm.linkedItems || {};
-                                        Object.entries(linkedItems).forEach(([peptideId, item]) => {
-                                            if (item.status === 'skipped' && item.deliveryMethod) {
-                                                const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
-                                                skippedReconstitution[peptideId] = {
-                                                    peptideName: peptide?.name || 'Unknown',
-                                                    deliveryMethod: item.deliveryMethod
-                                                };
-                                            }
-                                        });
-                                        
-                                        // Update history entry with complete linkedItems and skipped reconstitution
-                                        const updatedProtocolData = {
-                                            ...(activeHistoryEntry.protocolData || {}),
-                                            linkedItems: linkedItems // Save complete linkedItems for reference
-                                        };
-                                        
-                                        updateProtocolHistoryEntry(activeHistoryEntry.id, {
-                                            protocolData: updatedProtocolData,
-                                            skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
-                                        });
-                                    }
-                                } catch (e) {
-                                    console.warn('Failed to update protocol history with linkedItems:', e);
-                                }
-                                
-                                // Save to protocol draft for real-time sync with tasks/calendar
-                                try {
-                                    const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
-                                    localStorage.setItem(draftKey, JSON.stringify({
-                                        data: manageConfirm,
-                                        timestamp: new Date().toISOString()
-                                    }));
-                                    
-                                    // Emit event so TasksWidget and Calendar pick up the changes immediately
-                                    window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
-                                        detail: { storageKey: draftKey, formData: manageConfirm }
-                                    }));
-                                } catch (e) {
-                                    console.warn('Failed to save protocol draft:', e);
-                                }
-                                
-                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                    detail: { message: 'Protocol updated successfully!', type: 'success' } 
-                                }));
-                            }
-                            setManageConfirm(null);
-                            setHistoryProtocol(null); // Ensure history modal is also closed
-                        }}
-                    className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
-                    style={{ 
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                        color: theme.textOnPrimary || '#ffffff',
-                        border: 'none'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                >
-                    Save Changes
-                </button>
+                {manageTab === 'manage' && (
+                  <button
+                      type="button"
+                      onClick={() => {
+                              if (manageConfirm) {
+                                  updateProtocol(manageConfirm);
+                                  
+                                  // Update history entry with current linkedItems (for complete data preservation)
+                                  try {
+                                      const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                                      if (activeHistoryEntry) {
+                                          // Extract skipped reconstitution data from linkedItems
+                                          const skippedReconstitution = {};
+                                          const linkedItems = manageConfirm.linkedItems || {};
+                                          Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                              if (item.status === 'skipped' && item.deliveryMethod) {
+                                                  const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
+                                                  skippedReconstitution[peptideId] = {
+                                                      peptideName: peptide?.name || 'Unknown',
+                                                      deliveryMethod: item.deliveryMethod
+                                                  };
+                                              }
+                                          });
+                                          
+                                          // Update history entry with complete linkedItems and skipped reconstitution
+                                          const updatedProtocolData = {
+                                              ...(activeHistoryEntry.protocolData || {}),
+                                              linkedItems: linkedItems // Save complete linkedItems for reference
+                                          };
+                                          
+                                          updateProtocolHistoryEntry(activeHistoryEntry.id, {
+                                              protocolData: updatedProtocolData,
+                                              skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+                                          });
+                                      }
+                                  } catch (e) {
+                                      console.warn('Failed to update protocol history with linkedItems:', e);
+                                  }
+                                  
+                                  // Save to protocol draft for real-time sync with tasks/calendar
+                                  try {
+                                      const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
+                                      localStorage.setItem(draftKey, JSON.stringify({
+                                          data: manageConfirm,
+                                          timestamp: new Date().toISOString()
+                                      }));
+                                      
+                                      // Emit event so TasksWidget and Calendar pick up the changes immediately
+                                      window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+                                          detail: { storageKey: draftKey, formData: manageConfirm }
+                                      }));
+                                  } catch (e) {
+                                      console.warn('Failed to save protocol draft:', e);
+                                  }
+                                  
+                                  window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                      detail: { message: 'Protocol updated successfully!', type: 'success' } 
+                                  }));
+                              }
+                              setManageConfirm(null);
+                              setManageTab('manage');
+                              setHistoryProtocol(null); // Ensure history modal is also closed
+                          }}
+                      className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
+                      style={{ 
+                          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                          color: theme.textOnPrimary || '#ffffff',
+                          border: 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                      }}
+                  >
+                      Save Changes
+                  </button>
+                )}
             </div>
         }
         >
           <div className="space-y-4">
-            {/* Action Bar - Quick Actions */}
-            <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: theme.border }}>
-              <button
-                onClick={() => {
-                  setManageConfirm(null);
-                  handleEditClick(manageConfirm);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-                }}
-              >
-                <EditIcon size={16} />
-                <span>Edit</span>
-              </button>
-              
-              <button
-                onClick={() => setIsNotesModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-                }}
-              >
-                <NotebookPen size={16} />
-                <span>Notes</span>
-              </button>
-              
-              <button
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-                }}
-              >
-                <Share2 size={16} />
-                <span>Share</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  // Store the manage protocol before opening history
-                  const protocolToManage = manageConfirm;
-                  setManageConfirm(null);
-                  setHistoryProtocol(protocolToManage);
-                  // Store a flag to restore manage modal on back
-                  setHistoryFromManage(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-                }}
-              >
-                <History size={16} />
-                <span>History</span>
-              </button>
-            </div>
+            {/* Tabs Navigation */}
+            <Tabs
+              value={manageTab}
+              onChange={setManageTab}
+              options={[
+                { value: 'manage', label: 'Manage' },
+                { value: 'edit', label: 'Edit' },
+                { value: 'notes', label: 'Notes' },
+                { value: 'share', label: 'Share' },
+                { value: 'history', label: 'History' }
+              ]}
+              theme={theme}
+              compact={true}
+              stretch={true}
+            />
             
-            {/* PROTOCOL SETTINGS Section Header */}
-            <div className="flex items-center gap-4 mb-3">
-              <Settings size={32} style={{ color: theme.primary }} />
-              <div className="flex flex-col gap-0.5">
-                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Settings</h4>
-                <div className="flex items-center gap-2 ml-1">
-                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                    Schedule Configuration
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>
-                    Start Date
-                </label>
-                <GlassmorphismDatePicker
-                    value={manageConfirm?.startDate || ''}
-                    onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
-                    theme={theme}
-                    placeholder="Select start date"
-                />
-                <p className="text-xs mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all calendar events for this protocol.</p>
-            </div>
-
-            {/* Edit Vials and Delivery Methods Section */}
-            {manageConfirm?.active && manageConfirm?.linkedItems && (
-                <>
-                    <div className="flex items-center gap-4 mb-3 pt-1">
-                      <TestTubes size={32} style={{ color: theme.primary }} />
-                      <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                            Active Inventory
-                          </span>
-                        </div>
-                      </div>
+            {/* Tab Content */}
+            {manageTab === 'manage' && (
+              <>
+                {/* PROTOCOL SETTINGS Section Header */}
+                <div className="flex items-center gap-4 mb-3">
+                  <Settings size={32} style={{ color: theme.primary }} />
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Settings</h4>
+                    <div className="flex items-center gap-2 ml-1">
+                      <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        Schedule Configuration
+                      </span>
                     </div>
+                  </div>
+                </div>
 
-                    <EditActiveProtocolVials
-                        protocol={manageConfirm}
-                        stockpile={stockpile}
-                        setStockpile={setStockpile}
+                <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>
+                        Start Date
+                    </label>
+                    <GlassmorphismDatePicker
+                        value={manageConfirm?.startDate || ''}
+                        onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
                         theme={theme}
-                        onUpdate={(updatedLinkedItems) => {
-                            const previousLinkedItems = manageConfirm?.linkedItems || {};
-                            setManageConfirm(p => {
-                                const updated = { ...p, linkedItems: updatedLinkedItems };
-                                
-                                // Save vials added during active protocol to history
-                                try {
-                                    // Check if any new vials were added
-                                    Object.entries(updatedLinkedItems).forEach(([peptideId, item]) => {
-                                        const previousItem = previousLinkedItems[peptideId];
-                                        // If a vial was just linked that wasn't linked before
-                                        if (item.status === 'linked' && item.vialId && 
-                                            (!previousItem || previousItem.status !== 'linked' || previousItem.vialId !== item.vialId)) {
-                                            const vial = stockpile.find(v => v.id === item.vialId);
-                                            if (vial) {
-                                                addVialToActiveProtocol(p.id, {
-                                                    vialId: vial.id,
-                                                    stockpileId: vial.id,
-                                                    name: vial.name,
-                                                    mg: vial.mg,
-                                                    vendor: vial.vendor,
-                                                    cost: vial.cost || 0
-                                                });
-                                            }
-                                        }
-                                    });
-                                } catch (e) {
-                                    console.warn('Could not save vial to protocol history:', e);
-                                }
-                                
-                                return updated;
-                            });
-                        }}
+                        placeholder="Select start date"
                     />
-                </>
+                    <p className="text-xs mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all calendar events for this protocol.</p>
+                </div>
+
+                {/* Edit Vials and Delivery Methods Section */}
+                {manageConfirm?.active && manageConfirm?.linkedItems && (
+                    <>
+                        <div className="flex items-center gap-4 mb-3 pt-1">
+                          <TestTubes size={32} style={{ color: theme.primary }} />
+                          <div className="flex flex-col gap-0.5">
+                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Active Inventory
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <EditActiveProtocolVials
+                            protocol={manageConfirm}
+                            stockpile={stockpile}
+                            setStockpile={setStockpile}
+                            theme={theme}
+                            onUpdate={(updatedLinkedItems) => {
+                                const previousLinkedItems = manageConfirm?.linkedItems || {};
+                                setManageConfirm(p => {
+                                    const updated = { ...p, linkedItems: updatedLinkedItems };
+                                    
+                                    // Save vials added during active protocol to history
+                                    try {
+                                        // Check if any new vials were added
+                                        Object.entries(updatedLinkedItems).forEach(([peptideId, item]) => {
+                                            const previousItem = previousLinkedItems[peptideId];
+                                            // If a vial was just linked that wasn't linked before
+                                            if (item.status === 'linked' && item.vialId && 
+                                                (!previousItem || previousItem.status !== 'linked' || previousItem.vialId !== item.vialId)) {
+                                                const vial = stockpile.find(v => v.id === item.vialId);
+                                                if (vial) {
+                                                    addVialToActiveProtocol(p.id, {
+                                                        vialId: vial.id,
+                                                        stockpileId: vial.id,
+                                                        name: vial.name,
+                                                        mg: vial.mg,
+                                                        vendor: vial.vendor,
+                                                        cost: vial.cost || 0
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    } catch (e) {
+                                        console.warn('Could not save vial to protocol history:', e);
+                                    }
+                                    
+                                    return updated;
+                                });
+                            }}
+                        />
+                    </>
+                )}
+
+                {/* Page Break */}
+                <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                <div className="p-3 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <div className="text-sm font-semibold mb-0.5" style={{ color: '#dc2626' }}>End protocol early?</div>
+                            <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period if applicable.</div>
+                        </div>
+                        <button
+                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
+                            style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                            onClick={() => {
+                                endProtocol(manageConfirm);
+                                setManageConfirm(null);
+                            }}
+                        >
+                            End Now
+                        </button>
+                    </div>
+                </div>
+              </>
             )}
 
-            {/* Page Break */}
-            <div className="border-t" style={{ borderColor: theme.border }}></div>
+            {manageTab === 'edit' && (
+              <div className="py-4">
+                <button
+                  onClick={() => {
+                    const protocolToEdit = manageConfirm;
+                    setManageConfirm(null);
+                    setManageTab('manage');
+                    handleEditClick(protocolToEdit);
+                  }}
+                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                    color: theme.textOnPrimary || '#ffffff'
+                  }}
+                >
+                  Open Full Editor
+                </button>
+                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+                  The full editor provides complete protocol editing capabilities.
+                </p>
+              </div>
+            )}
 
-            <div className="p-3 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
-                <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                        <div className="text-sm font-semibold mb-0.5" style={{ color: '#dc2626' }}>End protocol early?</div>
-                        <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period if applicable.</div>
-                    </div>
-                    <button
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
-                        style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
-                        onClick={() => {
-                            endProtocol(manageConfirm);
-                            setManageConfirm(null);
-                        }}
-                    >
-                        End Now
-                    </button>
-                </div>
-            </div>
+            {manageTab === 'notes' && (
+              <div className="py-4">
+                <button
+                  onClick={() => setIsNotesModalOpen(true)}
+                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                    color: theme.textOnPrimary || '#ffffff'
+                  }}
+                >
+                  Open Notes
+                </button>
+                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+                  Notes functionality will be available inline in a future update.
+                </p>
+              </div>
+            )}
+
+            {manageTab === 'share' && (
+              <div className="py-4">
+                <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                    color: theme.textOnPrimary || '#ffffff'
+                  }}
+                >
+                  Open Share
+                </button>
+                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+                  Share functionality will be available inline in a future update.
+                </p>
+              </div>
+            )}
+
+            {manageTab === 'history' && (
+              <div className="py-4">
+                <button
+                  onClick={() => {
+                    const protocolToManage = manageConfirm;
+                    setManageConfirm(null);
+                    setManageTab('manage');
+                    setHistoryProtocol(protocolToManage);
+                    setHistoryFromManage(true);
+                  }}
+                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                    color: theme.textOnPrimary || '#ffffff'
+                  }}
+                >
+                  Open History
+                </button>
+                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+                  History functionality will be available inline in a future update.
+                </p>
+              </div>
+            )}
         </div>
         </BottomSheet>
       )}
