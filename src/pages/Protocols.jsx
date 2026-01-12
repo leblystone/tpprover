@@ -2538,34 +2538,36 @@ export default function Protocols() {
                       </>
                     )}
 
-                    {/* Share Tab - Share Image and Copy Link */}
+                    {/* Share Tab - Copy Link and Share Image */}
                     {manageTab === 'share' && (
                       <>
                         <button 
-                          onClick={handleShareImage} 
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" 
-                          style={{ 
-                            backgroundColor: theme.primary, 
-                            color: theme.textOnPrimary || '#ffffff',
-                            border: 'none'
-                          }}
-                        >
-                          <Image size={18} />
-                          Share Image
-                        </button>
-                        <button 
                           onClick={handleCopyLink} 
                           disabled={shareCopied} 
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all hover:scale-[1.02] active:scale-95" 
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all hover:scale-[1.02] active:scale-95" 
                           style={{ 
                             borderColor: shareCopied ? theme.primary : theme.border, 
                             backgroundColor: shareCopied ? `${theme.primary}15` : 'transparent', 
                             color: shareCopied ? theme.primary : theme.text,
-                            opacity: shareCopied ? 1 : 1
+                            opacity: shareCopied ? 1 : 1,
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          {shareCopied ? <Check size={18} /> : <Copy size={18} />}
+                          {shareCopied ? <Check size={16} /> : <Copy size={16} />}
                           {shareCopied ? 'Copied!' : 'Copy Link'}
+                        </button>
+                        <button 
+                          onClick={handleShareImage} 
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" 
+                          style={{ 
+                            backgroundColor: theme.primary, 
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <Image size={16} />
+                          Share
                         </button>
                       </>
                     )}
