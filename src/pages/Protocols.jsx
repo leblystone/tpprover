@@ -88,6 +88,7 @@ export default function Protocols() {
   const [selectedHistoryEntryForManage, setSelectedHistoryEntryForManage] = useState(null);
   const [followUpProtocolForManage, setFollowUpProtocolForManage] = useState(null);
   const [followUpHistoryIdForManage, setFollowUpHistoryIdForManage] = useState(null);
+  const [editForm, setEditForm] = useState(null);
   
   const NOTE_TAGS = [
     { id: 'progress', label: 'Progress Update' },
@@ -117,6 +118,13 @@ export default function Protocols() {
   useEffect(() => {
     if (manageTab === 'notes' && manageConfirm) {
       loadNotesForManage();
+    }
+  }, [manageTab, manageConfirm]);
+
+  // Initialize edit form when edit tab is active
+  useEffect(() => {
+    if (manageTab === 'edit' && manageConfirm && !editForm) {
+      setEditForm({ ...manageConfirm });
     }
   }, [manageTab, manageConfirm]);
 
@@ -2354,7 +2362,7 @@ export default function Protocols() {
           }}
           title={`Manage "${manageConfirm.protocolName}"`}
           theme={theme}
-          maxHeight="90vh"
+          maxHeight="85vh"
           footer={
             <div className="w-full flex items-center gap-3">
                 <button
@@ -2459,23 +2467,27 @@ export default function Protocols() {
             </div>
         }
         >
-          <div className="space-y-4">
+          <div className="space-y-4" style={{ height: 'calc(85vh - 200px)', display: 'flex', flexDirection: 'column' }}>
             {/* Tabs Navigation */}
-            <Tabs
-              value={manageTab}
-              onChange={setManageTab}
-              options={[
-                { value: 'manage', label: 'Manage' },
-                { value: 'edit', label: 'Edit' },
-                { value: 'notes', label: 'Notes' },
-                { value: 'share', label: 'Share' },
-                { value: 'history', label: 'History' }
-              ]}
-              theme={theme}
-              subtle={true}
-              stretch={true}
-            />
+            <div className="flex-shrink-0">
+              <Tabs
+                value={manageTab}
+                onChange={setManageTab}
+                options={[
+                  { value: 'manage', label: 'Manage' },
+                  { value: 'edit', label: 'Edit' },
+                  { value: 'notes', label: 'Notes' },
+                  { value: 'share', label: 'Share' },
+                  { value: 'history', label: 'History' }
+                ]}
+                theme={theme}
+                subtle={true}
+                stretch={true}
+              />
+            </div>
             
+            {/* Tab Content - Fixed height with scroll */}
+            <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
             {/* Tab Content */}
             {manageTab === 'manage' && (
               <>
@@ -2588,26 +2600,79 @@ export default function Protocols() {
               </>
             )}
 
-            {manageTab === 'edit' && (
-              <div className="py-4">
-                <button
-                  onClick={() => {
-                    const protocolToEdit = manageConfirm;
-                    setManageConfirm(null);
-                    setManageTab('manage');
-                    handleEditClick(protocolToEdit);
-                  }}
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                    color: theme.textOnPrimary || '#ffffff'
-                  }}
-                >
-                  Open Full Editor
-                </button>
-                <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-                  The full editor provides complete protocol editing capabilities.
-                </p>
+            {manageTab === 'edit' && editForm && (
+              <div className="space-y-4">
+                {/* Protocol Name */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                    Protocol Name
+                  </label>
+                  <TextInput
+                    value={editForm.protocolName || ''}
+                    onChange={(v) => setEditForm({ ...editForm, protocolName: v })}
+                    placeholder="Protocol name"
+                    theme={theme}
+                    outlined={true}
+                  />
+                </div>
+
+                {/* Purpose */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                    Purpose/Goal
+                  </label>
+                  <TextInput
+                    value={editForm.purpose || ''}
+                    onChange={(v) => setEditForm({ ...editForm, purpose: v })}
+                    placeholder="Weight Loss, Recovery, etc."
+                    theme={theme}
+                    outlined={true}
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                    Notes
+                  </label>
+                  <textarea
+                    value={editForm.notes || ''}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    placeholder="Additional notes..."
+                    className="w-full p-3 rounded-lg text-sm resize-none"
+                    rows={4}
+                    style={{
+                      backgroundColor: theme.isDark ? '#111827' : '#ffffff',
+                      border: `1px solid ${theme.border}`,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
+                  <button
+                    onClick={() => {
+                      if (editForm) {
+                        updateProtocol(editForm);
+                        setManageConfirm(editForm);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: 'Protocol updated successfully!', type: 'success' } 
+                        }));
+                      }
+                    }}
+                    className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                      color: theme.textOnPrimary || '#ffffff'
+                    }}
+                  >
+                    Save Changes
+                  </button>
+                  <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+                    For advanced editing (peptides, scheduling, etc.), use the full editor from the protocol card.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -3183,7 +3248,8 @@ export default function Protocols() {
                 )}
               </div>
             )}
-        </div>
+            </div>
+          </div>
         </BottomSheet>
       )}
 
