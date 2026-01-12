@@ -2392,8 +2392,16 @@ export default function Protocols() {
                     {manageTab === 'manage' ? 'Cancel' : 'Close'}
                 </button>
                 
-                {/* Center - Tab-specific buttons */}
-                <div className="flex-1 flex items-center justify-center gap-3">
+                {/* Right side - Tab-specific buttons */}
+                <div className="flex-1 flex items-center justify-end gap-3">
+                    {/* Edit Tab - Auto-saves */}
+                    {manageTab === 'edit' && (
+                      <div className="text-xs flex items-center gap-2" style={{ color: theme.textLight }}>
+                        <Check size={14} style={{ color: theme.primary }} />
+                        <span>Auto-saving changes</span>
+                      </div>
+                    )}
+
                     {/* Manage Tab - Save Changes */}
                     {manageTab === 'manage' && (
                       <button
@@ -2483,14 +2491,13 @@ export default function Protocols() {
                         {!showAddNoteForm && !editingNote && (
                           <button
                             onClick={() => setShowAddNoteForm(true)}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
                             style={{ 
                               backgroundColor: theme.primary, 
                               color: theme.textOnPrimary || '#ffffff',
                               border: 'none'
                             }}
                           >
-                            <Plus size={18} />
                             Add Note
                           </button>
                         )}
