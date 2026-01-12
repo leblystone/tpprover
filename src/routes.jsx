@@ -213,6 +213,7 @@ export const router = createBrowserRouter([
           { path: 'calendar', element: <Calendar /> },
           { path: 'calendar/day', element: <Day /> },
           { path: 'recon', element: <Recon /> },
+          { path: 'calculator', element: <Navigate to="/app/recon" replace /> },
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },

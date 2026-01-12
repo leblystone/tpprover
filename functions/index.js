@@ -2518,6 +2518,28 @@ exports.deleteUserAccount = onCall(
 
       logger.info(`✅ Account deletion completed successfully for: ${userEmail} (${userId})`);
 
+      // Log deletion to Firestore for admin tracking
+      try {
+        await db.collection('accountDeletions').add({
+          userId: userId,
+          userEmail: userEmail,
+          userName: userName,
+          deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deletionType: 'self_service',
+          deletedBy: userId, // User deleted their own account
+          subscriptionCancelled: subscriptionInfo?.stripeSubscriptionId ? true : false,
+          stripeSubscriptionId: subscriptionInfo?.stripeSubscriptionId || null,
+          dataSummary: {
+            hadSubscription: !!subscriptionInfo,
+            hadLifetimeAccess: false // Could check lifetimeAccess collection if needed
+          }
+        });
+        logger.info(`✅ Deletion logged to accountDeletions collection`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
+        // Don't fail the deletion if logging fails
+      }
+
       return {
         success: true,
         message: 'Account and all associated data have been permanently deleted'
@@ -3876,6 +3898,29 @@ exports.terminateUser = onCall(
       }
 
       logger.info(`✅ Admin account termination completed successfully for: ${email} (${userId})`);
+
+      // Log deletion to Firestore for admin tracking
+      try {
+        const adminEmail = request.auth?.token?.email;
+        await db.collection('accountDeletions').add({
+          userId: userId,
+          userEmail: email,
+          userName: userName,
+          deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deletionType: 'admin_terminated',
+          deletedBy: adminEmail || 'unknown_admin',
+          subscriptionCancelled: subscriptionInfo?.stripeSubscriptionId ? true : false,
+          stripeSubscriptionId: subscriptionInfo?.stripeSubscriptionId || null,
+          dataSummary: {
+            hadSubscription: !!subscriptionInfo,
+            hadLifetimeAccess: false // Could check lifetimeAccess collection if needed
+          }
+        });
+        logger.info(`✅ Deletion logged to accountDeletions collection`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
+        // Don't fail the deletion if logging fails
+      }
       
       return {
         success: true,
