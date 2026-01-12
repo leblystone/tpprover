@@ -190,7 +190,7 @@ export default function SecurityManager({ theme }) {
             <strong style={{ color: theme.text }}>Manual review is recommended.</strong> Use the auditing system below to identify suspicious accounts.
           </p>
           <p>
-            To delete a specific user, use Firebase Console Authentication or create a targeted admin function. Automatic bulk deletion has been disabled to protect user retention.
+            <strong style={{ color: theme.text }}>Delete Action:</strong> The "Delete" button will permanently remove the account, cancel active subscriptions, delete all Firestore data (users, userData, userSubscriptions, userPreferences, userState, lifetimeAccess), send a confirmation email, and delete from Firebase Auth. This action cannot be undone.
           </p>
         </div>
       </div>

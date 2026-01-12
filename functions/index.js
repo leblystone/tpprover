@@ -3764,7 +3764,8 @@ exports.blockUser = onCall(
 // Terminate a user (permanently delete account)
 exports.terminateUser = onCall(
   {
-    cors: true
+    cors: true,
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
@@ -3780,25 +3781,114 @@ exports.terminateUser = onCall(
       throw new HttpsError('invalid-argument', 'User ID and email are required');
     }
 
+    logger.info(`🗑️ Admin terminating user account: ${email} (${userId})`);
+
     try {
       const auth = admin.auth();
       const db = admin.firestore();
       
-      // Delete from Firebase Auth
-      await auth.deleteUser(userId);
-      
-      // Delete from Firestore
-      await db.collection('users').doc(userId).delete();
-      await db.collection('userdata').doc(userId).delete();
-      
-      logger.info(`🗑️ User terminated: ${email} (${userId})`);
+      // Get user info before deletion for email
+      let userRecord;
+      let userName = null;
+      try {
+        userRecord = await auth.getUser(userId);
+        userName = userRecord.displayName || email.split('@')[0];
+      } catch (error) {
+        logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+      }
+
+      // Get subscription info before deletion
+      let subscriptionInfo = null;
+      try {
+        const subscriptionDoc = await db.collection('userSubscriptions').doc(userId).get();
+        if (subscriptionDoc.exists) {
+          subscriptionInfo = subscriptionDoc.data();
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
+      }
+
+      // Cancel Stripe subscription if active
+      if (subscriptionInfo?.stripeSubscriptionId) {
+        try {
+          const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+          if (stripeSecretKey && stripeSecretKey !== 'sk_test_fallback_key') {
+            const stripe = require('stripe')(stripeSecretKey);
+            const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionInfo.stripeSubscriptionId);
+            
+            if (stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing') {
+              await stripe.subscriptions.cancel(subscriptionInfo.stripeSubscriptionId);
+              logger.info(`✅ Cancelled Stripe subscription: ${subscriptionInfo.stripeSubscriptionId}`);
+            }
+          } else {
+            logger.warn(`⚠️ STRIPE_SECRET_KEY not configured, skipping subscription cancellation`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
+          // Continue with deletion even if subscription cancellation fails
+        }
+      }
+
+      // Delete all Firestore collections
+      const collectionsToDelete = [
+        'users',
+        'userData',
+        'userdata', // Handle both cases for backwards compatibility
+        'userSubscriptions',
+        'userPreferences',
+        'userState',
+        'lifetimeAccess'
+      ];
+
+      const deletePromises = collectionsToDelete.map(async (collectionName) => {
+        try {
+          const docRef = db.collection(collectionName).doc(userId);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) {
+            await docRef.delete();
+            logger.info(`✅ Deleted ${collectionName} for user ${userId}`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Error deleting ${collectionName}: ${error.message}`);
+          // Continue with other deletions
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      // Send confirmation email
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(email, userName);
+        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not send confirmation email: ${error.message}`);
+        // Continue with deletion even if email fails
+      }
+
+      // Delete from Firebase Auth (must be last step)
+      try {
+        await auth.deleteUser(userId);
+        logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
+      } catch (error) {
+        logger.error(`❌ Error deleting user from Firebase Auth: ${error.message}`);
+        throw new HttpsError('internal', `Failed to delete user from authentication: ${error.message}`);
+      }
+
+      logger.info(`✅ Admin account termination completed successfully for: ${email} (${userId})`);
       
       return {
         success: true,
-        message: 'User account terminated successfully'
+        message: 'User account and all associated data have been permanently deleted'
       };
     } catch (error) {
       logger.error(`❌ Error terminating user: ${error.message}`);
+      
+      // If it's already an HttpsError, re-throw it
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      
       throw new HttpsError('internal', `Failed to terminate user: ${error.message}`);
     }
   }

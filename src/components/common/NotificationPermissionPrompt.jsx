@@ -148,9 +148,19 @@ export default function NotificationPermissionPrompt({ theme }) {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
       if (!user?.email) return false;
       
-      // Check if notifications are already enabled in settings (but verify actual permission)
+      // Check notification settings
       try {
         const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+        
+        // If notifications are explicitly disabled in settings, respect that preference
+        // UNLESS user is actively requesting permissions (e.g., enabling reminders)
+        // Don't show prompt if user has disabled notifications and isn't actively requesting
+        if (settings.notifications?.push === false && !userRequestingPermissions) {
+          console.log('📱 Notifications disabled in settings - respecting user preference');
+          return false;
+        }
+        
+        // If notifications are enabled AND permission is granted, don't show
         if (settings.notifications?.push === true && hasPermission) return false;
       } catch (e) {
         // Ignore parse errors
