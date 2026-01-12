@@ -198,13 +198,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         
         setForm(initialData);
         
-        // Initialize expanded peptides - always expand only the first peptide (index 0)
+        // Initialize expanded peptides - collapse all by default
         // This applies to both new protocols and existing protocols being edited
-        if (initialData.peptides && initialData.peptides.length > 0) {
-            setExpandedPeptides(new Set([0])); // Only first peptide expanded
-        } else {
-            setExpandedPeptides(new Set()); // No peptides, nothing to expand
-        }
+        setExpandedPeptides(new Set()); // All peptides collapsed by default
     }, [open, protocol]);
     
     const handleChange = (field, value) => {
