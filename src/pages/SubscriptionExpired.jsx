@@ -1,6 +1,6 @@
-// Subscription Expired - Page for users whose paid subscription has ended
+// Subscription Ended - Resubscribe Page
 import React, { useState } from 'react';
-import { CreditCard, Download, Trash2, Eye, Lock } from 'lucide-react';
+import { CreditCard, Download, Trash2, Eye, Lock, FileText, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
@@ -11,7 +11,7 @@ import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
 import { isAndroid } from '../utils/platform';
 import { getAndroidSubscriptionMessage } from '../utils/paymentCompliance';
 import { subscribe } from '../services/payment/paymentService';
-import { exportToCSV } from '../utils/export';
+import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export';
 import DeleteAccountModal from '../components/common/DeleteAccountModal';
 import DataViewModal from '../components/common/DataViewModal';
 
@@ -21,7 +21,7 @@ export default function SubscriptionExpired() {
   const { user } = useAppContext();
   const { 
     protocols, orders, stockpile, vendors, reconItems, reconHistory, 
-    supplements, metrics, calendarNotes, scheduledBuys 
+    supplements, metrics, calendarNotes, scheduledBuys, glossary, goals, protocolHistory
   } = useAppContext();
   const founderOffer = useFounderOffer();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -74,15 +74,15 @@ export default function SubscriptionExpired() {
     } catch (error) {
       console.error('Subscription error:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: error.message || 'Unable to start subscription. Please try again.', type: 'error' } 
+        detail: { message: error.message || 'Unable to resubscribe. Please try again.', type: 'error' } 
       }));
     } finally {
       setIsCheckoutProcessing(false);
     }
   };
 
-  const handleExportData = () => {
-    const data = {
+  const getAllData = () => {
+    return {
       protocols: protocols || [],
       orders: orders || [],
       stockpile: stockpile || [],
@@ -93,25 +93,35 @@ export default function SubscriptionExpired() {
       reconItems: reconItems || [],
       reconHistory: reconHistory || [],
       metrics: metrics || [],
+      glossary: glossary || [],
+      goals: goals || [],
+      protocolHistory: protocolHistory || [],
     };
-    
-    const allData = [
-      ...data.protocols.map(d => ({ type: 'protocol', ...d })),
-      ...data.orders.map(d => ({ type: 'order', ...d })),
-      ...data.stockpile.map(d => ({ type: 'stockpile', ...d })),
-      ...data.supplements.map(d => ({ type: 'supplement', ...d })),
-      ...data.vendors.map(d => ({ type: 'vendor', ...d })),
-      ...data.scheduledBuys.map(d => ({ type: 'scheduled_buy', ...d })),
-      ...data.reconItems.map(d => ({ type: 'recon_item', ...d })),
-      ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
-      ...data.metrics.map(d => ({ type: 'metric', ...d })),
-    ];
-    
-    exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
+  };
+
+  const handleExportCSV = () => {
+    const data = getAllData();
+    exportUserDataToCSV(data);
     
     window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { message: 'Data exported successfully!', type: 'success' } 
+      detail: { message: 'Data exported successfully as CSV!', type: 'success' } 
     }));
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const data = getAllData();
+      await exportUserDataToPDF(data, null, theme);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Data exported successfully as PDF!', type: 'success' } 
+      }));
+    } catch (error) {
+      console.error('PDF export error:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'PDF export failed. Please try again.', type: 'error' } 
+      }));
+    }
   };
 
   const plans = [
@@ -159,11 +169,11 @@ export default function SubscriptionExpired() {
               className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
               style={{ backgroundColor: theme.primary }}
             >
-              <Lock size={28} style={{ color: '#ffffff' }} />
+              <RefreshCw size={28} style={{ color: '#ffffff' }} />
             </div>
           </div>
           <h1 className="text-3xl font-bold mb-1" style={{ color: theme.primaryDark }}>
-            Subscription Expired
+            Subscription Has Ended
           </h1>
           <p className="text-base" style={{ color: theme.textLight }}>
             Resubscribe to continue your research
@@ -173,69 +183,80 @@ export default function SubscriptionExpired() {
         {/* Subscription Section (Conversion First) */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
-                style={{
-                  backgroundColor: theme?.cardBackground,
-                  borderColor: plan.popular ? theme?.primary : theme?.border,
-                }}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span 
-                      className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
-                      style={{ 
-                        backgroundColor: theme?.primary, 
-                        color: '#ffffff' 
-                      }}
-                    >
-                      {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
-                    </span>
-                  </div>
-                )}
-                
-                <div className="text-center flex-1">
-                  <h3 className="text-lg font-bold mb-1" style={{ color: theme.primaryDark }}>
-                    {plan.name}
-                  </h3>
-                  
-                  <div className="mb-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-2xl font-black" style={{ color: theme.primary }}>
-                        {discountActive ? plan.display.founder : plan.display.base}
-                      </span>
-                      <span className="text-[10px] opacity-60 font-bold" style={{ color: theme.textLight }}>
-                        {plan.intervalLabel}
-                      </span>
-                    </div>
-                    {discountActive && (
-                      <p className="text-[10px] line-through opacity-40" style={{ color: theme.textLight }}>
-                        Regularly {plan.display.base}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <p className="text-[11px] mb-4 leading-snug" style={{ color: theme.textLight }}>
-                    {plan.description}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
-                  disabled={isCheckoutProcessing}
-                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+            {plans.map((plan) => {
+              // Hide payment buttons on Android, show text message instead
+              const showPaymentButton = !isAndroid();
+              
+              return (
+                <div
+                  key={plan.name}
+                  className={`relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
                   style={{
-                    backgroundColor: theme.primary,
-                    color: theme.textOnPrimary || '#ffffff'
+                    backgroundColor: theme?.cardBackground,
+                    borderColor: plan.popular ? theme?.primary : theme?.border,
                   }}
                 >
-                  <CreditCard size={16} />
-                  {isCheckoutProcessing ? 'Processing…' : plan.cta}
-                </button>
-              </div>
-            ))}
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span 
+                        className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
+                        style={{ 
+                          backgroundColor: theme?.primary, 
+                          color: '#ffffff' 
+                        }}
+                      >
+                        {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="text-center flex-1">
+                    <h3 className="text-lg font-bold mb-1" style={{ color: theme.primaryDark }}>
+                      {plan.name}
+                    </h3>
+                    
+                    <div className="mb-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span className="text-2xl font-black" style={{ color: theme.primary }}>
+                          {discountActive ? plan.display.founder : plan.display.base}
+                        </span>
+                        <span className="text-[10px] opacity-60 font-bold" style={{ color: theme.textLight }}>
+                          {plan.intervalLabel}
+                        </span>
+                      </div>
+                      {discountActive && (
+                        <p className="text-[10px] line-through opacity-40" style={{ color: theme.textLight }}>
+                          Regularly {plan.display.base}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <p className="text-[11px] mb-4 leading-snug" style={{ color: theme.textLight }}>
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  {showPaymentButton ? (
+                    <button
+                      onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
+                      disabled={isCheckoutProcessing}
+                      className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                      style={{
+                        backgroundColor: theme.primary,
+                        color: theme.textOnPrimary || '#ffffff'
+                      }}
+                    >
+                      <CreditCard size={16} />
+                      {isCheckoutProcessing ? 'Processing…' : plan.cta}
+                    </button>
+                  ) : (
+                    <div className="w-full py-3 rounded-xl text-xs text-center" style={{ color: theme.textLight }}>
+                      {getAndroidSubscriptionMessage()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -269,7 +290,7 @@ export default function SubscriptionExpired() {
               View Data
             </button>
             <button
-              onClick={handleExportData}
+              onClick={handleExportCSV}
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
@@ -278,6 +299,17 @@ export default function SubscriptionExpired() {
             >
               <Download size={16} />
               Export CSV
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                color: theme?.text
+              }}
+            >
+              <FileText size={16} />
+              Export PDF
             </button>
           </div>
         </div>
@@ -318,10 +350,12 @@ export default function SubscriptionExpired() {
         supplements,
         metrics,
         calendarNotes,
-        scheduledBuys
+        scheduledBuys,
+        glossary,
+        goals,
+        protocolHistory
       }}
     />
     </>
   );
 }
-

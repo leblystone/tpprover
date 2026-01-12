@@ -278,28 +278,30 @@ export default function TrialExpired() {
               <Eye size={16} />
               View Data
             </button>
-            <button
-              onClick={handleExportCSV}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
-                color: theme?.text
-              }}
-            >
-              <Download size={16} />
-              Export CSV
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
-                color: theme?.text
-              }}
-            >
-              <FileText size={16} />
-              Export PDF
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExportCSV}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  color: theme?.text
+                }}
+              >
+                <Download size={16} />
+                Export CSV
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  color: theme?.text
+                }}
+              >
+                <FileText size={16} />
+                Export PDF
+              </button>
+            </div>
           </div>
         </div>
 

@@ -18,6 +18,7 @@ export function useSubscriptionAccess() {
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
+    isSubscriptionEnded: false,
     isReadOnly: false,
     showUpgradePrompt: false,
     daysRemaining: null,
@@ -64,6 +65,7 @@ export function useSubscriptionAccess() {
             setAccessInfo({
               hasAccess: true,
               isTrialExpired: false,
+              isSubscriptionEnded: false,
               isReadOnly: false,
               showUpgradePrompt: false,
               daysRemaining: Infinity,
@@ -82,6 +84,7 @@ export function useSubscriptionAccess() {
             setAccessInfo({
               hasAccess: true,
               isTrialExpired: false,
+              isSubscriptionEnded: false,
               isReadOnly: false,
               showUpgradePrompt: false,
               daysRemaining: daysLeftDisplay,
@@ -99,6 +102,7 @@ export function useSubscriptionAccess() {
               setAccessInfo({
                 hasAccess: true,
                 isTrialExpired: false,
+                isSubscriptionEnded: false,
                 isReadOnly: false,
                 showUpgradePrompt: daysLeftDisplay <= 2,
                 daysRemaining: daysLeftDisplay,
@@ -209,13 +213,14 @@ export function useSubscriptionAccess() {
             return;
           }
           
-          // No subscription found anywhere - mark as expired
+          // No subscription found anywhere - mark as trial expired (never had a subscription)
           if (import.meta.env.DEV) {
-            console.log('❌ No subscription found - marking as EXPIRED (hasCheckedLifetime:', hasCheckedLifetime, ')');
+            console.log('❌ No subscription found - marking as TRIAL EXPIRED (hasCheckedLifetime:', hasCheckedLifetime, ')');
           }
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
+            isSubscriptionEnded: false,
             isReadOnly: true,
             showUpgradePrompt: true,
             daysRemaining: 0,
@@ -268,6 +273,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: false,
             daysRemaining: Infinity,
@@ -292,6 +298,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: false,
             daysRemaining: daysLeftDisplay,
@@ -308,6 +315,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: daysLeftDisplay <= 2, // Show prompt in last 2 days
             daysRemaining: daysLeftDisplay,
@@ -324,6 +332,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: daysLeftDisplay <= 7, // Show prompt in last week
             daysRemaining: daysLeftDisplay,
@@ -333,24 +342,47 @@ export function useSubscriptionAccess() {
           return;
         }
 
-        // Trial expired or canceled subscription (after period end)
-        console.log('❌ Trial EXPIRED or subscription ENDED - LOCKOUT');
-        setAccessInfo({
-          hasAccess: false,
-          isTrialExpired: true,
-          isReadOnly: true,
-          showUpgradePrompt: true,
-          daysRemaining: 0,
-          subscriptionStatus: effectiveSubscription.status === 'canceled' ? 'canceled' : 'expired',
-          subscriptionInterval: effectiveSubscription.interval,
-        });
+        // Determine if this is a subscription ended (had paid subscription) vs trial expired (never had subscription)
+        const hadPaidSubscription = effectiveSubscription.status === 'canceled' || 
+                                     effectiveSubscription.status === 'expired' ||
+                                     (effectiveSubscription.interval && effectiveSubscription.interval !== 'trial') ||
+                                     (effectiveSubscription.plan && effectiveSubscription.plan !== 'trial');
+
+        if (hadPaidSubscription) {
+          // Subscription ended - user had a paid subscription that expired
+          console.log('❌ Subscription ENDED - LOCKOUT');
+          setAccessInfo({
+            hasAccess: false,
+            isTrialExpired: false,
+            isSubscriptionEnded: true,
+            isReadOnly: true,
+            showUpgradePrompt: true,
+            daysRemaining: 0,
+            subscriptionStatus: effectiveSubscription.status === 'canceled' ? 'canceled' : 'expired',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+        } else {
+          // Trial expired - user never had a paid subscription
+          console.log('❌ Trial EXPIRED - LOCKOUT');
+          setAccessInfo({
+            hasAccess: false,
+            isTrialExpired: true,
+            isSubscriptionEnded: false,
+            isReadOnly: true,
+            showUpgradePrompt: true,
+            daysRemaining: 0,
+            subscriptionStatus: 'expired',
+            subscriptionInterval: effectiveSubscription.interval || 'trial',
+          });
+        }
 
       } catch (error) {
         console.error('Error checking subscription access:', error);
-        // Default to read-only on error
+        // Default to read-only on error (assume trial expired for safety)
         setAccessInfo({
           hasAccess: false,
           isTrialExpired: true,
+          isSubscriptionEnded: false,
           isReadOnly: true,
           showUpgradePrompt: true,
           daysRemaining: 0,

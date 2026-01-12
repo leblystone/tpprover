@@ -9,12 +9,13 @@ import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
  */
 export default function SubscriptionGuard({ children }) {
   const location = useLocation();
-  const { hasAccess, isTrialExpired, isLoading } = useSubscriptionAccess();
+  const { hasAccess, isTrialExpired, isSubscriptionEnded, isLoading } = useSubscriptionAccess();
 
-  // Allow access to these routes even when trial is expired
+  // Allow access to these routes even when trial is expired or subscription ended
   // Users can still manage their account, view settings, and get support
   const allowedRoutes = [
     '/app/trial-expired',
+    '/app/subscription-expired',
     '/app/account',
     '/app/account/subscription',
     '/app/account/profile',
