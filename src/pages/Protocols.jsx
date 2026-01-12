@@ -6,6 +6,7 @@ import BottomSheet from '../components/common/BottomSheet'
 import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
+import ProtocolEditorForm from '../components/protocols/ProtocolEditorForm'
 import { exportToCSV } from '../utils/export'
 import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
@@ -2479,17 +2480,7 @@ export default function Protocols() {
             <div className="flex-shrink-0">
               <Tabs
                 value={manageTab}
-                onChange={(newTab) => {
-                  if (newTab === 'edit') {
-                    // Open editor modal and track that we came from manage
-                    setEditFromManage(manageConfirm);
-                    setManageConfirm(null); // Hide manage modal
-                    setManageTab('manage'); // Reset tab for when we return
-                    handleEditClick(manageConfirm);
-                  } else {
-                    setManageTab(newTab);
-                  }
-                }}
+                onChange={setManageTab}
                 options={[
                   { value: 'manage', label: 'Manage' },
                   { value: 'edit', label: 'Edit' },
@@ -2617,6 +2608,27 @@ export default function Protocols() {
               </>
             )}
 
+
+            {manageTab === 'edit' && (
+              <div className="h-full">
+                <ProtocolEditorForm
+                  protocol={manageConfirm}
+                  theme={theme}
+                  onSave={(data) => {
+                    const updatedProtocol = { ...manageConfirm, ...data };
+                    updateProtocol(updatedProtocol);
+                    setManageConfirm(updatedProtocol);
+                    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                      detail: { message: 'Protocol updated successfully!', type: 'success' } 
+                    }));
+                  }}
+                  isReadOnly={isReadOnly}
+                  onUpgrade={() => setShowUpgradeModal(true)}
+                  embedded={true}
+                  showFooter={true}
+                />
+              </div>
+            )}
 
             {manageTab === 'notes' && (
               <div className="space-y-4">
