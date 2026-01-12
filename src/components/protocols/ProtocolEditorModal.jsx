@@ -1128,37 +1128,36 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     </div>
                 )}
-            </div>
             
-            {/* Lockout Overlay - Covers entire modal */}
-            {isReadOnly && (
-                <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
-                    <div className="text-center p-6 max-w-md">
-                        <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-                            <Lock size={32} style={{ color: theme.primary }} />
+                {/* Lockout Overlay - Covers entire modal */}
+                {isReadOnly && (
+                    <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+                        <div className="text-center p-6 max-w-md">
+                            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+                                <Lock size={32} style={{ color: theme.primary }} />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+                                Trial has ended
+                            </h3>
+                            <p className="text-sm mb-4" style={{ color: theme.text }}>
+                                Upgrade to continue creating and managing protocols
+                            </p>
+                            <button
+                                onClick={() => {
+                                    if (onUpgrade) {
+                                        onUpgrade();
+                                    } else {
+                                        window.location.href = '/app/account';
+                                    }
+                                }}
+                                className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
+                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                            >
+                                Choose a Plan
+                            </button>
                         </div>
-                        <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
-                            Trial has ended
-                        </h3>
-                        <p className="text-sm mb-4" style={{ color: theme.text }}>
-                            Upgrade to continue creating and managing protocols
-                        </p>
-                        <button
-                            onClick={() => {
-                                if (onUpgrade) {
-                                    onUpgrade();
-                                } else {
-                                    window.location.href = '/app/account';
-                                }
-                            }}
-                            className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
-                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                        >
-                            Choose a Plan
-                        </button>
                     </div>
-                </div>
-            )}
+                )}
         </div>
     );
 
