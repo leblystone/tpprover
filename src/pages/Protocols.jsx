@@ -2983,7 +2983,7 @@ export default function Protocols() {
                       padding: '0'
                     }}
                   >
-                    <SharedProtocolCard protocol={manageConfirm} isPublicView={true} theme={theme} />
+                    <SharedProtocolCard item={manageConfirm} theme={theme} />
                   </div>
                 </div>
 
