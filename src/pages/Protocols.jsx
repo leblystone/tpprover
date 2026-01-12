@@ -2057,7 +2057,7 @@ export default function Protocols() {
                 { value: 'history', label: 'History' }
               ]}
               theme={theme}
-              compact={true}
+              subtle={true}
               stretch={true}
             />
             
