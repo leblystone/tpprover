@@ -471,6 +471,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         <BottomSheet 
             open={open}
             onClose={handleClose}
+            onBack={handleClose}
             title={
                 form?.protocolName 
                     ? (form?.id ? `Editing: ${form.protocolName}` : `New: ${form.protocolName}`)
@@ -489,40 +490,18 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             maxHeight="90vh"
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
-                            style={{
-                                backgroundColor: 'transparent',
-                                color: theme?.text || '#111827',
-                                border: 'none'
-                            }}
-                        >
-                            Cancel
-                        </button>
-                        {form?.id && (
-                            <button
-                                onClick={() => onDelete?.(form)}
-                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                                style={{
-                                    background: terracottaGradient,
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = terracottaHoverGradient;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = terracottaGradient;
-                                }}
-                            >
-                                Delete
-                            </button>
-                        )}
-                    </div>
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        className="px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{
+                            backgroundColor: 'transparent',
+                            color: theme?.text || '#111827',
+                            border: 'none'
+                        }}
+                    >
+                        Cancel
+                    </button>
                     <div className="flex items-center gap-3 ml-auto">
                         {saveError && (
                             <span className="text-sm font-medium" style={{ color: theme?.error || '#b91c1c' }}>
@@ -1192,6 +1171,40 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     </div>
                 </div>
+
+                {/* Delete Section - Only show for existing protocols */}
+                {form?.id && onDelete && (
+                    <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                        <div className="p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.1)' : 'rgba(200, 122, 92, 0.05)' }}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-1" style={{ color: theme.text }}>Delete Protocol</h4>
+                                    <p className="text-xs" style={{ color: theme.textLight }}>
+                                        This action cannot be undone. All protocol data will be permanently deleted.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => onDelete?.(form)}
+                                    className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
+                                    style={{
+                                        background: terracottaGradient,
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = terracottaHoverGradient;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = terracottaGradient;
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Research Insights Footer - Minimal & Clean */}
                 <div className="flex items-center justify-center gap-6 py-2 border-t border-dashed" style={{ borderColor: theme.border }}>
