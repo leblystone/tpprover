@@ -14,7 +14,6 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [requestSubmitted, setRequestSubmitted] = useState(false);
 
   // Calculate data summary
   const dataSummary = useMemo(() => {
@@ -52,38 +51,51 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
       return;
     }
 
+    // Final confirmation since this is immediate and irreversible
+    if (!window.confirm('⚠️ FINAL WARNING: This will immediately and permanently delete your account and all data. This cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const functions = getFunctions();
-      const sendDeletionRequest = httpsCallable(functions, 'sendAccountDeletionRequestToAdmin');
+      const deleteUserAccount = httpsCallable(functions, 'deleteUserAccount');
       
-      const result = await sendDeletionRequest({
-        userEmail: firebaseUser.email,
-        userName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-        dataSummary: dataSummary
-      });
+      const result = await deleteUserAccount();
 
       if (result.data.success) {
-        // Save deletion request status to localStorage
-        localStorage.setItem('tpprover_deletion_request_submitted', JSON.stringify({
-          submitted: true,
-          timestamp: new Date().toISOString(),
-          email: firebaseUser.email
+        // Account has been deleted - user will be logged out automatically
+        // Show success message briefly before redirect
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { 
+            message: 'Account deleted successfully. You will be logged out shortly.', 
+            type: 'success',
+            duration: 5000
+          }
         }));
-        setRequestSubmitted(true);
-        setConfirmed(false);
+        
+        // Clear local storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Redirect to home page after a short delay
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
       } else {
-        throw new Error(result.data.message || 'Failed to submit request');
+        throw new Error(result.data.message || 'Failed to delete account');
       }
     } catch (error) {
-      console.error('Error submitting deletion request:', error);
+      console.error('Error deleting account:', error);
       
       // Provide more helpful error messages
-      let errorMessage = 'Failed to submit deletion request. ';
+      let errorMessage = 'Failed to delete account. ';
       
       if (error.code === 'functions/not-found' || error.message?.includes('CORS') || error.message?.includes('ERR_FAILED')) {
         errorMessage += 'The function may not be deployed yet. Please contact support at contact@thepepplanner.com to request account deletion.';
+      } else if (error.code === 'functions/unauthenticated') {
+        errorMessage += 'You must be logged in to delete your account.';
       } else if (error.message) {
         errorMessage += error.message;
       } else {
@@ -103,10 +115,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
   };
 
   const handleClose = () => {
-    setRequestSubmitted(false);
     setConfirmed(false);
-    // Dispatch event to notify SettingsData to check for deletion request
-    window.dispatchEvent(new CustomEvent('tpp:deletion-request-submitted'));
     onClose();
   };
 
@@ -126,7 +135,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
   return (
     <Modal
       open={open}
-      onClose={requestSubmitted ? handleClose : onClose}
+      onClose={isSubmitting ? undefined : onClose}
       title={
         <div className="flex items-center gap-2">
           <Trash2 size={20} />
@@ -136,7 +145,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
       theme={theme}
       maxWidth="max-w-xl"
       footer={
-        !requestSubmitted ? (
+        !isSubmitting ? (
           <div className="flex items-center justify-end gap-3 w-full">
             <button
               onClick={onClose}
@@ -161,93 +170,27 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
               {isSubmitting ? (
                 <>
                   <Loader size={16} className="animate-spin" />
-                  Submitting...
+                  Deleting Account...
                 </>
               ) : (
-                'Request Account Deletion'
+                'Delete Account Permanently'
               )}
             </button>
           </div>
-        ) : (
-          <div className="flex items-center justify-end gap-3 w-full">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
-              style={{ 
-                backgroundColor: theme?.primary || '#344E41', 
-                color: '#ffffff'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        )
+        ) : null
       }
     >
-      {requestSubmitted ? (
+      {isSubmitting ? (
         <div className="space-y-4 text-center py-4">
           <div className="flex justify-center">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: theme?.isDark ? 'rgba(34, 197, 94, 0.2)' : '#dcfce7' }}
-            >
-              <CheckCircle size={36} style={{ color: '#22c55e' }} />
-            </div>
+            <Loader size={48} className="animate-spin" style={{ color: theme?.primary }} />
           </div>
-          
           <div>
             <h3 className="text-xl font-bold mb-2" style={{ color: theme?.primaryDark }}>
-              Request Received!
+              Deleting Your Account...
             </h3>
-            <p className="text-sm mb-1" style={{ color: theme?.text }}>
-              Your account deletion request has been submitted successfully.
-            </p>
-          </div>
-
-          <div 
-            className="rounded-lg p-4 text-left"
-            style={{ 
-              backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.05)' : '#f9fafb',
-              border: `1px solid ${theme?.border}`
-            }}
-          >
-            <div className="flex items-start gap-2 mb-3">
-              <Mail size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme?.primary }} />
-              <div>
-                <p className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>
-                  Confirmation Email
-                </p>
-                <p className="text-[11px] leading-relaxed" style={{ color: theme?.textLight }}>
-                  A confirmation email will be sent to <strong>{firebaseUser?.email}</strong> once your account and data have been permanently deleted (within 48 hours).
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-2">
-              <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#dc2626' }} />
-              <div>
-                <p className="text-xs font-semibold mb-1" style={{ color: '#dc2626' }}>
-                  Data Cannot Be Restored
-                </p>
-                <p className="text-[11px] leading-relaxed" style={{ color: theme?.textLight }}>
-                  Once deleted, your research data is permanently removed and cannot be recovered.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div 
-            className="rounded-lg p-4 text-center"
-            style={{ 
-              backgroundColor: theme?.isDark ? 'rgba(186, 166, 142, 0.1)' : 'rgba(186, 166, 142, 0.15)',
-              border: `1px solid ${theme?.isDark ? 'rgba(186, 166, 142, 0.2)' : 'rgba(165, 148, 127, 0.3)'}`
-            }}
-          >
-            <p className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>
-              We'd Love to Have You Back
-            </p>
-            <p className="text-[11px] leading-relaxed" style={{ color: theme?.textLight }}>
-              If you decide to return to The Pep Planner in the future, you're always welcome to create a new account. We'll be here whenever you're ready.
+            <p className="text-sm" style={{ color: theme?.text }}>
+              Please wait while we permanently delete your account and all associated data.
             </p>
           </div>
         </div>
@@ -267,7 +210,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
                 This Action Cannot Be Undone
               </h3>
               <p className="text-xs" style={{ color: theme?.textLight }}>
-                Once submitted, all your research data will be permanently deleted within 48 hours. This process is irreversible.
+                Once confirmed, your account and all research data will be immediately and permanently deleted. This process is irreversible and happens instantly.
               </p>
             </div>
           </div>

@@ -3278,6 +3278,32 @@ function Admin() {
                           </div>
                         ))
                       )}
+
+                      {/* Closed Ticket Status - Admin View */}
+                      {selectedTicket.status === 'closed' && (
+                        <div className="my-6 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                            <div className="flex items-center gap-2 px-3 py-1">
+                              <span className="text-xs font-medium" style={{ color: theme.textLight }}>
+                                Ticket Closed {selectedTicket.closedAt ? `· ${(() => {
+                                  try {
+                                    const date = selectedTicket.closedAt.toDate ? selectedTicket.closedAt.toDate() : new Date(selectedTicket.closedAt);
+                                    return date.toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    });
+                                  } catch {
+                                    return '';
+                                  }
+                                })()}` : ''}
+                              </span>
+                            </div>
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Response Input */}
