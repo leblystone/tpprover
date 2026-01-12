@@ -1922,51 +1922,22 @@ export default function Protocols() {
           maxHeight="90vh"
           footer={
             <div className="w-full flex items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
-                    {manageConfirm?.id && (
-                        <button
-                            type="button"
-                            onClick={() => setDeleteConfirm(manageConfirm)}
-                            className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                            style={{
-                                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                                color: '#ffffff',
-                                border: 'none',
-                                boxShadow: theme.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                            }}
-                        >
-                            Delete
-                        </button>
-                    )}
-                </div>
-                <div className="flex items-center gap-2 flex-1 justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setManageConfirm(null)}
-                        className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                        style={{ 
-                            backgroundColor: theme.cardBackground,
-                            color: theme.text,
-                            border: `1px solid ${theme.border}`
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = theme.isDark ? '0 6px 12px rgba(0, 0, 0, 0.3)' : '0 6px 12px rgba(0, 0, 0, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = theme.isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    <button
+                <button
+                    type="button"
+                    onClick={() => setManageConfirm(null)}
+                    className="text-sm font-medium transition-opacity hover:opacity-70"
+                    style={{ 
+                        backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                        color: theme.text,
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: 'none'
+                    }}
+                >
+                    Cancel
+                </button>
+                <div className="flex-1" />
+                <button
                         type="button"
                         onClick={() => {
                             if (manageConfirm) {
