@@ -39,6 +39,8 @@
     "firebase": "^12.2.1",
     "framer-motion": "^12.23.12",
     "html-to-image": "^1.11.13",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.539.0",
     "otpauth": "^9.4.1",
     "pako": "^2.1.0",
