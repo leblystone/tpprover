@@ -2394,12 +2394,31 @@ export default function Protocols() {
                 
                 {/* Right side - Tab-specific buttons */}
                 <div className="flex-1 flex items-center justify-end gap-3">
-                    {/* Edit Tab - Auto-saves */}
+                    {/* Edit Tab - Save Changes */}
                     {manageTab === 'edit' && (
-                      <div className="text-xs flex items-center gap-2" style={{ color: theme.textLight }}>
-                        <Check size={14} style={{ color: theme.primary }} />
-                        <span>Auto-saving changes</span>
-                      </div>
+                      <button
+                          type="button"
+                          onClick={() => {
+                            // Dispatch event to trigger embedded editor save
+                            window.dispatchEvent(new CustomEvent('tpp:save-embedded-editor'));
+                          }}
+                          className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
+                          style={{ 
+                              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                              color: theme.textOnPrimary || '#ffffff',
+                              border: 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                          }}
+                      >
+                          Save Changes
+                      </button>
                     )}
 
                     {/* Manage Tab - Save Changes */}

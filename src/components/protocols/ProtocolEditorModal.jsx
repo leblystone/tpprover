@@ -85,6 +85,18 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     );
     
 
+    // Listen for save event when embedded
+    useEffect(() => {
+        if (!embedded) return;
+        
+        const handleSaveEvent = () => {
+            handleFinalSave();
+        };
+        
+        window.addEventListener('tpp:save-embedded-editor', handleSaveEvent);
+        return () => window.removeEventListener('tpp:save-embedded-editor', handleSaveEvent);
+    }, [embedded, handleFinalSave]);
+
     useEffect(() => {
         if (!open) return;
 
