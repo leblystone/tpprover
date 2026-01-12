@@ -28,7 +28,8 @@ export default function Tabs({ value, onChange, options = [], theme, compact = f
     } 
     ${stretch ? 'flex-1 text-center' : ''}
     ${subtle ? 'font-medium' : 'font-semibold'} 
-    rounded-lg transition-all duration-200 focus:outline-none
+    ${subtle ? '' : 'rounded-lg'} 
+    transition-all duration-200 focus:outline-none
   `.trim()
 
   return (
@@ -48,12 +49,13 @@ export default function Tabs({ value, onChange, options = [], theme, compact = f
           className={`${baseBtn} ${value === opt.value ? (subtle ? '' : 'shadow-md') : (subtle ? '' : 'shadow-sm hover:shadow-md')}`}
           style={{ 
             backgroundColor: value === opt.value 
-              ? (subtle ? theme.primaryLight || theme.primary : theme.primary)
+              ? (subtle ? 'transparent' : theme.primary)
               : (subtle ? 'transparent' : theme.cardBackground), 
             color: value === opt.value 
               ? (subtle ? theme.primary : theme.textOnPrimary)
               : theme.textLight,
-            borderBottom: subtle && value === opt.value ? `2px solid ${theme.primary}` : 'none'
+            borderBottom: subtle && value === opt.value ? `2px solid ${theme.primary}` : 'none',
+            borderRadius: subtle ? '0' : undefined
           }}
           role="tab"
           aria-selected={value === opt.value}
