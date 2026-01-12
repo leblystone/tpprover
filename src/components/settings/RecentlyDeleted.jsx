@@ -70,7 +70,7 @@ export default function RecentlyDeleted({ theme }) {
     
     switch (dataType) {
       case 'protocols':
-        return itemData.name || 'Unnamed Protocol'
+        return itemData.protocolName || itemData.name || 'Unnamed Protocol'
       case 'orders':
         return itemData.publicOrderNumber || itemData.peptide || `Order ${item.itemId.slice(-6)}`
       case 'stockpile':
