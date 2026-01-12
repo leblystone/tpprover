@@ -49,6 +49,14 @@ service firebase.storage {
       allow delete: if isAuthenticated() && isOwner(userId);
     }
     
+    // Support ticket images
+    // Path: support-docs/{userId}/{imageId}
+    match /support-docs/{userId}/{imageId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+    
     // Default: Deny all other access
     match /{allPaths=**} {
       allow read, write: if false;

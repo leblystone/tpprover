@@ -2999,6 +2999,51 @@ exports.submitContactForm = onCall(
 
 // ===== SUPPORT TICKET SYSTEM =====
 
+/**
+ * Helper function to delete all images associated with a support ticket
+ * @param {string} ticketId - The ticket ID
+ * @param {Firestore} db - Firestore database instance
+ */
+async function deleteTicketImages(ticketId, db) {
+  try {
+    const bucket = admin.storage().bucket();
+    const messagesRef = db.collection('supportTickets').doc(ticketId).collection('messages');
+    const messagesSnapshot = await messagesRef.get();
+    
+    const deletePromises = [];
+    
+    messagesSnapshot.forEach((doc) => {
+      const messageData = doc.data();
+      if (messageData.imageStoragePaths && Array.isArray(messageData.imageStoragePaths)) {
+        messageData.imageStoragePaths.forEach((storagePath) => {
+          if (storagePath) {
+            const file = bucket.file(storagePath);
+            deletePromises.push(
+              file.delete().catch((error) => {
+                // If file doesn't exist, that's okay (already deleted)
+                if (error.code === 404 || error.code === 'storage/object-not-found') {
+                  logger.info(`ℹ️ Image already deleted or doesn't exist: ${storagePath}`);
+                  return;
+                }
+                // Log other errors but don't fail the entire operation
+                logger.warn(`⚠️ Error deleting image ${storagePath}:`, error.message);
+              })
+            );
+          }
+        });
+      }
+    });
+    
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+      logger.info(`✅ Deleted ${deletePromises.length} image(s) for ticket ${ticketId}`);
+    }
+  } catch (error) {
+    logger.error(`❌ Error in deleteTicketImages for ticket ${ticketId}:`, error);
+    throw error;
+  }
+}
+
 // Create a new support ticket
 exports.createSupportTicket = onCall(
   {
@@ -3006,7 +3051,7 @@ exports.createSupportTicket = onCall(
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    const { userId, userEmail, userName, type, subject, message, metadata } = request.data;
+    const { userId, userEmail, userName, type, subject, message, imageUrls, imageStoragePaths, metadata } = request.data;
 
     if (!userEmail || !type || !message) {
       throw new Error('Email, type, and message are required');
@@ -3070,7 +3115,7 @@ exports.createSupportTicket = onCall(
 
       // Create initial message in messages subcollection
       const messageRef = ticketRef.collection('messages').doc();
-      await messageRef.set({
+      const messageData = {
         messageId: messageRef.id,
         ticketId: ticketRef.id,
         senderType: 'user',
@@ -3079,7 +3124,17 @@ exports.createSupportTicket = onCall(
         message: message,
         createdAt: FieldValue.serverTimestamp(),
         read: false
-      });
+      };
+      
+      // Add image URLs and storage paths if provided
+      if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        messageData.imageUrls = imageUrls;
+      }
+      if (imageStoragePaths && Array.isArray(imageStoragePaths) && imageStoragePaths.length > 0) {
+        messageData.imageStoragePaths = imageStoragePaths;
+      }
+      
+      await messageRef.set(messageData);
 
       // Send email notification to admin
       const escapeHtml = (text) => {
@@ -3098,6 +3153,26 @@ exports.createSupportTicket = onCall(
       const safeType = escapeHtml(type);
       const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
 
+      // Build image HTML if images are provided
+      let imagesHtml = '';
+      if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        imagesHtml = `
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+            <p style="color: #2F3B3A; font-weight: 600; margin-bottom: 10px;">Attached Images (${imageUrls.length}):</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+              ${imageUrls.map((url, index) => `
+                <div style="margin-bottom: 10px;">
+                  <a href="${url}" target="_blank" style="display: block; text-decoration: none;">
+                    <img src="${url}" alt="Support ticket image ${index + 1}" style="max-width: 200px; max-height: 200px; border-radius: 4px; border: 1px solid #DDE6DE;" />
+                    <p style="color: #6B7D7A; font-size: 11px; margin-top: 4px; text-align: center;">Image ${index + 1}</p>
+                  </a>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
           <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -3112,6 +3187,7 @@ exports.createSupportTicket = onCall(
             <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
               <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
             </div>
+            ${imagesHtml}
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
               <p style="color: #6B7D7A; font-size: 12px; margin: 0;">This is a notification email. Please respond to this ticket in the admin panel.</p>
             </div>
@@ -3267,6 +3343,15 @@ exports.updateTicketStatus = onCall(
         updateData.closedAt = FieldValue.serverTimestamp();
         updateData.customerReopened = false; // Clear the reopened tag
         logger.info(`📌 Ticket ${ticketId} marked as closed - user will see unread notification`);
+        
+        // Delete images from storage when ticket is closed
+        try {
+          await deleteTicketImages(ticketId, db);
+          logger.info(`🗑️ Deleted images for closed ticket: ${ticketId}`);
+        } catch (imageDeleteError) {
+          // Log error but don't fail the status update
+          logger.error(`⚠️ Error deleting images for ticket ${ticketId}:`, imageDeleteError);
+        }
       }
       
       // When admin reopens ticket from closed/resolved to in-progress, clear countdown fields

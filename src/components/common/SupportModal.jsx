@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare } from 'lucide-react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Image as ImageIcon, Camera } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
+import { uploadImageToStorage } from '../../utils/storageUtils';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -9,6 +10,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         email: '',
         message: ''
     });
+    const [selectedImages, setSelectedImages] = useState([]); // Array of {file: File, preview: string}
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState(null);
     const [feedbackType, setFeedbackType] = useState(null); // 'bug' or 'suggestion'
@@ -174,6 +176,46 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         }));
     };
 
+    const handleImageSelect = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_IMAGES = 5;
+        
+        const validFiles = files.filter(file => {
+            if (!file.type.startsWith('image/')) {
+                alert(`${file.name} is not an image file`);
+                return false;
+            }
+            if (file.size > MAX_SIZE) {
+                alert(`${file.name} is too large. Maximum size is 5MB`);
+                return false;
+            }
+            return true;
+        });
+
+        if (selectedImages.length + validFiles.length > MAX_IMAGES) {
+            alert(`Maximum ${MAX_IMAGES} images allowed`);
+            e.target.value = '';
+            return;
+        }
+
+        const newImages = validFiles.map(file => ({
+            file,
+            preview: URL.createObjectURL(file)
+        }));
+
+        setSelectedImages(prev => [...prev, ...newImages]);
+        e.target.value = ''; // Reset input
+    };
+
+    const handleRemoveImage = (index) => {
+        const imageToRemove = selectedImages[index];
+        URL.revokeObjectURL(imageToRemove.preview); // Clean up preview URL
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    };
+
     // Handle close with internal state management
     const handleClose = () => {
         // User explicitly closed the modal
@@ -195,8 +237,30 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             console.log('📤 Creating support ticket...', {
                 userEmail: formData.email || user?.email,
                 userId: user?.uid,
-                message: formData.message.trim()
+                message: formData.message.trim(),
+                imageCount: selectedImages.length
             });
+
+            // Upload images first if any
+            const imageUrls = [];
+            const imageStoragePaths = [];
+            if (selectedImages.length > 0 && user?.uid) {
+                try {
+                    for (const imageData of selectedImages) {
+                        const uploadResult = await uploadImageToStorage(
+                            imageData.file, 
+                            user.uid, 
+                            'support'
+                        );
+                        imageUrls.push(uploadResult.url);
+                        imageStoragePaths.push(uploadResult.path);
+                    }
+                    console.log(`✅ Uploaded ${imageUrls.length} image(s) to Firebase Storage`);
+                } catch (uploadError) {
+                    console.error('❌ Error uploading images:', uploadError);
+                    throw new Error(`Failed to upload images: ${uploadError.message}`);
+                }
+            }
 
             // Create a support ticket instead of sending email
             const ticketId = await createSupportTicket({
@@ -206,6 +270,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 type: 'support',
                 subject: 'Support Request',
                 message: formData.message.trim(),
+                imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+                imageStoragePaths: imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
                 metadata: {
                     userAgent: navigator.userAgent,
                     url: window.location.href,
@@ -216,7 +282,11 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             
             console.log('✅ Support ticket created:', ticketId);
             setSubmitStatus('success');
+            
+            // Clean up preview URLs
+            selectedImages.forEach(img => URL.revokeObjectURL(img.preview));
             setFormData({ email: '', message: '' });
+            setSelectedImages([]);
             
             // Reload user tickets to show the new one
             if (user?.email) {
@@ -398,6 +468,64 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         }}
                                         placeholder="Describe your question or issue..."
                                     />
+                                </div>
+
+                                {/* Image Upload Section */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
+                                        Attach Images (Optional)
+                                    </label>
+                                    <div className="space-y-2">
+                                        <label
+                                            className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
+                                            style={{
+                                                borderColor: theme.border,
+                                                backgroundColor: theme.isDark ? '#0f172a' : theme.white
+                                            }}
+                                        >
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={handleImageSelect}
+                                                disabled={isSubmitting || selectedImages.length >= 5}
+                                                className="hidden"
+                                            />
+                                            <Camera size={18} style={{ color: theme.primary }} />
+                                            <span className="text-sm" style={{ color: theme.textLight }}>
+                                                {selectedImages.length >= 5 
+                                                    ? 'Maximum 5 images reached' 
+                                                    : 'Choose images (max 5MB each, up to 5 images)'}
+                                            </span>
+                                        </label>
+                                        
+                                        {/* Image Previews */}
+                                        {selectedImages.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {selectedImages.map((imageData, index) => (
+                                                    <div key={index} className="relative group">
+                                                        <img
+                                                            src={imageData.preview}
+                                                            alt={`Preview ${index + 1}`}
+                                                            className="w-full h-20 object-cover rounded border"
+                                                            style={{ borderColor: theme.border }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveImage(index)}
+                                                            className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                                                            style={{ color: '#ffffff' }}
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 rounded-b">
+                                                            {(imageData.file.size / 1024).toFixed(0)}KB
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <button
