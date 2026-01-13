@@ -19,8 +19,33 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     dateAcquired: '',
     peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] 
   });
-  const form = (formData !== undefined && formData !== null) ? formData : internalForm;
-  const setForm = setFormData !== undefined ? setFormData : setInternalForm;
+  // Default form structure for fallbacks
+  const defaultFormStructure = {
+    vendor: '', 
+    vendorId: null, 
+    water: '', 
+    cost: '',
+    dateAcquired: '',
+    peptides: [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
+  };
+
+  // Ensure form is never null - always fall back to internalForm if formData is null/undefined
+  const form = (formData !== undefined && formData !== null && typeof formData === 'object') ? formData : internalForm;
+  // Wrap setFormData to prevent null values from being set
+  const setForm = setFormData !== undefined ? (newForm) => {
+    // Prevent setting form to null - fall back to default structure
+    if (newForm === null || newForm === undefined) {
+      setFormData(defaultFormStructure);
+    } else if (typeof newForm === 'function') {
+      // Handle function updaters - ensure they never receive null
+      setFormData(prev => {
+        const safePrev = prev || defaultFormStructure;
+        return newForm(safePrev);
+      });
+    } else {
+      setFormData(newForm);
+    }
+  } : setInternalForm;
   
   // Store setForm in ref to prevent dependency issues
   const setFormRef = useRef(setForm);
@@ -33,14 +58,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const lastPrefillRef = useRef(null);
   const [prefillJustLoaded, setPrefillJustLoaded] = useState(false);
   
-  // Ensure peptides array always exists
-  const safeForm = {
-    ...form,
-    peptides: (form && form.peptides && Array.isArray(form.peptides)) ? form.peptides.map(p => ({
-      ...p,
-      mgUnit: p.mgUnit || 'mg' // Ensure mgUnit is always set
-    })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
-  };
+  // Ensure peptides array always exists - memoize to prevent unnecessary recalculations
+  const safeForm = useMemo(() => {
+    // Double-check that form is valid
+    const validForm = (form && typeof form === 'object') ? form : internalForm;
+    return {
+      ...validForm,
+      peptides: (validForm && validForm.peptides && Array.isArray(validForm.peptides)) ? validForm.peptides.map(p => ({
+        ...p,
+        mgUnit: p.mgUnit || 'mg' // Ensure mgUnit is always set
+      })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
+    };
+  }, [form, internalForm]);
   
   const [deliveryMethod, setDeliveryMethod] = useState('pipette');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
@@ -295,8 +324,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     const peptides = safeForm.peptides || [];
     const newId = Math.max(0, ...peptides.map(p => p.id || 0)) + 1;
     setForm(prev => {
-      const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }];
-      return {...prev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]};
+      const safePrev = prev || defaultFormStructure;
+      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }];
+      return {...safePrev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]};
     });
     // Automatically switch to the new peptide
     setCurrentPeptideIndex(peptides.length);
@@ -304,9 +334,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
   const updatePeptide = (id, key, value) => {
     setForm(prev => {
-      const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
+      const safePrev = prev || defaultFormStructure;
+      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
       return {
-        ...prev,
+        ...safePrev,
         peptides: currentPeptides.map(p => {
           if (p.id === id) {
             // Preserve stockpileId and quantityUsed when updating
@@ -319,7 +350,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     // Also update delivery method and other state in the form
     if (key === 'doseUnit' && value === 'sprays') {
       setDeliveryMethod('nasal');
-      setForm(prev => ({ ...prev, deliveryMethod: 'nasal' }));
+      setForm(prev => {
+        const safePrev = prev || defaultFormStructure;
+        return { ...safePrev, deliveryMethod: 'nasal' };
+      });
     }
   }
 
@@ -327,8 +361,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     const peptides = safeForm.peptides || [];
     if (peptides.length > 1) {
         setForm(prev => {
-          const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [];
-          return {...prev, peptides: currentPeptides.filter(p => p.id !== id)};
+          const safePrev = prev || defaultFormStructure;
+          const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [];
+          return {...safePrev, peptides: currentPeptides.filter(p => p.id !== id)};
         });
     }
   }
@@ -616,7 +651,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       type="number"
                     value={form.water || ''} 
                     onChange={v => {
-                      setForm(prev => ({...prev, water: v}));
+                      setForm(prev => {
+                        const safePrev = prev || defaultFormStructure;
+                        return {...safePrev, water: v};
+                      });
                     }}
                       placeholder="e.g., 2" 
                       theme={theme}
@@ -793,7 +831,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
                       // Also update form vendor and vendorId if it's the first peptide
                       if (currentPeptideIndex === 0) {
-                        setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
+                        setForm(prev => {
+                          const safePrev = prev || defaultFormStructure;
+                          return { ...safePrev, vendor: v, vendorId: vendorId };
+                        });
                       }
                     }} 
                     placeholder="e.g., Pharm......" 
@@ -804,7 +845,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                   />
                   <GlassmorphismDatePicker
                     value={form.dateAcquired || ''}
-                    onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
+                    onChange={(dateString) => setForm(prev => {
+                      const safePrev = prev || defaultFormStructure;
+                      return { ...safePrev, dateAcquired: dateString };
+                    })}
                     theme={theme}
                     placeholder="Date Acquired"
                   />
@@ -826,7 +870,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'vendorId', vendorId);
                       // Also update form vendor and vendorId if it's the first peptide
                       if (currentPeptideIndex === 0) {
-                        setForm(prev => ({ ...prev, vendor: v, vendorId: vendorId }));
+                        setForm(prev => {
+                          const safePrev = prev || defaultFormStructure;
+                          return { ...safePrev, vendor: v, vendorId: vendorId };
+                        });
                       }
                     }} 
                     placeholder="e.g., Pharm......" 
@@ -839,7 +886,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                   {/* Date Acquired */}
                   <GlassmorphismDatePicker
                     value={form.dateAcquired || ''}
-                    onChange={(dateString) => setForm(prev => ({ ...prev, dateAcquired: dateString }))}
+                    onChange={(dateString) => setForm(prev => {
+                      const safePrev = prev || defaultFormStructure;
+                      return { ...safePrev, dateAcquired: dateString };
+                    })}
                     theme={theme}
                     placeholder="Date Acquired"
                   />
@@ -865,7 +915,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       // Allow only numbers and a single decimal point
                       const value = e.target.value;
                       if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setForm(prev => ({ ...prev, cost: value }));
+                        setForm(prev => {
+                          const safePrev = prev || defaultFormStructure;
+                          return { ...safePrev, cost: value };
+                        });
                       }
                     }} 
                     onFocus={() => setIsPriceFocused(true)}
@@ -1254,14 +1307,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     onClick={() => {
                         setDeliveryMethod('pipette');
                         // Revert sprays to mcg when switching away from nasal
-                        setForm(prev => ({
-                            ...prev,
-                            deliveryMethod: 'pipette',
-                            peptides: prev.peptides.map(p => ({ 
-                                ...p, 
-                                doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
-                            }))
-                        }));
+                        setForm(prev => {
+                            const safePrev = prev || defaultFormStructure;
+                            return {
+                                ...safePrev,
+                                deliveryMethod: 'pipette',
+                                peptides: (safePrev.peptides || []).map(p => ({ 
+                                    ...p, 
+                                    doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
+                                }))
+                            };
+                        });
                     }}
                     className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
@@ -1278,14 +1334,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     onClick={() => {
                         setDeliveryMethod('pen');
                         // Revert sprays to mcg when switching away from nasal
-                        setForm(prev => ({
-                            ...prev,
-                            deliveryMethod: 'pen',
-                            peptides: prev.peptides.map(p => ({ 
-                                ...p, 
-                                doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
-                            }))
-                        }));
+                        setForm(prev => {
+                            const safePrev = prev || defaultFormStructure;
+                            return {
+                                ...safePrev,
+                                deliveryMethod: 'pen',
+                                peptides: (safePrev.peptides || []).map(p => ({ 
+                                    ...p, 
+                                    doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
+                                }))
+                            };
+                        });
                     }}
                     className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
@@ -1302,11 +1361,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     onClick={() => {
                         setDeliveryMethod('nasal');
                         // Auto-set all peptides to use sprays unit when nasal is selected
-                        setForm(prev => ({
-                            ...prev,
-                            deliveryMethod: 'nasal',
-                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'sprays' }))
-                        }));
+                        setForm(prev => {
+                            const safePrev = prev || defaultFormStructure;
+                            return {
+                                ...safePrev,
+                                deliveryMethod: 'nasal',
+                                peptides: (safePrev.peptides || []).map(p => ({ ...p, doseUnit: 'sprays' }))
+                            };
+                        });
                     }}
                     className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
                     style={{
@@ -1337,7 +1399,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                 type="button"
                                 onClick={() => {
                                   setAdministrationRoute(route);
-                                  setForm(prev => ({ ...prev, administrationRoute: route }));
+                                  setForm(prev => {
+                                    const safePrev = prev || defaultFormStructure;
+                                    return { ...safePrev, administrationRoute: route };
+                                  });
                                 }}
                                 className={`flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-300 ${
                                     administrationRoute === route 
@@ -1436,7 +1501,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      setForm(prev => ({ ...prev, penType: option.value }));
+                                      setForm(prev => {
+                                        const safePrev = prev || defaultFormStructure;
+                                        return { ...safePrev, penType: option.value };
+                                      });
                                       setIsPenTypeDropdownOpen(false);
                                     }}
                                     className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
@@ -1470,7 +1538,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                               // Find color name from hex
                               const selectedColor = penColors.find(p => p.hex === hex);
                               if (selectedColor) {
-                                setForm(prev => ({ ...prev, penColor: selectedColor.name }));
+                                setForm(prev => {
+                                  const safePrev = prev || defaultFormStructure;
+                                  return { ...safePrev, penColor: selectedColor.name };
+                                });
                               }
                             }}
                             colors={penColors}
@@ -1929,7 +2000,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               return;
             }
             
-            const peptidesWithStockpile = (form.peptides || []).map(pep => ({
+            const peptidesWithStockpile = (safeForm.peptides || []).map(pep => ({
               ...pep,
               // Ensure stockpileId and quantityUsed are preserved
               stockpileId: pep.stockpileId || null,
@@ -1997,7 +2068,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 return;
               }
               
-              const peptidesWithStockpile = (form.peptides || []).map(pep => ({
+              const peptidesWithStockpile = (safeForm.peptides || []).map(pep => ({
                 ...pep,
                 // Ensure stockpileId and quantityUsed are preserved
                 stockpileId: pep.stockpileId || null,
