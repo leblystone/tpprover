@@ -17,7 +17,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     water: '', 
     cost: '',
     dateAcquired: '',
-    peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] 
+    peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }] 
   });
   // Default form structure for fallbacks
   const defaultFormStructure = {
@@ -26,7 +26,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     water: '', 
     cost: '',
     dateAcquired: '',
-    peptides: [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
+    peptides: [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }]
   };
 
   // Ensure form is never null - always fall back to internalForm if formData is null/undefined
@@ -66,8 +66,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       ...validForm,
       peptides: (validForm && validForm.peptides && Array.isArray(validForm.peptides)) ? validForm.peptides.map(p => ({
         ...p,
-        mgUnit: p.mgUnit || 'mg' // Ensure mgUnit is always set
-      })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]
+        mgUnit: p.mgUnit || 'mg', // Ensure mgUnit is always set
+        iuConversionFactor: p.iuConversionFactor !== undefined ? p.iuConversionFactor : 0.001 // Ensure iuConversionFactor is always set
+      })) : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }]
     };
   }, [form, internalForm]);
   
@@ -197,7 +198,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           ...(prev || {}),
           vendor: prefill.vendor !== undefined ? prefill.vendor : (prev?.vendor || ''),
           water: prefill.water !== undefined ? prefill.water : (prev?.water || ''),
-          peptides: prefill.peptides || (prev?.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }]),
+          peptides: prefill.peptides || (prev?.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }]),
           deliveryMethod: prefill.deliveryMethod || (prev?.deliveryMethod || 'pipette'),
           administrationRoute: prefill.administrationRoute || (prev?.administrationRoute || 'subq'),
           penType: prefill.penType || (prev?.penType || ''),
@@ -251,9 +252,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       mg: totalMg, 
       water: safeForm.water, 
       dose: firstPeptide.dose,
-      doseUnit: firstPeptide.doseUnit || 'mcg'
+      doseUnit: firstPeptide.doseUnit || 'mcg',
+      iuConversionFactor: firstPeptide.iuConversionFactor || 0.001 // Default: 0.001 mg per IU (common for HCG)
     });
-  }, [totalMg, safeForm.water, safeForm.peptides, safeForm.peptides[0]?.dose, safeForm.peptides[0]?.doseUnit])
+  }, [totalMg, safeForm.water, safeForm.peptides, safeForm.peptides[0]?.dose, safeForm.peptides[0]?.doseUnit, safeForm.peptides[0]?.iuConversionFactor])
   const costPerDose = useMemo(() => {
     // Check if costPerMg is available from prefill or peptides
     const firstPeptide = safeForm.peptides?.[0];
@@ -280,6 +282,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         const concentration = calc.concentration || 0; // mcg per mL
         const doseMcg = doseValue * concentration;
         doseInMg = doseMcg / 1000;
+      } else if (doseUnit === 'iu' || doseUnit === 'IU') {
+        // IU to mg conversion: use conversion factor (mg per IU)
+        const conversionFactor = Number(firstPeptide.iuConversionFactor) || 0.001; // Default: 0.001 mg per IU
+        doseInMg = doseValue * conversionFactor;
       }
       
       if (doseInMg > 0) {
@@ -298,10 +304,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             // Skip this calculation and fall back to default method
             costPerMg = 0;
           } else if (unit === 'iu') {
-            // Cost per IU -> cost per mg: need IU to mg conversion factor
-            // Without conversion factor, we can't accurately convert
-            // Skip this calculation and fall back to default method
-            costPerMg = 0;
+            // Cost per IU -> cost per mg: use conversion factor
+            const conversionFactor = Number(firstPeptide?.iuConversionFactor) || 0.001; // Default: 0.001 mg per IU
+            if (conversionFactor > 0) {
+              costPerMg = costPerUnitNum * conversionFactor;
+            } else {
+              costPerMg = 0;
+            }
           }
           // else: unit is 'mg' or default, costPerUnit is already cost per mg
           
@@ -325,8 +334,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     const newId = Math.max(0, ...peptides.map(p => p.id || 0)) + 1;
     setForm(prev => {
       const safePrev = prev || defaultFormStructure;
-      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }];
-      return {...safePrev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg' }]};
+      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }];
+      return {...safePrev, peptides: [...currentPeptides, { id: newId, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }]};
     });
     // Automatically switch to the new peptide
     setCurrentPeptideIndex(peptides.length);
@@ -335,7 +344,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   const updatePeptide = (id, key, value) => {
     setForm(prev => {
       const safePrev = prev || defaultFormStructure;
-      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
+      const currentPeptides = safePrev.peptides && Array.isArray(safePrev.peptides) ? safePrev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }];
       return {
         ...safePrev,
         peptides: currentPeptides.map(p => {
@@ -811,6 +820,30 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       Dose
                     </label>
                   </div>
+                  
+                  {/* IU Conversion Factor - Only show when IU is selected as dose unit */}
+                  {(safeForm.peptides[currentPeptideIndex]?.doseUnit === 'iu' || safeForm.peptides[currentPeptideIndex]?.doseUnit === 'IU') && (
+                    <div className="relative">
+                      <TextInput 
+                        label="IU Conversion Factor (mg per IU)" 
+                        type="number"
+                        step="0.0001"
+                        value={safeForm.peptides[currentPeptideIndex]?.iuConversionFactor || '0.001'} 
+                        onChange={v => {
+                          const peptideId = safeForm.peptides[currentPeptideIndex]?.id;
+                          updatePeptide(peptideId, 'iuConversionFactor', v);
+                        }}
+                        placeholder="0.001" 
+                        theme={theme}
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                      />
+                      <div className="mt-1 text-xs opacity-70" style={{ color: theme.textLight || theme.text }}>
+                        Default: 0.001 mg/IU (common for HCG). Adjust based on your peptide's specification.
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               

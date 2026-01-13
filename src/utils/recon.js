@@ -1,4 +1,4 @@
-export function calculateRecon({ mg, water, dose, doseUnit = 'mcg' }) {
+export function calculateRecon({ mg, water, dose, doseUnit = 'mcg', iuConversionFactor = 0.001 }) {
   const mgNum = Number(mg) || 0
   const waterMl = Number(water) || 0
   const doseValue = Number(dose) || 0
@@ -20,6 +20,11 @@ export function calculateRecon({ mg, water, dose, doseUnit = 'mcg' }) {
   } else if (doseUnit === 'mL') {
     // For mL dosing, calculate based on concentration
     doseMcg = doseValue * concentration
+  } else if (doseUnit === 'iu' || doseUnit === 'IU') {
+    // IU to mcg conversion: iuConversionFactor is in mg per IU
+    // Convert to mcg: multiply by 1000 to get mcg per IU
+    const mcgPerIU = Number(iuConversionFactor) * 1000
+    doseMcg = doseValue * mcgPerIU
   }
   // mcg is default, no conversion needed
   
