@@ -313,7 +313,7 @@ export default function TrialExpired() {
             style={{ color: theme?.text }}
           >
             <Trash2 size={12} />
-            Request Account Deletion
+            Delete Account
           </button>
         </div>
       </div>
