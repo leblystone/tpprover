@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 /**
  * StockpileGroupCard Component - Flattened Hierarchy Redesign
@@ -31,6 +32,8 @@ export default function StockpileGroupCard({
   
   // Track which menu is open (only one at a time)
   const [openMenuId, setOpenMenuId] = useState(null);
+  // Track which item is pending deletion
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   return (
     <div
@@ -167,6 +170,7 @@ export default function StockpileGroupCard({
                       isLast={itemIdx === variant.items.length - 1}
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
+                      setItemToDelete={setItemToDelete}
                     />
                   ))}
                 </div>
@@ -184,6 +188,24 @@ export default function StockpileGroupCard({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        open={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={() => {
+          if (itemToDelete) {
+            onDeleteItem(itemToDelete);
+            setItemToDelete(null);
+          }
+        }}
+        title="Delete Entry"
+        message="Are you sure you want to delete this entry? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
+        theme={theme}
+      />
     </div>
   );
 }
@@ -195,7 +217,7 @@ export default function StockpileGroupCard({
 function ItemStrip({ 
   item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
   onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, getUseByStatus, isLast,
-  openMenuId, setOpenMenuId
+  openMenuId, setOpenMenuId, setItemToDelete
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const showActionMenu = openMenuId === item.id;
@@ -288,9 +310,9 @@ function ItemStrip({
               
               {showActionMenu && (
                 <>
-                  <div className="fixed inset-0 z-[100]" onClick={() => setOpenMenuId(null)} />
+                  <div className="fixed inset-0 z-[9998]" onClick={() => setOpenMenuId(null)} />
                   <div 
-                    className="absolute right-0 top-full mt-1 z-[101] rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
+                    className="absolute right-0 top-full mt-1 z-[9999] rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
                     style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border }}
                   >
                     {isUnknownGroup && (
@@ -299,7 +321,10 @@ function ItemStrip({
                     {item.orderId && (
                       <MenuAction icon={ShoppingCart} label="View Order" onClick={() => onViewOrder(item.orderId)} theme={theme} />
                     )}
-                    <MenuAction icon={X} label="Delete Entry" color="#c87a5c" onClick={() => { if(window.confirm('Delete entry?')) onDeleteItem(item); }} theme={theme} />
+                    <MenuAction icon={X} label="Delete Entry" color="#c87a5c" onClick={() => { 
+                      setOpenMenuId(null);
+                      setItemToDelete(item);
+                    }} theme={theme} />
                   </div>
                 </>
               )}

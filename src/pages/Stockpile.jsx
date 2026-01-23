@@ -1254,11 +1254,6 @@ export default function Stockpile() {
                         }}
                         onMergeIndividualItem={handleMergeIndividualItem}
                         onDeleteItem={async (item) => {
-                          // Show confirmation dialog
-                          if (!window.confirm(`Are you sure you want to delete this item?\n\n${item.name || 'Unknown'} - ${item.mg}${item.mgUnit || 'mg'} from ${item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown'}`)) {
-                            return;
-                          }
-
                           try {
                             // Record deletion with item snapshot for restore functionality
                             recordDeletion('stockpile', item.id, item);
