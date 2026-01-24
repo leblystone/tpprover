@@ -273,6 +273,30 @@ const DEFAULT_TEMPLATES = {
       'Flexible pricing to fit your research needs'
     ]
   },
+  squarespaceActivation: {
+    name: 'Squarespace Activation Email',
+    subject: 'Activate Your The Pep Planner Account 🧬',
+    heading: 'Welcome to The Pep Planner! 🧬',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Thank you for your purchase! Your %PLANKEY% subscription is ready to activate.',
+    ctaText: 'Activate My Account',
+    ctaLink: '%ACTIVATION_LINK%',
+    highlightTitle: "What's Next?",
+    highlightMessage: 'Click below to activate your account and start using The Pep Planner app. This will only take a moment!',
+    features: []
+  },
+  squarespaceActivated: {
+    name: 'Squarespace Subscription Activated',
+    subject: 'Your Subscription is Now Active! ✅',
+    heading: 'Subscription Activated! 🎉',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Great news! Your %PLANNAME% subscription from Squarespace is now active.',
+    ctaText: 'Login to The Pep Planner',
+    ctaLink: 'https://thepepplanner.app',
+    highlightTitle: 'Access Granted',
+    highlightMessage: 'You now have full access to all features of The Pep Planner.',
+    features: []
+  },
   customAnnouncement: {
     name: 'Custom Announcement / Maintenance',
     subject: 'Important Update - The Pep Planner',
@@ -777,8 +801,11 @@ export default function EmailTemplateManager({ theme }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: ${colors.sage};">
+<body style="margin: 0; padding: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: ${colors.sage};">
   <div style="background-color: ${colors.sage}; padding: 20px 0;">
     <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
@@ -922,96 +949,153 @@ export default function EmailTemplateManager({ theme }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => {
-
-              sendTestEmail();
+    <div className="space-y-3">
+      {/* Template Selector & Actions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Template Selector */}
+        <div className="lg:col-span-2 p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.text }}>
+            📧 Email Templates
+          </label>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border text-sm font-medium transition-all focus:outline-none focus:ring-2"
+            style={{
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+              color: theme.text
             }}
-            disabled={isSendingTest || sendingToAll}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            {isSendingTest ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send size={16} />
-                Test {currentTemplate.name}
-              </>
-            )}
-          </button>
+            <optgroup label="Account & Authentication">
+              {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Subscription & Billing">
+              {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'squarespaceActivation', 'squarespaceActivated'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Lifetime Access">
+              {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Gift Subscriptions">
+              {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Reminders & Notifications">
+              {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Custom & Announcements">
+              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail', 'trialExpiredSurvey'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+          </select>
+          <div className="mt-2 text-[10px]" style={{ color: theme.textLight }}>
+            {Object.keys(templates).length} templates • {currentTemplate.name}
+          </div>
+        </div>
+
+        {/* Action Buttons Grid */}
+        <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="text-xs font-semibold mb-1.5" style={{ color: theme.text }}>⚡ Actions</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => sendTestEmail()}
+              disabled={isSendingTest || sendingToAll}
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              {isSendingTest ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Send size={12} />
+                  Test
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={saveTemplates}
+              disabled={isSaving || !auth.currentUser}
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
+              style={{ backgroundColor: theme.success || theme.primary, color: '#fff' }}
+            >
+              {isSaving ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle size={12} />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save size={12} />
+                  Save
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={copyHTML}
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all"
+              style={{ backgroundColor: theme.secondary, color: theme.text }}
+            >
+              <Copy size={12} />
+              HTML
+            </button>
+            
+            <button
+              onClick={resetToDefaults}
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all"
+              style={{ backgroundColor: theme.secondary, color: theme.text }}
+            >
+              <RotateCcw size={12} />
+              Reset
+            </button>
+          </div>
           
-          {/* Send to All Users - Only show for customAnnouncement */}
+          {/* Send to All - Full Width */}
           {selectedTemplate === 'customAnnouncement' && (
             <button
               onClick={sendAnnouncementToAllUsers}
               disabled={isSendingTest || sendingToAll}
-              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-              style={{ backgroundColor: theme.warning, color: '#FFFFFF' }}
+              className="w-full mt-2 px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
+              style={{ backgroundColor: theme.warning || '#f59e0b', color: '#FFFFFF' }}
             >
               {sendingToAll ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Sending to All... ({sendProgress.sent}/{sendProgress.total})
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {sendProgress.sent}/{sendProgress.total}
                 </>
               ) : (
                 <>
-                  <Users size={16} />
-                  Send to ALL Users
+                  <Users size={12} />
+                  Send to ALL
                 </>
               )}
             </button>
           )}
-          <button
-            onClick={resetToDefaults}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all"
-            style={{ backgroundColor: theme.secondary, color: theme.text }}
-          >
-            <RotateCcw size={16} />
-            Reset to Defaults
-          </button>
-          <button
-            onClick={saveTemplates}
-            disabled={isSaving || !auth.currentUser}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 relative"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            title={!auth.currentUser ? 'You must be logged in to save templates. Please log in to the main app first, then navigate to /admin' : ''}
-          >
-            {isSaving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : saveSuccess ? (
-              <>
-                <CheckCircle size={16} />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Save size={16} />
-                Save Templates
-              </>
-            )}
-          </button>
-          {!auth.currentUser && (
-            <div className="px-3 py-2 rounded-lg text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
-              ⚠️ You must be logged in to save templates. Log in to the main app first, then navigate to /admin
-            </div>
-          )}
         </div>
       </div>
+      
+      {!auth.currentUser && (
+        <div className="px-3 py-2 rounded-lg text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
+          ⚠️ You must be logged in to save templates
+        </div>
+      )}
 
       {/* Test Result */}
       {testResult && (
-        <div className={`px-4 py-3 rounded-lg text-sm ${
+        <div className={`px-3 py-2 rounded-lg text-xs ${
           testResult.success 
             ? 'bg-green-100 text-green-800 border border-green-200' 
             : 'bg-red-100 text-red-800 border border-red-200'
@@ -1022,439 +1106,330 @@ export default function EmailTemplateManager({ theme }) {
 
       {/* Send Progress for All Users */}
       {sendingToAll && sendProgress.total > 0 && (
-        <div className="px-4 py-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="px-3 py-2 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium" style={{ color: theme.text }}>
+            <span className="text-xs font-medium" style={{ color: theme.text }}>
               Sending to All Users...
             </span>
-            <span className="text-sm" style={{ color: theme.textLight }}>
+            <span className="text-xs" style={{ color: theme.textLight }}>
               {sendProgress.sent} / {sendProgress.total}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3" style={{ backgroundColor: theme.border }}>
+          <div className="w-full bg-gray-200 rounded-full h-2" style={{ backgroundColor: theme.border }}>
             <div 
-              className="h-3 rounded-full transition-all duration-300"
-            style={{
+              className="h-2 rounded-full transition-all duration-300"
+              style={{
                 backgroundColor: theme.primary,
                 width: `${(sendProgress.sent / sendProgress.total) * 100}%`
               }}
             />
           </div>
-          <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
-            Please wait while emails are being sent. This may take a few minutes for large user bases.
-          </p>
         </div>
       )}
 
-      {/* Template Selector - Dropdown Style */}
-      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
-          Select Email Template
-        </label>
-        <select
-          value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border text-base font-medium transition-all focus:outline-none focus:ring-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.background,
-            color: theme.text,
-            focusRingColor: theme.primary
-          }}
-        >
-          <optgroup label="Account & Authentication">
-            {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Subscription & Billing">
-            {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Lifetime Access">
-            {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Gift Subscriptions">
-            {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Reminders & Notifications">
-            {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Custom & Announcements">
-            {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Other">
-            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
-              <option key={key} value={key}>{template.name}</option>
-            ))}
-          </optgroup>
-        </select>
-        
-        {/* Quick Stats */}
-        <div className="mt-3 flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
-          <span>Total Templates: {Object.keys(templates).length}</span>
-          <span>•</span>
-          <span>Current: {currentTemplate.name}</span>
-        </div>
-      </div>
-
       {/* Variables Cheat Sheet */}
-      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={() => setShowVariablesCheatSheet(!showVariablesCheatSheet)}
-          className="w-full flex items-center justify-between"
+          className="w-full flex items-center justify-between text-left"
         >
           <div className="flex items-center gap-2">
-            <HelpCircle size={18} style={{ color: theme.primary }} />
-            <span className="font-semibold" style={{ color: theme.text }}>
-              Available Variables for "{currentTemplate.name}"
+            <HelpCircle size={14} style={{ color: theme.primary }} />
+            <span className="font-semibold text-xs" style={{ color: theme.text }}>
+              Available Variables
             </span>
           </div>
           {showVariablesCheatSheet ? (
-            <ChevronUp size={18} style={{ color: theme.textLight }} />
+            <ChevronUp size={14} style={{ color: theme.textLight }} />
           ) : (
-            <ChevronDown size={18} style={{ color: theme.textLight }} />
+            <ChevronDown size={14} style={{ color: theme.textLight }} />
           )}
-          </button>
+        </button>
 
         {showVariablesCheatSheet && (
-          <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
+          <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
             {templateVariables[selectedTemplate] && templateVariables[selectedTemplate].length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm mb-3" style={{ color: theme.textLight }}>
-                  Use these variables in your template fields (greeting, mainMessage, etc.). They will be automatically replaced when the email is sent.
+              <div className="space-y-2">
+                <p className="text-[10px] mb-2" style={{ color: theme.textLight }}>
+                  Use these variables in your template fields. They'll be automatically replaced when sent.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {templateVariables[selectedTemplate].map((variable, idx) => (
                     <div 
                       key={idx}
-                      className="p-3 rounded-lg border"
+                      className="p-2 rounded-lg border"
                       style={{ borderColor: theme.border, backgroundColor: theme.background }}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="px-2 py-1 rounded text-sm font-mono" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <code className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
                           %{variable.name}%
                         </code>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(`%${variable.name}%`);
                             window.dispatchEvent(new CustomEvent('tpp:toast', {
-                              detail: { message: `Copied %${variable.name}% to clipboard!`, type: 'success' }
+                              detail: { message: `Copied!`, type: 'success' }
                             }));
                           }}
-                          className="text-xs px-2 py-1 rounded hover:opacity-80"
+                          className="text-[10px] px-1 py-0.5 rounded hover:opacity-80"
                           style={{ backgroundColor: theme.secondary, color: theme.text }}
                         >
-                          Copy
+                          <Copy size={10} />
                         </button>
                       </div>
-                      <p className="text-xs" style={{ color: theme.textLight }}>
+                      <p className="text-[10px]" style={{ color: theme.textLight }}>
                         {variable.description}
                       </p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-                  <p className="text-xs font-medium mb-1" style={{ color: theme.primary }}>
-                    💡 Tip:
-                  </p>
-                  <p className="text-xs" style={{ color: theme.textLight }}>
-                    Variables are case-insensitive. Use %USERNAME% or %username% - both work the same way.
-                  </p>
-                </div>
               </div>
             ) : (
-              <p className="text-sm" style={{ color: theme.textLight }}>
-                This template doesn't have any dynamic variables. You can use plain text only.
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                This template doesn't have dynamic variables.
               </p>
             )}
           </div>
         )}
       </div>
 
-      {/* Editor Layout - Desktop Optimized */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Left: Editor */}
-        <div className="space-y-6">
-          {/* Simple Form Editor */}
-          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
-              Edit Template
+      {/* Editor & Preview Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Left: Editor + Colors */}
+        <div className="space-y-3">
+          {/* Form Editor */}
+          <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: theme.text }}>
+              ✏️ Edit Template
             </h3>
 
-            {/* Subject Line */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Subject Line
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.subject}
-                onChange={(e) => updateTemplate('subject', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.primaryLighter || '#F0F2F8',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                placeholder="Email subject line"
-              />
-            </div>
+            <div className="space-y-2">
+              {/* Subject */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Subject Line
+                </label>
+                <input
+                  type="text"
+                  value={currentTemplate.subject}
+                  onChange={(e) => updateTemplate('subject', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  placeholder="Email subject"
+                />
+              </div>
 
-            {/* Heading */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Main Heading
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.heading}
-                onChange={(e) => updateTemplate('heading', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.primaryLighter || '#F0F2F8',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                placeholder="Main heading"
-              />
-            </div>
+              {/* Heading */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Heading
+                </label>
+                <input
+                  type="text"
+                  value={currentTemplate.heading}
+                  onChange={(e) => updateTemplate('heading', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  placeholder="Main heading"
+                />
+              </div>
 
-            {/* Greeting */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Opening Message
-              </label>
-              <textarea
-                value={currentTemplate.greeting}
-                onChange={(e) => updateTemplate('greeting', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.coffeeFoam || '#FFF8F0',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                rows="2"
-                placeholder="Opening greeting"
-              />
-            </div>
+              {/* Greeting */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Opening
+                </label>
+                <textarea
+                  value={currentTemplate.greeting}
+                  onChange={(e) => updateTemplate('greeting', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  rows="2"
+                  placeholder="Opening message"
+                />
+              </div>
 
-            {/* Main Message */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Main Message
-              </label>
-              <textarea
-                value={currentTemplate.mainMessage}
-                onChange={(e) => updateTemplate('mainMessage', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.coffeeFoam || '#FFF8F0',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                rows="3"
-                placeholder="Main email content"
-              />
-            </div>
+              {/* Main Message */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Message
+                </label>
+                <textarea
+                  value={currentTemplate.mainMessage}
+                  onChange={(e) => updateTemplate('mainMessage', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  rows="2"
+                  placeholder="Main content"
+                />
+              </div>
 
-            {/* Highlight Box */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Highlight Box (Optional)
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.highlightTitle}
-                onChange={(e) => updateTemplate('highlightTitle', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
-                  backgroundColor: theme.coffeeCream || '#F5E6D3',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`
-                }}
-                placeholder="Highlight title (leave empty to hide)"
-              />
-              <textarea
-                value={currentTemplate.highlightMessage}
-                onChange={(e) => updateTemplate('highlightMessage', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
-                  backgroundColor: theme.coffeeCream || '#F5E6D3',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`
-                }}
-                rows="2"
-                placeholder="Highlight message"
-              />
-            </div>
+              {/* Highlight */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Highlight (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={currentTemplate.highlightTitle}
+                  onChange={(e) => updateTemplate('highlightTitle', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs mb-1 focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  placeholder="Highlight title"
+                />
+                <textarea
+                  value={currentTemplate.highlightMessage}
+                  onChange={(e) => updateTemplate('highlightMessage', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  rows="2"
+                  placeholder="Highlight message"
+                />
+              </div>
 
-            {/* Features List */}
-            {selectedTemplate === 'welcome' || selectedTemplate === 'verification' || selectedTemplate === 'lifetimeAccessGranted' ? (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium" style={{ color: theme.text }}>
-                    Feature List
+              {/* CTA */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Button Text
                   </label>
-                  <button
-                    onClick={addFeature}
-                    className="text-xs px-2 py-1 rounded"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                  >
-                    + Add Feature
-                  </button>
+                  <input
+                    type="text"
+                    value={currentTemplate.ctaText}
+                    onChange={(e) => updateTemplate('ctaText', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text
+                    }}
+                    placeholder="Button text"
+                  />
                 </div>
-                {(currentTemplate.features || []).map((feature, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={feature}
-                      onChange={(e) => updateFeature(index, e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                      style={{ 
-                        borderColor: theme.primary + '40',
-                        backgroundColor: theme.primaryLighter || '#F0F2F8',
-                        color: theme.text,
-                        boxShadow: `0 2px 4px ${theme.primary}10`
-                      }}
-                    />
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Button Link
+                  </label>
+                  <input
+                    type="text"
+                    value={currentTemplate.ctaLink}
+                    onChange={(e) => updateTemplate('ctaLink', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text
+                    }}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              {/* Features List */}
+              {(selectedTemplate === 'welcome' || selectedTemplate === 'verification' || selectedTemplate === 'lifetimeAccessGranted') && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
+                      Features
+                    </label>
                     <button
-                      onClick={() => removeFeature(index)}
-                      className="px-3 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
-                      style={{ backgroundColor: theme.error, color: theme.white }}
+                      onClick={addFeature}
+                      className="text-[10px] px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                      ×
+                      + Add
                     </button>
                   </div>
-                ))}
-              </div>
-            ) : null}
-
-            {/* CTA Button */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Call-to-Action Button
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.ctaText}
-                onChange={(e) => updateTemplate('ctaText', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.primaryLighter || '#F0F2F8',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                placeholder="Button text"
-              />
-              <input
-                type="text"
-                value={currentTemplate.ctaLink}
-                onChange={(e) => updateTemplate('ctaLink', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.primary + '40',
-                  backgroundColor: theme.primaryLighter || '#F0F2F8',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.primary}10`
-                }}
-                placeholder="Button link URL"
-              />
-            </div>
-
-            {/* Post-CTA Note (Optional) */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Note Below Button (Optional)
-              </label>
-              <textarea
-                value={currentTemplate.postCtaNote || ''}
-                onChange={(e) => updateTemplate('postCtaNote', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
-                  backgroundColor: theme.coffeeCream || '#F5E6D3',
-                  color: theme.text,
-                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`,
-                  fontStyle: 'italic'
-                }}
-                rows="2"
-                placeholder="Optional italicized note below the button (e.g., conditions, terms, etc.)"
-              />
+                  {(currentTemplate.features || []).map((feature, index) => (
+                    <div key={index} className="flex gap-1 mb-1">
+                      <input
+                        type="text"
+                        value={feature}
+                        onChange={(e) => updateFeature(index, e.target.value)}
+                        className="flex-1 px-2 py-1 rounded border text-[10px] focus:outline-none focus:ring-1"
+                        style={{ 
+                          borderColor: theme.border,
+                          backgroundColor: theme.background,
+                          color: theme.text
+                        }}
+                      />
+                      <button
+                        onClick={() => removeFeature(index)}
+                        className="px-2 py-1 rounded text-[10px] hover:opacity-80"
+                        style={{ backgroundColor: theme.error || '#ef4444', color: '#fff' }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Color Customization - Compact */}
-          <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
-              Brand Colors
+          {/* Colors - Compact Grid */}
+          <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: theme.text }}>
+              🎨 Colors
             </h3>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-2">
               {Object.entries(colors).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-xs font-medium mb-2 capitalize" style={{ color: theme.textLight }}>
-                    {key.replace(/([A-Z])/g, ' $1')}
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={value}
-                      onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="w-12 h-10 rounded border cursor-pointer"
-                      style={{ borderColor: theme.border }}
-                    />
-                    <input
-                      type="text"
-                      value={value}
-                      onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="flex-1 px-3 py-2 rounded border text-sm font-mono"
-                      style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
-                    />
-                  </div>
+                <div key={key} className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    value={value}
+                    onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                    className="w-6 h-6 rounded border cursor-pointer"
+                    style={{ borderColor: theme.border }}
+                    title={key}
+                  />
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                    className="flex-1 px-1 py-1 rounded border text-[10px] font-mono"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right: Preview - Always Visible */}
+        {/* Right: Preview */}
         <div className="sticky top-4">
-          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-                Live Preview
-              </h3>
-              <button
-                onClick={copyHTML}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:opacity-90"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                <Copy size={14} />
-                Copy HTML
-              </button>
-            </div>
-
+          <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: theme.text }}>
+              👁️ Preview
+            </h3>
             <iframe
               srcDoc={generatePreviewHTML()}
               className="w-full rounded-lg border"
-              style={{ height: '700px', borderColor: theme.border }}
+              style={{ height: '600px', borderColor: theme.border }}
               title="Email Preview"
             />
           </div>

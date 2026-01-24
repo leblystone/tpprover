@@ -1,0 +1,25 @@
+# 📦 Package.json Updates Needed
+
+Add these dependencies to functions/package.json:
+
+```json
+"dependencies": {
+  "@google/generative-ai": "^0.21.0",
+  "@anthropic-ai/sdk": "^0.30.0",
+  
+  // ... keep all existing dependencies
+}
+```
+
+## Installation Command:
+
+```bash
+cd functions
+npm install @google/generative-ai@latest @anthropic-ai/sdk@latest
+```
+
+This will install:
+- Google Generative AI SDK (for Gemini models)
+- Anthropic SDK (for Claude models)
+
+Both are required for Ghost Worker to make direct API calls to Google AI and Anthropic.

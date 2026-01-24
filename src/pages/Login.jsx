@@ -2058,6 +2058,7 @@ export default function Login() {
             <LandingContactModal
                 open={showContact}
                 onClose={() => setShowContact(false)}
+                source="login" // Track that this came from login page
             />
 
             {/* Two-Factor Authentication Modal */}

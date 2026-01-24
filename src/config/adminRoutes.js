@@ -35,6 +35,7 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/content`,
     icon: 'Layers',
     children: [
+      { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/contact` },
       { id: 'content', label: 'Manage', path: `${ADMIN_BASE}/content` },
       { id: 'feedback', label: 'Feedback', path: `${ADMIN_BASE}/feedback` },
       { id: 'improvements', label: 'Ideas', path: `${ADMIN_BASE}/improvements` },
@@ -77,6 +78,7 @@ export const adminPaths = {
   usersLifetime: `${ADMIN_BASE}/users/lifetime`,
   usersAnnual: `${ADMIN_BASE}/users/annual`,
   usersGifts: `${ADMIN_BASE}/users/gifts`,
+  contact: `${ADMIN_BASE}/contact`,
   content: `${ADMIN_BASE}/content`,
   feedback: `${ADMIN_BASE}/feedback`,
   improvements: `${ADMIN_BASE}/improvements`,

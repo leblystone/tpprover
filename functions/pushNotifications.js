@@ -82,7 +82,7 @@ async function getUserNotificationSettings(userId) {
       notificationSettings.researchRemindersPM === true;
     
     const settings = {
-      push: notificationSettings.push === true,
+      push: notificationSettings.push === true || notificationSettings.pushEnabled === true, // Check both for backward compatibility
       billing: notificationSettings.billing === true,
       researchReminders: researchRemindersEnabled,
       researchRemindersAM: notificationSettings.researchRemindersAM === true,

@@ -1,0 +1,444 @@
+<style>
+  /* Reset and Base Styles */
+  .tpp-contact-wrapper * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .tpp-contact-wrapper {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Main Container - Matching Modal */
+  .tpp-contact-container {
+    background: #FFFFFF;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  /* Header - Matching Modal Header */
+  .tpp-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    border-bottom: 1px solid #DDE6DE;
+  }
+
+  .tpp-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #F5F5F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .tpp-icon {
+    width: 20px;
+    height: 20px;
+    color: #7F9E95;
+  }
+
+  .tpp-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2F3B3A;
+    margin: 0;
+  }
+
+  /* Content Area */
+  .tpp-content {
+    padding: 24px;
+  }
+
+  .tpp-intro {
+    margin-bottom: 24px;
+  }
+
+  .tpp-intro h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2F3B3A;
+    margin-bottom: 8px;
+  }
+
+  .tpp-intro p {
+    font-size: 14px;
+    color: #6B7D7A;
+    line-height: 1.5;
+  }
+
+  /* Form Styles */
+  .tpp-form-group {
+    margin-bottom: 16px;
+  }
+
+  .tpp-form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2F3B3A;
+    margin-bottom: 6px;
+  }
+
+  .tpp-required {
+    color: #e74c3c;
+  }
+
+  .tpp-form-group input,
+  .tpp-form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #DDE6DE;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: #FFFFFF;
+    color: #2F3B3A;
+    transition: all 0.2s ease;
+  }
+
+  .tpp-form-group input:focus,
+  .tpp-form-group textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #7F9E95;
+    border-color: transparent;
+  }
+
+  .tpp-form-group input::placeholder,
+  .tpp-form-group textarea::placeholder {
+    color: #9CA9A6;
+  }
+
+  .tpp-form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  /* Submit Button */
+  .tpp-submit-btn {
+    width: 100%;
+    background-color: #7F9E95;
+    color: #FFFFFF;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .tpp-submit-btn:hover:not(:disabled) {
+    background-color: #6b8b78;
+  }
+
+  .tpp-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .tpp-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #FFFFFF;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: tpp-spin 0.6s linear infinite;
+  }
+
+  @keyframes tpp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Direct Contact Section */
+  .tpp-divider {
+    border-top: 1px solid #DDE6DE;
+    margin: 24px 0 20px;
+  }
+
+  .tpp-direct-contact {
+    text-align: center;
+  }
+
+  .tpp-direct-contact p {
+    font-size: 14px;
+    color: #6B7D7A;
+    margin-bottom: 12px;
+  }
+
+  .tpp-email-btn {
+    width: 100%;
+    background-color: transparent;
+    color: #7F9E95;
+    border: 1px solid #7F9E95;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .tpp-email-btn:hover {
+    background-color: #F5F5F0;
+  }
+
+  /* Success Message */
+  .tpp-success {
+    text-align: center;
+    padding: 40px 24px;
+  }
+
+  .tpp-success-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: #F5F5F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+
+  .tpp-success h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2F3B3A;
+    margin-bottom: 8px;
+  }
+
+  .tpp-success p {
+    font-size: 14px;
+    color: #6B7D7A;
+  }
+
+  /* Error Message */
+  .tpp-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 16px;
+  }
+
+  .tpp-error p {
+    font-size: 13px;
+    color: #dc2626;
+    margin: 0;
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 640px) {
+    .tpp-contact-wrapper {
+      padding: 20px 15px;
+      margin: 0 auto;
+    }
+
+    .tpp-header {
+      padding: 20px;
+    }
+
+    .tpp-content {
+      padding: 20px;
+    }
+
+    .tpp-header h1 {
+      font-size: 18px;
+    }
+
+    .tpp-intro h2 {
+      font-size: 16px;
+    }
+  }
+
+  /* SVG Icons */
+  .icon-mail { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-send { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+
+<div class="tpp-contact-wrapper">
+  <div class="tpp-contact-container">
+    <!-- Header -->
+    <div class="tpp-header">
+      <div class="tpp-icon-circle">
+        <svg class="tpp-icon icon-mail" viewBox="0 0 24 24">
+          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <h1>Contact Us</h1>
+    </div>
+
+    <!-- Content -->
+    <div class="tpp-content">
+      <div id="tppFormView">
+        <div class="tpp-intro">
+          <h2>Get in Touch</h2>
+          <p>Have a question or need support? Send us a message and we'll respond as soon as possible.</p>
+        </div>
+
+        <form id="tppContactForm">
+          <div class="tpp-form-group">
+            <label for="tpp-name">Name <span class="tpp-required">*</span></label>
+            <input type="text" id="tpp-name" name="name" required placeholder="Your name">
+          </div>
+
+          <div class="tpp-form-group">
+            <label for="tpp-email">Email <span class="tpp-required">*</span></label>
+            <input type="email" id="tpp-email" name="email" required placeholder="your.email@example.com">
+          </div>
+
+          <div class="tpp-form-group">
+            <label for="tpp-subject">Subject <span class="tpp-required">*</span></label>
+            <input type="text" id="tpp-subject" name="subject" required placeholder="What can we help you with?">
+          </div>
+
+          <div class="tpp-form-group">
+            <label for="tpp-message">Message <span class="tpp-required">*</span></label>
+            <textarea id="tpp-message" name="message" required placeholder="Tell us more about your question or concern..."></textarea>
+          </div>
+
+          <div id="tppErrorMessage"></div>
+
+          <button type="submit" class="tpp-submit-btn" id="tppSubmitBtn">
+            <svg class="tpp-icon icon-send" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+            Send Message
+          </button>
+        </form>
+
+        <div class="tpp-divider"></div>
+
+        <div class="tpp-direct-contact">
+          <p>Or contact us directly:</p>
+          <button type="button" class="tpp-email-btn" onclick="window.location.href='mailto:contact@thepepplanner.com'">
+            <svg class="tpp-icon icon-mail" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            contact@thepepplanner.com
+          </button>
+        </div>
+      </div>
+
+      <!-- Success View (hidden by default) -->
+      <div id="tppSuccessView" style="display: none;">
+        <div class="tpp-success">
+          <div class="tpp-success-icon">
+            <svg class="tpp-icon icon-send" viewBox="0 0 24 24" style="width: 32px; height: 32px; color: #7F9E95;">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+          </div>
+          <h3>Message Sent!</h3>
+          <p>Thank you for contacting us. We'll get back to you soon.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // Import Firebase dependencies
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBrtvQK6PO5t_HgqeAa9-I37VUhWxc0VYY",
+    authDomain: "tpp-splendide.firebaseapp.com",
+    projectId: "tpp-splendide",
+    storageBucket: "tpp-splendide.firebasestorage.app",
+    messagingSenderId: "582635086312",
+    appId: "1:582635086312:web:44ae20fef6b32536c5ae78",
+    measurementId: "G-NMFNJYVG2F"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const functions = getFunctions(app, 'us-central1');
+
+  // Get form elements
+  const form = document.getElementById('tppContactForm');
+  const submitBtn = document.getElementById('tppSubmitBtn');
+  const errorMessage = document.getElementById('tppErrorMessage');
+  const formView = document.getElementById('tppFormView');
+  const successView = document.getElementById('tppSuccessView');
+
+  // Handle form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Disable button and show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <div class="tpp-spinner"></div>
+      Sending...
+    `;
+    errorMessage.innerHTML = '';
+
+    // Get form data
+    const formData = {
+      name: document.getElementById('tpp-name').value.trim(),
+      email: document.getElementById('tpp-email').value.trim(),
+      subject: document.getElementById('tpp-subject').value.trim(),
+      message: document.getElementById('tpp-message').value.trim(),
+      source: 'squarespace' // Track that this came from Squarespace site
+    };
+
+    try {
+      // Call Firebase function
+      const submitContactForm = httpsCallable(functions, 'submitContactForm');
+      await submitContactForm(formData);
+
+      // Show success view
+      formView.style.display = 'none';
+      successView.style.display = 'block';
+
+      // Auto-reload after 3 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      
+      // Show error message
+      errorMessage.innerHTML = `
+        <div class="tpp-error">
+          <p>There was an error sending your message. Please try again or contact us directly.</p>
+        </div>
+      `;
+
+      // Re-enable button
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `
+        <svg class="tpp-icon icon-send" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+        Send Message
+      `;
+    }
+  });
+</script>

@@ -135,3 +135,4 @@ git worktree remove C:\Users\lebro\.cursor\worktrees\TPPSpendide\[worktree-name]
 
 
 
+

@@ -414,46 +414,48 @@ export default function TriggeredNotificationManager({ theme }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: theme.text }}>
+      <div className="p-3 rounded-lg border flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
+            <Bell size={20} />
             Triggered Push Notifications
           </h2>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+          <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
             Automate notifications based on user behavior, data conditions, and time triggers
           </p>
         </div>
         <button
           onClick={handleCreateNew}
-          className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+          className="px-3 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
-          <Plus size={18} />
-          Create Notification
+          <Plus size={16} />
+          Create
         </button>
       </div>
 
-      {/* Notifications List */}
-      <div className="space-y-4">
+      {/* Notifications Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {Object.values(notifications).map(notification => (
           <div
             key={notification.id}
-            className="rounded-lg border p-6 shadow-sm"
+            className="rounded-lg border p-3 shadow-sm"
             style={{ 
               borderColor: theme.border, 
               backgroundColor: theme.cardBackground 
             }}
           >
-            <div className="flex items-start justify-between">
+            {/* Header with Status and Actions */}
+            <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
                     {notification.name}
                   </h3>
                   <span 
-                    className="px-2 py-1 rounded-full text-xs font-medium"
+                    className="px-1.5 py-0.5 rounded-full text-[10px] font-medium"
                     style={{ 
                       backgroundColor: getStatusColor(notification) + '20',
                       color: getStatusColor(notification)
@@ -462,46 +464,25 @@ export default function TriggeredNotificationManager({ theme }) {
                     {getStatusText(notification)}
                   </span>
                 </div>
-                
-                <div className="space-y-2 text-sm" style={{ color: theme.textLight }}>
-                  <div className="flex items-center gap-2">
-                    <Bell size={14} />
-                    <span><strong>Title:</strong> {notification.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} />
-                    <span><strong>Trigger:</strong> {getTriggerDescription(notification.triggers)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users size={14} />
-                    <span><strong>Audience:</strong> {AUDIENCE_TYPES.find(a => a.value === notification.targeting.audience)?.label}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <p className="text-sm" style={{ color: theme.text }}>
-                    <strong>Message:</strong> {notification.body}
-                  </p>
-                </div>
               </div>
               
-              <div className="flex items-center gap-2 ml-4">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleToggleEnabled(notification.id)}
-                  className="p-2 rounded-lg transition-colors hover:opacity-90"
+                  className="p-1.5 rounded-lg transition-colors hover:opacity-90"
                   style={{ 
                     backgroundColor: notification.enabled ? theme.success + '20' : theme.textLight + '20',
                     color: notification.enabled ? theme.success : theme.textLight
                   }}
                   title={notification.enabled ? 'Disable' : 'Enable'}
                 >
-                  {notification.enabled ? <Play size={16} /> : <Pause size={16} />}
+                  {notification.enabled ? <Play size={14} /> : <Pause size={14} />}
                 </button>
                 
                 <button
                   onClick={() => handleTest(notification)}
                   disabled={testingId === notification.id}
-                  className="p-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-50"
+                  className="p-1.5 rounded-lg transition-colors hover:opacity-90 disabled:opacity-50"
                   style={{ 
                     backgroundColor: theme.primary + '20',
                     color: theme.primary
@@ -509,52 +490,75 @@ export default function TriggeredNotificationManager({ theme }) {
                   title="Send Test"
                 >
                   {testingId === notification.id ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Send size={16} />
+                    <Send size={14} />
                   )}
                 </button>
                 
                 <button
                   onClick={() => handleEdit(notification)}
-                  className="p-2 rounded-lg transition-colors hover:opacity-90"
+                  className="p-1.5 rounded-lg transition-colors hover:opacity-90"
                   style={{ 
                     backgroundColor: theme.info + '20' || '#3b82f620',
                     color: theme.info || '#3b82f6'
                   }}
                   title="Edit"
                 >
-                  <Edit size={16} />
+                  <Edit size={14} />
                 </button>
                 
                 <button
                   onClick={() => handleDelete(notification.id)}
-                  className="p-2 rounded-lg transition-colors hover:opacity-90"
+                  className="p-1.5 rounded-lg transition-colors hover:opacity-90"
                   style={{ 
                     backgroundColor: theme.error + '20' || '#ef444420',
                     color: theme.error || '#ef4444'
                   }}
                   title="Delete"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                 </button>
               </div>
+            </div>
+            
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 gap-1.5 text-xs mb-2" style={{ color: theme.textLight }}>
+              <div className="flex items-center gap-1.5">
+                <Bell size={12} className="flex-shrink-0" />
+                <span className="truncate"><strong>Title:</strong> {notification.title}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock size={12} className="flex-shrink-0" />
+                <span className="truncate"><strong>Trigger:</strong> {getTriggerDescription(notification.triggers)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Users size={12} className="flex-shrink-0" />
+                <span className="truncate"><strong>Audience:</strong> {AUDIENCE_TYPES.find(a => a.value === notification.targeting.audience)?.label}</span>
+              </div>
+            </div>
+            
+            {/* Message */}
+            <div className="p-2 rounded-lg" style={{ backgroundColor: theme.background }}>
+              <p className="text-xs line-clamp-2" style={{ color: theme.text }}>
+                {notification.body}
+              </p>
             </div>
           </div>
         ))}
         
         {Object.keys(notifications).length === 0 && (
-          <div className="text-center py-12">
-            <Bell size={48} style={{ color: theme.textLight, opacity: 0.5 }} className="mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2" style={{ color: theme.text }}>
+          <div className="col-span-full text-center py-8">
+            <Bell size={40} style={{ color: theme.textLight, opacity: 0.5 }} className="mx-auto mb-3" />
+            <p className="text-base font-medium mb-1" style={{ color: theme.text }}>
               No triggered notifications yet
             </p>
-            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+            <p className="text-xs mb-3" style={{ color: theme.textLight }}>
               Create your first automated notification to engage users
             </p>
             <button
               onClick={handleCreateNew}
-              className="px-4 py-2 rounded-lg font-semibold"
+              className="px-3 py-2 rounded-lg font-semibold text-sm"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               Create Your First Notification

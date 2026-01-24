@@ -13,7 +13,10 @@ const FieldValue = admin.firestore.FieldValue;
 const PRODUCT_TO_PLAN = {
   'app-monthly': 'monthly',
   'app-annual': 'annual',
-  'app-lifetime': 'lifetime'
+  'app-lifetime': 'lifetime',
+  'monthly-access': 'monthly',
+  'annual-access': 'annual',
+  'lifetime-access': 'lifetime'
 };
 
 // Helper function to normalize email

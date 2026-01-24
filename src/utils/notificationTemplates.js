@@ -44,6 +44,18 @@ const DEFAULT_TEMPLATES = {
     body: "Time for your {peptideName} dose! You have {taskCount} research task(s) scheduled for today.",
     actionText: "View Tasks",
     actionUrl: "/app/dashboard"
+  },
+  researchReminderAM: {
+    title: "☀️ Morning Research Reminder",
+    body: "You have {peptideCount} peptide(s) and {supplementCount} supplement(s) scheduled for this morning.",
+    actionText: "View Schedule",
+    actionUrl: "/app/dashboard"
+  },
+  researchReminderPM: {
+    title: "🌙 Evening Research Reminder",
+    body: "You have {peptideCount} peptide(s) and {supplementCount} supplement(s) scheduled for this evening.",
+    actionText: "View Schedule",
+    actionUrl: "/app/dashboard"
   }
 };
 

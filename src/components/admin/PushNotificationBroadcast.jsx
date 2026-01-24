@@ -128,159 +128,153 @@ export default function PushNotificationBroadcast({ theme }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            <Smartphone size={24} />
+    <div className="space-y-3">
+      {/* Header with Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Header */}
+        <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
+            <Smartphone size={20} />
             Push Notification Broadcast
           </h2>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
             Send a one-time push notification to all users with push notifications enabled
           </p>
         </div>
-      </div>
 
-      {/* Stats Card */}
-      {stats && (
-        <div className="p-4 rounded-lg border flex items-center gap-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <Users size={20} style={{ color: theme.primary }} />
-          <div>
-            <div className="text-sm font-medium" style={{ color: theme.text }}>
-              {stats.usersWithPushEnabled || 0} users with push notifications enabled
-            </div>
-            <div className="text-xs" style={{ color: theme.textLight }}>
-              Out of {stats.totalUsers || 0} total users
+        {/* Stats Card */}
+        {stats && (
+          <div className="p-3 rounded-lg border flex items-center gap-3" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <Users size={18} style={{ color: theme.primary }} />
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                {stats.usersWithPushEnabled || 0} users with push notifications enabled
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>
+                Out of {stats.totalUsers || 0} total users
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Warning */}
-      <div className="p-4 rounded-lg border flex items-start gap-3" style={{ borderColor: '#f59e0b', backgroundColor: '#fef3c7' }}>
-        <AlertTriangle size={20} style={{ color: '#d97706' }} className="flex-shrink-0 mt-0.5" />
-        <div className="text-sm" style={{ color: '#92400e' }}>
+      <div className="p-3 rounded-lg border flex items-start gap-2" style={{ borderColor: '#f59e0b', backgroundColor: '#fef3c7' }}>
+        <AlertTriangle size={16} style={{ color: '#d97706' }} className="flex-shrink-0 mt-0.5" />
+        <div className="text-xs" style={{ color: '#92400e' }}>
           <strong>Warning:</strong> This will send a push notification to all users who have push notifications enabled. 
           Use this feature carefully and only when necessary to prompt users about important updates.
         </div>
       </div>
 
-      {/* Preset Messages */}
-      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <label className="block text-sm font-semibold mb-3" style={{ color: theme.text }}>
-          Quick Templates
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {presetUpdateMessages.map((preset) => (
-            <button
-              key={preset.name}
-              onClick={() => handlePresetSelect(preset)}
-              disabled={isSending}
-              className="px-4 py-2 rounded-lg border text-left transition-all hover:opacity-90 disabled:opacity-50"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background
-              }}
-            >
-              <div className="text-sm font-medium" style={{ color: theme.text }}>
-                {preset.name}
-              </div>
-              {preset.title && (
-                <div className="text-xs mt-1 truncate" style={{ color: theme.textLight }}>
-                  {preset.title}
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Left: Templates */}
+        <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
+            Quick Templates
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {presetUpdateMessages.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => handlePresetSelect(preset)}
+                disabled={isSending}
+                className="px-3 py-2 rounded-lg border text-left transition-all hover:opacity-90 disabled:opacity-50"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background
+                }}
+              >
+                <div className="text-xs font-medium" style={{ color: theme.text }}>
+                  {preset.name === 'Standard Update Prompt' ? '📱 Update Available' : 
+                   preset.name === 'Critical Update' ? '🔴 Important Update Required' :
+                   preset.name === 'New Features' ? '✨ New Features Available' : '✏️ Custom'}
                 </div>
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Notification Form */}
-      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="space-y-4">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              Notification Title <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Update Available"
-              disabled={isSending}
-              className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary
-              }}
-              maxLength={100}
-            />
-            <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-              {title.length}/100 characters
-            </div>
-          </div>
-
-          {/* Body */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              Notification Message <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="A new version is available..."
-              disabled={isSending}
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-y disabled:opacity-50"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary,
-                fontFamily: 'inherit'
-              }}
-              maxLength={500}
-            />
-            <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-              {body.length}/500 characters
-            </div>
-          </div>
-
-          {/* Update Data Option */}
-          <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-            <input
-              type="checkbox"
-              id="includeUpdateData"
-              checked={includeUpdateData}
-              onChange={(e) => setIncludeUpdateData(e.target.checked)}
-              disabled={isSending}
-              className="mt-1"
-            />
-            <label 
-              htmlFor="includeUpdateData" 
-              className="text-sm cursor-pointer"
-              style={{ color: theme.text }}
-            >
-              <div className="font-medium mb-1">Include update prompt data</div>
-              <div className="text-xs" style={{ color: theme.textLight }}>
-                When enabled, the notification will include metadata that prompts the app to show the update modal. 
-                Useful for directing users to update the app.
+        {/* Right: Notification Form */}
+        <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="space-y-2">
+            {/* Title */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
+                Notification Title <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Update Available"
+                disabled={isSending}
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text
+                }}
+                maxLength={100}
+              />
+              <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+                {title.length}/100 characters
               </div>
-            </label>
+            </div>
+
+            {/* Body */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
+                Notification Message <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="A new version is available..."
+                disabled={isSending}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-y disabled:opacity-50"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  fontFamily: 'inherit'
+                }}
+                maxLength={500}
+              />
+              <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+                {body.length}/500 characters
+              </div>
+            </div>
+
+            {/* Update Data Option */}
+            <div className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: theme.background }}>
+              <input
+                type="checkbox"
+                id="includeUpdateData"
+                checked={includeUpdateData}
+                onChange={(e) => setIncludeUpdateData(e.target.checked)}
+                disabled={isSending}
+              />
+              <label 
+                htmlFor="includeUpdateData" 
+                className="text-xs cursor-pointer flex-1"
+                style={{ color: theme.text }}
+              >
+                Include update prompt data
+              </label>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Send Button */}
-      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={handleSend}
           disabled={!title.trim() || !body.trim() || isSending}
-          className="w-full px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ 
             backgroundColor: theme.primary,
             color: theme.textOnPrimary,
@@ -289,19 +283,19 @@ export default function PushNotificationBroadcast({ theme }) {
         >
           {isSending ? (
             <>
-              <Loader size={18} className="animate-spin" />
+              <Loader size={16} className="animate-spin" />
               Sending to all users...
             </>
           ) : (
             <>
-              <Send size={18} />
+              <Send size={16} />
               Send Push Notification to All Users
             </>
           )}
         </button>
 
         {stats && (
-          <p className="text-xs mt-3 text-center" style={{ color: theme.textLight }}>
+          <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
             Will be sent to approximately <strong style={{ color: theme.text }}>
               {stats.usersWithPushEnabled || 0} users
             </strong> with push notifications enabled
@@ -311,34 +305,30 @@ export default function PushNotificationBroadcast({ theme }) {
 
       {/* Send Result */}
       {sendResult && (
-        <div className={`px-4 py-3 rounded-lg text-sm ${
+        <div className={`px-3 py-2 rounded-lg text-sm ${
           sendResult.success 
             ? 'bg-green-100 text-green-800 border border-green-200' 
             : 'bg-red-100 text-red-800 border border-red-200'
         }`}>
           <div className="flex items-start gap-2">
             {sendResult.success ? (
-              <CheckCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
             )}
             <div className="flex-1">
-              <div className="font-medium">{sendResult.message}</div>
-              {sendResult.success && sendResult.details && (
-                <div className="text-xs mt-2 opacity-90">
-                  {sendResult.details.results && sendResult.details.results.length > 0 && (
-                    <div>
-                      {sendResult.details.results.slice(0, 3).map((result, idx) => (
-                        <div key={idx} className="mt-1">
-                          {result.success ? '✅' : '❌'} User {result.userId?.substring(0, 8)}...
-                          {result.error && ` - ${result.error}`}
-                        </div>
-                      ))}
-                      {sendResult.details.results.length > 3 && (
-                        <div className="mt-1 opacity-75">
-                          ... and {sendResult.details.total - 3} more
-                        </div>
-                      )}
+              <div className="font-medium text-xs">{sendResult.message}</div>
+              {sendResult.success && sendResult.details && sendResult.details.results && sendResult.details.results.length > 0 && (
+                <div className="text-[10px] mt-1 opacity-90">
+                  {sendResult.details.results.slice(0, 2).map((result, idx) => (
+                    <div key={idx}>
+                      {result.success ? '✅' : '❌'} User {result.userId?.substring(0, 8)}...
+                      {result.error && ` - ${result.error}`}
+                    </div>
+                  ))}
+                  {sendResult.details.results.length > 2 && (
+                    <div className="opacity-75">
+                      ... and {sendResult.details.total - 2} more
                     </div>
                   )}
                 </div>

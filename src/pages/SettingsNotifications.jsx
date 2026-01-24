@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard } from 'lucide-react'
+import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard, Bug } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useFirebase } from '../context/FirebaseContext'
+import { debugNotifications } from '../utils/debugNotifications'
 
 /**
  * Save push token to Firestore for server-side push notifications
@@ -28,7 +29,8 @@ async function savePushTokenToFirestore(token) {
       fcmToken: token,
       pushToken: token, // Keep for backward compatibility
       notificationSettings: {
-        pushEnabled: true,
+        push: true, // Firebase Functions check for 'push', not 'pushEnabled'
+        pushEnabled: true, // Keep for backward compatibility
         lastUpdated: serverTimestamp()
       },
       deviceInfo: {
@@ -54,6 +56,11 @@ export default function SettingsNotifications() {
     enabled: false,
     loading: false
   })
+
+  // Debug modal state
+  const [debugResults, setDebugResults] = useState(null)
+  const [showDebugModal, setShowDebugModal] = useState(false)
+  const [debugLoading, setDebugLoading] = useState(false)
 
   // Settings state
   const [settings, setSettings] = useState(() => {
@@ -209,6 +216,33 @@ export default function SettingsNotifications() {
     }
   };
 
+  // Handle debug notification diagnostics
+  const handleDebugNotifications = async () => {
+    setDebugLoading(true);
+    try {
+      const results = await debugNotifications();
+      setDebugResults(results);
+      setShowDebugModal(true);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: 'Debug report generated', 
+          type: 'success' 
+        } 
+      }));
+    } catch (error) {
+      console.error('Failed to run debug:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: 'Failed to generate debug report', 
+          type: 'error' 
+        } 
+      }));
+    } finally {
+      setDebugLoading(false);
+    }
+  };
+
   return (
     <section className="max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
@@ -356,7 +390,146 @@ export default function SettingsNotifications() {
             />
           </div>
         </div>
+
+        {/* Debug Button */}
+        <div className="pt-4">
+          <button
+            onClick={handleDebugNotifications}
+            disabled={debugLoading}
+            className="w-full px-4 py-3 rounded-2xl border-2 transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
+            style={{ 
+              backgroundColor: theme.cardBackground, 
+              borderColor: theme.primary + '40',
+              opacity: debugLoading ? 0.6 : 1
+            }}
+          >
+            <Bug size={16} style={{ color: theme.primary }} />
+            <span className="text-sm font-bold" style={{ color: theme.text }}>
+              {debugLoading ? 'Running Diagnostic...' : 'Debug Notifications'}
+            </span>
+          </button>
+          <p className="text-[10px] text-center mt-2 opacity-50" style={{ color: theme.text }}>
+            Check why notifications may not be working
+          </p>
+        </div>
       </div>
+
+      {/* Debug Results Modal */}
+      {showDebugModal && debugResults && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={() => setShowDebugModal(false)}
+        >
+          <div 
+            className="max-w-lg w-full rounded-3xl p-6 max-h-[80vh] overflow-y-auto"
+            style={{ backgroundColor: theme.cardBackground }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Bug size={20} style={{ color: theme.primary }} />
+                <h3 className="text-lg font-bold" style={{ color: theme.text }}>Notification Debug Report</h3>
+              </div>
+              <button 
+                onClick={() => setShowDebugModal(false)}
+                className="text-2xl opacity-50 hover:opacity-100"
+                style={{ color: theme.text }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Status Summary */}
+              <div className="p-4 rounded-xl" style={{ backgroundColor: theme.secondary }}>
+                <h4 className="font-bold mb-2" style={{ color: theme.text }}>Status</h4>
+                {debugResults.success ? (
+                  <div className="space-y-2 text-sm" style={{ color: theme.text }}>
+                    <div>✅ FCM Token: {debugResults.fcmToken}</div>
+                    <div>🔔 Push Enabled: {debugResults.notificationSettings?.push ? '✅ Yes' : '❌ No'}</div>
+                    <div>🌍 Timezone: {debugResults.timezone}</div>
+                    <div>🕐 Current Time: {debugResults.currentTimeInUserTimezone}</div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-red-500">{debugResults.message}</div>
+                )}
+              </div>
+
+              {/* Active Protocols */}
+              {debugResults.activeProtocolsToday && debugResults.activeProtocolsToday.length > 0 && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: theme.secondary }}>
+                  <h4 className="font-bold mb-2" style={{ color: theme.text }}>Active Protocols Today</h4>
+                  <div className="space-y-1 text-sm" style={{ color: theme.text }}>
+                    {debugResults.activeProtocolsToday.map((protocol, idx) => (
+                      <div key={idx}>• {protocol.name}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tasks Today */}
+              {debugResults.tasksScheduledToday && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: theme.secondary }}>
+                  <h4 className="font-bold mb-2" style={{ color: theme.text }}>
+                    Tasks Today ({debugResults.tasksScheduledToday.length})
+                  </h4>
+                  {debugResults.tasksScheduledToday.length > 0 ? (
+                    <div className="space-y-1 text-sm" style={{ color: theme.text }}>
+                      {debugResults.tasksScheduledToday.slice(0, 5).map((task, idx) => (
+                        <div key={idx}>• {task.peptideName} at {task.time}</div>
+                      ))}
+                      {debugResults.tasksScheduledToday.length > 5 && (
+                        <div className="opacity-50">... and {debugResults.tasksScheduledToday.length - 5} more</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm opacity-50" style={{ color: theme.text }}>
+                      No tasks scheduled for today
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Debug Analysis */}
+              {debugResults.debugLog && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: theme.secondary }}>
+                  <h4 className="font-bold mb-2" style={{ color: theme.text }}>Analysis</h4>
+                  <div className="space-y-2 text-sm" style={{ color: theme.text }}>
+                    <div>Default AM: {debugResults.debugLog.wouldSendDefaultAM ? '✅ Would send' : '❌ Would not send'}</div>
+                    <div>AM Reminder: {debugResults.debugLog.wouldSendAMReminder ? '✅ Would send' : '❌ Would not send'}</div>
+                    <div>PM Reminder: {debugResults.debugLog.wouldSendPMReminder ? '✅ Would send' : '❌ Would not send'}</div>
+                    {debugResults.debugLog.reasonForNoSend && debugResults.debugLog.reasonForNoSend !== 'N/A' && (
+                      <div className="mt-2 p-2 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                        ⚠️ {debugResults.debugLog.reasonForNoSend}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Reminder Settings */}
+              {debugResults.notificationSettings && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: theme.secondary }}>
+                  <h4 className="font-bold mb-2" style={{ color: theme.text }}>Reminder Settings</h4>
+                  <div className="space-y-1 text-sm" style={{ color: theme.text }}>
+                    <div>AM: {debugResults.notificationSettings.researchRemindersAM ? `✅ ${debugResults.notificationSettings.researchReminderTimeAM}` : '❌ Disabled'}</div>
+                    <div>PM: {debugResults.notificationSettings.researchRemindersPM ? `✅ ${debugResults.notificationSettings.researchReminderTimePM}` : '❌ Disabled'}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowDebugModal(false)}
+              className="w-full mt-6 px-4 py-3 rounded-xl font-bold"
+              style={{ backgroundColor: theme.primary, color: '#fff' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

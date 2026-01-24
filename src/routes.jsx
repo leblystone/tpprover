@@ -6,6 +6,9 @@ import Rover from './pages/Rover.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import { lazyWithRetry } from './utils/lazyWithRetry.jsx'
 
+// TEST COMPONENT - Remove in production
+import ErrorBoundaryTest from './components/test/ErrorBoundaryTest.jsx'
+
 const LandingWrapper = lazyWithRetry(() => import('./components/common/LandingWrapper.jsx'), 'LandingWrapper')
 const Landing = lazyWithRetry(() => import('./pages/Landing.jsx'), 'Landing')
 const Home = lazyWithRetry(() => import('./pages/Home.jsx'), 'Home')
@@ -37,6 +40,7 @@ const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
 const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
+const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
 const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
@@ -101,6 +105,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/admin/analytics" replace /> },
       { path: 'analytics', element: <AdminAnalytics /> },
       { path: 'ghost-worker', element: <AdminGhostWorker /> },
+      { path: 'contact', element: <AdminContact /> },
       { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },
       { path: 'users/lifetime', element: <AdminUsersLifetime /> },
       { path: 'users/annual', element: <AdminUsersAnnual /> },
@@ -244,12 +249,12 @@ export const router = createBrowserRouter([
   {
     path: '/app',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <ProtectedRoute />,
-    errorElement: <NotFound />,
+    // No errorElement - let ChunkErrorBoundary catch errors
     children: [
       {
         path: '',
         element: <App />,
-        errorElement: <NotFound />,
+        // No errorElement - let ChunkErrorBoundary catch errors
         children: [
           { path: 'account', element: <Account /> },
           { path: 'account/profile', element: <AccountProfile /> },
@@ -277,6 +282,7 @@ export const router = createBrowserRouter([
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
+          { path: 'test-error', element: <ErrorBoundaryTest /> },
           { path: 'beta-survey', element: <BetaEndedSurvey /> },
           { path: 'launch-coming-soon', element: <LaunchComingSoon /> },
           { index: true, element: <Navigate to="/app/dashboard" replace /> },

@@ -168,60 +168,79 @@ export default function InAppNotificationManager({ theme }) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header Card */}
-      <div 
-        className="p-6 rounded-lg border"
-        style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderColor: theme.border 
-        }}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div 
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: `${theme.primary}15` }}
-            >
-              <BellRing size={24} style={{ color: theme.primary }} />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold" style={{ color: theme.text }}>
-                In-App Notifications
-              </h2>
-              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                Create announcements that appear in users' notification bell. <strong>No permissions required!</strong>
-              </p>
-            </div>
+    <div className="space-y-3">
+      {/* Header with Form Toggle */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Header */}
+        <div 
+          className="p-3 rounded-lg border"
+          style={{ 
+            backgroundColor: theme.cardBackground, 
+            borderColor: theme.border 
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <BellRing size={20} style={{ color: theme.primary }} />
+            <h2 className="text-lg font-bold" style={{ color: theme.text }}>
+              In-App Notifications
+            </h2>
           </div>
-          
+          <p className="text-xs" style={{ color: theme.textLight }}>
+            Create announcements that appear in users' notification bell. <strong>No permissions required!</strong>
+          </p>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-sm mt-2 transition-all hover:opacity-90"
               style={{ 
                 backgroundColor: theme.primary, 
                 color: '#fff' 
               }}
             >
-              <Plus size={18} />
+              <Plus size={16} />
               New Announcement
             </button>
           )}
         </div>
 
-        {/* Create/Edit Form */}
-        {showForm && (
-          <div 
-            className="p-4 rounded-lg border mt-4"
-            style={{ 
-              backgroundColor: theme.background, 
-              borderColor: theme.border 
-            }}
-          >
-            <div className="space-y-4">
+        {/* Info Box */}
+        <div 
+          className="p-3 rounded-lg border"
+          style={{ 
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} style={{ color: theme.info, marginTop: 2 }} />
+            <div>
+              <h4 className="font-semibold text-sm mb-1" style={{ color: theme.text }}>
+                How It Works
+              </h4>
+              <ul className="text-xs space-y-0.5" style={{ color: theme.textLight }}>
+                <li>• No permissions required - in-app only</li>
+                <li>• Appears in notification bell icon</li>
+                <li>• Perfect for feature announcements</li>
+                <li>• Sorted by date (newest first)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Create/Edit Form */}
+      {showForm && (
+        <div 
+          className="p-3 rounded-lg border"
+          style={{ 
+            backgroundColor: theme.cardBackground, 
+            borderColor: theme.border 
+          }}
+        >
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
                   Title
                 </label>
                 <input
@@ -229,44 +248,26 @@ export default function InAppNotificationManager({ theme }) {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g., New Feature: Dark Mode"
-                  className="w-full px-3 py-2 rounded-lg border"
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
                   style={{ 
-                    backgroundColor: theme.cardBackground, 
+                    backgroundColor: theme.background, 
                     borderColor: theme.border,
                     color: theme.text
                   }}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                  Message
-                </label>
-                <textarea
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  placeholder="Describe the announcement..."
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-lg border resize-none"
-                  style={{ 
-                    backgroundColor: theme.cardBackground, 
-                    borderColor: theme.border,
-                    color: theme.text
-                  }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
                     Category
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border"
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
                     style={{ 
-                      backgroundColor: theme.cardBackground, 
+                      backgroundColor: theme.background, 
                       borderColor: theme.border,
                       color: theme.text
                     }}
@@ -280,168 +281,166 @@ export default function InAppNotificationManager({ theme }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
                     Date
                   </label>
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border"
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
                     style={{ 
-                      backgroundColor: theme.cardBackground, 
+                      backgroundColor: theme.background, 
                       borderColor: theme.border,
                       color: theme.text
                     }}
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 justify-end pt-2">
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 rounded-lg border font-medium transition-all hover:opacity-80"
-                  style={{ 
-                    borderColor: theme.border,
-                    color: theme.textLight 
-                  }}
-                >
-                  <X size={18} className="inline mr-2" />
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ 
-                    backgroundColor: theme.success, 
-                    color: '#fff' 
-                  }}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader size={18} className="animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} />
-                      {editingId ? 'Update' : 'Create'} Announcement
-                    </>
-                  )}
-                </button>
-              </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.text }}>
+                Message
+              </label>
+              <textarea
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                placeholder="Describe the announcement..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border resize-none text-sm"
+                style={{ 
+                  backgroundColor: theme.background, 
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 justify-end pt-1">
+              <button
+                onClick={handleCancel}
+                className="px-3 py-1.5 rounded-lg border font-medium transition-all hover:opacity-80 text-sm"
+                style={{ 
+                  borderColor: theme.border,
+                  color: theme.textLight 
+                }}
+              >
+                <X size={14} className="inline mr-1" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50 text-sm"
+                style={{ 
+                  backgroundColor: theme.success, 
+                  color: '#fff' 
+                }}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader size={14} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} />
+                    {editingId ? 'Update' : 'Create'}
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Announcements List */}
+      {/* Announcements Grid */}
       <div 
-        className="p-6 rounded-lg border"
+        className="p-3 rounded-lg border"
         style={{ 
           backgroundColor: theme.cardBackground, 
           borderColor: theme.border 
         }}
       >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
+        <h3 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>
           Active Announcements
         </h3>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader size={24} className="animate-spin" style={{ color: theme.primary }} />
+          <div className="flex items-center justify-center py-8">
+            <Loader size={20} className="animate-spin" style={{ color: theme.primary }} />
           </div>
         ) : announcements.length === 0 ? (
-          <div className="text-center py-12">
-            <BellRing size={48} className="mx-auto mb-4" style={{ color: theme.textLight, opacity: 0.3 }} />
-            <p style={{ color: theme.textLight }}>No announcements yet</p>
+          <div className="text-center py-8">
+            <BellRing size={40} className="mx-auto mb-3" style={{ color: theme.textLight, opacity: 0.3 }} />
+            <p className="text-sm" style={{ color: theme.textLight }}>No announcements yet</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {announcements.map(announcement => (
               <div
                 key={announcement.id}
-                className="p-4 rounded-lg border hover:shadow-md transition-all"
+                className="p-3 rounded-lg border hover:shadow-md transition-all"
                 style={{ 
                   backgroundColor: theme.background, 
                   borderColor: theme.border 
                 }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getCategoryIcon(announcement.category)}
-                      <span 
-                        className="text-xs font-medium px-2 py-1 rounded"
-                        style={{ 
-                          backgroundColor: `${CATEGORIES.find(c => c.value === announcement.category)?.color || theme.textLight}15`,
-                          color: CATEGORIES.find(c => c.value === announcement.category)?.color || theme.textLight
-                        }}
-                      >
-                        {announcement.category}
-                      </span>
-                      <span className="text-xs" style={{ color: theme.textLight }}>
-                        {new Date(announcement.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                      {announcement.title}
-                    </h4>
-                    <p className="text-sm" style={{ color: theme.textLight }}>
-                      {announcement.message}
-                    </p>
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {getCategoryIcon(announcement.category)}
+                    <span 
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                      style={{ 
+                        backgroundColor: `${CATEGORIES.find(c => c.value === announcement.category)?.color || theme.textLight}15`,
+                        color: CATEGORIES.find(c => c.value === announcement.category)?.color || theme.textLight
+                      }}
+                    >
+                      {announcement.category}
+                    </span>
+                    <span className="text-[10px]" style={{ color: theme.textLight }}>
+                      {new Date(announcement.date).toLocaleDateString()}
+                    </span>
                   </div>
                   
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleEdit(announcement)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                      style={{ color: theme.primary }}
+                      className="p-1.5 rounded-lg transition-colors hover:opacity-90"
+                      style={{ 
+                        backgroundColor: theme.primary + '20',
+                        color: theme.primary 
+                      }}
                       title="Edit"
                     >
-                      <Edit size={18} />
+                      <Edit size={14} />
                     </button>
                     <button
                       onClick={() => handleDelete(announcement.id)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                      style={{ color: theme.error }}
+                      className="p-1.5 rounded-lg transition-colors hover:opacity-90"
+                      style={{ 
+                        backgroundColor: theme.error + '20',
+                        color: theme.error 
+                      }}
                       title="Delete"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
+                
+                <h4 className="font-semibold text-sm mb-1 line-clamp-1" style={{ color: theme.text }}>
+                  {announcement.title}
+                </h4>
+                <p className="text-xs line-clamp-2" style={{ color: theme.textLight }}>
+                  {announcement.message}
+                </p>
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div 
-        className="p-4 rounded-lg border-l-4"
-        style={{ 
-          backgroundColor: `${theme.info}10`,
-          borderLeftColor: theme.info
-        }}
-      >
-        <div className="flex items-start gap-3">
-          <AlertCircle size={20} style={{ color: theme.info, marginTop: 2 }} />
-          <div>
-            <h4 className="font-medium mb-1" style={{ color: theme.text }}>
-              How In-App Notifications Work
-            </h4>
-            <ul className="text-sm space-y-1" style={{ color: theme.textLight }}>
-              <li>• <strong>No permissions required</strong> - these appear only when users are in the app</li>
-              <li>• Users see them in the <strong>notification bell icon</strong> at the top of the app</li>
-              <li>• Perfect for <strong>feature announcements, updates, and community news</strong></li>
-              <li>• Announcements are <strong>sorted by date</strong> (newest first)</li>
-              <li>• Users can expand to read full details</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );

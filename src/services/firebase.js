@@ -1391,6 +1391,33 @@ export async function reopenTicket(ticketId) {
 }
 
 // ============================================================================
+// GENERAL CONTACT FORM (PRE-AUTH INQUIRIES)
+// ============================================================================
+
+/**
+ * Submit a general contact form (for non-authenticated users)
+ * @param {Object} contactData - The contact form data
+ * @returns {Promise<Object>} - The result
+ */
+export async function submitContactForm(contactData) {
+  try {
+    const functions = getFunctions();
+    const submitContact = httpsCallable(functions, 'submitContactForm');
+    
+    const result = await submitContact(contactData);
+    
+    if (result.data.success) {
+      return result.data;
+    } else {
+      throw new Error(result.data.message || 'Failed to submit contact form');
+    }
+  } catch (error) {
+    console.error('❌ Failed to submit contact form:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // ADMIN MESSAGES (ONE-WAY MESSAGES FROM ADMIN TO USERS)
 // ============================================================================
 

@@ -120,20 +120,14 @@ function AdminLayout() {
           }}
         >
           <div className="text-center mb-8">
-            <div
-              className="w-16 h-16 mx-auto mb-2 rounded-2xl flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-                border: `1px solid ${theme.border}`,
-              }}
-            >
-              <Book size={32} style={{ color: '#FFF' }} />
+            <div className="mx-auto mb-2">
+              <img src="/tpp_logo.png" alt="The Pep Planner" className="w-16 h-16 object-contain" />
             </div>
             <h1 className="text-lg font-bold mb-2" style={{ color: theme.text }}>
-              The Pep Planner Admin
+              The Pep Planner
             </h1>
             <p className="text-sm" style={{ color: theme.textLight }}>
-              Welcome back
+              Admin Panel
             </p>
             <p className="text-xs mt-2" style={{ color: theme.textLight }}>
               Enter your email and Firebase account password to access the admin panel
@@ -262,18 +256,12 @@ function AdminAuthenticatedLayout({
         <div className="px-4 lg:px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{
-                  background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-                  border: `1px solid ${theme.border}`,
-                }}
-              >
-                <Book size={20} style={{ color: '#FFF' }} />
+              <div>
+                <img src="/tpp_logo.png" alt="The Pep Planner" className="w-10 h-10 object-contain" />
               </div>
               <div>
                 <h1 className="text-lg font-bold" style={{ color: theme.text }}>
-                  The Pep Planner Admin
+                  The Pep Planner
                 </h1>
                 <p className="text-xs hidden sm:block" style={{ color: theme.textLight }}>
                   Admin Panel

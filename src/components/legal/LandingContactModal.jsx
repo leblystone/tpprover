@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { X, Mail, Send } from 'lucide-react';
-import { createSupportTicket } from '../../services/firebase';
+import { submitContactForm } from '../../services/firebase';
 import { executeRecaptcha } from '../../utils/recaptcha';
 
-export default function LandingContactModal({ open, onClose }) {
+export default function LandingContactModal({ open, onClose, source = 'landing' }) {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -27,28 +27,32 @@ export default function LandingContactModal({ open, onClose }) {
         setSubmitStatus(null);
         
         try {
-            console.log('📤 Creating support ticket from landing page...', {
+            console.log('📤 Submitting general contact form...', {
                 name: formData.name,
                 email: formData.email,
                 subject: formData.subject
             });
             
-            // Create a support ticket (same system as in-app support)
-            const ticketId = await createSupportTicket({
-                userId: null, // No user ID for landing page submissions
-                userEmail: formData.email,
-                userName: formData.name,
-                type: 'contact',
+            // Get reCAPTCHA token
+            let recaptchaToken = null;
+            try {
+                recaptchaToken = await executeRecaptcha('contact');
+            } catch (recaptchaError) {
+                console.warn('⚠️ reCAPTCHA execution failed:', recaptchaError);
+                // Continue without reCAPTCHA (graceful degradation)
+            }
+            
+            // Submit general contact form (not a support ticket)
+            const result = await submitContactForm({
+                name: formData.name,
+                email: formData.email,
                 subject: formData.subject,
                 message: formData.message.trim(),
-                metadata: {
-                    source: 'landing_page',
-                    userAgent: navigator.userAgent,
-                    url: window.location.href
-                }
+                source: source, // Use the source prop (landing, login, signup, etc.)
+                recaptchaToken
             });
             
-            console.log('✅ Support ticket created from landing page:', ticketId);
+            console.log('✅ Contact form submitted successfully:', result);
             setSubmitStatus('success');
             setFormData({ name: '', email: '', subject: '', message: '' });
             

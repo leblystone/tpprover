@@ -36,6 +36,7 @@ import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
 import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
+import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -120,6 +121,13 @@ function App() {
 
     updateStatusBar();
   }, [theme]);
+
+  // Auto-update timezone when it changes (travel, daylight saving)
+  useEffect(() => {
+    const cleanup = initTimezoneAutoUpdate();
+    return cleanup;
+  }, []);
+
   const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -277,6 +285,11 @@ function App() {
       const { resetAnnouncement } = await import('./components/common/FeatureAnnouncementModal');
       resetAnnouncement('v1.0.18-smart-update');
       console.log('✅ Feature announcement reset - refresh to see it again');
+    };
+    // Test error boundary
+    window.testErrorBoundary = () => {
+      console.log('🧪 Triggering error boundary...');
+      throw new Error('Test error - This will trigger the ChunkErrorBoundary');
     };
   }, [testUpdateModal]);
 

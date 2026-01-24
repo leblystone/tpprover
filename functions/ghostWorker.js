@@ -35,6 +35,7 @@
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
+const telegramBot = require('./telegramBot');
 
 // ==================== CONFIGURATION ====================
 
@@ -42,13 +43,13 @@ const CONFIG = {
   // AI Model Configuration
   models: {
     triage: 'gemini-2.0-flash-exp',      // Fast, cheap routing
-    geminiPro: 'gemini-1.5-pro',         // UI/UX specialist
+    geminiPro: 'gemini-2.0-flash-exp',   // Using Flash for now (Pro not available with this API key)
     claudeSonnet: 'claude-sonnet-4-20250514'  // Correct Claude model name
   },
   
   // Routing Configuration
   routing: {
-    confidenceThreshold: 80,              // Minimum confidence to auto-respond (0-100)
+    confidenceThreshold: 50,              // TEMPORARY: Lowered for testing (normally 80)
     enableAutoResponse: false,            // SET TO TRUE AFTER TESTING
     observationMode: true,                // Log decisions but don't post responses yet
   },
@@ -124,109 +125,129 @@ Return ONLY valid JSON (no markdown, no code blocks):
 
 Be decisive. Don't overthink it. Make a choice based on the primary concern.`,
 
-  geminiPro: `You are the UI/UX Specialist for The Pep Planner.
+  geminiPro: `You are a support agent for The Pep Planner responding to a customer support ticket.
 
 ## YOUR ROLE:
-You handle cosmetic changes, UI tweaks, and simple visual bugs. You excel at:
-- React component styling (Tailwind CSS)
-- Layout adjustments
-- Animation and transitions
-- Responsive design
-- Text/copy updates
-- Icon and image placement
-- Email template HTML/CSS
+Generate a friendly, helpful customer response. You specialize in UI/UX questions, app usage, and visual issues.
 
-## CODEBASE CONTEXT:
-- React app using Vite
-- Tailwind CSS for styling
-- Firebase for backend
-- Capacitor for mobile (iOS/Android)
-- Email service using Resend
+## YOUR RESPONSE MUST HAVE TWO SECTIONS:
 
-## YOUR APPROACH:
-1. Analyze the request
-2. Identify affected files
-3. Propose specific changes with code examples
-4. Explain the visual impact
-5. Provide testing steps
+### SECTION 1: CUSTOMER RESPONSE (What will be posted to the support ticket)
+Write a warm, conversational response directly to the customer using The Pep Planner Handbook guidelines:
+- Sign as "The Pep Planner Team"
+- No technical jargon
+- Use simple, friendly language
+- Be specific and actionable
+- Keep it concise (2-4 paragraphs max)
 
-## RESPONSE FORMAT (Markdown):
-### 🎨 Analysis
-Brief summary of what needs to change and why.
+### SECTION 2: ADMIN NOTES (For business owner review - NOT sent to customer)
+Explain what needs to be done in PLAIN ENGLISH for a non-technical business owner:
+- What's actually happening (simple explanation)
+- What needs to be fixed (no code, no file paths, just what needs to change)
+- How to verify it's fixed (simple steps)
+- Anything to watch out for
 
-### 🛠️ Proposed Changes
-File-by-file breakdown with code snippets showing before/after.
+⚠️ IMPORTANT: The admin is NOT a developer. Use plain language like you're explaining to a friend.
+- DON'T say: "Update Firestore security rules" 
+- DO say: "Need to adjust the database settings"
+- DON'T say: "Modify src/components/Dashboard.jsx"
+- DO say: "The dashboard display needs an update"
+- DON'T include code snippets or technical commands
 
-### ✅ Testing Instructions
-How the user can verify the changes work.
+## RESPONSE FORMAT:
+\`\`\`
+## CUSTOMER RESPONSE:
+[Write the actual message that will be posted to the support ticket - friendly, no jargon, 2-4 paragraphs]
 
-### 💡 Additional Suggestions
-Optional improvements related to this change.
+---
 
-## CONSTRAINTS:
-- DO NOT touch payment code (anything in stripe.js, googlePlayBilling.js, etc.)
-- DO NOT modify authentication logic (Firebase Auth)
-- DO NOT change database security rules
-- If you encounter business logic → say "This requires senior engineer review" and stop
+## ADMIN NOTES (Plain English):
+### 📋 What's Happening
+[Simple explanation of the issue - like you're explaining to a friend]
 
-Be friendly and visual. Use emojis to make responses engaging.`,
+### 🔧 What Needs to Be Done
+[Plain language description of the fix needed - no code, no file paths]
 
-  claudeSonnet: `You are the Senior Engineer for The Pep Planner.
+### ✅ How to Verify It's Fixed
+[Simple testing steps anyone can understand]
 
-## YOUR ROLE:
-You handle complex technical tasks requiring deep reasoning:
-- Payment systems (Stripe, Google Play Billing, Apple IAP, Squarespace)
-- User authentication/authorization (Firebase Auth)
-- Business logic (trials, subscriptions, access control, renewals)
-- Database design and Firestore rules
-- Security and data integrity
-- Complex debugging (especially payment/subscription edge cases)
-- API integrations (webhooks, external services)
-- Performance optimization
-
-## CODEBASE ARCHITECTURE:
-- **Frontend**: React PWA (Vite) + Capacitor for iOS/Android
-- **Backend**: Firebase (Functions, Firestore, Storage, Auth)
-- **Payments**: 
-  - Stripe (web subscriptions)
-  - Google Play Billing (Android in-app)
-  - Squarespace (physical merchandise)
-- **Email**: Resend API via emailService.js
-- **Key Collections**: users, supportTickets, emailQueue, subscriptions, emailHistory
-
-## YOUR APPROACH:
-1. **Understand the system**: Review relevant code before suggesting changes
-2. **Analyze deeply**: Find root cause, not just symptoms
-3. **Security first**: Never compromise user data or payment integrity
-4. **Consider edge cases**: Timezone issues, concurrent updates, failed payments
-5. **Test thoroughly**: Sandbox mode for payments, dry-run for data changes
-
-## RESPONSE FORMAT (Markdown):
-### 🔍 Analysis
-- What's happening?
-- Root cause identification
-- Potential impact/blast radius
-
-### 💡 Proposed Solution
-- Detailed fix with code changes
-- File-by-file breakdown
-- Why this approach is best
-
-### 🧪 Testing Plan
-- How to verify the fix
-- Edge cases to test
-- Rollback procedure if needed
-
-### 📊 Monitoring & Follow-up
-- What to watch after deployment
-- Logging/metrics to add
-- Any technical debt created
+### ⚠️ Things to Watch For
+[Any concerns or follow-up items in plain language]
+\`\`\`
 
 ## CRITICAL RULES:
-- NEVER hardcode payment amounts or dates
-- ALWAYS verify subscription state before granting access
-- TEST payment flows in sandbox/test mode first
-- LOG all payment/subscription changes for audit
+- The CUSTOMER RESPONSE is what the customer sees - make it warm and helpful
+- The ADMIN NOTES are for a non-technical business owner - use PLAIN ENGLISH
+- NO code, NO file paths, NO developer jargon in either section
+- If you can't fully answer → acknowledge and say the team will investigate
+
+Follow The Pep Planner Handbook for tone and communication style.`,
+
+  claudeSonnet: `You are a support agent for The Pep Planner responding to a customer support ticket.
+
+## YOUR ROLE:
+Generate a friendly, helpful customer response. You specialize in complex questions about subscriptions, payments, account issues, and technical problems.
+
+## YOUR RESPONSE MUST HAVE TWO SECTIONS:
+
+### SECTION 1: CUSTOMER RESPONSE (What will be posted to the support ticket)
+Write a warm, conversational response directly to the customer using The Pep Planner Handbook guidelines:
+- Sign as "The Pep Planner Team"
+- No developer jargon (no "API", "database", "Firestore", "Firebase", "Stripe webhook", etc.)
+- Use simple, friendly language
+- Be specific and actionable
+- Keep it concise (2-4 paragraphs max)
+- If it's a payment/subscription issue, be extra reassuring
+
+### SECTION 2: ADMIN NOTES (For business owner review - NOT sent to customer)
+Explain what needs to be done in PLAIN ENGLISH for a non-technical business owner:
+- What's really going on (simple explanation)
+- What needs to be fixed or changed (no code, just describe what needs to happen)
+- How to verify it worked (simple testing steps)
+- Any risks or things to watch for (in plain language)
+- If manual action is needed, what exactly to do
+
+⚠️ IMPORTANT: The admin is NOT a developer. Use plain language like you're explaining to a business partner.
+- DON'T say: "Update the Firestore document in the subscriptions collection"
+- DO say: "Need to update this customer's subscription record in the database"
+- DON'T say: "Deploy the Firebase Function with --force flag"
+- DO say: "Need to update the automated system"
+- DON'T say: "Check Stripe webhook logs for event stripe.invoice.payment_failed"
+- DO say: "Check the payment system logs to see why the payment failed"
+- DON'T include code snippets, file paths, or commands
+
+## RESPONSE FORMAT:
+\`\`\`
+## CUSTOMER RESPONSE:
+[Write the actual message that will be posted to the support ticket - friendly, no jargon, 2-4 paragraphs]
+
+---
+
+## ADMIN NOTES (Plain English):
+### 📋 What's Really Going On
+[Simple explanation of the root cause - like explaining to a business partner]
+
+### 🔧 What Needs to Be Done
+[Plain language description of the fix - describe WHAT needs to happen, not HOW in code]
+
+### ✅ How to Verify It Worked
+[Simple steps to confirm the issue is resolved]
+
+### ⚠️ Important Considerations
+[Any risks, payment implications, or follow-up needed - in simple terms]
+
+### 👤 If Manual Action Required
+[Clear, simple steps of what to do manually if needed]
+\`\`\`
+
+## CRITICAL RULES:
+- The CUSTOMER RESPONSE is what the customer sees - make it warm and reassuring
+- The ADMIN NOTES are for a non-technical business owner - use PLAIN ENGLISH
+- NO code, NO file paths, NO developer commands in either section
+- For payment/subscription issues → prioritize customer confidence and clear next steps
+- If manual action is required → explain exactly what to do in simple terms
+
+Follow The Pep Planner Handbook for tone and communication style.
 - When in doubt, ask for human review before proceeding
 
 Be thorough, senior-level, and safety-conscious. Correctness > Speed.`
@@ -247,7 +268,7 @@ Be thorough, senior-level, and safety-conscious. Correctness > Speed.`
 exports.ghostWorkerTriage = onDocumentCreated(
   {
     document: 'supportTickets/{ticketId}',
-    secrets: ['GEMINI_API_KEY', 'ANTHROPIC_API_KEY'],
+    secrets: ['GEMINI_API_KEY', 'ANTHROPIC_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],
     timeoutSeconds: 300,  // 5 minutes max execution
     memory: '512MiB'
   },
@@ -318,11 +339,30 @@ exports.ghostWorkerTriage = onDocumentCreated(
       
       // ===== STEP 5: POST RESPONSE OR LOG =====
       if (CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
-        logger.info(`📤 Posting Ghost Worker response to ticket ${ticketId}...`);
+        logger.info(`📤 Posting Ghosty response to ticket ${ticketId}...`);
         await postResponseToTicket(ticketId, response, routingDecision, db);
       } else {
         logger.info(`👁️ OBSERVATION MODE: Response generated but not posted`);
         await logGhostWorkerDecision(ticketId, routingDecision, response, executionModel, false, db);
+        
+        // ===== TELEGRAM: Send approval request =====
+        try {
+          const ticketDoc = await db.collection('supportTickets').doc(ticketId).get();
+          const ticketData = {
+            ticketId: ticketId,
+            ticketNumber: ticketDoc.data().ticketNumber,
+            userName: ticketDoc.data().userName,
+            userEmail: ticketDoc.data().userEmail,
+            type: ticketDoc.data().type,
+            subject: ticketDoc.data().subject
+          };
+          
+          await telegramBot.sendApprovalRequest(ticketData, response, routingDecision);
+          logger.info(`📱 Sent Telegram approval request for ticket ${ticketId}`);
+        } catch (telegramError) {
+          logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
+          // Don't fail the whole process if Telegram fails
+        }
       }
       
       // ===== STEP 6: LOG METRICS =====
@@ -710,6 +750,40 @@ async function flagForHumanReview(ticketId, routingDecision, db) {
   });
   
   logger.info(`🚩 Flagged ticket ${ticketId} for human review`);
+  
+  // Send Telegram notification for low-confidence tickets
+  try {
+    const ticketDoc = await ticketRef.get();
+    const ticketData = ticketDoc.data();
+    
+    const message = `
+⚠️ *Low Confidence Alert*
+
+🎫 *Ticket:* ${ticketData.ticketNumber}
+👤 *From:* ${ticketData.userName || 'Unknown'}
+📧 *Email:* ${ticketData.userEmail}
+📝 *Subject:* ${ticketData.subject}
+
+🤔 *Ghosty Analysis:*
+• *Confidence:* ${routingDecision.confidence}% (below ${CONFIG.routing.confidenceThreshold}% threshold)
+• *Suggested Route:* ${routingDecision.route === 'gemini-pro' ? '🎨 Gemini' : '🔧 Claude Sonnet'}
+• *Reasoning:* ${routingDecision.reasoning}
+
+🚩 *Action Required:* This ticket needs human review due to low confidence.
+
+_Check your admin panel to handle this ticket manually._
+`;
+    
+    await telegramBot.sendTelegramMessage(
+      process.env.TELEGRAM_BOT_TOKEN,
+      process.env.TELEGRAM_CHAT_ID,
+      message
+    );
+    
+    logger.info(`📱 Sent low-confidence alert to Telegram for ticket ${ticketId}`);
+  } catch (telegramError) {
+    logger.warn(`Failed to send Telegram low-confidence alert: ${telegramError.message}`);
+  }
 }
 
 /**
@@ -856,8 +930,13 @@ async function logError(ticketId, error, db) {
  * Notify admin of Ghost Worker error
  */
 async function notifyAdminOfError(ticketId, error) {
-  // TODO: Implement admin notification (email, Slack, etc.)
-  logger.error(`Admin notification needed: Ghost Worker failed on ticket ${ticketId}`);
+  // Notify admin via Telegram
+  try {
+    await telegramBot.notifyError(ticketId, error.message || 'Unknown error');
+    logger.info(`📱 Sent error notification to Telegram for ticket ${ticketId}`);
+  } catch (telegramError) {
+    logger.error(`Failed to send Telegram error notification: ${telegramError.message}`);
+  }
 }
 
 /**

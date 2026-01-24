@@ -150,6 +150,13 @@ if (typeof window !== 'undefined') {
     console.warn('Failed to load PWA notification service:', err);
   });
 
+  // Load notification debug utilities
+  import('./debugNotifications.js').then(({ debugNotifications }) => {
+    window.debugNotifications = debugNotifications;
+  }).catch(err => {
+    console.warn('Failed to load notification debug utilities:', err);
+  });
+
   // Safe Area Testing Functions
   window.testSafeAreas = () => {
     const root = document.documentElement;
@@ -300,6 +307,8 @@ if (typeof window !== 'undefined') {
   console.log('   - enablePWANotifications() - Enable PWA notifications');
   console.log('   - disablePWANotifications() - Disable PWA notifications');
   console.log('   - getPWAStatus() - Get current PWA notification status');
+  console.log('🔍 Notification Debug Functions:');
+  console.log('   - debugNotifications() - Debug why scheduled notifications aren\'t working');
   console.log('📐 Safe Area Testing Functions:');
   console.log('   - testSafeAreas() - Show current safe area values');
   console.log('   - simulateBottomNavigation(height) - Simulate bottom nav (default 56px)');

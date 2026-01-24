@@ -411,9 +411,10 @@ export function AdminProvider({ children }) {
   }, [loadFeedback]);
 
   const handleDeleteFeedback = useCallback(async (feedbackId) => {
-    if (!window.confirm('Delete this feedback?')) return;
+    if (!window.confirm('Delete this feedback?')) return false;
     await deleteFeedback(feedbackId);
     await loadFeedback();
+    return true;
   }, [loadFeedback]);
 
   const handleRespondToFeedback = useCallback(async (feedbackItem, responseText) => {
@@ -460,6 +461,26 @@ export function AdminProvider({ children }) {
     }
   }, [loadTickets]);
 
+  const handleTicketReply = useCallback(async (ticketId, message) => {
+    if (!message?.trim()) return;
+    setLoading((prev) => ({ ...prev, submitting: true }));
+    try {
+      await addTicketMessage({
+        ticketId,
+        senderType: 'admin',
+        senderEmail: auth.currentUser?.email || 'admin@thepepplanner.com',
+        senderName: auth.currentUser?.displayName || 'Admin',
+        message: message.trim(),
+      });
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Reply sent!', type: 'success' } }));
+    } catch (err) {
+      console.error('Send ticket reply failed:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err.message || 'Failed to send reply', type: 'error' } }));
+    } finally {
+      setLoading((prev) => ({ ...prev, submitting: false }));
+    }
+  }, []);
+
   const value = {
     analytics,
     users,
@@ -499,6 +520,7 @@ export function AdminProvider({ children }) {
     handleRespondToFeedback,
     loadTicketChat,
     handleUpdateTicketStatus,
+    handleTicketReply,
     getTicketWithMessages,
     addTicketMessage,
     subscribeToTicketMessages,

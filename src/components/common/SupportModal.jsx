@@ -6,6 +6,7 @@ import { uploadImageToStorage } from '../../utils/storageUtils';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
+    const [ticketType, setTicketType] = useState(null); // 'support' or 'bug' - choose first
     const [formData, setFormData] = useState({
         email: '',
         message: ''
@@ -130,6 +131,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             wasOpenBeforeBackground.current = false;
             isInBackgroundState.current = false;
             explicitCloseRequested.current = false;
+            setTicketType(null); // Reset ticket type when opening
         } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
             // Only close if explicitly changed from true to false and we're stable
             explicitCloseRequested.current = true;
@@ -223,6 +225,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         wasOpenBeforeBackground.current = false;
         isInBackgroundState.current = false;
         setInternalOpen(false);
+        setTicketType(null); // Reset ticket type selection
         onClose();
     };
 
@@ -264,12 +267,12 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
 
             // Create a support ticket instead of sending email
             const ticketId = await createSupportTicket({
-                userId: user?.uid || null,
-                userEmail: formData.email || user?.email,
-                userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
-                type: 'support',
-                subject: 'Support Request',
-                message: formData.message.trim(),
+                                userId: user?.uid || null,
+                                userEmail: formData.email || user?.email,
+                                userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
+                                type: ticketType, // 'support' or 'bug'
+                                subject: ticketType === 'bug' ? 'Bug Report' : 'Support Request',
+                                message: formData.message.trim(),
                 imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
                 imageStoragePaths: imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
                 metadata: {
@@ -391,7 +394,65 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6">
-                    {submitStatus === 'success' ? (
+                    {!ticketType ? (
+                        /* Ticket Type Selection */
+                        <div className="space-y-4">
+                            <div className="text-center mb-6">
+                                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                                    How can we help?
+                                </h3>
+                                <p className="text-sm" style={{ color: theme.textLight }}>
+                                    Choose the type of support you need
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setTicketType('support')}
+                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.background
+                                }}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.primaryLight }}>
+                                        <MessageSquare className="w-6 h-6" style={{ color: theme.primary }} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
+                                            Support Ticket
+                                        </h4>
+                                        <p className="text-sm" style={{ color: theme.textLight }}>
+                                            Account questions, subscription help, general inquiries
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setTicketType('bug')}
+                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.background
+                                }}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.errorLight || '#FEE2E2' }}>
+                                        <Bug className="w-6 h-6" style={{ color: theme.error }} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
+                                            Bug Report
+                                        </h4>
+                                        <p className="text-sm" style={{ color: theme.textLight }}>
+                                            App crashes, features not working, technical issues
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    ) : submitStatus === 'success' ? (
                         <div className="text-center py-8">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
                                 style={{ backgroundColor: theme.success + '20' }}>
@@ -429,6 +490,26 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         </div>
                     ) : (
                         <div>
+                            {/* Back button and title */}
+                            <div className="flex items-center gap-3 mb-4">
+                                <button
+                                    onClick={() => setTicketType(null)}
+                                    className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                                    style={{ backgroundColor: theme.background }}
+                                    type="button"
+                                >
+                                    <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
+                                </button>
+                                <div>
+                                    <h3 className="font-semibold" style={{ color: theme.text }}>
+                                        {ticketType === 'bug' ? '🐛 Report a Bug' : '💬 Support Request'}
+                                    </h3>
+                                    <p className="text-xs" style={{ color: theme.textLight }}>
+                                        {ticketType === 'bug' ? 'Help us fix technical issues' : 'We\'re here to help'}
+                                    </p>
+                                </div>
+                            </div>
+
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>

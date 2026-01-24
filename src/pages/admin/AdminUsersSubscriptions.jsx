@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Users, Key, Clock, CheckCircle, Eye, Info } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import UserTable from '../../components/admin/UserTable';
 
@@ -8,11 +7,143 @@ export default function AdminUsersSubscriptions() {
   const { theme } = useOutletContext();
   const { users, subscriptions, handleOpenUserModal } = useAdmin();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Helper function to get user status (matching UserTable logic)
+  const getUserStatus = (user) => {
+    const subscription = user.subscription;
+    const now = new Date();
+    
+    // Check trial status first
+    let trialEndDate = null;
+    if (user.trialEndDate) {
+      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+    } else if (user.createdAt) {
+      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
+      trialEndDate = new Date(createdDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+    }
+    
+    if (trialEndDate) {
+      if (trialEndDate > now) {
+        // Active trial - return trialing
+        return 'trialing';
+      } else {
+        // Trial expired - check if they have paid subscription
+        if (subscription?.status === 'active') {
+          // Fall through to check subscription type below
+        } else {
+          return 'trial-expired';
+        }
+      }
+    }
+    
+    // Check if user has an active paid subscription
+    if (subscription?.status === 'active') {
+      // Normalize all fields to lowercase for case-insensitive comparison
+      const planLower = subscription.plan?.toLowerCase() || '';
+      const billingLower = subscription.billing?.toLowerCase() || '';
+      const intervalLower = subscription.interval?.toLowerCase() || '';
+      
+      // Check for lifetime access - comprehensive search for all variations
+      const lifetimeTerms = ['lifetime', 'life', 'permanent', 'forever', 'unlimited'];
+      const isLifetime = subscription.hasLifetimeAccess || 
+        lifetimeTerms.some(term => 
+          planLower.includes(term) || 
+          billingLower.includes(term) || 
+          intervalLower.includes(term)
+        );
+      
+      if (isLifetime) {
+        return 'lifetime';
+      }
+      
+      // Check for annual subscription - comprehensive search for all variations
+      const annualTerms = ['annual', 'annually', 'year', 'yearly', '12 month', 'twelve month'];
+      const isAnnual = annualTerms.some(term => 
+        planLower.includes(term) || 
+        billingLower.includes(term) || 
+        intervalLower.includes(term)
+      );
+      
+      if (isAnnual) {
+        return 'annual';
+      }
+      
+      // Check for monthly - comprehensive search for all variations
+      const monthlyTerms = ['monthly', 'month', '1 month', 'one month', '30 day'];
+      const isMonthly = monthlyTerms.some(term => 
+        planLower.includes(term) || 
+        billingLower.includes(term) || 
+        intervalLower.includes(term)
+      );
+      
+      if (isMonthly || subscription.platform === 'squarespace' || subscription.platform === 'stripe') {
+        return 'monthly';
+      }
+      
+      // Google Play and Apple subscriptions counted as monthly
+      if (subscription.platform === 'google-play' || subscription.platform === 'apple') {
+        return 'monthly';
+      }
+      
+      return 'monthly'; // Default active subscription to monthly
+    }
+    
+    return 'unknown';
+  };
+
+  // Calculate counts for each status
+  const counts = users.reduce((acc, user) => {
+    const status = getUserStatus(user);
+    acc[status] = (acc[status] || 0) + 1;
+    acc.all++;
+    return acc;
+  }, { all: 0, trialing: 0, 'trial-expired': 0, monthly: 0, annual: 0, lifetime: 0, active: 0, unknown: 0 });
+
+  // Filter users based on selected status
+  const filteredUsers = users.filter(user => {
+    if (statusFilter === 'all') return true;
+    return getUserStatus(user) === statusFilter;
+  });
+
+  const filters = [
+    { id: 'all', label: 'All Users', count: counts.all },
+    { id: 'trialing', label: 'Trialing', count: counts.trialing },
+    { id: 'trial-expired', label: 'Trial Expired', count: counts['trial-expired'] },
+    { id: 'monthly', label: 'Monthly', count: counts.monthly },
+    { id: 'annual', label: 'Annual', count: counts.annual },
+    { id: 'lifetime', label: 'Lifetime', count: counts.lifetime },
+  ];
 
   return (
     <div className="space-y-3">
+      {/* All Users - Full width */}
       <div className="rounded-lg border p-3 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>All Users</h2>
+        
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {filters.map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setStatusFilter(filter.id)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105"
+              style={{
+                backgroundColor: statusFilter === filter.id ? theme.primary : theme.background,
+                color: statusFilter === filter.id ? theme.textOnPrimary || '#FFFFFF' : theme.text,
+                border: `1px solid ${statusFilter === filter.id ? theme.primary : theme.border}`,
+              }}
+            >
+              {filter.label} <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px]" style={{ 
+                backgroundColor: statusFilter === filter.id ? 'rgba(255,255,255,0.2)' : theme.primary + '20',
+                color: statusFilter === filter.id ? theme.textOnPrimary || '#FFFFFF' : theme.primary
+              }}>
+                {filter.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <input
           type="text"
           placeholder="Search users by email or name…"
@@ -21,79 +152,8 @@ export default function AdminUsersSubscriptions() {
           className="w-full p-3 rounded border mb-2"
           style={{ borderColor: theme.border, backgroundColor: theme.background }}
         />
-        <UserTable users={users} searchTerm={searchTerm} theme={theme} onViewUser={handleOpenUserModal} />
-      </div>
-
-      <div className="rounded-lg border p-3 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
-        <div className="space-y-3">
-          {subscriptions.recentRegistrations?.length === 0 ? (
-            <p className="text-center py-2 text-sm" style={{ color: theme.textLight }}>No recent registrations</p>
-          ) : (
-            (subscriptions.recentRegistrations || []).map((reg, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                    <Users size={16} style={{ color: theme.success }} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: theme.text }}>{reg.email}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>Registered {reg.date}</div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-lg border p-3 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Activity Details</h2>
-          <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
-            Limited Tracking
-          </span>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="space-y-3">
-            <h3 className="font-medium text-sm" style={{ color: theme.text }}>Currently Tracked</h3>
-            {[
-              { label: 'Registration Date', icon: Users, available: true },
-              { label: 'Last Login Time', icon: Clock, available: true },
-              { label: 'Invite Code Used', icon: Key, available: true },
-              { label: 'Account Status', icon: CheckCircle, available: true },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <item.icon size={14} style={{ color: item.available ? theme.success : theme.textLight }} />
-                <span style={{ color: item.available ? theme.text : theme.textLight }}>{item.label}</span>
-                <div className={`w-2 h-2 rounded-full ${item.available ? 'bg-green-400' : 'bg-gray-300'}`} />
-              </div>
-            ))}
-          </div>
-          <div className="space-y-3">
-            <h3 className="font-medium text-sm" style={{ color: theme.text }}>Not Currently Tracked</h3>
-            {[
-              { label: 'Page Views', icon: Eye },
-              { label: 'Real-time Status', icon: Info },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <item.icon size={14} style={{ color: theme.textLight }} />
-                <span style={{ color: theme.textLight }}>{item.label}</span>
-                <div className="w-2 h-2 rounded-full bg-gray-300" />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: theme.info + '10' }}>
-          <div className="flex items-start gap-3">
-            <Info size={16} style={{ color: theme.info }} className="mt-0.5" />
-            <div>
-              <p className="text-sm font-medium" style={{ color: theme.info }}>Enhanced Tracking Available</p>
-              <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                Additional analytics can be implemented when needed. Current tracking covers user growth, active users, device types, and feature usage estimates.
-              </p>
-            </div>
-          </div>
+        <div className="max-h-[600px] overflow-y-auto">
+          <UserTable users={filteredUsers} searchTerm={searchTerm} theme={theme} onViewUser={handleOpenUserModal} />
         </div>
       </div>
     </div>

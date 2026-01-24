@@ -219,6 +219,13 @@ service cloud.firestore {
       allow write: if false; // Only cloud functions can write (they bypass rules)
     }
     
+    // Contact form submissions - admin can read/update, cloud functions can write
+    match /contactSubmissions/{submissionId} {
+      allow read, update: if isAdmin(); // Admin can read and update (mark as read, add notes)
+      allow create: if false; // Only cloud functions can create submissions (they bypass rules)
+      allow delete: if isAdmin(); // Admin can delete old submissions
+    }
+    
     // Verification tokens - used for email verification
     // Server-side functions can access these, but we also allow read for verification flow
     match /verificationTokens/{tokenId} {

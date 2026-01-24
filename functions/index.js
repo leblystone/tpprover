@@ -469,13 +469,13 @@ exports.debugUserSubscription = onCall(
 // Recover Lifetime Purchases - Find and fix users who paid but don't have lifetime access
 exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurchases;
 
-// Scheduled Functions for Notifications - Now runs hourly to check all timezones
+// Scheduled Functions for Notifications - Runs every 15 minutes to check all timezones
 exports.scheduledResearchReminders = onSchedule({
-  schedule: '0 * * * *',
+  schedule: '*/15 * * * *', // Every 15 minutes (0, 15, 30, 45 past each hour)
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
   secrets: ['RESEND_API_KEY']
 }, async (event) => {
-  logger.info('🔬 Running scheduled research reminders (hourly check)...');
+  logger.info('🔬 Running scheduled research reminders (15-minute check)...');
   
   try {
     const now = new Date();
@@ -528,18 +528,23 @@ exports.scheduledResearchReminders = onSchedule({
       const [currentHour, currentMinute] = userTimeString.split(':').map(Number);
       
       // FIRST: Check if user has tasks scheduled for today (regardless of reminder settings)
-      const protocolsSnapshot = await admin.firestore()
-        .collection('userdata')
+      // Protocols are stored in userData collection as a single document (not subcollection)
+      const userDataDoc = await admin.firestore()
+        .collection('userData')
         .doc(userId)
-        .collection('protocols')
         .get();
+      
+      const userDataObj = userDataDoc.data();
+      const protocols = userDataObj?.protocols || [];
+      const supplements = userDataObj?.supplements || [];
 
-      const todayTasks = [];
+      const todayPeptides = [];
+      const todaySupplements = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Set to start of day for comparison
       
-      for (const protocolDoc of protocolsSnapshot.docs) {
-        const protocol = protocolDoc.data();
+      // Get peptides from active protocols
+      for (const protocol of protocols) {
         
         // Check if protocol is active today
         if (protocol.startDate && protocol.endDate) {
@@ -555,11 +560,12 @@ exports.scheduledResearchReminders = onSchedule({
               protocol.peptides.forEach(peptide => {
                 if (peptide.frequency && peptide.frequency.time) {
                   peptide.frequency.time.forEach(time => {
-                    todayTasks.push({
+                    todayPeptides.push({
                       name: peptide.name || 'Peptide',
                       dose: peptide.dosage?.amount || '',
                       unit: peptide.dosage?.unit || 'mcg',
-                      time: time
+                      time: time,
+                      type: 'peptide'
                     });
                   });
                 }
@@ -569,8 +575,42 @@ exports.scheduledResearchReminders = onSchedule({
         }
       }
 
-      // If no tasks today, skip this user
-      if (todayTasks.length === 0) {
+      // Get supplements scheduled for today
+      const dayOfWeek = today.getDay();
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const currentDayName = dayNames[dayOfWeek];
+
+      for (const supplement of supplements) {
+        // Check if supplement is scheduled for today
+        const isScheduledToday = !supplement.days || 
+                                 supplement.days.length === 0 || 
+                                 supplement.days.some(day => {
+                                   const normalizedDay = day.toLowerCase();
+                                   const normalizedCurrentDay = currentDayName.toLowerCase();
+                                   return normalizedDay === normalizedCurrentDay || 
+                                          normalizedDay === normalizedCurrentDay.substring(0, 3);
+                                 });
+
+        if (isScheduledToday) {
+          // Get time slots for supplement
+          const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : 
+                          (supplement.schedule === 'PM' ? ['PM'] : ['AM']);
+          
+          schedule.forEach(time => {
+            todaySupplements.push({
+              name: supplement.name || 'Supplement',
+              dose: supplement.dose || '',
+              time: time,
+              type: 'supplement'
+            });
+          });
+        }
+      }
+
+      const totalItems = todayPeptides.length + todaySupplements.length;
+
+      // If no items today, skip this user
+      if (totalItems === 0) {
         continue;
       }
 
@@ -578,18 +618,32 @@ exports.scheduledResearchReminders = onSchedule({
       let shouldSendNotification = false;
       let reminderType = '';
       let reminderTime = '';
+      let notificationType = ''; // 'AM' or 'PM' for template selection
       
-      // Default AM notification: Send at 8 AM (or user's default AM time) if tasks exist
-      const [defaultAMHour] = reminderTimeAM.split(':').map(Number);
-      const isDefaultAMTime = currentHour === defaultAMHour;
+      // Parse reminder times (HH:MM format)
+      const [defaultAMHour, defaultAMMinute] = reminderTimeAM.split(':').map(Number);
+      const [amHour, amMinute] = reminderTimeAM.split(':').map(Number);
+      const [pmHour, pmMinute] = reminderTimePM.split(':').map(Number);
+      
+      // Helper function to check if current time matches target time (within 15-minute window)
+      const isWithinWindow = (targetHour, targetMinute) => {
+        // Check if we're within the same hour
+        if (currentHour !== targetHour) return false;
+        
+        // Check if we're within a 15-minute window
+        // This allows for the 15-minute scheduling intervals
+        const minuteDiff = Math.abs(currentMinute - targetMinute);
+        return minuteDiff < 15;
+      };
+      
+      // Default AM notification: Send at user's default AM time if tasks exist
+      const isDefaultAMTime = isWithinWindow(defaultAMHour, defaultAMMinute);
       
       // Check if current time matches user's AM reminder time (if enabled)
-      const [amHour] = reminderTimeAM.split(':').map(Number);
-      const matchesAM = remindersAMEnabled && currentHour === amHour;
+      const matchesAM = remindersAMEnabled && isWithinWindow(amHour, amMinute);
       
       // Check if current time matches user's PM reminder time (if enabled)
-      const [pmHour] = reminderTimePM.split(':').map(Number);
-      const matchesPM = remindersPMEnabled && currentHour === pmHour;
+      const matchesPM = remindersPMEnabled && isWithinWindow(pmHour, pmMinute);
       
       // Send notification if:
       // 1. It's the default AM time (8 AM or user's AM time) - minimum notification for tasks
@@ -599,14 +653,17 @@ exports.scheduledResearchReminders = onSchedule({
         shouldSendNotification = true;
         reminderType = 'AM (Default)';
         reminderTime = reminderTimeAM;
+        notificationType = 'AM';
       } else if (matchesAM) {
         shouldSendNotification = true;
         reminderType = 'AM (Custom)';
         reminderTime = reminderTimeAM;
+        notificationType = 'AM';
       } else if (matchesPM) {
         shouldSendNotification = true;
         reminderType = 'PM (Custom)';
         reminderTime = reminderTimePM;
+        notificationType = 'PM';
       }
       
       // Skip if it's not the right time to send
@@ -614,13 +671,16 @@ exports.scheduledResearchReminders = onSchedule({
         continue;
       }
       
-      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${todayTasks.length} tasks today)`);
+      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${todayPeptides.length} peptides, ${todaySupplements.length} supplements)`);
 
-      // Send reminder notification
+      // Send reminder notification with proper AM/PM template
       const notificationData = {
-        title: 'Research Reminder',
-        body: `You have ${todayTasks.length} research task(s) scheduled for today`,
-        tasks: todayTasks,
+        title: notificationType === 'AM' ? '☀️ Morning Research Reminder' : '🌙 Evening Research Reminder',
+        body: `You have ${todayPeptides.length} peptide(s) and ${todaySupplements.length} supplement(s) scheduled for this ${notificationType === 'AM' ? 'morning' : 'evening'}.`,
+        peptides: todayPeptides,
+        supplements: todaySupplements,
+        peptideCount: todayPeptides.length,
+        supplementCount: todaySupplements.length,
         appUrl: 'https://thepepplanner.com/app/dashboard'
       };
 
@@ -3217,11 +3277,14 @@ exports.submitContactForm = onCall(
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    const { name, email, subject, message, recaptchaToken } = request.data;
+    const { name, email, subject, message, recaptchaToken, source } = request.data;
 
     if (!name || !email || !subject || !message) {
       throw new Error('All fields are required');
     }
+
+    // Determine source (default to 'app' if not provided)
+    const contactSource = source || 'app';
 
     // Verify reCAPTCHA if token is provided
     if (recaptchaToken) {
@@ -3262,6 +3325,23 @@ exports.submitContactForm = onCall(
       const safeEmail = escapeHtml(email);
       const safeSubject = escapeHtml(subject);
       const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+      const safeSource = escapeHtml(contactSource);
+
+      // Store in Firestore (contactSubmissions collection)
+      const db = admin.firestore();
+      const submissionRef = await db.collection('contactSubmissions').add({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        subject: subject.trim(),
+        message: message.trim(),
+        source: contactSource, // 'app', 'landing', 'squarespace', 'login', etc.
+        status: 'unread',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        repliedAt: null,
+        notes: null
+      });
+
+      logger.info(`💾 Contact submission saved to Firestore with ID: ${submissionRef.id} from source: ${contactSource}`);
 
       // Format the email HTML
       const emailHtml = `
@@ -3272,6 +3352,7 @@ exports.submitContactForm = onCall(
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Subject:</strong> ${safeSubject}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Source:</strong> ${safeSource}</p>
             </div>
             <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
               <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
@@ -3285,8 +3366,8 @@ exports.submitContactForm = onCall(
 
       // Send email using the emailService
       const success = await emailService.sendEmail(
-        'contact@thepepplanner.com',
-        'Contact Form Message Received',
+        'contact@thepepplanner.com', // Contact form submissions go here
+        `Contact Form: ${safeSubject}`, // Include subject in email subject line
         emailHtml
       );
 

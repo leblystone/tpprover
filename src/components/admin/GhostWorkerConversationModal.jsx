@@ -1,7 +1,7 @@
 /**
- * 🤖 Ghost Worker Conversation Modal
+ * 👻 Ghosty Conversation Modal
  * 
- * Shows the full conversation between user and Ghost Worker for a specific ticket
+ * Shows the full conversation between user and Ghosty for a specific ticket
  * Includes routing decisions, responses, and all messages
  */
 
@@ -34,7 +34,7 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
       const msgs = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs);
 
-      // Load Ghost Worker log
+      // Load Ghosty log
       const logsRef = collection(db, 'ai_worker_logs');
       const logsQuery = query(logsRef, where('ticketId', '==', ticketId), orderBy('timestamp', 'desc'));
       const logsSnapshot = await getDocs(logsQuery);
@@ -133,10 +133,10 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
             </div>
           </div>
 
-          {/* Ghost Worker Analysis (if exists) */}
+          {/* Ghosty Analysis (if exists) */}
           {ghostWorkerLog && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="font-bold text-blue-900 mb-3">🤖 Ghost Worker Analysis</div>
+              <div className="font-bold text-blue-900 mb-3">👻 Ghosty Analysis</div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <div>
@@ -257,10 +257,10 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
             )}
           </div>
 
-          {/* Ghost Worker Metadata */}
+          {/* Ghosty Metadata */}
           {ticket.metadata?.ghostWorker && (
             <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="font-bold text-yellow-900 mb-2">⚠️ Ghost Worker Metadata</div>
+              <div className="font-bold text-yellow-900 mb-2">⚠️ Ghosty Metadata👻</div>
               <pre className="text-xs bg-white p-3 rounded overflow-x-auto">
                 {JSON.stringify(ticket.metadata.ghostWorker, null, 2)}
               </pre>

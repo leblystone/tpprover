@@ -244,7 +244,8 @@ class MobileNotificationService {
           lastUpdated: serverTimestamp()
         },
         notificationSettings: {
-          pushEnabled: true,
+          push: true, // Firebase Functions check for 'push', not 'pushEnabled'
+          pushEnabled: true, // Keep for backward compatibility
           lastUpdated: serverTimestamp()
         }
       }, { merge: true });

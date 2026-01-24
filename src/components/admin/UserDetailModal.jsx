@@ -46,62 +46,81 @@ export default function UserDetailModal({
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
 
-  // Get subscription status
+  // Get account status - using same logic as UserTable for consistency
   const getSubscriptionStatus = () => {
-    // Check for lifetime access first
-    if (hasLifetimeAccess) {
-      return { label: 'Lifetime Access', color: enhancedTheme.warning, bgColor: enhancedTheme.warning + '20', borderColor: enhancedTheme.warning + '40' };
-    }
-
-    // Check for active paid subscription
-    if (user.subscription?.status === 'active' && user.subscription?.plan) {
-      return { label: 'Subscribed', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
-    }
-
-    // Check trial status
+    const now = new Date();
+    
+    // First check trial status (regardless of subscription)
     let trialEndDate = null;
-    if (user.subscription?.currentPeriodEnd) {
-      trialEndDate = new Date(user.subscription.currentPeriodEnd);
-    } else if (user.trialEndDate?.toDate) {
-      trialEndDate = user.trialEndDate.toDate();
-    } else if (typeof user.trialEndDate === 'string') {
-      trialEndDate = new Date(user.trialEndDate);
+    
+    // Check if user has explicit trialEndDate
+    if (user.trialEndDate) {
+      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+    } else if (user.createdAt) {
+      // If no trialEndDate, calculate default 7-day trial from registration
+      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
+      trialEndDate = new Date(createdDate.getTime() + (7 * 24 * 60 * 60 * 1000));
     }
-
-    // If trialEndDate exists, check if it's active or expired
-    if (trialEndDate && !isNaN(trialEndDate.getTime())) {
-      const now = new Date();
+    
+    if (trialEndDate) {
       if (trialEndDate > now) {
-        return { label: 'Trialing', color: enhancedTheme.info, bgColor: enhancedTheme.info + '20', borderColor: enhancedTheme.info + '40' };
+        // Active trial - show days remaining
+        const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
+        return { 
+          label: `Trial (${daysLeft}d left)`, 
+          color: '#F59E0B', 
+          bgColor: '#F59E0B20', 
+          borderColor: '#F59E0B40' 
+        };
       } else {
-        return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
-      }
-    }
-
-    // If no trialEndDate, check createdAt to determine if they're in default trial period
-    // Default trial period is 7 days from registration
-    if (user.createdAt) {
-      const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
-      if (!isNaN(createdDate.getTime())) {
-        const trialPeriodDays = 7; // Default trial period
-        const defaultTrialEnd = new Date(createdDate.getTime() + (trialPeriodDays * 24 * 60 * 60 * 1000));
-        const now = new Date();
-        
-        if (defaultTrialEnd > now) {
-          return { label: 'Trialing', color: enhancedTheme.info, bgColor: enhancedTheme.info + '20', borderColor: enhancedTheme.info + '40' };
+        // Trial expired - check if they have paid subscription
+        if (user.subscription?.status === 'active') {
+          // Fall through to check subscription type below
         } else {
-          return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+          return { 
+            label: 'Trial Expired', 
+            color: enhancedTheme.error, 
+            bgColor: enhancedTheme.error + '20', 
+            borderColor: enhancedTheme.error + '40' 
+          };
         }
       }
     }
-
+    
+    // Check for lifetime access
+    if (hasLifetimeAccess) {
+      return { 
+        label: 'Lifetime Access', 
+        color: '#FFD700', 
+        bgColor: '#FFD70020', 
+        borderColor: '#FFD70040' 
+      };
+    }
+    
+    // Check for active paid subscription
+    if (user.subscription?.status === 'active' && user.subscription?.plan) {
+      if (user.subscription.platform === 'squarespace' && user.subscription.planType === 'annual') {
+        return { label: 'Annual', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      }
+      if (user.subscription.platform === 'squarespace' || user.subscription.platform === 'stripe') {
+        return { label: 'Monthly', color: '#3B82F6', bgColor: '#3B82F620', borderColor: '#3B82F640' };
+      }
+      if (user.subscription.platform === 'google-play') {
+        return { label: 'Google Play', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      }
+      if (user.subscription.platform === 'apple') {
+        return { label: 'Apple', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      }
+      return { label: 'Active', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+    }
+    
     // Check for expired subscription
     if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
       return { label: 'Subscription Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
-
-    // Default: Trial Expired
-    return { label: 'Trial Expired', color: enhancedTheme.textLight, bgColor: enhancedTheme.textLight + '20', borderColor: enhancedTheme.textLight + '40' };
+    
+    // If we get here, user has no trial date and no subscription - shouldn't happen
+    return { label: 'Unknown', color: '#9CA3AF', bgColor: '#9CA3AF20', borderColor: '#9CA3AF40' };
   };
 
   const subscriptionStatusDisplay = getSubscriptionStatus();
@@ -284,7 +303,7 @@ export default function UserDetailModal({
         </div>
 
         {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center relative z-10" 
+        <div className="p-4 border-b flex justify-between items-center relative z-10" 
           style={{ 
             borderColor: enhancedTheme.border + '40',
             background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -298,10 +317,10 @@ export default function UserDetailModal({
               <Users size={20} style={{ color: '#FFFFFF' }} />
             </div>
             <div>
-              <h2 className="text-xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Researcher Details</h2>
+              <h2 className="text-xl font-bold" style={{ color: enhancedTheme.primaryDark }}>User Details</h2>
               <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
                 <Book size={10} className="opacity-60" />
-                View researcher information
+                View user information
               </p>
             </div>
           </div>
@@ -317,30 +336,27 @@ export default function UserDetailModal({
           </button>
         </div>
         
-        <div className="p-6 space-y-6 relative z-10">
+        <div className="p-4 space-y-3 relative z-10">
           {/* User Info Header */}
-          <div className="relative rounded-xl p-5 overflow-hidden" 
+          <div className="relative rounded-xl p-3 overflow-hidden" 
             style={{ 
               background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`,
               border: `1px solid ${enhancedTheme.border}40`
             }}>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="relative">
                 <img 
-                  className="h-20 w-20 rounded-xl shadow-lg border-2" 
+                  className="h-16 w-16 rounded-xl shadow-lg border-2" 
                   src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=${enhancedTheme.primary.replace('#', '')}&color=ffffff`} 
                   alt=""
                   style={{ borderColor: enhancedTheme.primary }}
                 />
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-md"
                   style={{ backgroundColor: subscriptionStatusDisplay.color }}>
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold mb-1" style={{ color: enhancedTheme.text }}>
-                  {user.displayName || 'No Name'}
-                </h3>
                 <p className="text-sm flex items-center gap-1.5 mb-2" style={{ color: enhancedTheme.textLight }}>
                   <Mail size={12} className="opacity-60" />
                   {user.email}
@@ -360,15 +376,15 @@ export default function UserDetailModal({
             </div>
           </div>
 
-          {/* Key Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md"
+          {/* Two-Column Layout for Key Info */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 rounded-xl hover:scale-[1.02] transition-all duration-200"
               style={{ 
                 backgroundColor: enhancedTheme.background,
                 border: `1px solid ${enhancedTheme.border}40`
               }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar size={16} style={{ color: enhancedTheme.info }} />
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar size={14} style={{ color: enhancedTheme.info }} />
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Registered</p>
               </div>
               <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
@@ -379,13 +395,13 @@ export default function UserDetailModal({
                 }) : 'N/A'}
               </p>
             </div>
-            <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md"
+            <div className="p-3 rounded-xl hover:scale-[1.02] transition-all duration-200"
               style={{ 
                 backgroundColor: enhancedTheme.background,
                 border: `1px solid ${enhancedTheme.border}40`
               }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={16} style={{ color: enhancedTheme.warning }} />
+              <div className="flex items-center gap-2 mb-1">
+                <Clock size={14} style={{ color: enhancedTheme.warning }} />
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Last Active</p>
               </div>
               <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
@@ -405,38 +421,38 @@ export default function UserDetailModal({
           <SubscriptionDebugSection user={user} theme={enhancedTheme} />
 
           {/* Subscription Details */}
-          <div className="rounded-xl border p-5 relative overflow-hidden"
+          <div className="rounded-xl border p-3 relative overflow-hidden"
             style={{ 
               borderColor: enhancedTheme.border,
               backgroundColor: enhancedTheme.cardBackground,
               background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
             }}>
             <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-              <Award size={100} style={{ color: enhancedTheme.success }} />
+              <Award size={80} style={{ color: enhancedTheme.success }} />
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center"
                   style={{ 
                     background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
                     boxShadow: `0 2px 8px ${enhancedTheme.success}30`
                   }}>
-                  <CreditCard size={16} style={{ color: '#FFFFFF' }} />
+                  <CreditCard size={14} style={{ color: '#FFFFFF' }} />
                 </div>
-                <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Access & Subscription</h4>
+                <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Access & Subscription</h4>
               </div>
               {hasLifetimeAccess ? (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-lg"
+                <div className="space-y-2">
+                  <div className="p-3 rounded-lg"
                     style={{ 
                       backgroundColor: isLifetimeGranted ? '#A3B18A20' : enhancedTheme.success + '15',
                       border: `1px solid ${isLifetimeGranted ? '#A3B18A40' : enhancedTheme.success + '30'}`
                     }}>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-1">
                       {isLifetimeGranted ? (
-                        <Gift size={18} style={{ color: '#A3B18A' }} />
+                        <Gift size={16} style={{ color: '#A3B18A' }} />
                       ) : (
-                        <Award size={18} style={{ color: enhancedTheme.success }} />
+                        <Award size={16} style={{ color: enhancedTheme.success }} />
                       )}
                       <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
                         {isLifetimeGranted ? 'Lifetime Granted' : 'Lifetime Access'}
@@ -457,21 +473,21 @@ export default function UserDetailModal({
                   </div>
                 </div>
               ) : subscriptionPlan !== 'No subscription' ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-lg"
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded-lg"
                     style={{ backgroundColor: enhancedTheme.background + '60' }}>
-                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Plan:</span>
-                    <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionPlan}</span>
+                    <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>Plan</span>
+                    <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionPlan}</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg"
+                  <div className="p-2 rounded-lg"
                     style={{ backgroundColor: enhancedTheme.background + '60' }}>
-                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Billing:</span>
-                    <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionInterval}</span>
+                    <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>Billing</span>
+                    <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionInterval}</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg"
+                  <div className="p-2 rounded-lg"
                     style={{ backgroundColor: enhancedTheme.background + '60' }}>
-                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Status:</span>
-                    <span className="px-2 py-1 rounded text-xs font-semibold"
+                    <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>Status</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-semibold inline-block mt-1"
                       style={{
                         backgroundColor: subscriptionStatus === 'active' ? enhancedTheme.success + '20' : enhancedTheme.warning + '20',
                         color: subscriptionStatus === 'active' ? enhancedTheme.success : enhancedTheme.warning
@@ -481,10 +497,10 @@ export default function UserDetailModal({
                   </div>
                   {/* Subscription Source */}
                   {(user.subscription?.source || user.subscription?.paymentProvider) && (
-                    <div className="flex items-center justify-between p-3 rounded-lg"
+                    <div className="p-2 rounded-lg"
                       style={{ backgroundColor: enhancedTheme.background + '60' }}>
-                      <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Source:</span>
-                      <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
+                      <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>Source</span>
+                      <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
                         {(() => {
                           const source = user.subscription?.paymentProvider || user.subscription?.source;
                           if (source === 'stripe') return 'Stripe';
@@ -493,12 +509,12 @@ export default function UserDetailModal({
                           if (source === 'squarespace') return 'Squarespace';
                           return source || 'Unknown';
                         })()}
-                      </span>
+                      </p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="p-4 rounded-lg text-center"
+                <div className="p-3 rounded-lg text-center"
                   style={{ backgroundColor: enhancedTheme.background + '60' }}>
                   <p className="text-sm flex items-center justify-center gap-2" style={{ color: enhancedTheme.textLight }}>
                     <Book size={14} className="opacity-60" />
@@ -514,67 +530,67 @@ export default function UserDetailModal({
           </div>
 
           {!hasLifetimeAccess && (
-            <div className="rounded-xl border p-5" 
+            <div className="rounded-xl border p-3" 
               style={{ 
                 borderColor: enhancedTheme.border,
                 backgroundColor: enhancedTheme.cardBackground
               }}>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center"
                   style={{ 
                     background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
                     boxShadow: `0 2px 8px ${enhancedTheme.warning}30`
                   }}>
-                  <Clock size={16} style={{ color: '#FFFFFF' }} />
+                  <Clock size={14} style={{ color: '#FFFFFF' }} />
                 </div>
-                <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Trial Controls</h4>
+                <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Trial Controls</h4>
               </div>
 
               {isLoadingDetails ? (
-                <div className="flex items-center justify-center gap-2 py-6 text-sm" style={{ color: enhancedTheme.textLight }}>
-                  <Loader size={18} className="animate-spin" />
-                  <span>Loading current research window…</span>
+                <div className="flex items-center justify-center gap-2 py-4 text-sm" style={{ color: enhancedTheme.textLight }}>
+                  <Loader size={16} className="animate-spin" />
+                  <span>Loading...</span>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg" 
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg" 
                       style={{ 
                         backgroundColor: enhancedTheme.background,
                         border: `1px solid ${enhancedTheme.border}30`
                       }}>
-                      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: enhancedTheme.textLight }}>Trial ends</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Ends</p>
                       <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{trialEndDisplay}</p>
-                      <p className="text-xs mt-1" style={{ color: enhancedTheme.textLight }}>{trialDaysText}</p>
+                      <p className="text-xs" style={{ color: enhancedTheme.textLight }}>{trialDaysText}</p>
                     </div>
-                    <div className="p-3 rounded-lg" 
+                    <div className="p-2 rounded-lg" 
                       style={{ 
                         backgroundColor: enhancedTheme.background,
                         border: `1px solid ${enhancedTheme.border}30`
                       }}>
-                      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: enhancedTheme.textLight }}>Status</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Status</p>
                       <p className="text-sm font-semibold capitalize" style={{ color: enhancedTheme.text }}>{trialStatusLabel}</p>
-                      <p className="text-xs mt-1" style={{ color: enhancedTheme.textLight }}>{trialPlanName}</p>
+                      <p className="text-xs" style={{ color: enhancedTheme.textLight }}>{trialPlanName}</p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Days to add</label>
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2">
                       <input
                         type="number"
                         min="1"
                         max="60"
                         value={extensionDays}
                         onChange={(e) => setExtensionDays(e.target.value)}
-                        className="w-full sm:w-24 px-3 py-2 rounded border text-sm"
+                        className="w-20 px-2 py-1.5 rounded border text-sm"
                         style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background, color: enhancedTheme.text }}
                         disabled={disableExtendAction}
                       />
                       <button
                         onClick={handleExtendTrialClick}
                         disabled={disableExtendAction}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                         style={{ 
                           backgroundColor: enhancedTheme.warning,
                           color: '#FFFFFF',
@@ -586,15 +602,15 @@ export default function UserDetailModal({
                     </div>
                     <textarea
                       rows={2}
-                      placeholder="Optional note for audit trail (visible to admins only)"
+                      placeholder="Optional note for audit trail"
                       value={extensionNote}
                       onChange={(e) => setExtensionNote(e.target.value)}
-                      className="w-full px-3 py-2 rounded border text-sm"
+                      className="w-full px-2 py-1.5 rounded border text-xs"
                       style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background, color: enhancedTheme.text }}
                       disabled={disableExtendAction}
                     />
                     {localMessage && (
-                      <div className="px-3 py-2 rounded text-xs" 
+                      <div className="px-2 py-1.5 rounded text-xs" 
                         style={{ 
                           backgroundColor: localMessageType === 'error' ? '#fef2f2' : enhancedTheme.success + '20',
                           color: localMessageType === 'error' ? '#b91c1c' : enhancedTheme.success,
@@ -604,31 +620,31 @@ export default function UserDetailModal({
                         {localMessage}
                       </div>
                     )}
-                    <p className="text-[11px]" style={{ color: enhancedTheme.textLight }}>
-                      Researchers may need to sign out and back in to sync the refreshed countdown from The Pep Planner cloud.
+                    <p className="text-[10px]" style={{ color: enhancedTheme.textLight }}>
+                      User may need to sign out and back in to sync.
                     </p>
                   </div>
 
                   {extensionHistory.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Extension history</p>
-                      <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                      <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
                         {extensionHistory.map((entry, index) => {
                           const newEnd = entry.newEnd ? new Date(entry.newEnd) : null;
                           const entryLabel = newEnd && !Number.isNaN(newEnd.getTime())
                             ? newEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                             : 'Unknown end date';
                           return (
-                            <div key={`${entry.newEnd || index}-${index}`} className="p-3 rounded-lg" 
+                            <div key={`${entry.newEnd || index}-${index}`} className="p-2 rounded-lg" 
                               style={{ backgroundColor: enhancedTheme.background, border: `1px solid ${enhancedTheme.border}30` }}>
-                              <div className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
+                              <div className="text-xs font-semibold" style={{ color: enhancedTheme.text }}>
                                 +{entry.addedDays} day{entry.addedDays === 1 ? '' : 's'} • {entryLabel}
                               </div>
-                              <p className="text-[11px]" style={{ color: enhancedTheme.textLight }}>
+                              <p className="text-[10px]" style={{ color: enhancedTheme.textLight }}>
                                 Extended by {entry.extendedBy || 'admin'} at {entry.extendedAt ? new Date(entry.extendedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'unknown time'}
                               </p>
                               {entry.note && (
-                                <p className="text-[11px] mt-1" style={{ color: enhancedTheme.textLight }}>
+                                <p className="text-[10px] mt-0.5" style={{ color: enhancedTheme.textLight }}>
                                   Note: {entry.note}
                                 </p>
                               )}
@@ -644,49 +660,49 @@ export default function UserDetailModal({
           )}
 
           {/* Admin Actions */}
-          <div className="rounded-xl border p-5"
+          <div className="rounded-xl border p-3"
             style={{ 
               borderColor: enhancedTheme.border,
               backgroundColor: enhancedTheme.cardBackground
             }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{ 
                   background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
                   boxShadow: `0 2px 8px ${enhancedTheme.warning}30`
                 }}>
-                <Shield size={16} style={{ color: '#FFFFFF' }} />
+                <Shield size={14} style={{ color: '#FFFFFF' }} />
               </div>
-              <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
+              <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {/* One-Way Support Response Button */}
               <button
                 onClick={() => setShowOneWayModal(true)}
-                className="p-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="p-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style={{ 
                   backgroundColor: enhancedTheme.info,
                   color: '#FFFFFF',
                   boxShadow: `0 4px 15px ${enhancedTheme.info}30`
                 }}
               >
-                <MessageSquare size={18} />
-                Send One-Way Message
+                <MessageSquare size={16} />
+                One-Way Message
               </button>
               
               {/* Two-Way Support Response Button */}
               <button
                 onClick={() => setShowTwoWayModal(true)}
-                className="p-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="p-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style={{ 
                   backgroundColor: enhancedTheme.primary,
                   color: enhancedTheme.textOnPrimary || '#FFFFFF',
                   boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
                 }}
               >
-                <Send size={18} />
-                Open Support Ticket
+                <Send size={16} />
+                Support Ticket
               </button>
             </div>
           </div>

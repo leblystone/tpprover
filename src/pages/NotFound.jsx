@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isValidRoute, clearCacheAndReload, hasAttemptedCacheClear, markCacheClearAttempt } from '../utils/routeCacheHelper'
 import { isNative, isIOS, isIOSBrowser, isIOSPWAInstalled } from '../utils/platform'
+import error404Image from '../assets/404-error.png'
 
 export default function NotFound() {
   const location = useLocation()
@@ -55,15 +56,17 @@ export default function NotFound() {
   // Show loading state while clearing cache
   if (isClearingCache && shouldAutoClear) {
     return (
-      <div className="text-center py-24">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-        <h2 className="text-2xl font-semibold mb-2">Updating your app...</h2>
-        <p className="text-gray-600 mb-6">
-          We detected an outdated cache. Clearing it now and reloading...
-        </p>
-        <p className="text-sm text-gray-500">
-          This should only take a moment.
-        </p>
+      <div className="flex items-center justify-center min-h-screen bg-[#E8E4DC]">
+        <div className="text-center py-24">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#7B8A7A] mb-4"></div>
+          <h2 className="text-2xl font-semibold mb-2 text-gray-800">Updating your app...</h2>
+          <p className="text-gray-600 mb-6">
+            We detected an outdated cache. Clearing it now and reloading...
+          </p>
+          <p className="text-sm text-gray-500">
+            This should only take a moment.
+          </p>
+        </div>
       </div>
     )
   }
@@ -73,34 +76,36 @@ export default function NotFound() {
     // Check if user is on iOS (Safari PWA or native)
     const isIOSDevice = isIOS() || isIOSBrowser() || isIOSPWAInstalled()
     return (
-      <div className="text-center py-24">
-        <h2 className="text-2xl font-semibold mb-2">Page not loading</h2>
-        <p className="text-gray-600 mb-6">
-          We tried to fix this automatically, but it didn't work. Please try refreshing the page.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={handleManualRefresh}
-            className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white hover:bg-gray-800"
-          >
-            Refresh Page
-          </button>
-          {!isIOSDevice && (
-            <Link
-              className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-              to="/app"
-            >
-              Go to App
-            </Link>
-          )}
-          {isIOSDevice && (
+      <div className="flex items-center justify-center min-h-screen bg-[#E8E4DC]">
+        <div className="text-center py-24 px-4">
+          <h2 className="text-2xl font-semibold mb-2 text-gray-800">Page not loading</h2>
+          <p className="text-gray-600 mb-6">
+            We tried to fix this automatically, but it didn't work. Please try refreshing the page.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate('/app')}
-              className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+              onClick={handleManualRefresh}
+              className="inline-flex items-center px-6 py-3 rounded-lg bg-[#7B8A7A] text-white hover:bg-[#6a7969] transition-colors font-medium shadow-lg"
             >
-              Go to Dashboard
+              Refresh Page
             </button>
-          )}
+            {!isIOSDevice && (
+              <Link
+                className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-[#7B8A7A] text-[#7B8A7A] hover:bg-[#7B8A7A] hover:text-white transition-colors font-medium"
+                to="/app"
+              >
+                Go to Dashboard
+              </Link>
+            )}
+            {isIOSDevice && (
+              <button
+                onClick={() => navigate('/app')}
+                className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-[#7B8A7A] text-[#7B8A7A] hover:bg-[#7B8A7A] hover:text-white transition-colors font-medium"
+              >
+                Go to Dashboard
+              </button>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -110,20 +115,31 @@ export default function NotFound() {
   // Check if user is on iOS (Safari PWA or native)
   const isIOSDevice = isIOS() || isIOSBrowser() || isIOSPWAInstalled()
   return (
-    <div className="text-center py-24">
-      <h2 className="text-2xl font-semibold mb-2">Page not found</h2>
-      <p className="text-gray-600 mb-6">The page you are looking for does not exist.</p>
-      {!isIOSDevice && (
-        <Link className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white" to="/app">Go to App</Link>
-      )}
-      {isIOSDevice && (
-        <button
-          onClick={() => navigate('/app')}
-          className="inline-flex items-center px-4 py-2 rounded bg-gray-900 text-white hover:bg-gray-800"
-        >
-          Go to Dashboard
-        </button>
-      )}
+    <div className="flex items-center justify-center min-h-screen bg-[#E8E4DC] px-4">
+      <div className="text-center max-w-2xl w-full">
+        <img 
+          src={error404Image} 
+          alt="404 Error - Page not found" 
+          className="w-full max-w-xl mx-auto mb-8"
+          style={{ maxHeight: '70vh', objectFit: 'contain' }}
+        />
+        {!isIOSDevice && (
+          <Link 
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[#7B8A7A] text-white hover:bg-[#6a7969] transition-colors text-lg font-medium shadow-lg" 
+            to="/app"
+          >
+            Go to Dashboard
+          </Link>
+        )}
+        {isIOSDevice && (
+          <button
+            onClick={() => navigate('/app')}
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[#7B8A7A] text-white hover:bg-[#6a7969] transition-colors text-lg font-medium shadow-lg"
+          >
+            Go to Dashboard
+          </button>
+        )}
+      </div>
     </div>
   )
 }

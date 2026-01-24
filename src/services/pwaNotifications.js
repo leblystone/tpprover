@@ -247,7 +247,8 @@ class PWANotificationService {
         fcmToken: token, // Change from pushToken to fcmToken for consistency
         pushToken: token, // Keep for backward compatibility
         notificationSettings: {
-          pushEnabled: true,
+          push: true, // Firebase Functions check for 'push', not 'pushEnabled'
+          pushEnabled: true, // Keep for backward compatibility
           lastUpdated: serverTimestamp()
         }
       }, { merge: true });
@@ -413,7 +414,8 @@ class PWANotificationService {
       const userRef = doc(db, 'users', user.email.toLowerCase());
       await setDoc(userRef, {
         notificationSettings: {
-          pushEnabled: enabled,
+          push: enabled, // Firebase Functions check for 'push', not 'pushEnabled'
+          pushEnabled: enabled, // Keep for backward compatibility
           lastUpdated: serverTimestamp()
         }
       }, { merge: true });

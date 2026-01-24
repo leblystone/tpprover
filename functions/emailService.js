@@ -653,12 +653,20 @@ function generateEmailHTML(template, variables = {}) {
     ctaLinkValue = ctaLinkValue.replace(/%VERIFICATIONLINK%/g, variables.verificationLink);
     ctaLinkValue = ctaLinkValue.replace(/%LINK%/g, variables.verificationLink);
   }
+  // Also replace %ACTIVATION_LINK% (with underscore) if it exists
+  if (ctaLinkValue && variables.activationLink) {
+    ctaLinkValue = ctaLinkValue.replace(/%ACTIVATION_LINK%/g, variables.activationLink);
+    ctaLinkValue = ctaLinkValue.replace(/%ACTIVATIONLINK%/g, variables.activationLink);
+    if (!ctaLinkValue || ctaLinkValue === '#' || ctaLinkValue.includes('%LINK%')) {
+      ctaLinkValue = variables.activationLink;
+    }
+  }
   // Also replace %SURVEY_LINK% (with underscore) if it exists
   if (ctaLinkValue && variables.surveyLink) {
     ctaLinkValue = ctaLinkValue.replace(/%SURVEY_LINK%/g, variables.surveyLink);
     ctaLinkValue = ctaLinkValue.replace(/%SURVEYLINK%/g, variables.surveyLink);
   }
-  // If ctaLink is empty or still contains a placeholder, use surveyLink, resetLink, verificationLink, or link from variables
+  // If ctaLink is empty or still contains a placeholder, use activationLink, surveyLink, resetLink, verificationLink, or link from variables
   if (!ctaLinkValue || ctaLinkValue === '#' || 
       ctaLinkValue.includes('%LINK%') || 
       ctaLinkValue.includes('%VERIFICATIONLINK%') || 
@@ -666,8 +674,10 @@ function generateEmailHTML(template, variables = {}) {
       ctaLinkValue.includes('%RESETLINK%') ||
       ctaLinkValue.includes('%RESET_LINK%') ||
       ctaLinkValue.includes('%SURVEYLINK%') ||
-      ctaLinkValue.includes('%SURVEY_LINK%')) {
-    ctaLinkValue = variables.surveyLink || variables.resetLink || variables.verificationLink || variables.link || '#';
+      ctaLinkValue.includes('%SURVEY_LINK%') ||
+      ctaLinkValue.includes('%ACTIVATIONLINK%') ||
+      ctaLinkValue.includes('%ACTIVATION_LINK%')) {
+    ctaLinkValue = variables.activationLink || variables.surveyLink || variables.resetLink || variables.verificationLink || variables.link || '#';
     logger.info(`🔗 Using fallback ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   } else {
     logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
@@ -700,6 +710,8 @@ function generateEmailHTML(template, variables = {}) {
       html = html.replace(/href=["']%RESETLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%VERIFICATION_LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%VERIFICATIONLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']%ACTIVATION_LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']%ACTIVATIONLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']%LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']#["']/gi, `href="${processedTemplate.ctaLink}"`);
       html = html.replace(/href=["']about:blank["']/gi, `href="${processedTemplate.ctaLink}"`);
@@ -1386,13 +1398,17 @@ exports.sendSquarespaceActivationEmail = async (userEmail, customerName, planKey
     const customTemplate = await loadEmailTemplate('squarespaceActivation');
     if (customTemplate) {
       const activationLink = `https://thepepplanner.com/activate?token=${activationToken}`;
-      const subject = customTemplate.subject || 'Activate Your The Pep Planner Account 🧬';
+      const subject = customTemplate.subject || 'Create Your Pep Planner Account 🧬';
       const html = generateEmailHTML(customTemplate, { 
         userEmail, 
-        customerName, 
-        planKey, 
-        activationLink, 
-        activationToken 
+        customerName: customerName || 'there',
+        CUSTOMERNAME: customerName || 'there',
+        planKey,
+        PLANKEY: planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime',
+        activationLink,
+        ACTIVATION_LINK: activationLink,
+        activationToken,
+        ACTIVATION_TOKEN: activationToken
       });
       return sendEmail(userEmail, subject, html, {
         logToHistory: true,
@@ -1407,7 +1423,7 @@ exports.sendSquarespaceActivationEmail = async (userEmail, customerName, planKey
   // Fallback to default template
   const activationLink = `https://thepepplanner.com/activate?token=${activationToken}`;
   const planName = planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime';
-  const subject = 'Activate Your The Pep Planner Account 🧬';
+  const subject = 'Create Your Pep Planner Account 🧬';
   
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -1415,16 +1431,16 @@ exports.sendSquarespaceActivationEmail = async (userEmail, customerName, planKey
       <p>Hi ${customerName || 'there'},</p>
       <p>Thank you for your purchase! Your ${planName} subscription is ready to activate.</p>
       <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
-        <p style="margin: 0; font-weight: 600; color: #344E41;">What's Next?</p>
-        <p style="margin: 8px 0 0 0;">Click below to activate your account and start using The Pep Planner app. This will only take a moment!</p>
+        <p style="margin: 0; font-weight: 600; color: #344E41;">Create Your App Account</p>
+        <p style="margin: 8px 0 0 0;">Your billing portal (used for purchasing) is separate from your Pep Planner app account. Click below to create your app account and start using The Pep Planner. This will only take a moment!</p>
       </div>
       <center>
         <a href="${activationLink}" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 24px 0;">
-          Activate My Account
+          Create Your Pep Planner Account
         </a>
       </center>
       <p style="font-size: 14px; color: #666; margin-top: 24px;">
-        <strong>Note:</strong> You may have received emails from Squarespace about your order. This email is specifically to activate your app access.
+        <strong>Important:</strong> Your billing portal (for purchases) and your Pep Planner app account are separate. You'll use your app account to access The Pep Planner features.
       </p>
       <p style="font-size: 14px; color: #666;">
         This activation link expires in 30 days. If you have any questions, contact us at contact@thepepplanner.com
@@ -1453,9 +1469,12 @@ exports.sendSquarespaceSubscriptionActivatedEmail = async (userEmail, customerNa
       const subject = customTemplate.subject || 'Your Subscription is Now Active! ✅';
       const html = generateEmailHTML(customTemplate, { 
         userEmail, 
-        customerName, 
-        planKey, 
-        planName 
+        customerName: customerName || 'there',
+        CUSTOMERNAME: customerName || 'there',
+        planKey,
+        PLANKEY: planKey === 'monthly' ? 'Monthly' : planKey === 'annual' ? 'Annual' : 'Lifetime',
+        planName,
+        PLANNAME: planName
       });
       return sendEmail(userEmail, subject, html, {
         logToHistory: true,
@@ -1475,17 +1494,20 @@ exports.sendSquarespaceSubscriptionActivatedEmail = async (userEmail, customerNa
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #344E41;">Subscription Activated! 🎉</h2>
       <p>Hi ${customerName || 'there'},</p>
-      <p>Great news! Your ${planName} subscription from Squarespace is now active.</p>
+      <p>Great news! Your ${planName} subscription is now active.</p>
       <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
         <p style="margin: 0; font-weight: 600; color: #344E41;">You're all set!</p>
-        <p style="margin: 8px 0 0 0;">Log in to The Pep Planner app to start tracking your research.</p>
+        <p style="margin: 8px 0 0 0;">Your Pep Planner app account has been created. Access The Pep Planner app to start tracking your research.</p>
       </div>
       <center>
-        <a href="https://thepepplanner.com/dashboard" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 24px 0;">
-          Go to Dashboard
+        <a href="https://thepepplanner.com/login" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 24px 0;">
+          Access The Pep Planner App
         </a>
       </center>
       <p style="font-size: 14px; color: #666; margin-top: 24px;">
+        <strong>Note:</strong> Your billing portal (for purchases) and your Pep Planner app account are separate. Use your app account to access The Pep Planner features.
+      </p>
+      <p style="font-size: 14px; color: #666;">
         Need help? Contact us at contact@thepepplanner.com
       </p>
     </div>

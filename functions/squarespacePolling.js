@@ -10,8 +10,6 @@ const admin = require('firebase-admin');
 const https = require('https');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 
-const db = admin.firestore();
-
 // Squarespace API Configuration
 const SQUARESPACE_API_KEY = process.env.SQUARESPACE_API_KEY || '';
 // Site ID can be extracted from site URL or set explicitly
@@ -21,12 +19,24 @@ const SQUARESPACE_SITE_ID = process.env.SQUARESPACE_SITE_ID || 'magenta-strawber
 /**
  * Fetch orders from Squarespace API
  */
-async function fetchSquarespaceOrders(apiKey, siteId, modifiedAfter = null) {
+async function fetchSquarespaceOrders(apiKey, siteId, modifiedAfter = null, modifiedBefore = null) {
   return new Promise((resolve, reject) => {
+    // Clean API key - remove any whitespace, newlines, or invalid characters
+    const cleanApiKey = apiKey.trim().replace(/\r?\n/g, '').replace(/\s+/g, '');
+    
     // Build URL with query parameters
     let path = `/1.0/commerce/orders?limit=50`;
-    if (modifiedAfter) {
-      path += `&modifiedAfter=${modifiedAfter}`;
+    // Squarespace API requires BOTH modifiedAfter and modifiedBefore if either is specified
+    if (modifiedAfter || modifiedBefore) {
+      // If only one is provided, set the other to now (for modifiedBefore) or a reasonable past date (for modifiedAfter)
+      const now = new Date().toISOString();
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      
+      const after = modifiedAfter || oneHourAgo;
+      const before = modifiedBefore || now;
+      
+      path += `&modifiedAfter=${after}`;
+      path += `&modifiedBefore=${before}`;
     }
 
     const options = {
@@ -35,7 +45,7 @@ async function fetchSquarespaceOrders(apiKey, siteId, modifiedAfter = null) {
       path: path,
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${cleanApiKey}`,
         'User-Agent': 'ThePepPlanner/1.0',
         'Content-Type': 'application/json'
       }
@@ -75,13 +85,16 @@ async function fetchSquarespaceOrders(apiKey, siteId, modifiedAfter = null) {
  */
 async function fetchOrderDetails(apiKey, orderId) {
   return new Promise((resolve, reject) => {
+    // Clean API key - remove any whitespace, newlines, or invalid characters
+    const cleanApiKey = apiKey.trim().replace(/\r?\n/g, '').replace(/\s+/g, '');
+    
     const options = {
       hostname: 'api.squarespace.com',
       port: 443,
       path: `/1.0/commerce/orders/${orderId}`,
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${cleanApiKey}`,
         'User-Agent': 'ThePepPlanner/1.0',
         'Content-Type': 'application/json'
       }
@@ -121,7 +134,7 @@ async function fetchOrderDetails(apiKey, orderId) {
  */
 async function isOrderProcessed(orderId) {
   try {
-    const processedOrdersRef = db.collection('squarespaceProcessedOrders');
+    const processedOrdersRef = admin.firestore().collection('squarespaceProcessedOrders');
     const doc = await processedOrdersRef.doc(orderId).get();
     return doc.exists;
   } catch (error) {
@@ -135,7 +148,7 @@ async function isOrderProcessed(orderId) {
  */
 async function markOrderAsProcessed(orderId, orderData) {
   try {
-    const processedOrdersRef = db.collection('squarespaceProcessedOrders');
+    const processedOrdersRef = admin.firestore().collection('squarespaceProcessedOrders');
     await processedOrdersRef.doc(orderId).set({
       orderId: orderId,
       processedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -173,15 +186,21 @@ async function processOrder(orderData) {
       }
     };
 
-    // Check if order contains subscription products (SKUs starting with 'app-')
+    // Check if order contains subscription products
+    // Match: app-monthly, app-annual, app-lifetime OR monthly-access, annual-access, lifetime-access
+    const subscriptionSKUs = ['app-monthly', 'app-annual', 'app-lifetime', 'monthly-access', 'annual-access', 'lifetime-access'];
     const hasSubscriptionProducts = webhookPayload.order.lineItems.some(
-      item => item.sku && item.sku.startsWith('app-')
+      item => item.sku && subscriptionSKUs.includes(item.sku.toLowerCase())
     );
 
     if (!hasSubscriptionProducts) {
-      logger.info(`Order ${orderData.id} does not contain subscription products, skipping`);
+      logger.info(`⚠️ Order ${orderData.id} does not contain subscription products, skipping`);
+      logger.info(`   Line items SKUs: ${(webhookPayload.order.lineItems || []).map(item => item.sku || 'N/A').join(', ')}`);
+      logger.info(`   Expected SKUs: ${subscriptionSKUs.join(', ')}`);
       return;
     }
+    
+    logger.info(`✅ Order ${orderData.id} contains subscription products, processing...`);
 
     // Process using the existing webhook handler logic
     await squarespaceWebhooks.processOrderWebhook(webhookPayload);
@@ -198,52 +217,61 @@ async function processOrder(orderData) {
 
 /**
  * Scheduled function to poll Squarespace for new orders
- * Runs every 5 minutes
+ * Runs every 1 minute for faster order processing
  */
 exports.pollSquarespaceOrders = onSchedule(
   {
-    schedule: 'every 5 minutes',
+    schedule: 'every 1 minutes',
     timeZone: 'America/New_York',
-    secrets: ['SQUARESPACE_API_KEY']
+    secrets: ['SQUARESPACE_API_KEY', 'RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Starting Squarespace order polling...');
 
     // Get API key from secrets (Firebase Functions v2)
     // Note: When using secrets, access via process.env after deployment
-    const apiKey = process.env.SQUARESPACE_API_KEY;
+    let apiKey = process.env.SQUARESPACE_API_KEY;
     
     if (!apiKey) {
       logger.error('❌ SQUARESPACE_API_KEY not set. Set it in Firebase Console: Functions → Config → Environment Variables');
       return;
     }
+    
+    // Clean API key - remove any whitespace, newlines, or invalid characters
+    apiKey = apiKey.trim().replace(/\r?\n/g, '').replace(/\s+/g, '');
 
     try {
+      const db = admin.firestore();
+      
       // Get last poll time from Firestore
       const configRef = db.collection('squarespaceConfig').doc('polling');
       const configDoc = await configRef.get();
       const lastPollTime = configDoc.exists ? configDoc.data().lastPollTime : null;
 
-      // Calculate modifiedAfter timestamp (1 hour ago if no previous poll)
+      // Calculate modifiedAfter timestamp (24 hours ago if no previous poll to catch older orders)
       let modifiedAfter = null;
       if (lastPollTime) {
         modifiedAfter = lastPollTime;
       } else {
-        // First run: check last hour
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        modifiedAfter = oneHourAgo.toISOString();
+        // First run: check last 24 hours to catch any orders placed recently
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        modifiedAfter = oneDayAgo.toISOString();
+        logger.info(`⚠️ First poll run - checking orders from last 24 hours to catch any missed orders`);
       }
 
-      logger.info(`Fetching orders modified after: ${modifiedAfter}`);
+      // Calculate modifiedBefore (now) for the API requirement
+      const now = new Date().toISOString();
+      const modifiedBefore = now;
+      
+      logger.info(`Fetching orders modified after: ${modifiedAfter}, before: ${modifiedBefore}`);
 
-      // Fetch orders from Squarespace
-      const ordersResponse = await fetchSquarespaceOrders(apiKey, SQUARESPACE_SITE_ID, modifiedAfter);
+      // Fetch orders from Squarespace (API requires both modifiedAfter and modifiedBefore)
+      const ordersResponse = await fetchSquarespaceOrders(apiKey, SQUARESPACE_SITE_ID, modifiedAfter, modifiedBefore);
       const orders = ordersResponse.result || [];
 
       logger.info(`Found ${orders.length} orders to check`);
 
       let processedCount = 0;
-      const now = new Date().toISOString();
 
       // Process each order
       for (const order of orders) {
