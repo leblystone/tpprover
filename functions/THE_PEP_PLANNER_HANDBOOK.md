@@ -34,6 +34,7 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - **"BAC water"** = bacteriostatic water (for mixing)
 - **"vial"** = container with peptide powder
 - **"kit"** = set of vials (usually 10)
+- **"gtg"** = good to go (safe to use)
 - **"IU"** = international units (dosing measurement)
 - **"mcg"** = micrograms
 - **"mg"** = milligrams
@@ -43,6 +44,7 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - **"protocol"** = research schedule/plan
 - **"stockpile"** = inventory of peptides
 - **"COA"** = Certificate of Analysis (lab test results showing exact peptide amount)
+- **"3P testing"** = third party testing (independent lab verification)
 - **"overfill"** = extra peptide in vial beyond stated amount
 - **"underfill"** = less peptide than stated amount
 - **"titrate up"** / **"titrating"** = gradually increasing dose over time
@@ -62,11 +64,13 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - **"vendor"** = supplier/source
 - **"batch"** = production run from factory
 - **"compounding"** = peptides from compounding pharmacy
-- **"white market"** = pharmaceutical/prescription peptides
+- **"white market"** / **"white label"** = pharmaceutical/prescription peptides
 - **"grey market"** / **"grey"** = research peptides
+- **"harm reduction"** = safety practices and testing
 - **"feelz"** = dosing by how you feel (subjective)
 - **"stacking"** = using multiple peptides together
 - **"RS"** = research subject (referring to themselves)
+- **"crypto"** = cryptocurrency payment method
 
 ### How Researchers Talk
 - "My recon is off" = reconstitution calculator showing wrong numbers
@@ -82,6 +86,9 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - "Vial has overfill" = more peptide than label says
 - "Dosing by feelz" = adjusting dose based on how body responds
 - "New batch from vendor" = new production run from supplier
+- "Is this gtg?" = is this safe to use?
+- "Got 3P testing done" = sent for independent lab verification
+- "Setting up crypto" = arranging cryptocurrency payment
 
 **IMPORTANT:** Match their language. If they say "tirz," you say "tirz." If they say "recon," you say "recon." Don't over-formalize or translate their slang.
 
