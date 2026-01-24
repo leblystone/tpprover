@@ -33,8 +33,25 @@ const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
 const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
-// Admin panel - now properly refactored with extracted components
-const Admin = lazyWithRetry(() => import('./pages/Admin.jsx'), 'Admin')
+// Admin panel - router-based layout (Option B)
+const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
+const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
+const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
+const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
+const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
+const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
+const AdminUsersGifts = lazyWithRetry(() => import('./pages/admin/AdminUsersGifts.jsx'), 'AdminUsersGifts')
+const AdminContent = lazyWithRetry(() => import('./pages/admin/AdminContent.jsx'), 'AdminContent')
+const AdminFeedback = lazyWithRetry(() => import('./pages/admin/AdminFeedback.jsx'), 'AdminFeedback')
+const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprovements.jsx'), 'AdminImprovements')
+const AdminCommsPush = lazyWithRetry(() => import('./pages/admin/AdminCommsPush.jsx'), 'AdminCommsPush')
+const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInApp.jsx'), 'AdminCommsInApp')
+const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
+const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
+const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSettingsSecurity.jsx'), 'AdminSettingsSecurity')
+const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
+const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
+const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
 const BetaEndedSurvey = lazyWithRetry(() => import('./pages/BetaEndedSurvey.jsx'), 'BetaEndedSurvey')
 const LaunchComingSoon = lazyWithRetry(() => import('./pages/LaunchComingSoon.jsx'), 'LaunchComingSoon')
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
@@ -78,8 +95,31 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Admin />,
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <AdminLayout />,
     errorElement: <NotFound />,
+    children: [
+      { index: true, element: <Navigate to="/admin/analytics" replace /> },
+      { path: 'analytics', element: <AdminAnalytics /> },
+      { path: 'ghost-worker', element: <AdminGhostWorker /> },
+      { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },
+      { path: 'users/lifetime', element: <AdminUsersLifetime /> },
+      { path: 'users/annual', element: <AdminUsersAnnual /> },
+      { path: 'users/gifts', element: <AdminUsersGifts /> },
+      { path: 'users', element: <Navigate to="/admin/users/subscriptions" replace /> },
+      { path: 'content', element: <AdminContent /> },
+      { path: 'feedback', element: <AdminFeedback /> },
+      { path: 'improvements', element: <AdminImprovements /> },
+      { path: 'comms/push', element: <AdminCommsPush /> },
+      { path: 'comms/in-app', element: <AdminCommsInApp /> },
+      { path: 'comms/emails', element: <AdminCommsEmails /> },
+      { path: 'comms/triggers', element: <AdminCommsTriggers /> },
+      { path: 'comms', element: <Navigate to="/admin/comms/push" replace /> },
+      { path: 'settings/security', element: <AdminSettingsSecurity /> },
+      { path: 'settings/deletions', element: <AdminSettingsDeletions /> },
+      { path: 'settings/version', element: <AdminSettingsVersion /> },
+      { path: 'settings/agreements', element: <AdminSettingsAgreements /> },
+      { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
+    ],
   },
   {
     path: '/launch-coming-soon',

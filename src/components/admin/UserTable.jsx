@@ -43,7 +43,7 @@ export default function UserTable({ users, searchTerm, theme, onViewUser }) {
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
-                {user.lastActive?.toDate().toLocaleDateString()}
+                {user.lastActive?.toDate?.()?.toLocaleDateString?.() ?? '—'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button onClick={() => onViewUser(user)} className="text-indigo-600 hover:text-indigo-900">View</button>
