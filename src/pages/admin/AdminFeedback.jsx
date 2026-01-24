@@ -303,7 +303,7 @@ export default function AdminFeedback() {
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Open Tickets</h2>
-              <p className="text-sm mt-1" style={{ color: theme.textLight }}>Click a ticket to view and respond</p>
+              <p className="text-sm mt-1" style={{ color: theme.textLight }}>Your support ticket dashboard</p>
             </div>
             <div className="p-4 space-y-3">
               {loading.feedback ? (
@@ -314,22 +314,104 @@ export default function AdminFeedback() {
                 <p className="text-center py-8" style={{ color: theme.textLight }}>No open tickets.</p>
               ) : (
                 openTickets.map((t) => (
-                  <button
+                  <div
                     key={t.id}
-                    type="button"
-                    onClick={() => handleOpenTicket(t)}
-                    disabled={loadingTicket}
-                    className="w-full p-3 rounded-lg border flex items-center justify-between text-left hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="p-3 rounded-lg border"
                     style={{ borderColor: theme.border, backgroundColor: theme.background }}
                   >
-                    <div>
-                      <p className="font-medium" style={{ color: theme.text }}>{t.subject}</p>
-                      <p className="text-xs" style={{ color: theme.textLight }}>{t.userEmail} · #{t.ticketNumber || t.id?.slice(0, 8)}</p>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium mb-1" style={{ color: theme.text }}>{t.subject}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textLight }}>
+                          <span className="flex items-center gap-1">
+                            <Mail size={12} />
+                            {t.userEmail}
+                          </span>
+                          <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(t.id || '');
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket ID copied!', type: 'success' } }));
+                            }}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:opacity-80"
+                            style={{ color: theme.primary }}
+                            title="Copy ticket ID"
+                          >
+                            <Copy size={10} />
+                            ID
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full shrink-0 font-medium" style={{ backgroundColor: t.status === 'new' ? theme.success + '20' : theme.warning + '20', color: t.status === 'new' ? theme.success : theme.warning }}>
+                        {t.status === 'new' ? 'New' : 'In Progress'}
+                      </span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: t.status === 'new' ? theme.success + '20' : theme.warning + '20', color: t.status === 'new' ? theme.success : theme.warning }}>
-                      {t.status}
-                    </span>
-                  </button>
+                    
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/ghost-worker?ticketId=${t.id}`);
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
+                        title="Test this ticket with Ghosty"
+                      >
+                        <Bot size={14} />
+                        Ghosty
+                      </button>
+                      
+                      {t.status === 'new' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(t.id, 'in-progress');
+                          }}
+                          disabled={loading.submitting}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                          style={{ backgroundColor: theme.warning + '15', color: theme.warning }}
+                          title="Mark as in progress"
+                        >
+                          <Clock size={14} />
+                          In Progress
+                        </button>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(t.id, 'resolved');
+                        }}
+                        disabled={loading.submitting}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                        style={{ backgroundColor: theme.success + '15', color: theme.success }}
+                        title="Mark as resolved/closed"
+                      >
+                        <CheckCheck size={14} />
+                        Close
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenTicket(t);
+                        }}
+                        disabled={loadingTicket}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50 ml-auto"
+                        style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}
+                        title="View full conversation"
+                      >
+                        <MessageSquare size={14} />
+                        View
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
@@ -356,7 +438,7 @@ export default function AdminFeedback() {
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Closed Tickets</h2>
-              <p className="text-sm mt-1" style={{ color: theme.textLight }}>Click a ticket to view conversation</p>
+              <p className="text-sm mt-1" style={{ color: theme.textLight }}>Resolved support tickets</p>
             </div>
             <div className="p-4 space-y-3">
               {loading.feedback ? (
@@ -367,22 +449,58 @@ export default function AdminFeedback() {
                 <p className="text-center py-8" style={{ color: theme.textLight }}>No closed tickets.</p>
               ) : (
                 closedTickets.map((t) => (
-                  <button
+                  <div
                     key={t.id}
-                    type="button"
-                    onClick={() => handleOpenTicket(t)}
-                    disabled={loadingTicket}
-                    className="w-full p-3 rounded-lg border flex items-center justify-between text-left hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="p-3 rounded-lg border opacity-75"
                     style={{ borderColor: theme.border, backgroundColor: theme.background }}
                   >
-                    <div>
-                      <p className="font-medium" style={{ color: theme.text }}>{t.subject}</p>
-                      <p className="text-xs" style={{ color: theme.textLight }}>{t.userEmail} · #{t.ticketNumber || t.id?.slice(0, 8)}</p>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium mb-1" style={{ color: theme.text }}>{t.subject}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textLight }}>
+                          <span className="flex items-center gap-1">
+                            <Mail size={12} />
+                            {t.userEmail}
+                          </span>
+                          <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(t.id || '');
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket ID copied!', type: 'success' } }));
+                            }}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:opacity-80"
+                            style={{ color: theme.primary }}
+                            title="Copy ticket ID"
+                          >
+                            <Copy size={10} />
+                            ID
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full shrink-0 font-medium" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
+                        Closed
+                      </span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
-                      {t.status}
-                    </span>
-                  </button>
+                    
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenTicket(t);
+                        }}
+                        disabled={loadingTicket}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                        style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}
+                        title="View conversation"
+                      >
+                        <MessageSquare size={14} />
+                        View
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
