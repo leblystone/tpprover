@@ -14,6 +14,8 @@ import {
   Bot,
   Clock,
   CheckCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 
@@ -50,6 +52,7 @@ export default function AdminFeedback() {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketResponseText, setTicketResponseText] = useState('');
   const [loadingTicket, setLoadingTicket] = useState(false);
+  const [expandedTickets, setExpandedTickets] = useState({});
   const ticketUnsubRef = useRef(null);
 
   const filteredFeedback = statusFilter === 'all'
@@ -107,6 +110,76 @@ export default function AdminFeedback() {
         setSelectedTicket(updated);
       } catch (_) {}
     }
+  };
+
+  const toggleTicketExpanded = (ticketId) => {
+    setExpandedTickets(prev => ({
+      ...prev,
+      [ticketId]: !prev[ticketId]
+    }));
+  };
+
+  const renderStatusBadge = (ticket) => {
+    const isNew = ticket.status === 'new';
+    const isInProgress = ticket.status === 'in-progress';
+    
+    return (
+      <div className="flex items-center gap-1">
+        {isNew && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(ticket.id, 'in-progress');
+              }}
+              disabled={loading.submitting}
+              className="text-xs px-2 py-1 rounded-full font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: theme.warning + '20', color: theme.warning }}
+              title="Click to mark as in-progress"
+            >
+              <Clock size={12} className="inline mr-1" />
+              In Progress
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(ticket.id, 'resolved');
+              }}
+              disabled={loading.submitting}
+              className="text-xs px-2 py-1 rounded-full font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: theme.success + '20', color: theme.success }}
+              title="Click to close ticket"
+            >
+              <CheckCheck size={12} className="inline mr-1" />
+              Close
+            </button>
+          </>
+        )}
+        {isInProgress && (
+          <>
+            <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+              In Progress
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(ticket.id, 'resolved');
+              }}
+              disabled={loading.submitting}
+              className="text-xs px-2 py-1 rounded-full font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: theme.success + '20', color: theme.success }}
+              title="Click to close ticket"
+            >
+              <CheckCheck size={12} className="inline mr-1" />
+              Close
+            </button>
+          </>
+        )}
+      </div>
+    );
   };
 
   const handleSubmitResponse = async () => {
@@ -313,106 +386,97 @@ export default function AdminFeedback() {
               ) : openTickets.length === 0 ? (
                 <p className="text-center py-8" style={{ color: theme.textLight }}>No open tickets.</p>
               ) : (
-                openTickets.map((t) => (
-                  <div
-                    key={t.id}
-                    className="p-3 rounded-lg border"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium mb-1" style={{ color: theme.text }}>{t.subject}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textLight }}>
-                          <span className="flex items-center gap-1">
-                            <Mail size={12} />
-                            {t.userEmail}
-                          </span>
-                          <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                openTickets.map((t) => {
+                  const isExpanded = expandedTickets[t.id];
+                  return (
+                    <div
+                      key={t.id}
+                      className="rounded-lg border"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                    >
+                      <div className="p-3">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium mb-1" style={{ color: theme.text }}>{t.subject}</p>
+                            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textLight }}>
+                              <span className="flex items-center gap-1">
+                                <Mail size={12} />
+                                {t.userEmail}
+                              </span>
+                              <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(t.id || '');
+                                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket ID copied!', type: 'success' } }));
+                                }}
+                                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:opacity-80"
+                                style={{ color: theme.primary }}
+                                title="Copy ticket ID"
+                              >
+                                <Copy size={10} />
+                                ID
+                              </button>
+                            </div>
+                          </div>
+                          {renderStatusBadge(t)}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(t.id || '');
-                              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket ID copied!', type: 'success' } }));
+                              navigate(`/admin/ghost-worker?ticketId=${t.id}`);
                             }}
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:opacity-80"
-                            style={{ color: theme.primary }}
-                            title="Copy ticket ID"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity"
+                            style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
+                            title="Test this ticket with Ghosty"
                           >
-                            <Copy size={10} />
-                            ID
+                            <Bot size={14} />
+                            Ghosty
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleTicketExpanded(t.id);
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity ml-auto"
+                            style={{ backgroundColor: theme.background, color: theme.textLight, border: `1px solid ${theme.border}` }}
+                            title={isExpanded ? "Hide details" : "Show more options"}
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {isExpanded ? 'Less' : 'More'}
                           </button>
                         </div>
                       </div>
-                      <span className="text-xs px-2 py-1 rounded-full shrink-0 font-medium" style={{ backgroundColor: t.status === 'new' ? theme.success + '20' : theme.warning + '20', color: t.status === 'new' ? theme.success : theme.warning }}>
-                        {t.status === 'new' ? 'New' : 'In Progress'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/ghost-worker?ticketId=${t.id}`);
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
-                        title="Test this ticket with Ghosty"
-                      >
-                        <Bot size={14} />
-                        Ghosty
-                      </button>
                       
-                      {t.status === 'new' && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusChange(t.id, 'in-progress');
-                          }}
-                          disabled={loading.submitting}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                          style={{ backgroundColor: theme.warning + '15', color: theme.warning }}
-                          title="Mark as in progress"
-                        >
-                          <Clock size={14} />
-                          In Progress
-                        </button>
+                      {isExpanded && (
+                        <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
+                          <div className="flex flex-wrap items-center gap-2 pt-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenTicket(t);
+                              }}
+                              disabled={loadingTicket}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                              style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}
+                              title="View full conversation"
+                            >
+                              <MessageSquare size={14} />
+                              View Conversation
+                            </button>
+                          </div>
+                        </div>
                       )}
-                      
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(t.id, 'resolved');
-                        }}
-                        disabled={loading.submitting}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                        style={{ backgroundColor: theme.success + '15', color: theme.success }}
-                        title="Mark as resolved/closed"
-                      >
-                        <CheckCheck size={14} />
-                        Close
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenTicket(t);
-                        }}
-                        disabled={loadingTicket}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50 ml-auto"
-                        style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}
-                        title="View full conversation"
-                      >
-                        <MessageSquare size={14} />
-                        View
-                      </button>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
