@@ -58,6 +58,7 @@ import SingleMessageSender from '../components/admin/SingleMessageSender';
 import SecurityManager from '../components/admin/SecurityManager';
 import AccountDeletionHistory from '../components/admin/AccountDeletionHistory';
 import InAppNotificationManager from '../components/admin/InAppNotificationManager';
+import GhostWorkerDashboard from '../components/admin/GhostWorkerDashboard';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -1795,7 +1796,8 @@ function Admin() {
                 title="Dashboard"
                 icon={LayoutDashboard}
                 items={[
-                  { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#5F7F76' }
+                  { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#5F7F76' },
+                  { id: 'ghostWorker', label: 'Ghost Worker', icon: Sparkles, count: 0, color: '#9B7EBD' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -2312,9 +2314,22 @@ function Admin() {
                           <p className="text-xs mb-1" style={{ color: theme.textLight }}>
                             {ticket.userEmail}
                           </p>
-                          <p className="text-xs font-bold" style={{ color: theme.primary }}>
-                            #{ticket.ticketNumber || ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-bold" style={{ color: theme.primary }}>
+                              #{ticket.ticketNumber || ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(ticket.id);
+                                alert('✅ Document ID copied!');
+                              }}
+                              className="px-1.5 py-0.5 text-xs font-mono bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors flex items-center gap-1"
+                              title="Copy document ID"
+                            >
+                              <Copy size={10} className="text-blue-600" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     {tickets.filter(t => t.status === 'new').length > 3 && (
@@ -2583,6 +2598,10 @@ function Admin() {
                   </div>
                 </div>
               </div>
+        )}
+
+        {activeTab === 'ghostWorker' && (
+          <GhostWorkerDashboard theme={theme} />
         )}
 
         {activeTab === 'subscriptions' && (
@@ -3188,12 +3207,27 @@ function Admin() {
                         <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>
                           {selectedTicket.subject}
                         </h2>
-                        <div className="flex items-center gap-4 text-sm" style={{ color: theme.textLight }}>
+                        <div className="flex items-center gap-4 text-sm flex-wrap" style={{ color: theme.textLight }}>
                           <span className="flex items-center gap-1">
                             <Mail size={14} />
                             {selectedTicket.userEmail}
                           </span>
                           <span>#{selectedTicket.ticketNumber || selectedTicket.id.substring(0, 8)}</span>
+                          <span className="flex items-center gap-2 font-mono text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                            <span className="text-blue-600">ID:</span>
+                            <span className="text-gray-700">{selectedTicket.id.substring(0, 12)}...</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(selectedTicket.id);
+                                alert('✅ Document ID copied! Paste in Ghost Worker test box.');
+                              }}
+                              className="hover:bg-blue-100 rounded p-1 transition-colors"
+                              title="Copy full document ID for Ghost Worker testing"
+                            >
+                              <Copy size={12} className="text-blue-600" />
+                            </button>
+                          </span>
                         </div>
                       </div>
                       
@@ -3614,9 +3648,23 @@ function Admin() {
                                   UID: {ticket.userId.substring(0, 20)}...
                                 </p>
                               )}
-                              <p className="text-xs" style={{ color: theme.primary }}>
-                                Ticket #{ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
-                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs" style={{ color: theme.primary }}>
+                                  Ticket #{ticket.ticketNumber || ticket.id.substring(0, 8)}
+                                </p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(ticket.id);
+                                    alert('✅ Document ID copied! Paste in Ghost Worker test box.');
+                                  }}
+                                  className="flex items-center gap-1 px-2 py-0.5 text-xs font-mono bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
+                                  title="Copy document ID for Ghost Worker testing"
+                                >
+                                  <span className="text-blue-600">Copy ID</span>
+                                  <Copy size={10} className="text-blue-600" />
+                                </button>
+                              </div>
                             </div>
                             <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
                               <Clock size={12} />

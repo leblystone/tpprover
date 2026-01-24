@@ -20,10 +20,15 @@ const googlePlayWebhooks = require('./googlePlayWebhooks');
 const appleInAppPurchase = require('./appleInAppPurchase');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
+const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 const emailQueue = require('./emailQueue');
 const recaptcha = require('./recaptcha');
+
+// ==================== GHOST WORKER AI AUTOMATION ====================
+const ghostWorker = require('./ghostWorker');
+const telegramBot = require('./telegramBot');
 
 admin.initializeApp();
 
@@ -46,6 +51,9 @@ exports.squarespaceWebhook = squarespaceWebhooks.squarespaceWebhook;
 
 // Squarespace Polling Functions
 exports.pollSquarespaceOrders = squarespacePolling.pollSquarespaceOrders;
+
+// Manual Squarespace Order Processing
+exports.manualProcessSquarespaceOrder = manualProcessSquarespaceOrder.manualProcessSquarespaceOrder;
 
 // Apple In-App Purchase Functions (commented out until iOS is ready)
 // exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
@@ -474,15 +482,28 @@ exports.scheduledResearchReminders = onSchedule({
     const currentHourUTC = now.getUTCHours();
     
     // Get all users who have push notifications enabled
-    // We'll filter for AM/PM reminders in the loop since Firestore doesn't support OR queries
+    // Query for users with fcmToken (if they have a token, notifications are enabled)
+    // Then filter in code for push: true OR pushEnabled: true (backward compatibility)
     const usersSnapshot = await admin.firestore()
       .collection('users')
-      .where('notificationSettings.push', '==', true)
       .get();
+    
+    // Filter users with push notifications enabled (check multiple fields for backward compatibility)
+    const usersWithPushEnabled = usersSnapshot.docs.filter(doc => {
+      const userData = doc.data();
+      const notificationSettings = userData.notificationSettings || {};
+      const hasPushEnabled = 
+        notificationSettings.push === true ||
+        notificationSettings.pushEnabled === true ||
+        !!userData.fcmToken; // If they have a token, notifications are enabled
+      return hasPushEnabled;
+    });
 
+    logger.info(`📱 Found ${usersWithPushEnabled.length} users with push notifications enabled (out of ${usersSnapshot.size} total)`);
+    
     const promises = [];
     
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of usersWithPushEnabled) {
       const userId = userDoc.id;
       const userData = userDoc.data();
       
@@ -496,11 +517,6 @@ exports.scheduledResearchReminders = onSchedule({
       const remindersAMEnabled = userData.notificationSettings?.researchRemindersAM === true;
       const remindersPMEnabled = userData.notificationSettings?.researchRemindersPM === true;
       
-      // Skip if neither AM nor PM reminders are enabled
-      if (!remindersAMEnabled && !remindersPMEnabled) {
-        continue;
-      }
-      
       // Get current time in user's timezone
       const now = new Date();
       const userTimeString = now.toLocaleString("en-US", {
@@ -511,25 +527,7 @@ exports.scheduledResearchReminders = onSchedule({
       });
       const [currentHour, currentMinute] = userTimeString.split(':').map(Number);
       
-      // Check if current time matches AM reminder time
-      const [amHour] = reminderTimeAM.split(':').map(Number);
-      const matchesAM = remindersAMEnabled && currentHour === amHour;
-      
-      // Check if current time matches PM reminder time
-      const [pmHour] = reminderTimePM.split(':').map(Number);
-      const matchesPM = remindersPMEnabled && currentHour === pmHour;
-      
-      // Only send reminders if it matches one of the user's reminder times (within the same hour)
-      // This allows for a 1-hour window (e.g., if set to 8:30, sends between 8:00-8:59)
-      if (!matchesAM && !matchesPM) {
-        continue; // Skip this user, not their reminder time yet
-      }
-      
-      const reminderType = matchesAM && matchesPM ? 'AM & PM' : (matchesAM ? 'AM' : 'PM');
-      const reminderTime = matchesAM ? reminderTimeAM : reminderTimePM;
-      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone}`);
-      
-      // Get user's protocols and check for scheduled tasks today
+      // FIRST: Check if user has tasks scheduled for today (regardless of reminder settings)
       const protocolsSnapshot = await admin.firestore()
         .collection('userdata')
         .doc(userId)
@@ -552,6 +550,7 @@ exports.scheduledResearchReminders = onSchedule({
           
           if (today >= startDate && today <= endDate) {
             // Add protocol tasks to today's list
+            // Some protocols don't have AM/PM scheduling - they just have tasks scheduled for the day
             if (protocol.peptides) {
               protocol.peptides.forEach(peptide => {
                 if (peptide.frequency && peptide.frequency.time) {
@@ -570,19 +569,64 @@ exports.scheduledResearchReminders = onSchedule({
         }
       }
 
-      // Send reminder if there are tasks today
-      if (todayTasks.length > 0) {
-        const notificationData = {
-          title: 'Research Reminder',
-          body: `You have ${todayTasks.length} research task(s) scheduled for today`,
-          tasks: todayTasks,
-          appUrl: 'https://thepepplanner.com/app/dashboard'
-        };
-
-        promises.push(
-          pushNotifications.sendPushNotificationByType(userId, 'researchReminders', notificationData)
-        );
+      // If no tasks today, skip this user
+      if (todayTasks.length === 0) {
+        continue;
       }
+
+      // NEW LOGIC: Send notifications based on tasks existing + time matching
+      let shouldSendNotification = false;
+      let reminderType = '';
+      let reminderTime = '';
+      
+      // Default AM notification: Send at 8 AM (or user's default AM time) if tasks exist
+      const [defaultAMHour] = reminderTimeAM.split(':').map(Number);
+      const isDefaultAMTime = currentHour === defaultAMHour;
+      
+      // Check if current time matches user's AM reminder time (if enabled)
+      const [amHour] = reminderTimeAM.split(':').map(Number);
+      const matchesAM = remindersAMEnabled && currentHour === amHour;
+      
+      // Check if current time matches user's PM reminder time (if enabled)
+      const [pmHour] = reminderTimePM.split(':').map(Number);
+      const matchesPM = remindersPMEnabled && currentHour === pmHour;
+      
+      // Send notification if:
+      // 1. It's the default AM time (8 AM or user's AM time) - minimum notification for tasks
+      // 2. OR it matches user's enabled AM reminder time
+      // 3. OR it matches user's enabled PM reminder time
+      if (isDefaultAMTime) {
+        shouldSendNotification = true;
+        reminderType = 'AM (Default)';
+        reminderTime = reminderTimeAM;
+      } else if (matchesAM) {
+        shouldSendNotification = true;
+        reminderType = 'AM (Custom)';
+        reminderTime = reminderTimeAM;
+      } else if (matchesPM) {
+        shouldSendNotification = true;
+        reminderType = 'PM (Custom)';
+        reminderTime = reminderTimePM;
+      }
+      
+      // Skip if it's not the right time to send
+      if (!shouldSendNotification) {
+        continue;
+      }
+      
+      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${todayTasks.length} tasks today)`);
+
+      // Send reminder notification
+      const notificationData = {
+        title: 'Research Reminder',
+        body: `You have ${todayTasks.length} research task(s) scheduled for today`,
+        tasks: todayTasks,
+        appUrl: 'https://thepepplanner.com/app/dashboard'
+      };
+
+      promises.push(
+        pushNotifications.sendPushNotificationByType(userId, 'researchReminders', notificationData)
+      );
     }
 
     const results = await Promise.allSettled(promises);
@@ -836,6 +880,10 @@ exports.testResearchReminders = onCall(async (request) => {
   }
 });
 
+// Debug notification function
+const debugNotifications = require('./debugNotifications');
+exports.debugNotifications = debugNotifications.debugNotifications;
+
 // Admin notification functions
 exports.sendAdminNotification = onCall(async (request) => {
   // Verify user is authenticated and is admin
@@ -1065,6 +1113,10 @@ exports.testEmailSystem = testEmailSystem.testEmailSystem;
 
 // Quick email test function
 exports.quickEmailTest = quickEmailTest.quickEmailTest;
+
+// Test Squarespace activation email
+const testSquarespaceEmail = require('./testSquarespaceEmail');
+exports.testSquarespaceActivationEmail = testSquarespaceEmail.testSquarespaceActivationEmail;
 
 // Email Automation Functions
 exports.onSubscriptionConfirmed = emailAutomation.onSubscriptionConfirmed;
@@ -1708,6 +1760,82 @@ exports.resetPasswordWithToken = onCall(
 // Import and export diagnostic function
 const diagnoseEmailIssue = require('./diagnoseEmailIssue');
 exports.diagnoseEmailSystem = diagnoseEmailIssue.diagnoseEmailSystem;
+
+// ==================== GHOST WORKER AI AUTOMATION ====================
+// Background AI support automation with multi-model routing
+
+// Main Ghost Worker trigger (watches supportTickets collection)
+exports.ghostWorkerTriage = ghostWorker.ghostWorkerTriage;
+
+// Admin functions
+exports.getGhostWorkerStats = ghostWorker.getGhostWorkerStats;
+exports.overrideGhostWorkerRouting = ghostWorker.overrideGhostWorkerRouting;
+
+// Testing function (test on existing tickets)
+exports.testGhostWorkerOnTicket = ghostWorker.testGhostWorkerOnTicket;
+
+// Telegram integration
+exports.checkDailyBudget = telegramBot.checkDailyBudget;
+exports.sendDailyDigest = telegramBot.sendDailyDigest;
+exports.handleTelegramCallback = telegramBot.handleTelegramCallback;
+
+// Emergency controls
+exports.pauseGhostWorker = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      // TODO: Add admin authentication
+      const db = admin.firestore();
+      
+      await db.collection('_config').doc('ghostWorker').set({
+        enabled: false,
+        pausedAt: admin.firestore.FieldValue.serverTimestamp(),
+        pausedBy: request.auth?.email || 'admin',
+        reason: request.data.reason || 'Manual pause'
+      }, { merge: true });
+      
+      logger.info('🛑 Ghost Worker paused via admin');
+      
+      return {
+        success: true,
+        message: 'Ghost Worker has been paused'
+      };
+    } catch (error) {
+      logger.error('Error pausing Ghost Worker:', error);
+      throw new Error('Failed to pause Ghost Worker');
+    }
+  }
+);
+
+exports.resumeGhostWorker = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      // TODO: Add admin authentication
+      const db = admin.firestore();
+      
+      await db.collection('_config').doc('ghostWorker').set({
+        enabled: true,
+        resumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        resumedBy: request.auth?.email || 'admin'
+      }, { merge: true });
+      
+      logger.info('▶️ Ghost Worker resumed via admin');
+      
+      return {
+        success: true,
+        message: 'Ghost Worker has been resumed'
+      };
+    } catch (error) {
+      logger.error('Error resuming Ghost Worker:', error);
+      throw new Error('Failed to resume Ghost Worker');
+    }
+  }
+);
 
 // Send welcome email when new user is created
 exports.onUserCreated = onDocumentCreated(
