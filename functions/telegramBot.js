@@ -1,10 +1,10 @@
 /**
- * 📱 Telegram Bot Integration for Ghost Worker
+ * 📱 Telegram Bot Integration for Ghosty👻
  * 
  * Handles approval workflow via Telegram:
- * - Sends notifications when Ghost Worker generates a response
- * - Allows admin to approve/reject via Telegram reactions or commands
- * - Sends budget alerts and daily digests
+ * - Sends notifications when Ghosty generates a response
+ * - Allows admin to approve/reject via Telegram buttons
+ * - Sends daily digests
  */
 
 const {logger} = require('firebase-functions');
@@ -70,8 +70,8 @@ async function sendApprovalRequest(botToken, chatId, ticketData, response, routi
 📝 *Type:* ${ticketData.type}
 📌 *Subject:* ${ticketData.subject}
 
-🧠 *Ghost Worker Analysis:*
-• *Route:* ${routingDecision.route === 'gemini-pro' ? '🎨 Gemini Pro' : '🔧 Claude Sonnet'}
+🧠 *Ghosty Analysis:*
+• *Route:* ${routingDecision.route === 'gemini-pro' ? '🎨 Gemini' : '🔧 Claude Sonnet'}
 • *Confidence:* ${routingDecision.confidence}%
 • *Reasoning:* ${routingDecision.reasoning}
 
@@ -118,7 +118,7 @@ ${emoji} *Budget Alert: ${levelText}*
 • Limit: $${limit.toFixed(2)}
 • Tickets: ${ticketCount}
 
-${alertLevel === 'critical' ? '🛑 *Ghost Worker has been auto-paused.*' : ''}
+${alertLevel === 'critical' ? '🛑 *Ghosty has been auto-paused.*' : ''}
 
 ${alertLevel === 'critical' 
   ? '_Review costs in admin dashboard. Enable manually when ready._'
@@ -136,13 +136,13 @@ ${alertLevel === 'critical'
  */
 async function sendDailyDigest(botToken, chatId, stats) {
   const message = `
-📊 *Ghost Worker Daily Report*
+📊 *Ghosty👻 Daily Report*
 _${new Date().toLocaleDateString()}_
 
 ✅ *Tickets Processed:* ${stats.totalTickets}
 💰 *Total Cost:* $${stats.totalCost.toFixed(4)}
 
-🎨 *Gemini Pro:* ${stats.geminiProTickets} tickets ($${stats.geminiProCost.toFixed(4)})
+🎨 *Gemini:* ${stats.geminiProTickets} tickets ($${stats.geminiProCost.toFixed(4)})
 🔧 *Claude Sonnet:* ${stats.claudeTickets} tickets ($${stats.claudeCost.toFixed(4)})
 
 📈 *Performance:*
@@ -167,7 +167,7 @@ ${stats.humanOverrides > 0
  */
 async function sendErrorAlert(botToken, chatId, ticketId, errorMessage) {
   const message = `
-🚨 *Ghost Worker Error*
+🚨 *Ghosty👻 Error*
 
 🎫 *Ticket:* ${ticketId}
 ❌ *Error:* ${errorMessage}
@@ -180,65 +180,8 @@ _Check Firebase logs for details._
 
 // ==================== SCHEDULED FUNCTIONS ====================
 
-/**
- * Check daily budget and send alerts
- * Scheduled to run every hour
- */
-exports.checkDailyBudget = require('firebase-functions/v2/scheduler').onSchedule(
-  {
-    schedule: 'every 1 hours',
-    timeZone: 'America/New_York',
-    secrets: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']
-  },
-  async (event) => {
-    try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-      
-      if (!botToken || !chatId) {
-        logger.warn('Telegram credentials not configured');
-        return;
-      }
-      
-      const db = admin.firestore();
-      
-      // Get today's costs
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const logsRef = db.collection('ai_worker_logs');
-      const q = logsRef.where('timestamp', '>=', today);
-      const snapshot = await q.get();
-      
-      let totalCost = 0;
-      snapshot.forEach(doc => {
-        totalCost += doc.data().totalCost || 0;
-      });
-      
-      // Alert thresholds
-      const WARNING_THRESHOLD = 1.00;  // $1.00
-      const CRITICAL_THRESHOLD = 1.50; // $1.50
-      const AUTO_PAUSE_THRESHOLD = 2.00; // $2.00
-      
-      if (totalCost >= AUTO_PAUSE_THRESHOLD) {
-        // Auto-pause Ghost Worker
-        await sendBudgetAlert(botToken, chatId, 'critical', totalCost, AUTO_PAUSE_THRESHOLD, snapshot.size);
-        
-        // TODO: Implement auto-pause logic (set flag in Firestore)
-        logger.error(`🛑 CRITICAL: Daily budget exceeded ($${totalCost.toFixed(4)}). Auto-pause needed.`);
-        
-      } else if (totalCost >= CRITICAL_THRESHOLD) {
-        await sendBudgetAlert(botToken, chatId, 'critical', totalCost, CRITICAL_THRESHOLD, snapshot.size);
-        
-      } else if (totalCost >= WARNING_THRESHOLD) {
-        await sendBudgetAlert(botToken, chatId, 'warning', totalCost, WARNING_THRESHOLD, snapshot.size);
-      }
-      
-    } catch (error) {
-      logger.error('Error checking daily budget:', error);
-    }
-  }
-);
+// NOTE: Hourly budget checks disabled per user request
+// Daily digest at 6 PM remains active
 
 /**
  * Send daily digest at 6 PM
@@ -316,7 +259,7 @@ exports.sendDailyDigest = require('firebase-functions/v2/scheduler').onSchedule(
 
 /**
  * Send approval request to Telegram
- * Called by Ghost Worker when response is ready
+ * Called by Ghosty when response is ready
  */
 exports.sendApprovalRequest = async (ticketData, response, routingDecision) => {
   try {
@@ -423,13 +366,13 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
  * Helper to approve and post response
  */
 async function approveAndPostResponse(ticketId, db) {
-  // Get the generated response from Ghost Worker logs
+  // Get the generated response from Ghosty logs
   const logsRef = db.collection('ai_worker_logs');
   const q = logsRef.where('ticketId', '==', ticketId).orderBy('timestamp', 'desc').limit(1);
   const snapshot = await q.get();
   
   if (snapshot.empty) {
-    logger.error(`No Ghost Worker log found for ticket ${ticketId}`);
+    logger.error(`No Ghosty log found for ticket ${ticketId}`);
     return;
   }
   
@@ -445,7 +388,7 @@ async function approveAndPostResponse(ticketId, db) {
 
 /**
  * Send error notification
- * Can be called from Ghost Worker when errors occur
+ * Can be called from Ghosty when errors occur
  */
 exports.notifyError = async (ticketId, errorMessage) => {
   try {
