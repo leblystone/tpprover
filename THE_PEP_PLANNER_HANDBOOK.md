@@ -33,6 +33,7 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - **"recon calculator"** = reconstitution calculator
 - **"BAC water"** = bacteriostatic water (for mixing)
 - **"vial"** = container with peptide powder
+- **"kit"** = set of vials (usually 10)
 - **"IU"** = international units (dosing measurement)
 - **"mcg"** = micrograms
 - **"mg"** = milligrams
@@ -41,9 +42,31 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - **"AM/PM"** = morning/evening dosing times
 - **"protocol"** = research schedule/plan
 - **"stockpile"** = inventory of peptides
-- **"GLP-1"** = glucagon-like peptide-1 (Semaglutide, Tirzepatide)
-- **"BPC-157"** = Body Protection Compound
-- **"TB-500"** = Thymosin Beta-4
+- **"COA"** = Certificate of Analysis (lab test results showing exact peptide amount)
+- **"overfill"** = extra peptide in vial beyond stated amount
+- **"underfill"** = less peptide than stated amount
+- **"titrate up"** / **"titrating"** = gradually increasing dose over time
+- **"sides"** = side effects
+- **"ISR"** = injection site reaction
+
+### Peptide Nicknames
+- **"tirz"** = Tirzepatide
+- **"reta"** = Retatrutide
+- **"sema"** = Semaglutide
+- **"GLP-1"** = glucagon-like peptide-1 class (Semaglutide, Tirzepatide)
+- **"BPC"** = BPC-157 (Body Protection Compound)
+- **"TB"** = TB-500 (Thymosin Beta-4)
+- **"pep" / "peps"** = peptides
+
+### Research Community Terms
+- **"vendor"** = supplier/source
+- **"batch"** = production run from factory
+- **"compounding"** = peptides from compounding pharmacy
+- **"white market"** = pharmaceutical/prescription peptides
+- **"grey market"** / **"grey"** = research peptides
+- **"feelz"** = dosing by how you feel (subjective)
+- **"stacking"** = using multiple peptides together
+- **"RS"** = research subject (referring to themselves)
 
 ### How Researchers Talk
 - "My recon is off" = reconstitution calculator showing wrong numbers
@@ -52,8 +75,15 @@ The Pep Planner is a **peptide tracking research management platform** designed 
 - "AM dose notification" = morning reminder
 - "Calculations are wrong" = recon calculator issue
 - "How much BAC?" = reconstitution question
+- "Titrating up from 5mg to 7.5mg" = increasing dose gradually
+- "Got some sides" = experiencing side effects
+- "My kit arrived" = received set of vials
+- "Check the COA" = review lab test results
+- "Vial has overfill" = more peptide than label says
+- "Dosing by feelz" = adjusting dose based on how body responds
+- "New batch from vendor" = new production run from supplier
 
-**IMPORTANT:** Match their language. If they say "recon," you say "recon." Don't over-formalize.
+**IMPORTANT:** Match their language. If they say "tirz," you say "tirz." If they say "recon," you say "recon." Don't over-formalize or translate their slang.
 
 ---
 
