@@ -47,7 +47,6 @@ import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
 import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
-import ErrorTrigger from '../components/test/ErrorTrigger';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -97,7 +96,6 @@ export default function CustomizableDashboard() {
 
   // Modal states
   const [showRecon, setShowRecon] = useState(false);
-  const [testErrorBoundary, setTestErrorBoundary] = useState(false); // TEST
   const [reconPrefill, setReconPrefill] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
@@ -1465,30 +1463,6 @@ export default function CustomizableDashboard() {
       />
 
       {/* Toast notifications now handled globally in App.jsx */}
-      
-      {/* TEST - Error Trigger Component */}
-      <ErrorTrigger shouldCrash={testErrorBoundary} />
-      
-      {/* TEST BUTTON - Shows in all modes for testing */}
-      <button
-        onClick={() => setTestErrorBoundary(true)}
-        style={{
-          position: 'fixed',
-          bottom: '80px',
-          right: '20px',
-          padding: '12px 20px',
-          backgroundColor: '#ff4444',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontWeight: '600',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
-          zIndex: 9999
-        }}
-      >
-        🧪 Test Error
-      </button>
     </ViewContainer>
   );
 }
