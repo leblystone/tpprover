@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   MessageSquare,
   MessagesSquare,
@@ -11,6 +11,9 @@ import {
   ArrowLeft,
   Mail,
   Copy,
+  Bot,
+  Clock,
+  CheckCheck,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 
@@ -23,6 +26,7 @@ const statusFilters = [
 
 export default function AdminFeedback() {
   const { theme } = useOutletContext();
+  const navigate = useNavigate();
   const {
     feedback,
     tickets,
@@ -293,6 +297,7 @@ export default function AdminFeedback() {
             onBack={handleBackToTickets}
             onUpdateStatus={handleStatusChange}
             onSendReply={handleSubmitTicketReply}
+            onTestWithGhosty={(ticketId) => navigate(`/admin/ghost-worker?ticketId=${ticketId}`)}
           />
         ) : (
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -345,6 +350,7 @@ export default function AdminFeedback() {
             onBack={handleBackToTickets}
             onUpdateStatus={handleStatusChange}
             onSendReply={handleSubmitTicketReply}
+            onTestWithGhosty={(ticketId) => navigate(`/admin/ghost-worker?ticketId=${ticketId}`)}
           />
         ) : (
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -484,6 +490,7 @@ function TicketChatView({
   onBack,
   onUpdateStatus,
   onSendReply,
+  onTestWithGhosty,
 }) {
   const isClosed = selectedTicket?.status === 'resolved' || selectedTicket?.status === 'closed';
 
@@ -525,6 +532,50 @@ function TicketChatView({
             </button>
           </span>
         </div>
+        
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => onTestWithGhosty(selectedTicket?.id)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
+            title="Test this ticket with Ghosty"
+          >
+            <Bot size={16} />
+            Test with Ghosty
+          </button>
+          
+          {selectedTicket?.status === 'new' && (
+            <button
+              type="button"
+              onClick={() => onUpdateStatus(selectedTicket?.id, 'in-progress')}
+              disabled={loading.submitting}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: theme.warning + '15', color: theme.warning }}
+              title="Mark as in progress"
+            >
+              <Clock size={16} />
+              In Progress
+            </button>
+          )}
+          
+          {(selectedTicket?.status === 'new' || selectedTicket?.status === 'in-progress') && (
+            <button
+              type="button"
+              onClick={() => onUpdateStatus(selectedTicket?.id, 'resolved')}
+              disabled={loading.submitting}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: theme.success + '15', color: theme.success }}
+              title="Mark as resolved/closed"
+            >
+              <CheckCheck size={16} />
+              Close Ticket
+            </button>
+          )}
+        </div>
+        
+        {/* Status Indicators */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold mr-1" style={{ color: theme.textLight }}>Status:</span>
           {['new', 'in-progress', 'resolved'].map((status) => {
@@ -579,6 +630,37 @@ function TicketChatView({
                     {msg.senderName} • {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleString() : 'Recently'}
                   </div>
                   <div className="text-sm whitespace-pre-wrap">{msg.message || msg.text}</div>
+                  
+                  {/* Display screenshots if present */}
+                  {msg.imageUrls && msg.imageUrls.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {msg.imageUrls.map((url, idx) => (
+                        <div key={idx} className="relative">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block hover:opacity-90 transition-opacity"
+                          >
+                            <img
+                              src={url}
+                              alt={`Screenshot ${idx + 1}`}
+                              className="rounded-lg border max-w-full"
+                              style={{
+                                maxHeight: '300px',
+                                objectFit: 'contain',
+                                borderColor: theme.border
+                              }}
+                              loading="lazy"
+                            />
+                          </a>
+                          <p className="text-xs mt-1 opacity-70">
+                            📸 Screenshot {idx + 1} • Click to open
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
