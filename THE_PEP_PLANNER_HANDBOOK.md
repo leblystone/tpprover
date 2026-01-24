@@ -135,7 +135,7 @@ The jargon helps Ghosty **DECODE** what the user is asking about, so it can help
 **When user asks for medical/dosing advice:**
 
 ```
-Hi [Name],
+Hey there,
 
 I can help with The Pep Planner app features!
 
@@ -151,7 +151,7 @@ The Pep Planner Team
 **When user asks about vendors/sourcing:**
 
 ```
-Hi [Name],
+Hey there,
 
 We don't recommend vendors or sources.
 
@@ -165,7 +165,7 @@ The Pep Planner Team
 **When user asks about COA/testing interpretation:**
 
 ```
-Hi [Name],
+Hey there,
 
 We can't interpret COAs or give advice on testing.
 
@@ -192,7 +192,7 @@ The Pep Planner Team
 
 ### Closing Message Template:
 ```
-Hi [Name],
+Hey there,
 
 Glad I could help!
 
@@ -293,7 +293,7 @@ The Pep Planner Team
 
 **Response Template for Recon Issues:**
 ```
-Hi [Name],
+Hey there,
 
 Let's fix your recon calculator.
 
@@ -408,7 +408,7 @@ The Pep Planner Team
 
 **Response Template:**
 ```
-Hi [User Name],
+Hey there,
 
 We've received your account deletion request. We understand you want to remove your data, and we're here to help.
 
@@ -456,7 +456,7 @@ The Pep Planner Team
 
 **Response:**
 ```
-Hi [User Name],
+Hey there,
 
 Let's find your protocols!
 
@@ -548,13 +548,13 @@ The Pep Planner Team
 
 ### Response Format - BEFORE (Too Long)
 ```
-Hi Sarah, I see you're having trouble with dark mode and I totally understand how frustrating that can be when you're trying to use the app and it's not working the way you expect it to. Let me walk you through the steps to enable dark mode which should fix the issue you're experiencing. First, you'll want to tap on the Settings icon which looks like a gear, and then you'll need to find the Appearance section and tap on that, and finally select "Dark" from the theme options available. Once you do this, the change should happen immediately and you'll be able to enjoy using the app in dark mode!
+Hey there, I see you're having trouble with dark mode and I totally understand how frustrating that can be when you're trying to use the app and it's not working the way you expect it to. Let me walk you through the steps to enable dark mode which should fix the issue you're experiencing. First, you'll want to tap on the Settings icon which looks like a gear, and then you'll need to find the Appearance section and tap on that, and finally select "Dark" from the theme options available. Once you do this, the change should happen immediately and you'll be able to enjoy using the app in dark mode!
 ```
 ❌ **Problems:** One giant paragraph, too chatty, takes forever to read
 
 ### Response Format - AFTER (Just Right)
 ```
-Hi Sarah,
+Hey there,
 
 Let's fix dark mode!
 
@@ -689,7 +689,7 @@ The Pep Planner Team
 Use this format for EVERY response:
 
 ```
-Hi [Name],
+Hey there,
 
 [Acknowledge in 1 sentence]
 
@@ -769,7 +769,7 @@ The Pep Planner Team
 **Use this format:**
 
 ```
-Hi [Name],
+Hey there,
 
 [One sentence: acknowledge the issue]
 
@@ -782,7 +782,7 @@ The Pep Planner Team
 
 **Example (NEW FORMAT):**
 ```
-Hi Sarah,
+Hey there,
 
 Let's get dark mode working!
 
@@ -845,7 +845,7 @@ The Pep Planner Team
 
 **If iOS user asks about app:**
 ```
-Hi [User Name],
+Hey there,
 
 No iOS app yet, but Safari works great!
 
@@ -898,7 +898,7 @@ The Pep Planner Team
 
 **For escalation, respond:**
 ```
-Hi [User Name],
+Hey there,
 
 I want you to get the best help.
 
@@ -989,7 +989,7 @@ If user reports a bug, gather this info:
 
 **Template:**
 ```
-Hi [User Name],
+Hey there,
 
 Thanks for reporting this!
 
@@ -1009,7 +1009,7 @@ The Pep Planner Team
 
 Before sending any response, verify:
 
-- [ ] Greeting with user's name (if available)
+- [ ] Greeting: "Hey there," (we don't collect names, only emails)
 - [ ] Acknowledged their issue
 - [ ] Provided clear, actionable steps
 - [ ] Used plain language (no tech jargon)
@@ -1021,11 +1021,17 @@ Before sending any response, verify:
 
 ---
 
+## 💡 Future Feature Consideration:
+
+**Usernames:** The peptide community commonly uses consistent usernames across platforms (e.g., "FloralKaffe"). Adding optional usernames during signup could make the app feel more community-oriented and allow personalized greetings. Until then, use "Hey there" for all responses.
+
+---
+
 ## 📝 Response Templates
 
 ### General Acknowledgment
 ```
-Hi [User Name],
+Hey there,
 
 Let's fix [their issue]!
 
@@ -1038,7 +1044,7 @@ The Pep Planner Team
 
 ### Can't Reproduce Issue
 ```
-Hi [User Name],
+Hey there,
 
 Need more details:
 • [Specific detail 1]
@@ -1051,7 +1057,7 @@ The Pep Planner Team
 
 ### Feature Request
 ```
-Hi [User Name],
+Hey there,
 
 Great idea! Noted your request for [feature].
 
@@ -1064,7 +1070,7 @@ The Pep Planner Team
 
 ### Issue Resolved
 ```
-Hi [User Name],
+Hey there,
 
 Fixed in our latest update!
 
