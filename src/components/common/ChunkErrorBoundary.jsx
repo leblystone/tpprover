@@ -1,8 +1,8 @@
 import React from 'react';
-import { FlaskConicalOff, RefreshCw } from 'lucide-react';
 import { themes } from '../../theme/themes';
 import SupportModal from './SupportModal';
 import { safeReload } from '../../utils/safeReload';
+import errorImage from '../../assets/error-opps.png';
 
 /**
  * Error Boundary for Chunk Loading Failures
@@ -155,119 +155,48 @@ class ChunkErrorBoundary extends React.Component {
           padding: '2rem',
           textAlign: 'center',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          backgroundColor: sageTheme.background
+          backgroundColor: '#E8E4DC'
         }}>
-          <div style={{
-            maxWidth: '500px',
-            width: '100%',
-            backgroundColor: sageTheme.cardBackground,
-            padding: '3rem 2rem',
-            borderRadius: '1.5rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: `1px solid ${sageTheme.border}`
-          }}>
-            {/* Icon */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              {isChunkError ? (
-                <RefreshCw size={64} color={sageTheme.primary} />
-              ) : (
-                <FlaskConicalOff size={64} color={sageTheme.primary} />
-              )}
-            </div>
+          {/* Custom Error Image */}
+          <img 
+            src={errorImage} 
+            alt="Error" 
+            style={{
+              maxWidth: '600px',
+              width: '90%',
+              height: 'auto',
+              marginBottom: '3rem'
+            }}
+          />
 
-            <h1 style={{ 
-              fontSize: '1.75rem', 
-              marginBottom: '1rem', 
-              color: sageTheme.text,
-              fontWeight: '700',
-              lineHeight: '1.2'
-            }}>
-              {isChunkError ? 'Update Available' : 'Synthesis Interrupted'}
-            </h1>
-            
-            <p style={{ 
-              marginBottom: '2rem', 
-              color: sageTheme.textLight, 
-              fontSize: '1rem',
-              lineHeight: '1.6'
-            }}>
-              {isChunkError 
-                ? 'The Pep Planner has been updated with new features. Please refresh your browser to continue.'
-                : 'We encountered an unexpected issue. Don\'t worry, your data is safe! Try refreshing the page or clearing your browser cache.'
-              }
-            </p>
-
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              width: '100%'
-            }}>
-              <button
-                onClick={this.handleReload}
-                style={{
-                  padding: '0.875rem 1.5rem',
-                  fontSize: '1rem',
-                  backgroundColor: sageTheme.primary,
-                  color: sageTheme.textOnPrimary,
-                  border: 'none',
-                  borderRadius: '0.75rem',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 6px -1px rgba(127, 158, 149, 0.3)',
-                  width: '100%'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = sageTheme.primaryDark;
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 6px 8px -1px rgba(95, 127, 118, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = sageTheme.primary;
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 6px -1px rgba(127, 158, 149, 0.3)';
-                }}
-              >
-                Refresh Page
-              </button>
-            </div>
-
-            <p style={{ 
-              marginTop: '1.5rem', 
-              fontSize: '0.875rem', 
-              color: sageTheme.textLight,
-              lineHeight: '1.5'
-            }}>
-              If this problem continues, please contact{' '}
-              <button
-                onClick={this.handleOpenSupport}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: sageTheme.primary,
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  padding: 0,
-                  fontSize: 'inherit',
-                  fontFamily: 'inherit'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.color = sageTheme.primaryDark;
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.color = sageTheme.primary;
-                }}
-              >
-                support
-              </button>
-              .
-            </p>
-          </div>
+          {/* Refresh Button */}
+          <button
+            onClick={this.handleReload}
+            style={{
+              padding: '1rem 3rem',
+              fontSize: '1.1rem',
+              backgroundColor: '#7B8A7A',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = '#5F7F76';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = '#7B8A7A';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+            }}
+          >
+            Refresh Page
+          </button>
           
           {/* Render SupportModal directly - AppContext should still be available since providers are above this boundary */}
           <SupportModal 
