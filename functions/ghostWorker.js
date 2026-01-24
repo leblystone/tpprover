@@ -930,6 +930,7 @@ async function logGhostWorkerDecision(ticketId, routingDecision, response, execu
     responseGenerated: !!response,
     responsePosted: wasPosted,
     responseLength: response?.content?.length || 0,
+    responseContent: response?.content || null, // STORE FULL RESPONSE for Telegram approval
     
     // Quality Control
     humanOverride: false,
