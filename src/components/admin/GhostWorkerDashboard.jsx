@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { db } from '../../config/firebase';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -12,6 +13,7 @@ import { Bot, Play, Pause, RefreshCw, Sparkles, Target, DollarSign, TrendingUp, 
 import GhostWorkerConversationModal from './GhostWorkerConversationModal';
 
 export default function GhostWorkerDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,18 @@ export default function GhostWorkerDashboard() {
   useEffect(() => {
     loadDashboardData();
     checkGhostWorkerStatus();
+    
+    // Check for ticketId URL parameter
+    const ticketIdFromUrl = searchParams.get('ticketId');
+    if (ticketIdFromUrl) {
+      setTestTicketId(ticketIdFromUrl);
+      // Clear the URL parameter after reading
+      setSearchParams({});
+      // Show toast notification
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: '🤖 Ticket ID loaded! Ready to test with Ghosty', type: 'success' } 
+      }));
+    }
   }, []);
 
   const checkGhostWorkerStatus = async () => {
