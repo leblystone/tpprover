@@ -597,56 +597,57 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
                                             Attach Images (Optional)
                                         </label>
-                                    <div className="space-y-2">
-                                        <label
-                                            className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
-                                            style={{
-                                                borderColor: theme.border,
-                                                backgroundColor: theme.isDark ? '#0f172a' : theme.white
-                                            }}
-                                        >
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                multiple
-                                                onChange={handleImageSelect}
-                                                disabled={isSubmitting || selectedImages.length >= 5}
-                                                className="hidden"
-                                            />
-                                            <Camera size={18} style={{ color: theme.primary }} />
-                                            <span className="text-sm" style={{ color: theme.textLight }}>
-                                                {selectedImages.length >= 5 
-                                                    ? 'Maximum 5 images reached' 
-                                                    : 'Choose images (max 5MB each, up to 5 images)'}
-                                            </span>
-                                        </label>
-                                        
-                                        {/* Image Previews */}
-                                        {selectedImages.length > 0 && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {selectedImages.map((imageData, index) => (
-                                                    <div key={index} className="relative group">
-                                                        <img
-                                                            src={imageData.preview}
-                                                            alt={`Preview ${index + 1}`}
-                                                            className="w-full h-20 object-cover rounded border"
-                                                            style={{ borderColor: theme.border }}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveImage(index)}
-                                                            className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
-                                                            style={{ color: '#ffffff' }}
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
-                                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 rounded-b">
-                                                            {(imageData.file.size / 1024).toFixed(0)}KB
+                                        <div className="space-y-2">
+                                            <label
+                                                className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
+                                                style={{
+                                                    borderColor: theme.border,
+                                                    backgroundColor: theme.isDark ? '#0f172a' : theme.white
+                                                }}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={handleImageSelect}
+                                                    disabled={isSubmitting || selectedImages.length >= 5}
+                                                    className="hidden"
+                                                />
+                                                <Camera size={18} style={{ color: theme.primary }} />
+                                                <span className="text-sm" style={{ color: theme.textLight }}>
+                                                    {selectedImages.length >= 5 
+                                                        ? 'Maximum 5 images reached' 
+                                                        : 'Choose images (max 5MB each, up to 5 images)'}
+                                                </span>
+                                            </label>
+                                            
+                                            {/* Image Previews */}
+                                            {selectedImages.length > 0 && (
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {selectedImages.map((imageData, index) => (
+                                                        <div key={index} className="relative group">
+                                                            <img
+                                                                src={imageData.preview}
+                                                                alt={`Preview ${index + 1}`}
+                                                                className="w-full h-20 object-cover rounded border"
+                                                                style={{ borderColor: theme.border }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveImage(index)}
+                                                                className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                                                                style={{ color: '#ffffff' }}
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 rounded-b">
+                                                                {(imageData.file.size / 1024).toFixed(0)}KB
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
