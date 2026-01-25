@@ -73,6 +73,27 @@ export default function AdminFeedback() {
     }
   }, []);
 
+  // Handle URL parameter for direct ticket opening
+  useEffect(() => {
+    const ticketIdParam = searchParams.get('ticketId');
+    if (ticketIdParam && tickets.length > 0) {
+      // Find the ticket by ID
+      const ticketToOpen = tickets.find(t => t.id === ticketIdParam);
+      if (ticketToOpen) {
+        // Switch to the correct view (open or closed)
+        if (ticketToOpen.status === 'resolved' || ticketToOpen.status === 'closed') {
+          setSupportView('closed-tickets');
+        } else {
+          setSupportView('open-tickets');
+        }
+        // Open the ticket
+        handleOpenTicket(ticketToOpen);
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [tickets, searchParams]);
+
   const filteredFeedback = statusFilter === 'all'
     ? feedback
     : feedback.filter((f) => f.status === statusFilter);

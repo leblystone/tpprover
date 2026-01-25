@@ -265,36 +265,53 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 }
             }
 
-            // Create a support ticket instead of sending email
-            const ticketId = await createSupportTicket({
-                                userId: user?.uid || null,
-                                userEmail: formData.email || user?.email,
-                                userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
-                                type: ticketType, // 'support' or 'bug'
-                                subject: ticketType === 'bug' ? 'Bug Report' : 'Support Request',
-                                message: formData.message.trim(),
-                imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-                imageStoragePaths: imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
-                metadata: {
+            // Check if this is a suggestion (feedback) or a support/bug ticket
+            if (ticketType === 'suggestion') {
+                // Submit as feedback (goes to Ghosty acknowledgment)
+                await submitFeedback({
+                    type: 'suggestion',
+                    message: formData.message.trim(),
+                    userEmail: formData.email || user?.email || 'anonymous',
+                    userId: user?.uid || null,
                     userAgent: navigator.userAgent,
                     url: window.location.href,
+                    timestamp: new Date().toISOString()
+                });
+                
+                console.log('✅ Suggestion submitted');
+            } else {
+                // Create a support ticket (support or bug - goes to full Ghosty handling)
+                const ticketId = await createSupportTicket({
+                    userId: user?.uid || null,
                     userEmail: formData.email || user?.email,
-                    userId: user?.uid || null
+                    userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
+                    type: ticketType, // 'support' or 'bug'
+                    subject: ticketType === 'bug' ? 'Bug Report' : 'Support Request',
+                    message: formData.message.trim(),
+                    imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+                    imageStoragePaths: imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
+                    metadata: {
+                        userAgent: navigator.userAgent,
+                        url: window.location.href,
+                        userEmail: formData.email || user?.email,
+                        userId: user?.uid || null
+                    }
+                });
+                
+                console.log('✅ Support ticket created:', ticketId);
+                
+                // Reload user tickets to show the new one
+                if (user?.email) {
+                    await loadUserTickets();
                 }
-            });
+            }
             
-            console.log('✅ Support ticket created:', ticketId);
             setSubmitStatus('success');
             
             // Clean up preview URLs
             selectedImages.forEach(img => URL.revokeObjectURL(img.preview));
             setFormData({ email: '', message: '' });
             setSelectedImages([]);
-            
-            // Reload user tickets to show the new one
-            if (user?.email) {
-                await loadUserTickets();
-            }
             
             // Auto-close after 2 seconds
             setTimeout(() => {
@@ -451,6 +468,29 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                     </div>
                                 </div>
                             </button>
+
+                            <button
+                                onClick={() => setTicketType('suggestion')}
+                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.background
+                                }}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.warning + '20' }}>
+                                        <Lightbulb className="w-6 h-6" style={{ color: theme.warning }} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
+                                            Suggestions
+                                        </h4>
+                                        <p className="text-sm" style={{ color: theme.textLight }}>
+                                            Feature ideas, improvements, feedback
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     ) : submitStatus === 'success' ? (
                         <div className="text-center py-8">
@@ -502,10 +542,10 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                 </button>
                                 <div>
                                     <h3 className="font-semibold" style={{ color: theme.text }}>
-                                        {ticketType === 'bug' ? '🐛 Report a Bug' : '💬 Support Request'}
+                                        {ticketType === 'bug' ? '🐛 Report a Bug' : ticketType === 'suggestion' ? '💡 Share Your Idea' : '💬 Support Request'}
                                     </h3>
                                     <p className="text-xs" style={{ color: theme.textLight }}>
-                                        {ticketType === 'bug' ? 'Help us fix technical issues' : 'We\'re here to help'}
+                                        {ticketType === 'bug' ? 'Help us fix technical issues' : ticketType === 'suggestion' ? 'Tell us what would make the app better' : 'We\'re here to help'}
                                     </p>
                                 </div>
                             </div>
@@ -547,15 +587,16 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                             backgroundColor: theme.isDark ? '#0f172a' : theme.white,
                                             color: theme.text
                                         }}
-                                        placeholder="Describe your question or issue..."
+                                        placeholder={ticketType === 'suggestion' ? "I'd love to see..." : "Describe your question or issue..."}
                                     />
                                 </div>
 
-                                {/* Image Upload Section */}
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                        Attach Images (Optional)
-                                    </label>
+                                {/* Image Upload Section - Only for Support and Bug Reports */}
+                                {ticketType !== 'suggestion' && (
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
+                                            Attach Images (Optional)
+                                        </label>
                                     <div className="space-y-2">
                                         <label
                                             className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
@@ -607,7 +648,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                )}
 
                                 <button
                                     type="submit"
