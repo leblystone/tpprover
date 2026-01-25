@@ -13,9 +13,9 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/analytics`,
     icon: 'LayoutDashboard',
     children: [
+      { id: 'feedback', label: 'Daily Work', path: `${ADMIN_BASE}/feedback` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/analytics` },
       { id: 'ghost-worker', label: 'Ghost Worker', path: `${ADMIN_BASE}/ghost-worker` },
-      { id: 'feedback', label: 'Daily Work', path: `${ADMIN_BASE}/feedback` },
     ],
   },
   {
