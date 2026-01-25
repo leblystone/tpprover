@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessagesSquare,
@@ -241,11 +241,10 @@ export default function AdminAnalytics() {
 
         {feedbackView === 'list' ? (
           <>
-            {/* Priority Action Cards */}
+            {/* Summary Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-4">
-              <Link
-                to="/admin/feedback?view=feedback"
-                className="block p-3 rounded-lg border-2 hover:shadow-lg transition-all"
+              <div
+                className="p-3 rounded-lg border-2"
                 style={{
                   borderColor: theme.error,
                   backgroundColor: theme.error + '08',
@@ -256,18 +255,17 @@ export default function AdminAnalytics() {
                     <AlertTriangle size={18} style={{ color: theme.error }} />
                     <div>
                       <div className="text-sm font-semibold" style={{ color: theme.error }}>Bug Reports</div>
-                      <div className="text-xs" style={{ color: theme.textLight }}>Click to review</div>
+                      <div className="text-xs" style={{ color: theme.textLight }}>New issues to review</div>
                     </div>
                   </div>
                   <div className="text-2xl font-bold" style={{ color: theme.error }}>
                     {feedback.filter((f) => f.type === 'bug' && f.status === 'new').length}
                   </div>
                 </div>
-              </Link>
+              </div>
 
-              <Link
-                to="/admin/feedback?view=open-tickets"
-                className="block p-3 rounded-lg border-2 hover:shadow-lg transition-all"
+              <div
+                className="p-3 rounded-lg border-2"
                 style={{
                   borderColor: theme.warning,
                   backgroundColor: theme.warning + '08',
@@ -285,7 +283,7 @@ export default function AdminAnalytics() {
                     {newTickets.length}
                   </div>
                 </div>
-              </Link>
+              </div>
             </div>
 
             {/* Status filters & tabs */}
