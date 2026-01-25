@@ -155,14 +155,9 @@ export default function Login() {
     const [showTryLoginButton, setShowTryLoginButton] = useState(false);
     const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
     
-    // Check if user has seen intro (localStorage, no auth needed)
-    // Only show intro for native apps and installed PWAs (not browser users)
-    // Testing: Use ?testIntro=true to force show, ?skipIntro=true to force skip
-    const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro') === 'true';
-    const shouldShowIntroByPlatform = shouldShowIntro() && !hasSeenIntro;
-    const [showIntro, setShowIntro] = useState(
-        testIntro ? true : (skipIntro ? false : shouldShowIntroByPlatform)
-    );
+    // DISABLED: Intro screen disabled - go straight to login
+    // Only show intro for testing with ?testIntro=true
+    const [showIntro, setShowIntro] = useState(testIntro ? true : false);
     
     const handleIntroComplete = () => {
         setShowIntro(false);

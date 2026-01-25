@@ -168,60 +168,12 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
 
   // Calculate background gradient based on swipe position
   const getBackgroundGradient = () => {
-    if (!isDragging || dragOffset === 0) {
-      return `linear-gradient(135deg, ${currentScreen.gradient[0]} 0%, ${currentScreen.gradient[1]} 100%)`;
-    }
-
-    // Determine if swiping left (next) or right (previous)
-    if (dragOffset < 0 && nextScreen) {
-      // Swiping left to next screen
-      const progress = Math.abs(dragOffset) / window.innerWidth;
-      const clampedProgress = Math.min(progress, 1);
-      
-      const color1 = mixColors(currentScreen.gradient[0], nextScreen.gradient[0], clampedProgress);
-      const color2 = mixColors(currentScreen.gradient[1], nextScreen.gradient[1], clampedProgress);
-      
-      return `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
-    } else if (dragOffset > 0 && prevScreen) {
-      // Swiping right to previous screen
-      const progress = Math.abs(dragOffset) / window.innerWidth;
-      const clampedProgress = Math.min(progress, 1);
-      
-      const color1 = mixColors(currentScreen.gradient[0], prevScreen.gradient[0], clampedProgress);
-      const color2 = mixColors(currentScreen.gradient[1], prevScreen.gradient[1], clampedProgress);
-      
-      return `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
-    }
-
-    return `linear-gradient(135deg, ${currentScreen.gradient[0]} 0%, ${currentScreen.gradient[1]} 100%)`;
-  };
-
-  // Simple color mixing function
-  const mixColors = (color1, color2, ratio) => {
-    const hex1 = color1.replace('#', '');
-    const hex2 = color2.replace('#', '');
-    
-    const r1 = parseInt(hex1.substring(0, 2), 16);
-    const g1 = parseInt(hex1.substring(2, 4), 16);
-    const b1 = parseInt(hex1.substring(4, 6), 16);
-    
-    const r2 = parseInt(hex2.substring(0, 2), 16);
-    const g2 = parseInt(hex2.substring(2, 4), 16);
-    const b2 = parseInt(hex2.substring(4, 6), 16);
-    
-    const r = Math.round(r1 + (r2 - r1) * ratio);
-    const g = Math.round(g1 + (g2 - g1) * ratio);
-    const b = Math.round(b1 + (b2 - b1) * ratio);
-    
-    return `#${[r, g, b].map(x => {
-      const hex = x.toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    }).join('')}`;
+    // Use solid color fallback for better Android compatibility
+    return currentScreen.gradient[0]; // Just use first color as solid background
   };
 
   const backgroundStyle = { 
-    background: getBackgroundGradient(),
-    backgroundColor: currentScreen.gradient[0] // Fallback solid color
+    backgroundColor: getBackgroundGradient() // Solid color instead of gradient
   };
 
   // Determine text color for current screen (for skip button)
@@ -241,57 +193,6 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
       onMouseLeave={handleMouseUp}
       ref={containerRef}
     >
-      {/* Diagonal wave transition overlay */}
-      {isDragging && nextScreen && dragOffset < 0 && (
-        <div 
-          className="absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            opacity: Math.abs(dragOffset) / window.innerWidth,
-            background: `linear-gradient(135deg, ${nextScreen.gradient[0]} 0%, ${nextScreen.gradient[1]} 100%)`
-          }}
-        >
-          <svg 
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 100 100" 
-            preserveAspectRatio="none"
-            style={{
-              transform: `translateX(${100 - (Math.abs(dragOffset) / window.innerWidth * 100)}%)`
-            }}
-          >
-            <path 
-              d="M 0 0 Q 50 30, 100 0 L 100 100 L 0 100 Z" 
-              fill={nextScreen.gradient[0]}
-              opacity="0.9"
-            />
-          </svg>
-        </div>
-      )}
-      
-      {isDragging && prevScreen && dragOffset > 0 && (
-        <div 
-          className="absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            opacity: Math.abs(dragOffset) / window.innerWidth,
-            background: `linear-gradient(135deg, ${prevScreen.gradient[0]} 0%, ${prevScreen.gradient[1]} 100%)`
-          }}
-        >
-          <svg 
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 100 100" 
-            preserveAspectRatio="none"
-            style={{
-              transform: `translateX(-${100 - (Math.abs(dragOffset) / window.innerWidth * 100)}%)`
-            }}
-          >
-            <path 
-              d="M 0 0 Q 50 30, 100 0 L 100 100 L 0 100 Z" 
-              fill={prevScreen.gradient[0]}
-              opacity="0.9"
-            />
-          </svg>
-        </div>
-      )}
-
       {/* Skip button */}
       <button
         onClick={handleSkip}
@@ -341,11 +242,13 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                     alt="The Pep Planner Logo" 
                     className="h-20 w-20 rounded-full shadow-2xl object-cover mx-auto border-4"
                     style={{ 
-                      borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)'
+                      borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)',
+                      backgroundColor: '#7F9E95' // Fallback bg if image doesn't load
                     }}
                     onError={(e) => {
                       console.error('❌ Logo failed to load');
-                      e.target.style.display = 'none';
+                      e.target.style.backgroundColor = '#7F9E95';
+                      e.target.style.border = '4px solid rgba(255, 255, 255, 0.3)';
                     }}
                   />
                 </div>
