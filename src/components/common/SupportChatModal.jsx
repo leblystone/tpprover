@@ -201,7 +201,12 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
             </div>
           ) : (
             messages.map((msg) => {
-              const isAdmin = msg.senderType === 'admin';
+              // Determine if message is from admin
+              // Check senderType, and also check if senderEmail contains admin indicators
+              const isAdmin = msg.senderType === 'admin' || 
+                             msg.senderEmail?.includes('admin') || 
+                             msg.senderEmail?.includes('thepepplanner.com');
+              
               return (
                 <div
                   key={msg.id}
@@ -230,6 +235,38 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                     <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
                       {msg.message || msg.text}
                     </p>
+                    
+                    {/* Display screenshots if present */}
+                    {msg.imageUrls && msg.imageUrls.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {msg.imageUrls.map((url, idx) => (
+                          <div key={idx} className="relative">
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block hover:opacity-90 transition-opacity"
+                            >
+                              <img
+                                src={url}
+                                alt={`Screenshot ${idx + 1}`}
+                                className="rounded-lg border max-w-full"
+                                style={{
+                                  maxHeight: '300px',
+                                  objectFit: 'contain',
+                                  borderColor: theme.border
+                                }}
+                                loading="lazy"
+                              />
+                            </a>
+                            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                              📸 Screenshot {idx + 1} • Click to open
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <div className="flex items-center gap-1 mt-2 text-xs opacity-50" style={{ color: theme.textLight }}>
                       <span>
                         {msg.createdAt?.toDate?.()
