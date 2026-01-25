@@ -604,25 +604,32 @@ export default function Calendar() {
                     let dose = '';
                     let unit = '';
                     
-                    // Priority: Manual unitValue > Calculated > Default dose/unit
+                    // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
                     if (additionalUnits && additionalUnits.trim() !== '') {
-                        // User manually entered units - ALWAYS prioritize this
+                        // User manually entered units in protocol - HIGHEST priority
                         dose = `${additionalUnits} units`;
                         unit = '';
                     } else if (reconItem) {
-                        // No manual override, use calculated units if available
-                        const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
-                            const dose = Number(pep.dose) || 0;
-                            return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-                        }, 0);
-                        const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
-                        const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
-                        if (calc.unitsPerDose > 0) {
-                            dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                        // Check for manual units in recon item first
+                        if (reconItem.units && reconItem.units.trim() !== '') {
+                            // User manually entered units in recon modal - SECOND priority
+                            dose = `${reconItem.units} units`;
                             unit = '';
                         } else {
-                            dose = `${baseDose} ${baseUnit}`;
-                            unit = '';
+                            // No manual override, use calculated units if available
+                            const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
+                                const dose = Number(pep.dose) || 0;
+                                return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+                            }, 0);
+                            const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
+                            const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
+                            if (calc.unitsPerDose > 0) {
+                                dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                                unit = '';
+                            } else {
+                                dose = `${baseDose} ${baseUnit}`;
+                                unit = '';
+                            }
                         }
                     } else {
                         dose = `${baseDose} ${baseUnit}`;
@@ -733,24 +740,31 @@ export default function Calendar() {
                               let unit = pep.dosage?.unit || '';
                               let additionalUnits = pep.unitValue || ''; // Get manual units value from peptide
 
-                              // Priority: Manual unitValue > Calculated > Default dose/unit
+                              // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
                               if (additionalUnits && additionalUnits.trim() !== '') {
-                                  // User manually entered units - ALWAYS prioritize this
+                                  // User manually entered units in protocol - HIGHEST priority
                                   dose = `${additionalUnits} units`;
                                   unit = '';
                               } else if (reconItem) {
-                                  // No manual override, use calculated units if available
-                                  const calc = calculateRecon({ 
-                                      mg: reconItem.mg, 
-                                      water: reconItem.water, 
-                                      dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
-                                  });
-                                  if (calc.unitsPerDose > 0) {
-                                      dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                                  // Check for manual units in recon item first
+                                  if (reconItem.units && reconItem.units.trim() !== '') {
+                                      // User manually entered units in recon modal - SECOND priority
+                                      dose = `${reconItem.units} units`;
                                       unit = '';
                                   } else {
-                                      dose = `${dose} ${unit}`;
-                                      unit = '';
+                                      // No manual override, use calculated units if available
+                                      const calc = calculateRecon({ 
+                                          mg: reconItem.mg, 
+                                          water: reconItem.water, 
+                                          dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
+                                      });
+                                      if (calc.unitsPerDose > 0) {
+                                          dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                                          unit = '';
+                                      } else {
+                                          dose = `${dose} ${unit}`;
+                                          unit = '';
+                                      }
                                   }
                               } else {
                                   // No recon item, use default dose/unit

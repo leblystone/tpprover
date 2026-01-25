@@ -1541,142 +1541,158 @@ export default function Recon() {
                         />
                     </div>
                     
-                    {/* Dose with Unit Dropdown */}
-                    <div className="relative">
-                        <div 
-                            className="flex items-stretch rounded-lg"
-                            style={{ 
-                                border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                            }}
-                        >
-                            <input
-                                type="text"
-                                id="recon-dose-input"
-                                value={getEditingDose() || ''} 
-                                onChange={e => { updateEditingItem({ dose: e.target.value }); updateFormData({ dose: e.target.value }); }} 
-                                onFocus={() => setIsDoseFocused(true)}
-                                onBlur={(e) => {
-                                    setTimeout(() => {
-                                        const relatedTarget = e.relatedTarget || document.activeElement
-                                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
-                                        if (!isClickingDropdown && !isDoseUnitDropdownOpen) {
-                                            setIsDoseFocused(false)
-                                        }
-                                    }, 150)
-                                }}
-                                placeholder=" "
-                                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
-                                style={{
-                                    backgroundColor: 'transparent',
-                                    color: theme.isDark ? theme.text : '#181A18',
-                                    border: 'none',
-                                    paddingLeft: '12px',
-                                    paddingRight: '8px'
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setIsDoseUnitDropdownOpen(prev => !prev)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onTouchStart={(e) => e.preventDefault()}
-                                className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                                data-dropdown-container
+                    {/* Dose and Units in one row */}
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* Dose with Unit Dropdown */}
+                        <div className="relative">
+                            <div 
+                                className="flex items-stretch rounded-lg"
                                 style={{ 
-                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                                    color: theme.isDark ? theme.text : '#181A18',
-                                    minWidth: '80px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                    border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                                 }}
                             >
-                                <span className="text-sm font-semibold">
-                                    {getEditingDoseUnit()}
-                                </span>
-                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                            </button>
-                            {isDoseUnitDropdownOpen && (
-                                <div className="relative" data-dropdown-container>
-                                    <div 
-                                        className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                                            style={{
-                                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                borderColor: theme.border,
-                                                minWidth: '100px',
-                                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                            }}
-                                        >
-                                            {[
-                                                { value: 'mcg', label: 'mcg' },
-                                            { value: 'mg', label: 'mg' },
-                                            { value: 'mL', label: 'mL' },
-                                            ...(editingItem?.deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
-                                        ].map((option, optIdx) => (
-                                            <React.Fragment key={option.value}>
-                                                {optIdx > 0 && (
-                                                    <div 
-                                                        className="h-px mx-2"
-                                                        style={{ backgroundColor: theme.border }}
-                                                    />
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onMouseDown={(e) => e.preventDefault()}
-                                                    onTouchStart={(e) => e.preventDefault()}
-                                                    onClick={(e) => {
-                                                        e.preventDefault()
-                                                        e.stopPropagation()
-                                                        updateEditingItem({ doseUnit: option.value });
-                                                        updateFormData({ doseUnit: option.value });
-                                                        setIsDoseUnitDropdownOpen(false);
-                                                    }}
-                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                    style={{
-                                                        color: getEditingDoseUnit() === option.value ? theme.primary : theme.text,
-                                                        backgroundColor: 'transparent',
-                                                        WebkitTapHighlightColor: 'transparent'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                        e.currentTarget.style.color = theme.primary;
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                        e.currentTarget.style.color = getEditingDoseUnit() === option.value ? theme.primary : theme.text;
-                                                    }}
-                                                >
-                                                    {option.label}
-                                                </button>
-                                            </React.Fragment>
-                                        ))}
+                                <input
+                                    type="text"
+                                    id="recon-dose-input"
+                                    value={getEditingDose() || ''} 
+                                    onChange={e => { updateEditingItem({ dose: e.target.value }); updateFormData({ dose: e.target.value }); }} 
+                                    onFocus={() => setIsDoseFocused(true)}
+                                    onBlur={(e) => {
+                                        setTimeout(() => {
+                                            const relatedTarget = e.relatedTarget || document.activeElement
+                                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                                            if (!isClickingDropdown && !isDoseUnitDropdownOpen) {
+                                                setIsDoseFocused(false)
+                                            }
+                                        }, 150)
+                                    }}
+                                    placeholder=" "
+                                    className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: theme.isDark ? theme.text : '#181A18',
+                                        border: 'none',
+                                        paddingLeft: '12px',
+                                        paddingRight: '8px'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDoseUnitDropdownOpen(prev => !prev)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
+                                    className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                    data-dropdown-container
+                                    style={{ 
+                                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                        color: theme.isDark ? theme.text : '#181A18',
+                                        minWidth: '80px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                    }}
+                                >
+                                    <span className="text-sm font-semibold">
+                                        {getEditingDoseUnit()}
+                                    </span>
+                                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </button>
+                                {isDoseUnitDropdownOpen && (
+                                    <div className="relative" data-dropdown-container>
+                                        <div 
+                                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                                style={{
+                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    borderColor: theme.border,
+                                                    minWidth: '100px',
+                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                {[
+                                                    { value: 'mcg', label: 'mcg' },
+                                                { value: 'mg', label: 'mg' },
+                                                { value: 'mL', label: 'mL' },
+                                                ...(editingItem?.deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
+                                            ].map((option, optIdx) => (
+                                                <React.Fragment key={option.value}>
+                                                    {optIdx > 0 && (
+                                                        <div 
+                                                            className="h-px mx-2"
+                                                            style={{ backgroundColor: theme.border }}
+                                                        />
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onTouchStart={(e) => e.preventDefault()}
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            updateEditingItem({ doseUnit: option.value });
+                                                            updateFormData({ doseUnit: option.value });
+                                                            setIsDoseUnitDropdownOpen(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                        style={{
+                                                            color: getEditingDoseUnit() === option.value ? theme.primary : theme.text,
+                                                            backgroundColor: 'transparent',
+                                                            WebkitTapHighlightColor: 'transparent'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                            e.currentTarget.style.color = theme.primary;
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                                            e.currentTarget.style.color = getEditingDoseUnit() === option.value ? theme.primary : theme.text;
+                                                        }}
+                                                    >
+                                                        {option.label}
+                                                    </button>
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                            <label 
+                                htmlFor="recon-dose-input"
+                                className="absolute pointer-events-none transition-all"
+                                style={{
+                                    fontSize: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0.75rem' : '0.9375rem',
+                                    top: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '-8px' : '14px',
+                                    left: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '12px' : '16px',
+                                    right: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '90px' : 'auto',
+                                    padding: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0 4px' : '0',
+                                    background: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    color: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                    fontWeight: 500
+                                }}
+                            >
+                                Dose
+                            </label>
                         </div>
-                        <label 
-                            htmlFor="recon-dose-input"
-                            className="absolute pointer-events-none transition-all"
-                            style={{
-                                fontSize: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0.75rem' : '0.9375rem',
-                                top: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '-8px' : '14px',
-                                left: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '12px' : '16px',
-                                right: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '90px' : 'auto',
-                                padding: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0 4px' : '0',
-                                background: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                                color: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? theme.primary : (theme.textLight || theme.text),
-                                fontWeight: 500
-                            }}
-                        >
-                            Dose
-                        </label>
+                        
+                        {/* Units field */}
+                        <TextInput 
+                            label="Units" 
+                            type="text" 
+                            value={editingItem?.units || draft.units || ''} 
+                            onChange={v => { updateEditingItem({ units: v }); updateFormData({ units: v }); }} 
+                            theme={theme}
+                            placeholder="10"
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
