@@ -1419,13 +1419,13 @@ Write a friendly, concise acknowledgment message (2-3 sentences max) that:
 ## EXAMPLE GOOD RESPONSES:
 
 Bug report about data not saving:
-"Thanks for flagging this! Data not saving is definitely frustrating, and I can see why that would be a problem. I've passed this along to our dev team to investigate."
+"Thanks for flagging this! Data not saving is definitely frustrating, and I can see why that would be a problem. We're on it and will get this sorted out."
 
 Suggestion for dark mode:
 "Love this idea! Dark mode has been on our radar, and it's great to hear you're interested in it too. We'll definitely keep this in mind as we plan future updates."
 
 Bug report about app crashing:
-"Oof, crashes are the worst. Thanks for letting us know - I've logged this with all the details so our team can track it down."
+"Oof, crashes are the worst. Thanks for letting us know - we're digging into this right away to figure out what's going on."
 
 Now write YOUR acknowledgment for the ${isBug ? 'bug report' : 'suggestion'} above:`;
 
