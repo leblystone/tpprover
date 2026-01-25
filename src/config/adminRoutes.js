@@ -15,6 +15,7 @@ export const adminPrimaryTabs = [
     children: [
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/analytics` },
       { id: 'ghost-worker', label: 'Ghost Worker', path: `${ADMIN_BASE}/ghost-worker` },
+      { id: 'feedback', label: 'Feedback', path: `${ADMIN_BASE}/feedback` },
     ],
   },
   {
@@ -37,7 +38,6 @@ export const adminPrimaryTabs = [
     children: [
       { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/contact` },
       { id: 'content', label: 'Manage', path: `${ADMIN_BASE}/content` },
-      { id: 'feedback', label: 'Feedback', path: `${ADMIN_BASE}/feedback` },
       { id: 'improvements', label: 'Ideas', path: `${ADMIN_BASE}/improvements` },
     ],
   },
@@ -49,7 +49,7 @@ export const adminPrimaryTabs = [
     children: [
       { id: 'push', label: 'Push', path: `${ADMIN_BASE}/comms/push` },
       { id: 'in-app', label: 'In‑App', path: `${ADMIN_BASE}/comms/in-app` },
-      { id: 'emails', label: 'Templates', path: `${ADMIN_BASE}/comms/emails` },
+      { id: 'emails', label: 'Emails', path: `${ADMIN_BASE}/comms/emails` },
       { id: 'triggers', label: 'Triggers', path: `${ADMIN_BASE}/comms/triggers` },
     ],
   },
