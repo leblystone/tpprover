@@ -1003,15 +1003,16 @@ export async function getUserByEmail(email) {
  */
 export async function submitFeedback(feedbackData) {
   try {
-    const feedbackRef = collection(db, 'feedback');
-    const docRef = await addDoc(feedbackRef, {
-      ...feedbackData,
-      status: 'new',
-      submittedAt: serverTimestamp(),
-      adminNotes: ''
-    });
+    const functions = getFunctions();
+    const submitFeedbackFn = httpsCallable(functions, 'submitFeedback');
     
-    return docRef.id;
+    const result = await submitFeedbackFn(feedbackData);
+    
+    if (result.data.success) {
+      return result.data.feedbackId;
+    } else {
+      throw new Error(result.data.message || 'Failed to submit feedback');
+    }
   } catch (error) {
     console.error('❌ Failed to submit feedback:', error);
     throw error;

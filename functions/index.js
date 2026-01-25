@@ -3751,6 +3751,77 @@ exports.addTicketMessage = onCall(
   }
 );
 
+// Submit feedback (bug report or suggestion)
+exports.submitFeedback = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { type, message, userEmail, userId, userAgent, url, timestamp } = request.data;
+
+    if (!message || !type) {
+      throw new Error('Message and type are required');
+    }
+
+    logger.info(`📝 Feedback submitted: ${type} from ${userEmail || 'anonymous'}`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      // Create feedback document
+      const feedbackRef = db.collection('feedback').doc();
+      const feedbackData = {
+        id: feedbackRef.id,
+        type: type, // 'bug' or 'suggestion'
+        message: message,
+        userEmail: userEmail || 'anonymous',
+        userId: userId || null,
+        status: 'new',
+        submittedAt: FieldValue.serverTimestamp(),
+        userAgent: userAgent || '',
+        url: url || '',
+        timestamp: timestamp || new Date().toISOString(),
+        adminNotes: ''
+      };
+
+      await feedbackRef.set(feedbackData);
+
+      logger.info(`✅ Feedback created: ${feedbackRef.id}`);
+
+      // Trigger Ghosty to send acknowledgment message
+      try {
+        logger.info(`🤖 Triggering Ghosty for feedback ${feedbackRef.id}...`);
+        
+        // Call Ghosty to generate a personalized acknowledgment
+        const ghostyResponse = await ghostWorker.handleFeedbackAcknowledgment(feedbackRef.id);
+        
+        if (ghostyResponse && ghostyResponse.success) {
+          logger.info(`✅ Ghosty acknowledgment sent for feedback ${feedbackRef.id}`);
+          
+          // Update feedback with Ghosty's response
+          await feedbackRef.update({
+            ghostyResponse: ghostyResponse.message,
+            ghostyProcessedAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (ghostyError) {
+        // Don't fail the whole request if Ghosty fails
+        logger.error(`⚠️ Ghosty failed for feedback ${feedbackRef.id}:`, ghostyError.message);
+      }
+
+      return { 
+        success: true, 
+        feedbackId: feedbackRef.id,
+        message: 'Feedback submitted successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error submitting feedback: ${error.message}`);
+      throw new Error('Failed to submit feedback');
+    }
+  }
+);
+
 // Update ticket status
 exports.updateTicketStatus = onCall(
   {

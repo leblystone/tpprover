@@ -955,6 +955,19 @@ async function logGhostWorkerDecision(ticketId, routingDecision, response, execu
   const ticketDoc = await db.collection('supportTickets').doc(ticketId).get();
   const ticketData = ticketDoc.data();
   
+  // Try to get original message from messages subcollection if not in main doc
+  let originalMessageFromSubcollection = '';
+  try {
+    const messagesSnapshot = await db.collection('supportTickets').doc(ticketId)
+      .collection('messages').orderBy('createdAt', 'asc').limit(1).get();
+    if (!messagesSnapshot.empty) {
+      const firstMsg = messagesSnapshot.docs[0].data();
+      originalMessageFromSubcollection = firstMsg.message || firstMsg.text || '';
+    }
+  } catch (e) {
+    // Ignore errors fetching subcollection
+  }
+  
   // Estimate tokens (these will be rough estimates until we get actual usage from API responses)
   const triageTokens = 500; // Approximate for triage
   const executionTokens = response?.tokensUsed || 0;
@@ -968,11 +981,25 @@ async function logGhostWorkerDecision(ticketId, routingDecision, response, execu
   const isGemini = executionModel.includes('gemini');
   const isClaude = executionModel.includes('claude');
   
+  // Get the first message (original user message)
+  let originalMessage = ticketData?.message || '';
+  if (!originalMessage && ticketData?.messages && Array.isArray(ticketData.messages)) {
+    originalMessage = ticketData.messages[0]?.message || ticketData.messages[0]?.text || '';
+  }
+  // Use subcollection message if we found one and don't have one yet
+  if (!originalMessage && originalMessageFromSubcollection) {
+    originalMessage = originalMessageFromSubcollection;
+  }
+  
   const logEntry = {
     // Ticket Reference
     ticketId: ticketId,
     ticketNumber: ticketData?.ticketNumber || 'N/A',
     ticketType: ticketData?.type || 'unknown',
+    subject: ticketData?.subject || 'Support Request',
+    userName: ticketData?.userName || ticketData?.userDisplayName || 'Unknown',
+    userEmail: ticketData?.userEmail || '',
+    originalMessage: originalMessage,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
     
     // Triage Phase (Always Gemini Flash)
@@ -1341,6 +1368,117 @@ exports.testGhostWorkerOnTicket = require('firebase-functions/v2/https').onCall(
     }
   }
 );
+
+// ==================== FEEDBACK ACKNOWLEDGMENT ====================
+
+/**
+ * Handle feedback acknowledgment (bug reports and suggestions)
+ * This generates a personalized "Thank you" message for bug/suggestion submissions
+ */
+async function handleFeedbackAcknowledgment(feedbackId) {
+  try {
+    logger.info(`📝 Processing feedback acknowledgment: ${feedbackId}`);
+    
+    const db = admin.firestore();
+    const feedbackRef = db.collection('feedback').doc(feedbackId);
+    const feedbackDoc = await feedbackRef.get();
+    
+    if (!feedbackDoc.exists) {
+      throw new Error('Feedback not found');
+    }
+    
+    const feedbackData = feedbackDoc.data();
+    const isBug = feedbackData.type === 'bug';
+    
+    logger.info(`   Type: ${feedbackData.type}`);
+    logger.info(`   From: ${feedbackData.userEmail}`);
+    
+    // Build the prompt for Gemini Flash (fast and cheap for acknowledgments)
+    const prompt = `You are Ghosty, the friendly AI assistant for The Pep Planner app.
+
+A user just submitted a ${isBug ? 'bug report' : 'feature suggestion'} and needs a warm, personalized acknowledgment.
+
+## USER'S ${isBug ? 'BUG REPORT' : 'SUGGESTION'}:
+${feedbackData.message}
+
+## YOUR TASK:
+Write a friendly, concise acknowledgment message (2-3 sentences max) that:
+1. Thanks them genuinely for taking the time to report this
+2. Acknowledges the specific issue/idea they mentioned (show you read it!)
+3. ${isBug ? 'Assures them the dev team will investigate' : 'Lets them know their idea will be reviewed'}
+4. Keeps it warm but professional
+
+## STYLE GUIDE:
+- Be human and warm (not robotic)
+- Use casual, friendly language
+- NO corporate jargon or overly formal tone
+- NO emojis unless they feel natural
+- Keep it SHORT (2-3 sentences)
+- Sound like a real person from the team
+
+## EXAMPLE GOOD RESPONSES:
+
+Bug report about data not saving:
+"Thanks for flagging this! Data not saving is definitely frustrating, and I can see why that would be a problem. I've passed this along to our dev team to investigate."
+
+Suggestion for dark mode:
+"Love this idea! Dark mode has been on our radar, and it's great to hear you're interested in it too. We'll definitely keep this in mind as we plan future updates."
+
+Bug report about app crashing:
+"Oof, crashes are the worst. Thanks for letting us know - I've logged this with all the details so our team can track it down."
+
+Now write YOUR acknowledgment for the ${isBug ? 'bug report' : 'suggestion'} above:`;
+
+    // Call Gemini Flash (fast and cheap)
+    const geminiResponse = await callGeminiAPI(
+      CONFIG.models.triage, // Using Flash for speed
+      prompt,
+      0.7 // Slightly higher temperature for natural responses
+    );
+    
+    const acknowledgmentMessage = geminiResponse.text.trim();
+    
+    logger.info(`✅ Generated acknowledgment: ${acknowledgmentMessage.substring(0, 100)}...`);
+    
+    // Log to ai_worker_logs for cost tracking
+    await db.collection('ai_worker_logs').add({
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      feedbackId: feedbackId,
+      type: 'feedback_acknowledgment',
+      feedbackType: feedbackData.type,
+      model: CONFIG.models.triage,
+      inputTokens: prompt.length / 4, // Rough estimate
+      outputTokens: acknowledgmentMessage.length / 4,
+      cost: calculateCost(CONFIG.models.triage, prompt.length / 4, acknowledgmentMessage.length / 4),
+      success: true
+    });
+    
+    // Send Telegram notification to admin
+    try {
+      await telegramBot.sendFeedbackNotification({
+        type: feedbackData.type,
+        feedbackId: feedbackId,
+        userEmail: feedbackData.userEmail,
+        message: feedbackData.message,
+        ghostyResponse: acknowledgmentMessage
+      });
+    } catch (telegramError) {
+      logger.warn(`⚠️ Failed to send Telegram notification:`, telegramError.message);
+    }
+    
+    return {
+      success: true,
+      message: acknowledgmentMessage
+    };
+    
+  } catch (error) {
+    logger.error(`❌ Error in feedback acknowledgment:`, error);
+    throw error;
+  }
+}
+
+// Export for use in index.js
+exports.handleFeedbackAcknowledgment = handleFeedbackAcknowledgment;
 
 // Export config for testing
 exports.CONFIG = CONFIG;

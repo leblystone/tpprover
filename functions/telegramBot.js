@@ -511,6 +511,43 @@ exports.notifyError = async (ticketId, errorMessage) => {
   }
 };
 
+// Send feedback notification (bug/suggestion with Ghosty response)
+const sendFeedbackNotification = async (feedbackData) => {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+    
+    if (!botToken || !chatId) {
+      logger.warn('Telegram credentials not configured - skipping feedback notification');
+      return;
+    }
+    
+    const emoji = feedbackData.type === 'bug' ? '🐛' : '💡';
+    const typeLabel = feedbackData.type === 'bug' ? 'Bug Report' : 'Feature Suggestion';
+    
+    const message = `${emoji} **New ${typeLabel}**
+
+**From:** ${feedbackData.userEmail}
+**ID:** \`${feedbackData.feedbackId}\`
+
+**Feedback:**
+_${feedbackData.message.substring(0, 300)}${feedbackData.message.length > 300 ? '...' : ''}_
+
+**🤖 Ghosty's Response:**
+_${feedbackData.ghostyResponse}_
+
+✅ Acknowledgment sent to user automatically`;
+
+    await sendTelegramMessage(botToken, chatId, message);
+    logger.info(`📱 Sent feedback notification to Telegram`);
+    
+  } catch (error) {
+    logger.error('Failed to send feedback notification:', error);
+  }
+};
+
+exports.sendFeedbackNotification = sendFeedbackNotification;
+
 // Export helper functions for use in other modules
 exports.sendTelegramMessage = sendTelegramMessage;
 exports.sendBudgetAlert = sendBudgetAlert;
