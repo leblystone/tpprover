@@ -123,11 +123,45 @@ export default function AdminFeedback() {
     }
   };
 
-  const toggleTicketExpanded = (ticketId) => {
+  const toggleTicketExpanded = async (ticketId) => {
+    const wasExpanded = expandedTickets[ticketId];
+    
     setExpandedTickets(prev => ({
       ...prev,
       [ticketId]: !prev[ticketId]
     }));
+    
+    // Load messages when expanding
+    if (!wasExpanded) {
+      setLoadingTicket(true);
+      try {
+        const ticket = await getTicketWithMessages(ticketId);
+        setSelectedTicket(ticket);
+        setTicketMessages(ticket.messages || []);
+        
+        // Subscribe to real-time updates
+        if (ticketUnsubRef.current) {
+          ticketUnsubRef.current();
+        }
+        ticketUnsubRef.current = subscribeToTicketMessages(ticketId, (msgs) => setTicketMessages(msgs));
+      } catch (err) {
+        console.error('Error loading ticket:', err);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to load messages', type: 'error' } }));
+      } finally {
+        setLoadingTicket(false);
+      }
+    } else {
+      // Clean up when collapsing
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(null);
+        setTicketMessages([]);
+        setTicketResponseText('');
+        if (ticketUnsubRef.current) {
+          ticketUnsubRef.current();
+          ticketUnsubRef.current = null;
+        }
+      }
+    }
   };
 
   const renderStatusBadge = (ticket) => {
@@ -467,21 +501,67 @@ export default function AdminFeedback() {
                       
                       {isExpanded && (
                         <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
-                          <div className="flex flex-wrap items-center gap-2 pt-3">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenTicket(t);
-                              }}
-                              disabled={loadingTicket}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                              style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}
-                              title="View full conversation"
-                            >
-                              <MessageSquare size={14} />
-                              View Conversation
-                            </button>
+                          <div className="pt-3">
+                            {loadingTicket && expandedTickets[t.id] ? (
+                              <div className="text-center py-4">
+                                <Loader size={16} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                              </div>
+                            ) : ticketMessages.length === 0 ? (
+                              <p className="text-xs text-center py-2" style={{ color: theme.textLight }}>No messages yet</p>
+                            ) : (
+                              <div className="space-y-2 max-h-64 overflow-y-auto mb-3">
+                                {ticketMessages.map((msg) => (
+                                  <div
+                                    key={msg.id}
+                                    className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
+                                  >
+                                    <div
+                                      className="max-w-[80%] rounded-lg p-2 text-xs"
+                                      style={{
+                                        backgroundColor: msg.senderType === 'admin' ? theme.primary + '20' : theme.background,
+                                        color: theme.text,
+                                        border: `1px solid ${theme.border}`,
+                                      }}
+                                    >
+                                      <div className="font-semibold mb-1 text-[10px] opacity-75">
+                                        {msg.senderType === 'user' ? '👤 User' : '🛡️ Admin'}
+                                      </div>
+                                      <div className="whitespace-pre-wrap">{msg.message || msg.text}</div>
+                                      <div className="text-[9px] opacity-50 mt-1">
+                                        {msg.timestamp?.toDate?.()?.toLocaleString() || ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Quick reply section */}
+                            {selectedTicket?.id === t.id && (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={ticketResponseText}
+                                  onChange={(e) => setTicketResponseText(e.target.value)}
+                                  placeholder="Type your reply..."
+                                  rows={2}
+                                  className="w-full p-2 rounded-lg border text-xs"
+                                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSubmitTicketReply();
+                                  }}
+                                  disabled={loading.submitting || !ticketResponseText.trim()}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                                  style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                >
+                                  <Send size={14} />
+                                  Send Reply
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
