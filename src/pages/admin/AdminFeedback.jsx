@@ -16,6 +16,7 @@ import {
   CheckCheck,
   ChevronDown,
   ChevronUp,
+  StickyNote,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 
@@ -54,6 +55,7 @@ export default function AdminFeedback() {
   const [ticketResponseText, setTicketResponseText] = useState('');
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [expandedTickets, setExpandedTickets] = useState({});
+  const [adminNote, setAdminNote] = useState('');
   const ticketUnsubRef = useRef(null);
 
   // Handle URL parameter for initial view
@@ -111,6 +113,45 @@ export default function AdminFeedback() {
     if (!selectedTicket || !ticketResponseText.trim()) return;
     await handleTicketReply(selectedTicket.id, ticketResponseText);
     setTicketResponseText('');
+  };
+
+  const handleAddAdminNote = async (ticketId) => {
+    if (!adminNote.trim()) return;
+    
+    try {
+      const noteData = {
+        note: adminNote,
+        timestamp: new Date(),
+        addedBy: 'admin',
+      };
+      
+      // Get current ticket
+      const ticketRef = await getTicketWithMessages(ticketId);
+      const currentNotes = ticketRef.adminNotes || [];
+      
+      // Update ticket with new note
+      await handleUpdateTicketStatus(ticketId, ticketRef.status, {
+        adminNotes: [...currentNotes, noteData]
+      });
+      
+      // Update local state
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(prev => ({
+          ...prev,
+          adminNotes: [...(prev.adminNotes || []), noteData]
+        }));
+      }
+      
+      setAdminNote('');
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Admin note added', type: 'success' } 
+      }));
+    } catch (err) {
+      console.error('Error adding admin note:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Failed to add note', type: 'error' } 
+      }));
+    }
   };
 
   const handleStatusChange = async (ticketId, newStatus) => {
@@ -538,28 +579,86 @@ export default function AdminFeedback() {
                             
                             {/* Quick reply section */}
                             {selectedTicket?.id === t.id && (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={ticketResponseText}
-                                  onChange={(e) => setTicketResponseText(e.target.value)}
-                                  placeholder="Type your reply..."
-                                  rows={2}
-                                  className="w-full p-2 rounded-lg border text-xs"
-                                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSubmitTicketReply();
-                                  }}
-                                  disabled={loading.submitting || !ticketResponseText.trim()}
-                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                                  style={{ backgroundColor: theme.primary, color: '#fff' }}
-                                >
-                                  <Send size={14} />
-                                  Send Reply
-                                </button>
+                              <div className="space-y-3">
+                                <div className="border-t pt-3" style={{ borderColor: theme.border }}>
+                                  <label className="text-xs font-semibold mb-2 block" style={{ color: theme.textLight }}>
+                                    Reply to User
+                                  </label>
+                                  <textarea
+                                    value={ticketResponseText}
+                                    onChange={(e) => setTicketResponseText(e.target.value)}
+                                    placeholder="Type your reply..."
+                                    rows={2}
+                                    className="w-full p-2 rounded-lg border text-xs mb-2"
+                                    style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSubmitTicketReply();
+                                    }}
+                                    disabled={loading.submitting || !ticketResponseText.trim()}
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                                    style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                  >
+                                    <Send size={14} />
+                                    Send Reply
+                                  </button>
+                                </div>
+                                
+                                {/* Admin Notes Section */}
+                                <div className="border-t pt-3" style={{ borderColor: theme.border }}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <StickyNote size={14} style={{ color: theme.warning }} />
+                                    <label className="text-xs font-semibold" style={{ color: theme.textLight }}>
+                                      Admin Notes (Internal Only)
+                                    </label>
+                                  </div>
+                                  
+                                  {/* Display existing notes */}
+                                  {selectedTicket?.adminNotes && selectedTicket.adminNotes.length > 0 && (
+                                    <div className="space-y-2 mb-3 max-h-32 overflow-y-auto">
+                                      {selectedTicket.adminNotes.map((note, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="p-2 rounded-lg text-xs"
+                                          style={{ backgroundColor: theme.warning + '10', border: `1px solid ${theme.warning}30` }}
+                                        >
+                                          <div className="whitespace-pre-wrap mb-1" style={{ color: theme.text }}>
+                                            {note.note}
+                                          </div>
+                                          <div className="text-[9px] opacity-60" style={{ color: theme.textLight }}>
+                                            {note.timestamp?.toDate?.()?.toLocaleString() || new Date(note.timestamp).toLocaleString()}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Add new note */}
+                                  <textarea
+                                    value={adminNote}
+                                    onChange={(e) => setAdminNote(e.target.value)}
+                                    placeholder="Add internal note (e.g., 'Fix applied, pending deployment', 'Bug reproduced', 'Waiting for more info')..."
+                                    rows={2}
+                                    className="w-full p-2 rounded-lg border text-xs mb-2"
+                                    style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddAdminNote(t.id);
+                                    }}
+                                    disabled={!adminNote.trim()}
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                                    style={{ backgroundColor: theme.warning + '20', color: theme.warning, border: `1px solid ${theme.warning}40` }}
+                                  >
+                                    <StickyNote size={14} />
+                                    Add Note
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>

@@ -473,6 +473,8 @@ exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurch
 exports.scheduledResearchReminders = onSchedule({
   schedule: '*/15 * * * *', // Every 15 minutes (0, 15, 30, 45 past each hour)
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
+  memory: '512MiB', // Increased from default 256MiB due to processing multiple users
+  timeoutSeconds: 540, // 9 minutes timeout (max for scheduled functions)
   secrets: ['RESEND_API_KEY']
 }, async (event) => {
   logger.info('🔬 Running scheduled research reminders (15-minute check)...');
@@ -630,10 +632,13 @@ exports.scheduledResearchReminders = onSchedule({
         // Check if we're within the same hour
         if (currentHour !== targetHour) return false;
         
-        // Check if we're within a 15-minute window
-        // This allows for the 15-minute scheduling intervals
-        const minuteDiff = Math.abs(currentMinute - targetMinute);
-        return minuteDiff < 15;
+        // Check if we're close to the target minute (within 15 minutes to catch the scheduled run)
+        // Round currentMinute to nearest 15-minute interval (0, 15, 30, 45)
+        const roundedCurrentMinute = Math.floor(currentMinute / 15) * 15;
+        const roundedTargetMinute = Math.floor(targetMinute / 15) * 15;
+        
+        // Only send if we're at the same 15-minute interval as the target time
+        return roundedCurrentMinute === roundedTargetMinute;
       };
       
       // Default AM notification: Send at user's default AM time if tasks exist
@@ -668,10 +673,13 @@ exports.scheduledResearchReminders = onSchedule({
       
       // Skip if it's not the right time to send
       if (!shouldSendNotification) {
+        logger.info(`⏭️ Skipping user ${userId}: Not the right time (current: ${currentHour}:${currentMinute}, target AM: ${amHour}:${amMinute}, target PM: ${pmHour}:${pmMinute})`);
         continue;
       }
       
       logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${todayPeptides.length} peptides, ${todaySupplements.length} supplements)`);
+      logger.info(`📍 User time: ${currentHour}:${currentMinute}, Rounded to: ${Math.floor(currentMinute / 15) * 15}`);
+
 
       // Send reminder notification with proper AM/PM template
       const notificationData = {
@@ -1835,7 +1843,7 @@ exports.overrideGhostWorkerRouting = ghostWorker.overrideGhostWorkerRouting;
 exports.testGhostWorkerOnTicket = ghostWorker.testGhostWorkerOnTicket;
 
 // Telegram integration
-exports.checkDailyBudget = telegramBot.checkDailyBudget;
+// exports.checkDailyBudget = telegramBot.checkDailyBudget; // DISABLED - no hourly alerts needed
 exports.sendDailyDigest = telegramBot.sendDailyDigest;
 exports.handleTelegramCallback = telegramBot.handleTelegramCallback;
 
@@ -3696,7 +3704,7 @@ exports.updateTicketStatus = onCall(
     cors: true
   },
   async (request) => {
-    const { ticketId, status, adminPassword } = request.data;
+    const { ticketId, status, adminPassword, adminNotes } = request.data;
 
     if (!ticketId || !status) {
       throw new Error('Ticket ID and status are required');
@@ -3724,6 +3732,11 @@ exports.updateTicketStatus = onCall(
         status: status,
         updatedAt: FieldValue.serverTimestamp()
       };
+      
+      // Add admin notes if provided
+      if (adminNotes) {
+        updateData.adminNotes = adminNotes;
+      }
 
       // When ticket is closed/resolved, mark as unread and set closedAt timestamp
       if (status === 'closed' || status === 'resolved') {

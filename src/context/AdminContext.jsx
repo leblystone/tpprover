@@ -447,10 +447,10 @@ export function AdminProvider({ children }) {
     }
   }, []);
 
-  const handleUpdateTicketStatus = useCallback(async (ticketId, newStatus) => {
+  const handleUpdateTicketStatus = useCallback(async (ticketId, newStatus, additionalData = {}) => {
     setLoading((prev) => ({ ...prev, submitting: true }));
     try {
-      await updateTicketStatus(ticketId, newStatus, ADMIN_PASSWORD);
+      await updateTicketStatus(ticketId, newStatus, ADMIN_PASSWORD, additionalData);
       await loadTickets();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket status updated', type: 'success' } }));
     } catch (err) {

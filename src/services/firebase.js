@@ -1325,7 +1325,7 @@ export async function getAllTickets() {
  * @param {string} adminPassword - Admin password
  * @returns {Promise<void>}
  */
-export async function updateTicketStatus(ticketId, status, adminPassword) {
+export async function updateTicketStatus(ticketId, status, adminPassword, additionalData = {}) {
   try {
     const functions = getFunctions();
     const updateStatus = httpsCallable(functions, 'updateTicketStatus');
@@ -1333,7 +1333,8 @@ export async function updateTicketStatus(ticketId, status, adminPassword) {
     const result = await updateStatus({
       ticketId,
       status,
-      adminPassword
+      adminPassword,
+      ...additionalData
     });
     
     if (!result.data.success) {
