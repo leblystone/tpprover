@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MessageSquare,
   MessagesSquare,
@@ -29,6 +29,7 @@ const statusFilters = [
 export default function AdminFeedback() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     feedback,
     tickets,
@@ -54,6 +55,16 @@ export default function AdminFeedback() {
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [expandedTickets, setExpandedTickets] = useState({});
   const ticketUnsubRef = useRef(null);
+
+  // Handle URL parameter for initial view
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam && ['feedback', 'open-tickets', 'closed-tickets'].includes(viewParam)) {
+      setSupportView(viewParam);
+      // Clear URL parameter after reading
+      setSearchParams({});
+    }
+  }, []);
 
   const filteredFeedback = statusFilter === 'all'
     ? feedback

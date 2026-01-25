@@ -243,10 +243,9 @@ export default function AdminAnalytics() {
           <>
             {/* Priority Action Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-4">
-              <button
-                type="button"
-                onClick={() => { setStatusFilter('new'); }}
-                className="p-3 rounded-lg border-2 hover:shadow-lg transition-all text-left"
+              <Link
+                to="/admin/feedback?view=feedback"
+                className="block p-3 rounded-lg border-2 hover:shadow-lg transition-all"
                 style={{
                   borderColor: theme.error,
                   backgroundColor: theme.error + '08',
@@ -264,12 +263,11 @@ export default function AdminAnalytics() {
                     {feedback.filter((f) => f.type === 'bug' && f.status === 'new').length}
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                type="button"
-                onClick={() => { setStatusFilter('new'); }}
-                className="p-3 rounded-lg border-2 hover:shadow-lg transition-all text-left"
+              <Link
+                to="/admin/feedback?view=open-tickets"
+                className="block p-3 rounded-lg border-2 hover:shadow-lg transition-all"
                 style={{
                   borderColor: theme.warning,
                   backgroundColor: theme.warning + '08',
@@ -287,7 +285,7 @@ export default function AdminAnalytics() {
                     {newTickets.length}
                   </div>
                 </div>
-              </button>
+              </Link>
             </div>
 
             {/* Status filters & tabs */}
