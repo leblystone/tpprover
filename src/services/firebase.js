@@ -979,9 +979,12 @@ export async function getUserByEmail(email) {
       displayName: userData.displayName,
       createdAt: userData.createdAt,
       lastActive: userData.lastActive,
+      lastLoginAt: userData.lastLoginAt,
       inviteCodeUsed: userData.inviteCodeUsed,
       isActive: userData.isActive,
-      subscription: userData.subscription
+      subscription: userData.subscription,
+      subscriptionStatus: userData.subscriptionStatus,
+      subscriptionType: userData.subscriptionType
     };
   } catch (error) {
     console.error('Failed to get user by email:', error);
@@ -1288,12 +1291,50 @@ export async function getAllTickets() {
     }
     
     const tickets = [];
+    const ticketsNeedingEnrichment = [];
+    
     querySnapshot.forEach((doc) => {
-      tickets.push({
+      const ticketData = {
         id: doc.id,
         ...doc.data()
-      });
+      };
+      tickets.push(ticketData);
+      
+      // Track tickets that don't have user account info
+      if (!ticketData.userAccountInfo && ticketData.userEmail) {
+        ticketsNeedingEnrichment.push(ticketData);
+      }
     });
+    
+    // Enrich tickets with user account info if missing
+    if (ticketsNeedingEnrichment.length > 0) {
+      console.log(`🔍 Enriching ${ticketsNeedingEnrichment.length} tickets with user account info...`);
+      
+      for (const ticket of ticketsNeedingEnrichment) {
+        try {
+          const userAccount = await getUserByEmail(ticket.userEmail);
+          
+          if (userAccount) {
+            // Find the ticket in the array and update it
+            const ticketIndex = tickets.findIndex(t => t.id === ticket.id);
+            if (ticketIndex !== -1) {
+              tickets[ticketIndex].userAccountInfo = {
+                userId: userAccount.id,
+                email: userAccount.email,
+                subscriptionStatus: userAccount.subscriptionStatus || 'none',
+                subscriptionType: userAccount.subscriptionType || null,
+                createdAt: userAccount.createdAt,
+                lastLoginAt: userAccount.lastLoginAt || null,
+                displayName: userAccount.displayName || null,
+              };
+            }
+          }
+        } catch (enrichError) {
+          // Silently continue if enrichment fails
+          console.warn(`⚠️ Failed to enrich ticket ${ticket.id}:`, enrichError.message);
+        }
+      }
+    }
     
     // Sort manually if we couldn't use orderBy
     if (tickets.length > 0 && !tickets[0].lastMessageAt) {
