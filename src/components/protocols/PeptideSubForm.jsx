@@ -6,10 +6,10 @@ import DosingScheduleEditor from './DosingScheduleEditor';
 import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan } from 'lucide-react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
-import { AppContext } from '../../context/AppContext';
+import { useAppContext } from '../../context/AppContext';
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
-    const { reconItems } = useContext(AppContext);
+    const { reconItems } = useAppContext();
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
     const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);

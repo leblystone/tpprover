@@ -1179,6 +1179,27 @@ exports.getAdminNotificationStats = onCall(async (request) => {
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
 
+// Generate email preview HTML (for admin panel - single source of truth)
+exports.generateEmailPreview = onCall(
+  { cors: true },
+  async (request) => {
+    const { template, variables } = request.data;
+    
+    if (!template) {
+      throw new Error('Template data is required');
+    }
+    
+    try {
+      // Use the same function that generates actual emails
+      const html = emailService.generateEmailHTML(template, variables || {});
+      return { success: true, html };
+    } catch (error) {
+      logger.error('❌ Error generating email preview:', error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
 // Quick email test function
 exports.quickEmailTest = quickEmailTest.quickEmailTest;
 

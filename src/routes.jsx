@@ -40,6 +40,7 @@ const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
 const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
+const AdminWorkQueue = lazyWithRetry(() => import('./pages/admin/AdminWorkQueue.jsx'), 'AdminWorkQueue')
 const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
@@ -105,6 +106,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/admin/analytics" replace /> },
       { path: 'analytics', element: <AdminAnalytics /> },
       { path: 'ghost-worker', element: <AdminGhostWorker /> },
+      { path: 'work-queue', element: <AdminWorkQueue /> },
       { path: 'contact', element: <AdminContact /> },
       { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },
       { path: 'users/lifetime', element: <AdminUsersLifetime /> },

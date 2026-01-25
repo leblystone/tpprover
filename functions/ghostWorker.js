@@ -170,46 +170,66 @@ Write a SHORT, scannable response using The Pep Planner Handbook guidelines:
 - Total response: 40-80 words MAX
 - No apologies ("sorry to hear")
 
-### SECTION 2: ADMIN NOTES (For business owner review - NOT sent to customer)
-Explain what needs to be done in PLAIN ENGLISH for a non-technical business owner:
-- What's actually happening (simple explanation)
-- What needs to be fixed (no code, no file paths, just what needs to change)
-- How to verify it's fixed (simple steps)
-- Anything to watch out for
+### SECTION 2: ADMIN NOTES (Cursor-Ready - FOR COPY/PASTE INTO CURSOR)
+Follow the EXACT format from The Pep Planner Handbook:
 
-⚠️ IMPORTANT: The admin is NOT a developer. Use plain language like you're explaining to a friend.
-- DON'T say: "Update Firestore security rules" 
-- DO say: "Need to adjust the database settings"
-- DON'T say: "Modify src/components/Dashboard.jsx"
-- DO say: "The dashboard display needs an update"
-- DON'T include code snippets or technical commands
+\`\`\`
+🐛 BUG: [Short descriptive title] OR 💡 FEATURE REQUEST: [title] OR ⚠️ URGENT: [title]
+
+📍 WHERE TO LOOK:
+@path/to/file.js (line XX-XX if you can guess)
+@another/related/file.jsx
+
+🔍 WHAT'S BROKEN:
+[Plain English - what user expected vs what happened]
+User expected: [X]
+User got: [Y]
+
+💡 CURSOR PROMPT:
+"[COPY-PASTE READY prompt the admin can paste directly into Cursor AI to fix this issue]"
+
+🧪 TEST WITH:
+[Specific steps or test data to verify the fix works]
+\`\`\`
+
+⚠️ CRITICAL: The CURSOR PROMPT section must be copy-paste ready! The admin will literally copy that text and paste it into Cursor AI.
 
 ## RESPONSE FORMAT:
 \`\`\`
 ## CUSTOMER RESPONSE:
-[Write the actual message that will be posted to the support ticket - friendly, no jargon, 2-4 paragraphs]
+[Empathy line if bug/issue]
+
+[Main response - friendly, concise, scannable]
+
+[Closing]
+
+The Pep Planner Team
 
 ---
 
 ## ADMIN NOTES (Plain English):
-### 📋 What's Happening
-[Simple explanation of the issue - like you're explaining to a friend]
 
-### 🔧 What Needs to Be Done
-[Plain language description of the fix needed - no code, no file paths]
+🐛 BUG: [Title]
 
-### ✅ How to Verify It's Fixed
-[Simple testing steps anyone can understand]
+📍 WHERE TO LOOK:
+@src/path/to/file.js (line XX)
 
-### ⚠️ Things to Watch For
-[Any concerns or follow-up items in plain language]
+🔍 WHAT'S BROKEN:
+[Explanation]
+
+💡 CURSOR PROMPT:
+"[Copy-paste ready prompt]"
+
+🧪 TEST WITH:
+[Test steps]
 \`\`\`
 
 ## CRITICAL RULES:
-- The CUSTOMER RESPONSE is what the customer sees - make it warm and helpful
-- The ADMIN NOTES are for a non-technical business owner - use PLAIN ENGLISH
-- NO code, NO file paths, NO developer jargon in either section
-- If you can't fully answer → acknowledge and say the team will investigate
+- The CUSTOMER RESPONSE is what the customer sees - warm and helpful
+- The ADMIN NOTES must include a CURSOR PROMPT the admin can copy/paste
+- Use @ symbol before file paths
+- Make the CURSOR PROMPT specific and actionable
+- Include concrete test steps
 
 Follow The Pep Planner Handbook for tone and communication style.`,
 
@@ -259,20 +279,81 @@ Write a SHORT, scannable response using The Pep Planner Handbook guidelines:
 - No apologies ("sorry to hear")
 - If payment/subscription issue, be extra reassuring
 
-### SECTION 2: ADMIN NOTES (For business owner review - NOT sent to customer)
-Explain what needs to be done in PLAIN ENGLISH for a non-technical business owner:
-- What's really going on (simple explanation)
-- What needs to be fixed or changed (no code, just describe what needs to happen)
-- How to verify it worked (simple testing steps)
-- Any risks or things to watch for (in plain language)
-- If manual action is needed, what exactly to do
+### SECTION 2: ADMIN NOTES (Cursor-Ready - FOR COPY/PASTE INTO CURSOR)
+Follow the EXACT format from The Pep Planner Handbook:
 
-⚠️ IMPORTANT: The admin is NOT a developer. Use plain language like you're explaining to a business partner.
-- DON'T say: "Update the Firestore document in the subscriptions collection"
-- DO say: "Need to update this customer's subscription record in the database"
-- DON'T say: "Deploy the Firebase Function with --force flag"
-- DO say: "Need to update the automated system"
-- DON'T say: "Check Stripe webhook logs for event stripe.invoice.payment_failed"
+\`\`\`
+🐛 BUG: [Short descriptive title] OR 💡 FEATURE REQUEST: [title] OR ⚠️ URGENT: [title]
+
+📍 WHERE TO LOOK:
+@path/to/file.js (line XX-XX if you can guess)
+@another/related/file.jsx
+@functions/cloudFunction.js (if backend)
+
+🔍 WHAT'S BROKEN:
+[Plain English - what user expected vs what happened]
+User expected: [X]
+User got: [Y]
+Root cause: [If you can determine it]
+
+💡 CURSOR PROMPT:
+"[COPY-PASTE READY prompt the admin can paste directly into Cursor AI to fix this issue. Be specific about files, logic, and what needs changing.]"
+
+🧪 TEST WITH:
+[Specific steps or test data to verify the fix works]
+
+⚠️ WATCH FOR:
+[Any risks, edge cases, or things to double-check]
+\`\`\`
+
+⚠️ CRITICAL: The CURSOR PROMPT section must be copy-paste ready! The admin will literally copy that text and paste it into Cursor AI.
+
+## RESPONSE FORMAT:
+\`\`\`
+## CUSTOMER RESPONSE:
+[Empathy line if bug/issue]
+
+[Main response - friendly, concise, scannable]
+
+[Closing]
+
+The Pep Planner Team
+
+---
+
+## ADMIN NOTES (Plain English):
+
+🐛 BUG: [Title] (or 💡 FEATURE REQUEST, ⚠️ URGENT)
+
+📍 WHERE TO LOOK:
+@src/path/to/file.js (line XX)
+@functions/backendFunction.js
+
+🔍 WHAT'S BROKEN:
+[Explanation]
+User expected: [X]
+User got: [Y]
+
+💡 CURSOR PROMPT:
+"[Copy-paste ready prompt with specific files and logic to fix]"
+
+🧪 TEST WITH:
+[Test steps]
+
+⚠️ WATCH FOR:
+[Risks or edge cases]
+\`\`\`
+
+## CRITICAL RULES:
+- The CUSTOMER RESPONSE is what the customer sees - warm and helpful, NO jargon
+- The ADMIN NOTES must include a detailed CURSOR PROMPT the admin can copy/paste
+- Use @ symbol before file paths (helps Cursor find the files)
+- Make the CURSOR PROMPT specific: which files, what logic, what to change
+- Include concrete test steps
+- For payment/subscription issues, be extra thorough in CURSOR PROMPT
+- If manual admin action needed, explain it clearly in the prompt
+
+Follow The Pep Planner Handbook for tone and communication style.
 - DO say: "Check the payment system logs to see why the payment failed"
 - DON'T include code snippets, file paths, or commands
 

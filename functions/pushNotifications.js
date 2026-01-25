@@ -54,7 +54,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
       },
       android: {
         notification: {
-          icon: 'ic_notification',
+          icon: 'ic_stat_notification',
           color: '#A3B18A',
           sound: 'default'
         }

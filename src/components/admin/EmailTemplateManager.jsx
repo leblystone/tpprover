@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users, Loader2 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc, deleteField } from 'firebase/firestore';
@@ -398,6 +398,11 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
+  
+  // Backend preview state - single source of truth
+  const [previewHtml, setPreviewHtml] = useState('<div style="padding: 40px; text-align: center; color: #666;">Loading preview...</div>');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewDebounceRef = useRef(null);
 
   // Available variables for each template type
   const templateVariables = {
@@ -548,6 +553,62 @@ export default function EmailTemplateManager({ theme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetch preview HTML from backend (single source of truth)
+  const fetchPreviewFromBackend = useCallback(async (template, templateColors) => {
+    if (!template) return;
+    
+    setPreviewLoading(true);
+    try {
+      const functions = getFunctions();
+      const generateEmailPreview = httpsCallable(functions, 'generateEmailPreview');
+      
+      // Add colors to template for backend generation
+      const templateWithColors = {
+        ...template,
+        colors: templateColors
+      };
+      
+      const result = await generateEmailPreview({ 
+        template: templateWithColors,
+        variables: { userName: 'Preview User', userEmail: 'preview@example.com' }
+      });
+      
+      if (result.data?.success && result.data?.html) {
+        setPreviewHtml(result.data.html);
+      } else {
+        console.error('❌ Preview generation failed:', result.data?.error);
+        setPreviewHtml(`<div style="padding: 40px; text-align: center; color: #dc2626;">Preview generation failed: ${result.data?.error || 'Unknown error'}</div>`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching preview:', error);
+      setPreviewHtml(`<div style="padding: 40px; text-align: center; color: #dc2626;">Error loading preview: ${error.message}</div>`);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, []);
+
+  // Debounced preview fetch - updates when template or colors change
+  useEffect(() => {
+    // Clear any existing timeout
+    if (previewDebounceRef.current) {
+      clearTimeout(previewDebounceRef.current);
+    }
+    
+    // Debounce the preview fetch (500ms delay)
+    previewDebounceRef.current = setTimeout(() => {
+      if (currentTemplate) {
+        fetchPreviewFromBackend(currentTemplate, colors);
+      }
+    }, 500);
+    
+    // Cleanup on unmount
+    return () => {
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current);
+      }
+    };
+  }, [currentTemplate, colors, fetchPreviewFromBackend]);
+
   // Save templates to Firestore (and localStorage)
   const saveTemplates = async () => {
     console.log('🔵 Save Templates Button Clicked!');
@@ -600,8 +661,8 @@ export default function EmailTemplateManager({ theme }) {
             }
           });
           
-          // Save WITHOUT merge to completely replace the document
-          await setDoc(doc(db, 'emailTemplates', key), templateToSave);
+          // Save with merge: true to allow deleteField() to work
+          await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
           console.log(`    ✅ Saved: ${key}`);
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
@@ -926,18 +987,17 @@ export default function EmailTemplateManager({ theme }) {
     `;
   };
 
-  // Generate preview HTML - always from simple fields
-  const generatePreviewHTML = () => {
-    return generateHTMLFromTemplate(currentTemplate);
-  };
-
-  // Copy HTML to clipboard
+  // Copy HTML to clipboard (uses backend-generated HTML)
   const copyHTML = () => {
-    const html = generatePreviewHTML();
-    navigator.clipboard.writeText(html);
+    navigator.clipboard.writeText(previewHtml);
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { message: '📋 HTML copied to clipboard!', type: 'success' }
     }));
+  };
+
+  // Manual refresh preview button
+  const refreshPreview = () => {
+    fetchPreviewFromBackend(currentTemplate, colors);
   };
 
   // Send custom announcement to all users
@@ -1524,15 +1584,31 @@ export default function EmailTemplateManager({ theme }) {
         {/* Right: Preview */}
         <div className="sticky top-4">
           <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: theme.text }}>
-              👁️ Preview
+            <h3 className="text-xs font-semibold mb-2 flex items-center justify-between" style={{ color: theme.text }}>
+              <span className="flex items-center gap-1">
+                👁️ Preview
+                {previewLoading && (
+                  <Loader2 size={12} className="animate-spin ml-1" style={{ color: theme.primary }} />
+                )}
+              </span>
+              <button
+                onClick={refreshPreview}
+                className="text-xs px-2 py-0.5 rounded hover:opacity-80"
+                style={{ color: theme.primary }}
+                title="Refresh preview"
+              >
+                ↻
+              </button>
             </h3>
             <iframe
-              srcDoc={generatePreviewHTML()}
+              srcDoc={previewHtml}
               className="w-full rounded-lg border"
-              style={{ height: '600px', borderColor: theme.border }}
+              style={{ height: '600px', borderColor: theme.border, opacity: previewLoading ? 0.6 : 1 }}
               title="Email Preview"
             />
+            <p className="text-xs mt-1 text-center" style={{ color: theme.textLight }}>
+              ✅ Preview generated from backend — what you see is what gets sent
+            </p>
           </div>
         </div>
       </div>

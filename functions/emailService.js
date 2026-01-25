@@ -870,36 +870,97 @@ exports.generateEmailHTML = generateEmailHTML;
  * Generate default HTML from template data
  */
 function generateDefaultHTML(template, colors) {
-  // Use Firebase Storage URL if available, otherwise fallback to domain
-  // Firebase Storage is more trusted by email clients than regular domains
-  const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
-  // Try Firebase Storage first (most reliable for email clients), then domain
-  const LOGO_URL = process.env.LOGO_URL || `https://thepepplanner.app/tpp_logo.png`;
+  // SYNCED WITH ADMIN PANEL - EmailTemplateManager.jsx generateHTMLFromTemplate()
+  // Last sync: January 25, 2026
+  const LOGO_URL = process.env.LOGO_URL || 'https://thepepplanner.app/tpp_logo.png';
+  
+  // Generate features HTML if features exist
+  const featuresHTML = template.features && template.features.length > 0 ? `
+      <!-- Section: Features (one card with bullets) -->
+      <div style="background-color: #EFF2EE; padding: 24px 32px 40px 32px;">
+        <div style="background-color: #FFFFFF; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
+          <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">What's waiting for you:</h2>
+          <div style="text-align: left;">
+            ${template.features.map(feature => {
+              const parts = feature.includes(' – ') ? feature.split(' – ') : [feature, ''];
+              const title = parts[0];
+              const desc = parts[1] || '';
+              return `
+                <div style="margin-bottom: 16px;">
+                  <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                    <tr>
+                      <td valign="top" style="padding-right: 12px;">
+                        <span style="color: ${colors.primary}; font-size: 18px; line-height: 1.2;">✓</span>
+                      </td>
+                      <td>
+                        <p style="margin: 0; font-size: 15px; font-weight: 600; color: ${colors.text};">${title}</p>
+                        ${desc ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: ${colors.textLight}; line-height: 1.5;">${desc}</p>` : ''}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      ` : '';
+
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: ${colors.sage};">
-  <div style="background-color: ${colors.sage}; padding: 20px 0;">
-    <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-      <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
-        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
-          <img src="${LOGO_URL}" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)); display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-        </a>
-        <div style="display: none; color: ${colors.sage}; font-size: 24px; font-weight: 700; margin-bottom: 12px;">The Pep Planner</div>
-        <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Organize Your Research</div>
+<body style="margin: 0; padding: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #F5F5F0;">
+  <!-- Full-width background wrapper -->
+  <div style="background-color: #F5F5F0; padding: 40px 20px;">
+    <!-- Main container -->
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);">
+      
+      <!-- Header - Matching Landing Page Topbar -->
+      <div style="background-color: #FFFFFF; padding: 16px 32px; border-bottom: 1px solid #DDE6DE;">
+        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+          <tr>
+            <!-- Left: Tagline (centered in column) -->
+            <td width="33%" valign="middle" align="center">
+              <p style="margin: 0; font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #9CA3AF; font-family: 'Poppins', sans-serif; text-align: center;">
+                Organize Your Research
+              </p>
+            </td>
+            
+            <!-- Center: Logo -->
+            <td width="34%" valign="middle" align="center">
+              <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+                <img src="${LOGO_URL}" alt="The Pep Planner" style="width: 64px; height: 64px; border-radius: 50%; display: block; margin: 0 auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);" onerror="this.style.display='none';" />
+              </a>
+            </td>
+            
+            <!-- Right: Dashboard Link -->
+            <td width="33%" valign="middle" align="right">
+              <a href="https://thepepplanner.app/app/dashboard" style="color: ${colors.primary}; text-decoration: none; font-size: 13px; font-weight: 500; font-family: 'Poppins', sans-serif;">
+                Dashboard →
+              </a>
+            </td>
+          </tr>
+        </table>
       </div>
-      <div style="padding: 40px 32px; color: ${colors.text};">
-        <h1 style="color: ${colors.primary}; font-size: 28px; margin: 0 0 16px 0;">${template.heading || 'Email'}</h1>
+      
+      <!-- Section: Intro (light off-white) -->
+      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
+        <h1 style="color: ${colors.primary}; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; line-height: 1.3; text-align: center;">
+          ${(template.heading || 'Welcome!').replace(/🥼/g, '')}
+        </h1>
         
-        <p style="font-size: 16px; line-height: 1.6; color: ${colors.text};">
+        <p style="font-size: 16px; line-height: 1.8; color: ${colors.text}; margin: 0 0 24px 0; text-align: center;">
           ${template.greeting || ''}
         </p>
         
-        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.text};">${template.mainMessage.replace(/\n/g, '<br>')}</p>` : ''}
+        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; margin: 0 0 32px 0; text-align: center;">${template.mainMessage.replace(/\n/g, '<br>')}</p>` : ''}
 
         ${template.ctaText ? `
         <center style="margin: 24px 0 0 0;">
@@ -914,9 +975,15 @@ function generateDefaultHTML(template, colors) {
           </table>
         </center>
         ` : ''}
+      </div>
+
+      ${featuresHTML}
+
+      <!-- Section: Post-CTA Note + Signature (light off-white) -->
+      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
 
         ${template.highlightTitle ? `
-        <div style="background-color: #F0FDF4; border-left: 4px solid ${colors.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <div style="background-color: #FFFFFF; border-left: 4px solid ${colors.secondary}; padding: 16px; margin: 0 0 32px 0; border-radius: 12px;">
           <p style="margin: 0; font-weight: 600; color: ${colors.primary};">${template.highlightTitle}</p>
           <p style="margin: 8px 0 0 0; font-size: 14px; color: ${colors.textLight};">
             ${template.highlightMessage || ''}
@@ -925,24 +992,31 @@ function generateDefaultHTML(template, colors) {
         ` : ''}
 
         ${template.postCtaNote ? `
-        <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; font-style: italic; text-align: center; margin: 16px 0 24px 0;">
-          <strong>${template.postCtaNote}</strong>
+        <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; text-align: center; margin: 0 0 32px 0; font-style: italic;">
+          ${template.postCtaNote}
         </p>
         ` : ''}
 
-        <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 0;">
-          Happy Researching! ✌🏻,<br>
-          <strong style="color: ${colors.primary};">The Pep Planner Team</strong>
-        </p>
+        <div style="text-align: center; padding-top: 0;">
+          <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin: 0;">
+            Happy researching,
+          </p>
+          <p style="font-size: 16px; font-weight: 700; color: ${colors.primary}; margin: 4px 0 0 0;">
+            The Pep Planner Team
+          </p>
+        </div>
       </div>
+      
+      <!-- Footer - Simple Copyright -->
       <div style="background-color: #2F3B3A; padding: 32px; text-align: center;">
         <p style="margin: 0 0 8px 0; font-size: 13px; color: #A0B9B3;">
           © ${new Date().getFullYear()} The Pep Planner. All rights reserved.
         </p>
-        <p style="margin: 0; font-size: 12px; color: #D1D9D6; font-style: italic;">
+        <p style="margin: 0; font-size: 16px; color: #D1D9D6; font-family: 'Cedarville Cursive', cursive; font-style: italic;">
           — for the love of research
         </p>
       </div>
+      
     </div>
   </div>
 </body>

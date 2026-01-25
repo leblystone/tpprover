@@ -16,6 +16,7 @@ export const adminPrimaryTabs = [
       { id: 'feedback', label: 'Daily Work', path: `${ADMIN_BASE}/feedback` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/analytics` },
       { id: 'ghost-worker', label: 'Ghost Worker', path: `${ADMIN_BASE}/ghost-worker` },
+      { id: 'work-queue', label: '📋 Work Queue', path: `${ADMIN_BASE}/work-queue` },
     ],
   },
   {
@@ -74,6 +75,7 @@ export const adminDefaultPath = `${ADMIN_BASE}/analytics`;
 export const adminPaths = {
   analytics: `${ADMIN_BASE}/analytics`,
   ghostWorker: `${ADMIN_BASE}/ghost-worker`,
+  workQueue: `${ADMIN_BASE}/work-queue`,
   usersSubscriptions: `${ADMIN_BASE}/users/subscriptions`,
   usersLifetime: `${ADMIN_BASE}/users/lifetime`,
   usersAnnual: `${ADMIN_BASE}/users/annual`,

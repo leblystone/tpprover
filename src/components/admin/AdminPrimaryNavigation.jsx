@@ -52,7 +52,7 @@ export default function AdminPrimaryNavigation({ activeTab, setActiveTab, theme 
     const tabGroups = {
       dashboard: ['analytics'],
       users: ['allUsers', 'subscriptions', 'gifts'],
-      support: ['contact', 'feedback', 'feedback-new', 'feedback-resolved', 'tickets', 'tickets-open', 'tickets-closed', 'ghost-worker'],
+      support: ['contact', 'feedback', 'feedback-new', 'feedback-resolved', 'tickets', 'tickets-open', 'tickets-closed', 'ghost-worker', 'work-queue'],
       content: ['glossary', 'ideas'],
       messages: ['pushNotifications', 'inAppNotifications', 'emails', 'emailTriggers'],
       settings: ['security', 'deletions', 'version', 'agreements']
