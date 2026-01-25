@@ -17,6 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   StickyNote,
+  X,
+  User,
+  Calendar,
+  CreditCard,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 
@@ -56,6 +60,7 @@ export default function AdminFeedback() {
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [expandedTickets, setExpandedTickets] = useState({});
   const [adminNote, setAdminNote] = useState('');
+  const [viewingUserAccount, setViewingUserAccount] = useState(null);
   const ticketUnsubRef = useRef(null);
 
   // Handle URL parameter for initial view
@@ -491,8 +496,13 @@ export default function AdminFeedback() {
                               </span>
                               <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
                               {t.userAccountInfo && (
-                                <span 
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setViewingUserAccount(t.userAccountInfo);
+                                  }}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold hover:opacity-80 transition-opacity"
                                   style={{ 
                                     backgroundColor: t.userAccountInfo.subscriptionStatus === 'active' ? theme.success + '20' : 
                                                      t.userAccountInfo.subscriptionStatus === 'canceled' ? theme.error + '20' :
@@ -501,10 +511,10 @@ export default function AdminFeedback() {
                                            t.userAccountInfo.subscriptionStatus === 'canceled' ? theme.error :
                                            theme.textLight
                                   }}
-                                  title={`User: ${t.userAccountInfo.subscriptionStatus} ${t.userAccountInfo.subscriptionType || ''}`}
+                                  title={`Click to view account: ${t.userAccountInfo.subscriptionStatus} ${t.userAccountInfo.subscriptionType || ''}`}
                                 >
                                   👤 {t.userAccountInfo.subscriptionType || t.userAccountInfo.subscriptionStatus}
-                                </span>
+                                </button>
                               )}
                               {!t.userAccountInfo && (
                                 <span 
@@ -785,6 +795,157 @@ export default function AdminFeedback() {
             </div>
           </div>
         )
+      )}
+
+      {/* User Account Modal */}
+      {viewingUserAccount && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingUserAccount(null)}
+        >
+          <div 
+            className="max-w-md w-full rounded-lg border shadow-xl"
+            style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: theme.border }}>
+              <div className="flex items-center gap-2">
+                <User size={20} style={{ color: theme.primary }} />
+                <h3 className="font-semibold" style={{ color: theme.text }}>User Account Details</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingUserAccount(null)}
+                className="p-1 rounded hover:opacity-70 transition-opacity"
+                style={{ color: theme.textLight }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Email */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                  <Mail size={12} className="inline mr-1" />
+                  Email
+                </label>
+                <p className="text-sm" style={{ color: theme.text }}>{viewingUserAccount.email}</p>
+              </div>
+
+              {/* Display Name */}
+              {viewingUserAccount.displayName && (
+                <div>
+                  <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                    <User size={12} className="inline mr-1" />
+                    Display Name
+                  </label>
+                  <p className="text-sm" style={{ color: theme.text }}>{viewingUserAccount.displayName}</p>
+                </div>
+              )}
+
+              {/* Subscription Status */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                  <CreditCard size={12} className="inline mr-1" />
+                  Subscription Status
+                </label>
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold"
+                    style={{ 
+                      backgroundColor: viewingUserAccount.subscriptionStatus === 'active' ? theme.success + '20' : 
+                                       viewingUserAccount.subscriptionStatus === 'canceled' ? theme.error + '20' :
+                                       viewingUserAccount.subscriptionStatus === 'trialing' ? theme.warning + '20' :
+                                       theme.textLight + '20',
+                      color: viewingUserAccount.subscriptionStatus === 'active' ? theme.success : 
+                             viewingUserAccount.subscriptionStatus === 'canceled' ? theme.error :
+                             viewingUserAccount.subscriptionStatus === 'trialing' ? theme.warning :
+                             theme.textLight
+                    }}
+                  >
+                    {viewingUserAccount.subscriptionStatus || 'none'}
+                  </span>
+                  {viewingUserAccount.subscriptionType && (
+                    <span 
+                      className="px-3 py-1.5 rounded-lg text-sm font-semibold"
+                      style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                    >
+                      {viewingUserAccount.subscriptionType}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Created */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                  <Calendar size={12} className="inline mr-1" />
+                  Account Created
+                </label>
+                <p className="text-sm" style={{ color: theme.text }}>
+                  {viewingUserAccount.createdAt?.toDate?.()?.toLocaleString() || 
+                   (viewingUserAccount.createdAt ? new Date(viewingUserAccount.createdAt).toLocaleString() : 'Unknown')}
+                </p>
+              </div>
+
+              {/* Last Login */}
+              {viewingUserAccount.lastLoginAt && (
+                <div>
+                  <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                    <Clock size={12} className="inline mr-1" />
+                    Last Login
+                  </label>
+                  <p className="text-sm" style={{ color: theme.text }}>
+                    {viewingUserAccount.lastLoginAt?.toDate?.()?.toLocaleString() || 
+                     new Date(viewingUserAccount.lastLoginAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {/* User ID */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: theme.textLight }}>
+                  User ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <code 
+                    className="text-xs px-2 py-1 rounded flex-1 font-mono"
+                    style={{ backgroundColor: theme.background, color: theme.text }}
+                  >
+                    {viewingUserAccount.userId}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewingUserAccount.userId);
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'User ID copied!', type: 'success' } }));
+                    }}
+                    className="p-1.5 rounded hover:opacity-80"
+                    style={{ color: theme.primary }}
+                    title="Copy user ID"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t" style={{ borderColor: theme.border }}>
+              <button
+                type="button"
+                onClick={() => setViewingUserAccount(null)}
+                className="w-full px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
