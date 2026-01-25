@@ -232,15 +232,15 @@ export default function AdminFeedback() {
               supportView === 'feedback' ? '' : 'opacity-60 hover:opacity-80'
             }`}
             style={{
-              backgroundColor: supportView === 'feedback' ? theme.primary + '20' : 'transparent',
-              color: supportView === 'feedback' ? theme.primary : theme.textLight,
-              border: `2px solid ${supportView === 'feedback' ? theme.primary : theme.border}`,
+              backgroundColor: supportView === 'feedback' ? theme.error + '20' : 'transparent',
+              color: supportView === 'feedback' ? theme.error : theme.textLight,
+              border: `2px solid ${supportView === 'feedback' ? theme.error : theme.border}`,
             }}
           >
-            <MessageSquare size={18} />
-            Feedback
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: supportView === 'feedback' ? theme.primary : theme.textLight + '30', color: supportView === 'feedback' ? '#fff' : theme.textLight }}>
-              {feedback.length}
+            <AlertTriangle size={18} />
+            Bugs
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: supportView === 'feedback' ? theme.error : theme.textLight + '30', color: supportView === 'feedback' ? '#fff' : theme.textLight }}>
+              {feedback.filter(f => f.type === 'bug').length}
             </span>
           </button>
           <button
@@ -256,7 +256,7 @@ export default function AdminFeedback() {
             }}
           >
             <MessagesSquare size={18} />
-            Open
+            Tickets
             <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: supportView === 'open-tickets' ? theme.warning : theme.textLight + '30', color: supportView === 'open-tickets' ? '#fff' : theme.textLight }}>
               {openTickets.length}
             </span>
