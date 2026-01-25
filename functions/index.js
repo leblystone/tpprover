@@ -3489,12 +3489,43 @@ exports.createSupportTicket = onCall(
 
       logger.info(`🎫 Generated ticket number: ${ticketNumber}`);
 
+      // Search for user account by email
+      let userAccountInfo = null;
+      try {
+        const usersSnapshot = await db.collection('users')
+          .where('email', '==', userEmail.toLowerCase().trim())
+          .limit(1)
+          .get();
+        
+        if (!usersSnapshot.empty) {
+          const userDoc = usersSnapshot.docs[0];
+          const userData = userDoc.data();
+          
+          userAccountInfo = {
+            userId: userDoc.id,
+            email: userData.email,
+            subscriptionStatus: userData.subscriptionStatus || 'none',
+            subscriptionType: userData.subscriptionType || null,
+            createdAt: userData.createdAt,
+            lastLoginAt: userData.lastLoginAt || null,
+            displayName: userData.displayName || null,
+          };
+          
+          logger.info(`✅ Found user account for ${userEmail}: ${userData.subscriptionStatus} (${userData.subscriptionType || 'none'})`);
+        } else {
+          logger.info(`ℹ️ No user account found for ${userEmail} - may be a new/anonymous user`);
+        }
+      } catch (userSearchError) {
+        logger.error(`⚠️ Error searching for user account:`, userSearchError);
+        // Continue without user info - don't fail ticket creation
+      }
+
       // Create ticket document
       const ticketRef = db.collection('supportTickets').doc();
       const ticketData = {
         ticketId: ticketRef.id,
         ticketNumber: ticketNumber, // Simple number like Z005
-        userId: userId || null,
+        userId: userId || userAccountInfo?.userId || null,
         userEmail: userEmail.toLowerCase().trim(),
         userName: userName || userEmail.split('@')[0],
         type: type, // 'bug', 'suggestion', 'general', 'support'
@@ -3504,7 +3535,8 @@ exports.createSupportTicket = onCall(
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         lastMessageAt: FieldValue.serverTimestamp(),
-        metadata: metadata || {}
+        metadata: metadata || {},
+        userAccountInfo: userAccountInfo, // Add user account info to ticket
       };
 
       await ticketRef.set(ticketData);

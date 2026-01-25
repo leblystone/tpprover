@@ -490,6 +490,31 @@ export default function AdminFeedback() {
                                 {t.userEmail}
                               </span>
                               <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                              {t.userAccountInfo && (
+                                <span 
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                  style={{ 
+                                    backgroundColor: t.userAccountInfo.subscriptionStatus === 'active' ? theme.success + '20' : 
+                                                     t.userAccountInfo.subscriptionStatus === 'canceled' ? theme.error + '20' :
+                                                     theme.textLight + '20',
+                                    color: t.userAccountInfo.subscriptionStatus === 'active' ? theme.success : 
+                                           t.userAccountInfo.subscriptionStatus === 'canceled' ? theme.error :
+                                           theme.textLight
+                                  }}
+                                  title={`User: ${t.userAccountInfo.subscriptionStatus} ${t.userAccountInfo.subscriptionType || ''}`}
+                                >
+                                  👤 {t.userAccountInfo.subscriptionType || t.userAccountInfo.subscriptionStatus}
+                                </span>
+                              )}
+                              {!t.userAccountInfo && (
+                                <span 
+                                  className="px-1.5 py-0.5 rounded text-[10px]"
+                                  style={{ backgroundColor: theme.textLight + '15', color: theme.textLight }}
+                                  title="No account found"
+                                >
+                                  👤 No account
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={(e) => {
