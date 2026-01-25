@@ -14,7 +14,8 @@ const DEFAULT_TEMPLATES = {
     mainMessage: "We built this tool as researchers, for researchers. Everything you need, all in one place.",
     ctaText: 'Get Started',
     ctaLink: 'https://thepepplanner.app/app/dashboard',
-    // No highlightTitle/highlightMessage for welcome email - keeps it clean
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
       '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
@@ -1344,22 +1345,64 @@ export default function EmailTemplateManager({ theme }) {
                 </div>
               </div>
 
-              {/* Features List */}
+              {/* Features Card Controls */}
               {(selectedTemplate === 'welcome' || selectedTemplate === 'verification' || selectedTemplate === 'lifetimeAccessGranted') && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
+                <div className="p-2 rounded-lg border mb-2" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                  {/* Show/Hide Toggle */}
+                  <div className="flex items-center justify-between mb-2">
                     <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
-                      Features
+                      Features Card
                     </label>
-                    <button
-                      onClick={addFeature}
-                      className="text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    >
-                      + Add
-                    </button>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={currentTemplate.showFeatures !== false}
+                        onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
+                        className="w-3 h-3 rounded"
+                      />
+                      <span className="text-[10px]" style={{ color: theme.text }}>
+                        {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
+                      </span>
+                    </label>
                   </div>
-                  {(currentTemplate.features || []).map((feature, index) => (
+                  
+                  {/* Features Title */}
+                  {currentTemplate.showFeatures !== false && (
+                    <>
+                      <div className="mb-2">
+                        <label className="block text-[10px] font-medium mb-0.5" style={{ color: theme.textLight }}>
+                          Card Title
+                        </label>
+                        <input
+                          type="text"
+                          value={currentTemplate.featuresTitle || "What's waiting for you:"}
+                          onChange={(e) => updateTemplate('featuresTitle', e.target.value)}
+                          placeholder="What's waiting for you:"
+                          className="w-full px-2 py-1 rounded border text-[10px] focus:outline-none focus:ring-1"
+                          style={{ 
+                            borderColor: theme.border,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.text
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Features List */}
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
+                          Features
+                        </label>
+                        <button
+                          onClick={addFeature}
+                          className="text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {currentTemplate.showFeatures !== false && (currentTemplate.features || []).map((feature, index) => (
                     <div key={index} className="flex gap-1 mb-1">
                       <input
                         type="text"

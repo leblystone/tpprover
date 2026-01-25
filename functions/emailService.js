@@ -874,15 +874,17 @@ function generateDefaultHTML(template, colors) {
   // Last sync: January 25, 2026
   const LOGO_URL = process.env.LOGO_URL || 'https://thepepplanner.app/tpp_logo.png';
   
-  // Generate features HTML if features exist - FULL WIDTH background
-  const featuresHTML = template.features && template.features.length > 0 ? `
+  // Generate features HTML if features exist AND showFeatures is not false - FULL WIDTH background
+  const showFeatures = template.showFeatures !== false;
+  const featuresTitle = template.featuresTitle || "What's waiting for you:";
+  const featuresHTML = showFeatures && template.features && template.features.length > 0 ? `
     </div>
   </div>
   <!-- Full-width features section background -->
   <div style="background-color: #EFF2EE; padding: 24px 0 40px 0;">
     <div style="max-width: 600px; margin: 0 auto; padding: 0 20px;">
       <div style="background-color: #FFFFFF; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-        <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">What's waiting for you:</h2>
+        <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">${featuresTitle}</h2>
         <div style="text-align: left;">
           ${template.features.map(feature => {
             const parts = feature.includes(' – ') ? feature.split(' – ') : [feature, ''];
