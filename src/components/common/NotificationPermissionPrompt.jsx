@@ -128,6 +128,17 @@ export default function NotificationPermissionPrompt({ theme }) {
       // Don't show if notifications are not supported
       if (!('Notification' in window)) return false;
       
+      // On native platforms, defer to NativeFirstLaunchPermission for first prompt
+      // This component is mainly for PWA/web users
+      if (Capacitor.isNativePlatform()) {
+        const firstLaunchShown = localStorage.getItem('tpprover_native_first_launch_permission_shown');
+        if (firstLaunchShown !== 'true') {
+          // Native first launch prompt hasn't been shown yet - let that handle it
+          console.log('📱 NotificationPermissionPrompt: Deferring to NativeFirstLaunchPermission on native platform');
+          return false;
+        }
+      }
+      
       // Check actual device permission status first
       const hasPermission = await checkActualPermissionStatus();
       if (hasPermission) {

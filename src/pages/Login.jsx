@@ -103,14 +103,10 @@ function validatePassword(password) {
 // markInviteUsed now handled by Firebase service
 
 export default function Login() {
-    console.log('🔍 Login component rendering...');
-    
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const appContext = useAppContext();
-    const setUser = appContext?.setUser ?? (() => {
-        console.warn('useAppContext() returned undefined - falling back to no-op setUser. Ensure AppProvider is mounted.');
-    });
+    const setUser = appContext?.setUser ?? (() => {});
     const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword } = useFirebase();
     const isTrialMode = searchParams.get('trial') === 'true';
     const isSignupMode = searchParams.get('signup') === 'true';
@@ -123,12 +119,6 @@ export default function Login() {
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     
-    console.log('🔍 Login state:', { 
-        isFirebaseLoading, 
-        hasFirebaseUser: !!firebaseUser, 
-        isTrialMode, 
-        isSignupMode 
-    });
     // Default to signup mode if coming from trial link or signup=true, otherwise login
     const [mode, setMode] = useState(isTrialMode || isSignupMode ? 'signup' : 'login'); // 'login' | 'signup'
     const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -163,23 +153,13 @@ export default function Login() {
         setShowIntro(false);
         try {
             localStorage.setItem('tpp_has_seen_intro', 'true');
-            console.log('✨ User completed intro - saved to localStorage');
-            console.log('🎯 Proceeding to login/signup screen');
         } catch (error) {
             console.error('❌ Failed to save intro state:', error);
         }
     };
     
-    // Log intro decision on mount for debugging
     useEffect(() => {
-        if (showIntro) {
-            console.log('🎬 Showing swipeable intro');
-            console.log('   Platform:', isNative() ? 'Native App' : isPWAInstalled() ? 'Installed PWA' : 'Browser');
-        } else {
-            const hasSeenIntro = localStorage.getItem('tpp_has_seen_intro');
-            console.log('⏭️ Skipping intro');
-            console.log('   Reason:', hasSeenIntro ? 'Already seen' : 'Browser user (not installed)');
-        }
+        // Intro screen logic
     }, []);
     
     // Check if user is already authenticated
@@ -188,7 +168,6 @@ export default function Login() {
             // DEVELOPMENT/TESTING: Check for force logout flag
             const forceLogout = localStorage.getItem('tpp_force_logout');
             if (forceLogout === 'true') {
-                console.log('🧪 DEVELOPMENT: Force logout detected, signing out user');
                 localStorage.removeItem('tpp_force_logout');
                 
                 // Clear all data and sign out
@@ -210,9 +189,6 @@ export default function Login() {
                 const normalizedFirebaseEmail = firebaseUser.email?.toLowerCase().trim();
                 
                 if (normalizedUrlEmail !== normalizedFirebaseEmail) {
-                    console.log('⚠️ Pre-granted email does not match logged-in user. Staying on login page.');
-                    console.log('📧 Pre-granted email:', normalizedUrlEmail);
-                    console.log('👤 Logged-in user:', normalizedFirebaseEmail);
                     // Don't redirect - let them sign up with the pre-granted email
                     // Clear the current user session so they can sign up with the pre-granted email
                     return;
@@ -236,13 +212,11 @@ export default function Login() {
         // Pre-fill email from URL parameter if provided
         if (emailFromUrl && !email) {
             setEmail(emailFromUrl);
-            console.log('📧 Pre-filled email from URL:', emailFromUrl);
         }
         
         // Show message if coming from pre-grant email
         if (isPreGranted && emailFromUrl) {
             setError('');
-            console.log('🎁 Pre-granted user detected:', emailFromUrl);
         }
     }, [firebaseUser, isFirebaseLoading, setUser, navigate, emailFromUrl, isPreGranted, email]);
 
@@ -250,14 +224,12 @@ export default function Login() {
     useEffect(() => {
         // Add global function for development testing
         window.forceLogout = () => {
-            console.log('🧪 DEVELOPMENT: Setting force logout flag');
             localStorage.setItem('tpp_force_logout', 'true');
             window.location.reload();
         };
         
         // Add global function to clear all data
         window.clearAllData = () => {
-            console.log('🧪 DEVELOPMENT: Clearing all localStorage data');
             clearAllLocalStorage();
         };
         
@@ -268,45 +240,11 @@ export default function Login() {
                 console.error('❌ Please provide an email address or fill in the email field');
                 return;
             }
-            console.log('🔍 Checking account status for:', emailAddr);
             try {
                 const status = await getAccountStatus(emailAddr);
-                console.log('📊 Account Status:', {
-                    'Exists in Auth': status.existsInAuth,
-                    'Exists in Firestore': status.existsInFirestore,
-                    'Has Password Auth': status.hasPassword,
-                    'Sign-in Methods': status.signInMethods,
-                    'Details': status.details,
-                    'Firestore Doc': status.firestoreDoc
-                });
-                
-                if (!status.existsInAuth && !status.existsInFirestore) {
-                    console.log('✅ Account does NOT exist in Auth or Firestore');
-                    console.log('   If Firebase still says "email already in use", this is likely a propagation delay.');
-                    console.log('   Firebase can take 2-5 minutes to fully delete an account.');
-                    console.log('   Solution: Wait a few minutes and try again, or contact support.');
-                }
-                
-                if (status.existsInAuth && !status.existsInFirestore) {
-                    console.warn('⚠️ ORPHANED ACCOUNT: Exists in Firebase Auth but not in Firestore!');
-                    console.warn('   This means the account was created but the Firestore document failed to save.');
-                }
                 
                 if (!status.existsInAuth && status.existsInFirestore) {
                     console.error('❌ ORPHANED ACCOUNT: Exists in Firestore but NOT in Firebase Auth!');
-                    console.error('   This means a database record exists but authentication was never set up.');
-                    console.error('   The user cannot log in because there are no credentials in Firebase Auth.');
-                    console.error('   Solution: Contact support to either:');
-                    console.error('   1. Create the Firebase Auth user for this email, OR');
-                    console.error('   2. Delete the orphaned Firestore document so the user can sign up properly.');
-                }
-                
-                if (status.existsInAuth && !status.hasPassword) {
-                    console.warn('⚠️ ACCOUNT HAS NO PASSWORD: User exists but password authentication is not set up.');
-                }
-                
-                if (status.existsInAuth && status.existsInFirestore && status.hasPassword) {
-                    console.log('✅ Account looks healthy - exists in both Auth and Firestore with password auth');
                 }
                 
                 return status;
@@ -327,36 +265,12 @@ export default function Login() {
                 return;
             }
             
-            console.log('🔍 Checking blocked account for:', emailAddr);
             try {
                 const { getFunctions, httpsCallable } = await import('firebase/functions');
                 const functions = getFunctions();
                 const checkBlockedAccount = httpsCallable(functions, 'checkAndCleanBlockedAccount');
                 
                 const result = await checkBlockedAccount({ email: emailAddr, adminPassword });
-                console.log('📊 Blocked Account Status:', result.data);
-                
-                if (result.data.existsInAuth) {
-                    console.log('✅ Account EXISTS in Firebase Auth');
-                    console.log('   User ID:', result.data.userId);
-                    console.log('   Disabled:', result.data.disabled);
-                    console.log('   Email Verified:', result.data.emailVerified);
-                } else {
-                    console.log('ℹ️ Account NOT found in Firebase Auth');
-                }
-                
-                if (result.data.existsInFirestore) {
-                    console.log('✅ Account EXISTS in Firestore');
-                    console.log('   Document ID:', result.data.firestoreId);
-                } else {
-                    console.log('ℹ️ Account NOT found in Firestore');
-                }
-                
-                console.log('💡', result.data.message);
-                if (result.data.canDelete) {
-                    console.log('🗑️ To delete this account, run:');
-                    console.log(`   window.deleteBlockedAccount('${emailAddr}', '${adminPassword}')`);
-                }
                 
                 return result.data;
             } catch (error) {
@@ -380,11 +294,9 @@ export default function Login() {
             
             const confirmDelete = confirm(`⚠️ Are you sure you want to delete the account for ${emailAddr}?\n\nThis will delete from Firebase Auth${deleteFirestore ? ' and Firestore' : ''}.\n\nThis action cannot be undone!`);
             if (!confirmDelete) {
-                console.log('❌ Deletion cancelled');
                 return;
             }
             
-            console.log('🗑️ Deleting blocked account for:', emailAddr);
             try {
                 const { getFunctions, httpsCallable } = await import('firebase/functions');
                 const functions = getFunctions();
@@ -395,12 +307,6 @@ export default function Login() {
                     adminPassword,
                     deleteFirestore 
                 });
-                
-                console.log('✅ Deletion Result:', result.data);
-                console.log('   Deleted from Auth:', result.data.deletedFromAuth ? 'Yes' : 'No');
-                console.log('   Deleted from Firestore:', result.data.deletedFromFirestore ? 'Yes' : 'No');
-                console.log('💡', result.data.message);
-                console.log('⏰ Wait 1-2 minutes for Firebase to propagate, then try creating the account again');
                 
                 return result.data;
             } catch (error) {
@@ -445,7 +351,6 @@ export default function Login() {
 
     const doLogin = async (recaptchaToken = null) => {
       try {
-        console.log('🔄 Step 1: Initializing login...');
         // Set flag to prevent auth token clearing during login
         sessionStorage.setItem('tpp_login_in_progress', 'true');
         
@@ -454,7 +359,6 @@ export default function Login() {
           sessionStorage.setItem('tpp_login_recaptcha_token', recaptchaToken);
         }
         
-        console.log('🔄 Step 2: Backing up existing data...');
         // CRITICAL FIX: Backup existing localStorage data before login
         const existingData = {};
         const dataKeys = [
@@ -484,20 +388,11 @@ export default function Login() {
           Array.isArray(existingData[key]) && existingData[key].length > 0
         );
         
-        if (hasExistingData) {
-          console.log('💾 Existing user data backed up');
-        }
-        
-        console.log('🔄 Step 3: Authenticating with Firebase...');
         const firebaseUser = await loginUser(email, password);
-        console.log('✅ Firebase authentication successful');
-        
-        console.log('🔄 Step 3.5: Checking for two-factor authentication...');
         // Check if 2FA is enabled for this user
         const twoFactorSettings = await getTwoFactorSettings(firebaseUser.uid, password);
         
         if (twoFactorSettings && twoFactorSettings.enabled && twoFactorSettings.method === 'authenticator' && twoFactorSettings.secret) {
-          console.log('🔐 Two-factor authentication enabled - requiring verification');
           // Store password temporarily for decryption
           sessionStorage.setItem('tpprover_user_password', password);
           
@@ -521,36 +416,30 @@ export default function Login() {
           return true; // Return true to prevent error, but don't navigate yet
         }
         
-        console.log('🔄 Step 4: Setting up encryption...');
         // Store password for encryption
         setFirebasePassword(password);
         
-        console.log('🔄 Step 5: Checking founder status...');
         // Check existing founder status for returning users
         try {
           const isFounder = await getUserFounderStatus(firebaseUser.uid);
           if (isFounder) {
             localStorage.setItem('tpprover_is_founder', 'true');
-            console.log('👑 Founder status confirmed');
           }
         } catch (error) {
           console.error('Error checking existing founder status:', error);
         }
         
-        console.log('🔄 Step 6: Checking beta tester status...');
         // Check Firestore for beta tester status (from manual admin grants)
         try {
           const { checkLifetimeAccessFirestore } = await import('../services/firebase');
           const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
           if (lifetimeAccess && lifetimeAccess.metadata?.isBetaTester) {
             localStorage.setItem('tpprover_is_tester', 'true');
-            console.log('🧪 Beta tester status synced from Firestore');
           }
         } catch (error) {
           console.error('Error checking beta tester status:', error);
         }
 
-        console.log('🔄 Step 7: Setting up user context...');
         // Set user in app context  
         let user = { 
           email: firebaseUser.email, 
@@ -561,12 +450,7 @@ export default function Login() {
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨 SECURITY: User change detected during login!');
-          console.log('  Previous user:', lastUserEmail);
-          console.log('  Current user:', user.email);
-          
           clearAllUserData();
-          console.log('✅ Confirmed: Account data cleared for new user');
         }
         
         // Update last user email
@@ -594,14 +478,11 @@ export default function Login() {
           }
         }
         
-        console.log('🔄 Step 8: Storing user data...');
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         
-        console.log('🔄 Step 9: Setting auth token...');
         // Set auth token  
         try {
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
-          console.log('🔑 Auth token set');
         } catch (e) {
           console.error('❌ Failed to set auth token:', e);
         }
@@ -611,11 +492,8 @@ export default function Login() {
         // DON'T create trial subscriptions on login - only on signup!
         // Existing users should keep their original trial subscription
         
-        console.log('🔄 Step 10: Restoring backed up data...');
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
         if (hasExistingData) {
-          console.log('💾 Restoring backed up data to prevent data loss...');
-          
           // Store backup for potential recovery
           localStorage.setItem('tpprover_data_backup', JSON.stringify(existingData));
           
@@ -631,22 +509,18 @@ export default function Login() {
         // CRITICAL: Restore sample data flags regardless of whether there's existing data
         if (sampleDataCleared) {
           localStorage.setItem('tpprover_sample_data_cleared', sampleDataCleared);
-          console.log('💾 Restored sampleDataCleared flag:', sampleDataCleared);
         }
         if (sampleDataClearedAt) {
           localStorage.setItem('tpprover_sample_data_cleared_at', sampleDataClearedAt);
-          console.log('💾 Restored sampleDataClearedAt timestamp:', sampleDataClearedAt);
         }
         if (sampleBannerDismissed) {
           localStorage.setItem('tpprover_sample_banner_dismissed', sampleBannerDismissed);
         }
         
-        console.log('🔄 Step 11: Setting user context...');
         setUser(user);
         
         // Check if this login has a lifetime code to redeem (upgrade existing account)
         if (lifetimeCode) {
-          console.log('🎁 Lifetime code detected during login, upgrading account...');
           try {
             const { grantLifetimeAccessFirestore } = await import('../services/firebase');
             const { doc, updateDoc } = await import('firebase/firestore');
@@ -659,7 +533,6 @@ export default function Login() {
               'Lifetime Kit Redemption (Login Upgrade)',
               'lifetime-kit'
             );
-            console.log('✅ Lifetime access granted to existing account!');
             
             // Mark code as used
             try {
@@ -670,7 +543,6 @@ export default function Login() {
                 usedByUid: firebaseUser.uid,
                 usedAt: new Date().toISOString()
               });
-              console.log('✅ Lifetime code marked as used:', lifetimeCode);
             } catch (codeError) {
               console.error('⚠️ Failed to mark code as used:', codeError);
             }
@@ -687,7 +559,6 @@ export default function Login() {
               currentPeriodEnd: null,
             };
             localStorage.setItem('tpprover_subscription', JSON.stringify(lifetimeSubscription));
-            console.log('💾 Lifetime subscription saved to localStorage');
             
             // CRITICAL: Trigger subscription refresh
             window.dispatchEvent(new CustomEvent('subscription:updated', { 
@@ -703,7 +574,6 @@ export default function Login() {
                   window.dispatchEvent(new CustomEvent('subscription:updated', { 
                     detail: { subscription: refreshedSubscription } 
                   }));
-                  console.log('✅ Subscription refreshed from cloud after lifetime grant');
                 }
               } catch (err) {
                 console.error('⚠️ Failed to refresh subscription from cloud:', err);
@@ -717,7 +587,6 @@ export default function Login() {
         
         // Check if this login has an annual code to redeem (upgrade existing account)
         if (annualCode) {
-          console.log('📅 Annual code detected during login, upgrading account...');
           try {
             const { grantAnnualAccessFirestore } = await import('../services/firebase');
             const { doc, updateDoc } = await import('firebase/firestore');
@@ -735,7 +604,6 @@ export default function Login() {
               'Annual Kit Redemption (Login Upgrade)',
               'annual-kit'
             );
-            console.log('✅ Annual access granted to existing account!');
             
             // Mark code as used
             try {
@@ -746,7 +614,6 @@ export default function Login() {
                 usedByUid: firebaseUser.uid,
                 usedAt: new Date().toISOString()
               });
-              console.log('✅ Annual code marked as used:', annualCode);
             } catch (codeError) {
               console.error('⚠️ Failed to mark annual code as used:', codeError);
             }
@@ -763,7 +630,6 @@ export default function Login() {
               redeemedAt: now.toISOString(),
             };
             localStorage.setItem('tpprover_subscription', JSON.stringify(annualSubscription));
-            console.log('💾 Annual subscription saved to localStorage');
             
             // CRITICAL: Trigger subscription refresh
             window.dispatchEvent(new CustomEvent('subscription:updated', { 
@@ -779,7 +645,6 @@ export default function Login() {
                   window.dispatchEvent(new CustomEvent('subscription:updated', { 
                     detail: { subscription: refreshedSubscription } 
                   }));
-                  console.log('✅ Subscription refreshed from cloud after annual grant');
                 }
               } catch (err) {
                 console.error('⚠️ Failed to refresh subscription from cloud:', err);
@@ -794,7 +659,6 @@ export default function Login() {
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
         
-        console.log('✅ Login complete! Navigating to dashboard...');
         // Small delay to ensure context is updated before navigation
         setTimeout(() => {
           startTransition(() => {
@@ -807,17 +671,13 @@ export default function Login() {
         // Clear login flag on error too
         sessionStorage.removeItem('tpp_login_in_progress');
         console.error('Login failed:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Full error object:', error);
         
         // Get account status for better error messages
         let accountStatus = null;
         try {
           accountStatus = await getAccountStatus(email);
-          console.log('🔍 Account status:', accountStatus);
         } catch (statusError) {
-          console.warn('Could not get account status:', statusError);
+          // Silent fail for account status check
         }
         
         if (error.code === 'auth/network-request-failed') {
@@ -878,40 +738,31 @@ export default function Login() {
         throw new Error('Invalid verification code. Please try again.');
       }
 
-      console.log('✅ Two-factor authentication verified');
-
       // Clear 2FA modal
       setShowTwoFactorModal(false);
       setPendingLoginData(null);
 
       // Continue with the rest of the login flow
-      console.log('🔄 Step 4: Setting up encryption...');
       setFirebasePassword(password);
-
-      console.log('🔄 Step 5: Checking founder status...');
       try {
         const isFounder = await getUserFounderStatus(firebaseUser.uid);
         if (isFounder) {
           localStorage.setItem('tpprover_is_founder', 'true');
-          console.log('👑 Founder status confirmed');
         }
       } catch (error) {
         console.error('Error checking existing founder status:', error);
       }
       
-      console.log('🔄 Step 6: Checking beta tester status...');
       try {
         const { checkLifetimeAccessFirestore } = await import('../services/firebase');
         const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
         if (lifetimeAccess && lifetimeAccess.metadata?.isBetaTester) {
           localStorage.setItem('tpprover_is_tester', 'true');
-          console.log('🧪 Beta tester status synced from Firestore');
         }
       } catch (error) {
         console.error('Error checking beta tester status:', error);
       }
 
-      console.log('🔄 Step 7: Setting up user context...');
       let user = { 
         email: firebaseUser.email, 
         name: firebaseUser.email.split('@')[0],
@@ -920,9 +771,7 @@ export default function Login() {
       
       const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
       if (lastUserEmail && lastUserEmail !== user.email) {
-        console.log('🚨 SECURITY: User change detected during login!');
         clearAllUserData();
-        console.log('✅ Confirmed: Account data cleared for new user');
       }
       
       localStorage.setItem('tpprover_last_user_email', user.email);
@@ -944,20 +793,15 @@ export default function Login() {
         }
       }
       
-      console.log('🔄 Step 8: Storing user data...');
       try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
       
-      console.log('🔄 Step 9: Setting auth token...');
       try {
         localStorage.setItem('tpprover_auth_token', 'firebase_token');
-        console.log('🔑 Auth token set');
       } catch (e) {
         console.error('❌ Failed to set auth token:', e);
       }
       
-      console.log('🔄 Step 10: Restoring backed up data...');
       if (hasExistingData) {
-        console.log('💾 Restoring backed up data to prevent data loss...');
         localStorage.setItem('tpprover_data_backup', JSON.stringify(existingData));
         Object.keys(existingData).forEach(key => {
           if (existingData[key]) {
@@ -976,12 +820,10 @@ export default function Login() {
         localStorage.setItem('tpprover_sample_banner_dismissed', sampleBannerDismissed);
       }
       
-      console.log('🔄 Step 11: Setting user context...');
       setUser(user);
       
       sessionStorage.removeItem('tpp_login_in_progress');
       
-      console.log('✅ Login complete! Navigating to dashboard...');
       // Small delay to ensure context is updated before navigation
       setTimeout(() => {
         startTransition(() => {
@@ -1022,7 +864,6 @@ export default function Login() {
       try {
         // CRITICAL: Set session flag FIRST to prevent AppContext interference
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
-        console.log('🔒 Signup process started - AppContext will not interfere');
         
         // Store reCAPTCHA token for server verification (if provided)
         if (recaptchaToken) {
@@ -1038,12 +879,10 @@ export default function Login() {
         localStorage.removeItem('tpprover_demo_seeded_at');
         // Clear welcome modal session flag for fresh signup
         sessionStorage.removeItem('tpp_welcome_shown');
-        console.log('🧹 Cleared previous demo data flags for fresh signup');
         
         // Set auth token IMMEDIATELY (before anything else)
         try { 
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
-          console.log('🔑 Auth token set to firebase_token (FIRST)');
         } catch (e) {
           console.error('❌ Failed to set auth token:', e);
         }
@@ -1059,18 +898,15 @@ export default function Login() {
         };
         try {
           localStorage.setItem('tpprover_user', JSON.stringify(tempUser));
-          console.log('👤 Pre-set user data for new signup');
         } catch (e) {
           console.error('❌ Failed to pre-set user data:', e);
         }
         
         // Create Firebase user
-        console.log('🔥 About to call registerUser...');
         let firebaseUser;
         try {
           const result = await registerUser(email, password, null);
           firebaseUser = result.user;
-          console.log('✅ Firebase user created successfully:', firebaseUser.email);
         } catch (regError) {
           console.error('❌ registerUser FAILED:', regError);
           console.error('❌ Error code:', regError.code);
@@ -1080,13 +916,11 @@ export default function Login() {
           if (regError.code === 'auth/email-already-in-use') {
             try {
               const accountStatus = await getAccountStatus(email);
-              console.log('🔍 Account status after signup failure:', accountStatus);
-              
               if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
                 console.warn('⚠️ Orphaned account detected: exists in Auth but not Firestore');
               }
             } catch (statusError) {
-              console.warn('Could not get account status:', statusError);
+              // Silent fail for account status check
             }
           }
           
@@ -1095,31 +929,23 @@ export default function Login() {
         
         // Store password for encryption
         setFirebasePassword(password);
-        console.log('🔐 Password set for encryption');
         
         // Check and assign founder status (first 100 users starting Nov 4, 2025)
-        console.log('🏁 About to check founder status...');
         try {
           const isFounder = await checkAndAssignFounderStatus(firebaseUser.uid);
-          console.log('🏁 Founder status check complete:', isFounder);
           if (isFounder) {
             localStorage.setItem('tpprover_is_founder', 'true');
           }
         } catch (error) {
           console.error('❌ Error checking founder status:', error);
         }
-        console.log('🏁 After founder status check');
         
         // Record agreement acceptance (non-blocking with timeout)
         try {
-          console.log('📝 Recording signup agreements for:', firebaseUser.email);
-          console.log('📝 Using Terms version:', AGREEMENT_VERSIONS.TERMS_OF_SERVICE);
-          console.log('📝 Using Privacy version:', AGREEMENT_VERSIONS.PRIVACY_POLICY);
-          
           // Add timeout to prevent hanging
           await Promise.race([
             (async () => {
-              const termsResult = await recordAgreement(
+              await recordAgreement(
                 AGREEMENT_TYPES.SIGNUP_TERMS,
                 AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
                 { 
@@ -1128,9 +954,8 @@ export default function Login() {
                 },
                 firebaseUser.email
               );
-              console.log('✅ Terms agreement recorded:', termsResult);
               
-              const privacyResult = await recordAgreement(
+              await recordAgreement(
                 AGREEMENT_TYPES.SIGNUP_PRIVACY,
                 AGREEMENT_VERSIONS.PRIVACY_POLICY,
                 { 
@@ -1139,7 +964,6 @@ export default function Login() {
                 },
                 firebaseUser.email
               );
-              console.log('✅ Privacy agreement recorded:', privacyResult);
             })(),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Agreement recording timeout')), 3000)
@@ -1166,18 +990,12 @@ export default function Login() {
         const isNewAccount = !lastUserEmail || lastUserEmail !== user.email;
         
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨 SECURITY: User change detected during signup!');
-          console.log('  Previous user:', lastUserEmail);
-          console.log('  New user:', user.email);
-          
           // Clear ALL user-specific data from localStorage
           clearAllUserData();
-          console.log('✅ Confirmed: Account data cleared for new user');
           
           // RE-SET auth token after clearing (it was cleared by clearAllUserData)
           try { 
             localStorage.setItem('tpprover_auth_token', 'firebase_token');
-            console.log('🔑 Auth token RE-SET after user change clear');
           } catch (e) {
             console.error('❌ Failed to re-set auth token:', e);
           }
@@ -1185,10 +1003,8 @@ export default function Login() {
         
         // Reset theme to default (sage) for new accounts
         if (isNewAccount) {
-          console.log('🎨 New account signup - resetting theme to default (sage)');
           try {
             localStorage.setItem('tpprover_theme', defaultThemeName);
-            console.log('✅ Theme reset to default:', defaultThemeName);
           } catch (error) {
             console.error('❌ Failed to reset theme for new account:', error);
           }
@@ -1201,7 +1017,6 @@ export default function Login() {
         
         // Check if this is a lifetime code redemption
         if (lifetimeCode) {
-          console.log('🎁 Lifetime code detected, granting lifetime access...');
           try {
             // Import lifetime access function
             const { grantLifetimeAccessFirestore } = await import('../services/firebase');
@@ -1215,7 +1030,6 @@ export default function Login() {
               'Lifetime Access Kit Redemption',
               'lifetime-kit'
             );
-            console.log('✅ Lifetime access granted successfully!');
             
             // Mark the code as used
             try {
@@ -1226,7 +1040,6 @@ export default function Login() {
                 usedByUid: firebaseUser.uid,
                 usedAt: new Date().toISOString()
               });
-              console.log('✅ Lifetime code marked as used:', lifetimeCode);
             } catch (codeError) {
               console.error('⚠️ Failed to mark code as used (but access was granted):', codeError);
               // Log more details for debugging
@@ -1262,13 +1075,11 @@ export default function Login() {
                     window.dispatchEvent(new CustomEvent('subscription:updated', { 
                       detail: { subscription: refreshedSubscription } 
                     }));
-                    console.log('✅ Subscription refreshed from cloud after lifetime grant');
                   }
                 } catch (err) {
                   console.error('⚠️ Failed to refresh subscription from cloud:', err);
                 }
               }, 1000);
-              console.log('💾 Lifetime subscription saved to localStorage');
             } catch (e) {
               console.error('❌ Failed to save lifetime to localStorage:', e);
             }
@@ -1279,7 +1090,6 @@ export default function Login() {
           }
         } else if (annualCode) {
           // Check if this is an annual code redemption
-          console.log('📅 Annual code detected, granting annual access...');
           try {
             // Import annual access function
             const { grantAnnualAccessFirestore } = await import('../services/firebase');
@@ -1298,7 +1108,6 @@ export default function Login() {
               'Annual Kit Redemption',
               'annual-kit'
             );
-            console.log('✅ Annual access granted successfully!');
             
             // Mark the code as used
             try {
@@ -1309,11 +1118,8 @@ export default function Login() {
                 usedByUid: firebaseUser.uid,
                 usedAt: new Date().toISOString()
               });
-              console.log('✅ Annual code marked as used:', annualCode);
             } catch (codeError) {
               console.error('⚠️ Failed to mark annual code as used (but access was granted):', codeError);
-              console.error('Code that failed:', annualCode);
-              console.error('Error details:', codeError.code, codeError.message);
             }
             
             // Create annual subscription in localStorage
@@ -1344,13 +1150,11 @@ export default function Login() {
                     window.dispatchEvent(new CustomEvent('subscription:updated', { 
                       detail: { subscription: refreshedSubscription } 
                     }));
-                    console.log('✅ Subscription refreshed from cloud after annual grant');
                   }
                 } catch (err) {
                   console.error('⚠️ Failed to refresh subscription from cloud:', err);
                 }
               }, 1000);
-              console.log('💾 Annual subscription saved to localStorage');
             } catch (e) {
               console.error('❌ Failed to save annual to localStorage:', e);
             }
@@ -1379,7 +1183,6 @@ export default function Login() {
             // CRITICAL: Save to localStorage FIRST (immediate fallback)
             try {
               localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
-              console.log('💾 Trial subscription saved to localStorage (fallback)');
             } catch (e) {
               console.error('❌ Failed to save trial to localStorage:', e);
             }
@@ -1393,9 +1196,7 @@ export default function Login() {
                   setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
                 )
               ]);
-              console.log('☁️ Trial subscription saved to cloud storage');
             } catch (cloudError) {
-              console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
               // Don't throw - localStorage has the fallback
             }
           } catch (error) {
@@ -1409,7 +1210,6 @@ export default function Login() {
             };
             try {
               localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
-              console.log('💾 Minimal trial subscription created in localStorage');
             } catch (e) {
               console.error('❌ CRITICAL: Cannot create trial subscription at all');
             }
@@ -1419,14 +1219,12 @@ export default function Login() {
         setUser(user);
         
         // Clear signup flag BEFORE navigating
-        console.log('✅ Clearing signup flag before navigation');
         sessionStorage.removeItem('tpp_signup_in_progress');
         
         // Give a tiny delay to ensure flag is cleared
         await new Promise(resolve => setTimeout(resolve, 50));
         
         // Navigate to dashboard
-        console.log('🚀 Navigating to dashboard');
         const activatedQuery = lifetimeCode ? '?lifetime_activated=true' : (annualCode ? '?annual_activated=true' : '');
         window.location.href = `/app/dashboard${activatedQuery}`;
         return true;
@@ -1439,20 +1237,12 @@ export default function Login() {
           // Get detailed account status
           try {
             const accountStatus = await getAccountStatus(email);
-            console.log('🔍 Account status on signup failure:', accountStatus);
-            console.log('🔍 Sign-in methods:', accountStatus.signInMethods);
-            console.log('🔍 Exists in Auth:', accountStatus.existsInAuth);
-            console.log('🔍 Exists in Firestore:', accountStatus.existsInFirestore);
-            console.log('🔍 Has password:', accountStatus.hasPassword);
             
             // If account doesn't exist in Auth but Firebase says email is in use,
             // it might be a recently deleted account, disabled account, or propagation delay
             if (!accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
               setError('This email was recently used. Please wait a few minutes and try again, or click "Try Logging In" below if you already have an account.');
               setShowTryLoginButton(true); // Show button to try logging in
-              console.warn('⚠️ Account appears deleted but Firebase still reports email in use');
-              console.warn('   This could be: propagation delay, disabled account, or account with no sign-in methods');
-              console.warn('   Recommendation: Try logging in first, or wait 10-15 minutes');
             } else if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
               setError('Account found but incomplete setup. Switching to login...');
               setTimeout(() => {
@@ -1513,15 +1303,13 @@ export default function Login() {
 
         try {
             setLoading(true);
-            console.log('🔐 Sending password reset email to:', email);
             
             // First check if account exists
             let accountStatus = null;
             try {
                 accountStatus = await getAccountStatus(email);
-                console.log('🔍 Account status for password reset:', accountStatus);
-            } catch (statusError) {
-                console.warn('Could not check account status:', statusError);
+                } catch (statusError) {
+                  // Silent fail for account status check
             }
             
             // Use our custom password reset function with SendGrid email templates
@@ -1532,7 +1320,6 @@ export default function Login() {
             const result = await requestPasswordReset({ email });
             
             if (result.data.success) {
-                console.log('✅ Custom password reset email sent successfully');
                 setError('');
                 setShowForgotPassword(false);
                 setShowPasswordResetModal(true);
@@ -1577,15 +1364,13 @@ export default function Login() {
         if (mode === 'login') {
             setLoading(true);
             try {
-                console.log('🔐 Starting login process...');
                 
                 // Execute reCAPTCHA for login
                 let recaptchaToken = null;
                 try {
                     recaptchaToken = await executeRecaptcha('login');
-                    console.log('✅ reCAPTCHA token obtained for login');
-                } catch (recaptchaError) {
-                    console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
+                    } catch (recaptchaError) {
+                      // Continue without reCAPTCHA token
                     // Continue without token - server will handle gracefully
                 }
                 
@@ -1600,10 +1385,8 @@ export default function Login() {
                 // CRITICAL FIX: Always reset loading state
                 // Navigation happens in startTransition, so we can safely reset here
                 if (!success) {
-                    console.log('❌ Login failed, resetting loading state');
                     setLoading(false);
                 } else {
-                    console.log('✅ Login successful, navigation in progress');
                     // Give navigation a moment to start, then reset loading
                     // This prevents the stuck loading state if navigation fails
                     setTimeout(() => setLoading(false), 100);
@@ -1631,9 +1414,8 @@ export default function Login() {
             let recaptchaToken = null;
             try {
                 recaptchaToken = await executeRecaptcha('signup');
-                console.log('✅ reCAPTCHA token obtained for signup');
-            } catch (recaptchaError) {
-                console.warn('⚠️ reCAPTCHA failed, continuing without token:', recaptchaError);
+                } catch (recaptchaError) {
+                  // Continue without reCAPTCHA token
                 // Continue without token - server will handle gracefully
             }
             
@@ -1651,7 +1433,6 @@ export default function Login() {
 
     // Show intro first if user hasn't seen it
     if (showIntro) {
-        console.log('📱 Showing intro screen');
         return (
             <SwipeableIntro
                 open={true}
@@ -1661,7 +1442,6 @@ export default function Login() {
         );
     }
 
-    console.log('📝 Rendering login/signup form');
     return (
         <>
             <style>{`

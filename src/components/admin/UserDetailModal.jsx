@@ -913,14 +913,12 @@ function SyncFromStripeButton({ user, theme }) {
 
     try {
       const userId = user.uid || user.id;
-      console.log('🔍 Syncing user:', userId, 'Full user object:', user);
       
       const { getFunctions, httpsCallable } = await import('firebase/functions');
       const functions = getFunctions();
       const syncFunction = httpsCallable(functions, 'manualSyncSubscription');
       
       const payload = { userId };
-      console.log('📤 Sending payload to function:', payload);
       
       const response = await syncFunction(payload);
       

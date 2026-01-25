@@ -171,7 +171,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           if (t.status === 'new' || t.status === 'in-progress') {
             visibleTicket = t;
             foundOpenTicket = true;
-            console.log('✅ Showing open ticket:', { id: t.id, status: t.status });
             break; // Open tickets take priority
           }
           
@@ -189,35 +188,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             const hoursSinceUpdated = updatedAt ? (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60) : null;
             
             if (shouldShow) {
-              console.log('✅ Showing closed ticket:', {
-                id: t.id,
-                status: t.status,
-                closedAt: closedAt?.toISOString() || 'undefined',
-                userReadAt: readAt?.toISOString() || 'undefined',
-                updatedAt: updatedAt?.toISOString() || 'undefined',
-                hoursSinceClosed: hoursSinceClosed?.toFixed(2) || 'N/A',
-                hoursSinceRead: hoursSinceRead?.toFixed(2) || 'N/A',
-                hoursSinceUpdated: hoursSinceUpdated?.toFixed(2) || 'N/A',
-                rawClosedAt: t.closedAt,
-                rawUserReadAt: t.userReadAt,
-                rawUpdatedAt: t.updatedAt
-              });
               if (!visibleTicket) {
                 visibleTicket = t; // Use first visible closed ticket
               }
             }
           }
-        }
-        
-        // Summary log
-        if (visibleTicket) {
-          console.log('📌 Support response visible:', { 
-            id: visibleTicket.id, 
-            status: visibleTicket.status,
-            isOpen: foundOpenTicket
-          });
-        } else {
-          console.log('✅ No support response to show (all tickets filtered out)');
         }
         
         setOpenTicket(visibleTicket || null);

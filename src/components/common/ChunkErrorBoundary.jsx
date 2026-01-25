@@ -92,14 +92,12 @@ class ChunkErrorBoundary extends React.Component {
         await safeReload(userId, 'chunk-error-boundary-cache-clear', true);
       } else {
         // No user, clear caches manually and reload
-        console.log('🧹 Clearing all caches...');
         
         // Clear all cache storage
         if ('caches' in window) {
           const cacheNames = await caches.keys();
           await Promise.all(
             cacheNames.map(cacheName => {
-              console.log(`🗑️ Deleting cache: ${cacheName}`);
               return caches.delete(cacheName);
             })
           );
@@ -109,7 +107,6 @@ class ChunkErrorBoundary extends React.Component {
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
           for (const registration of registrations) {
-            console.log('🗑️ Unregistering service worker');
             await registration.unregister();
           }
         }
@@ -117,7 +114,6 @@ class ChunkErrorBoundary extends React.Component {
         // Clear session storage flag
         window.sessionStorage.removeItem('page_has_been_force_refreshed');
 
-        console.log('✅ Cache cleared, reloading...');
         window.location.reload();
       }
     } catch (error) {

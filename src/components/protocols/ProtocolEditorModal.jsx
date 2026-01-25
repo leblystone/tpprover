@@ -64,10 +64,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             if (formData && (hasProtocolName || hasPeptides || hasNotes)) {
                 try {
                     if (protocol?.id) {
-                        console.log('🔄 Auto-saving existing protocol:', protocol.id);
                         // Event is dispatched by useAutoSave hook automatically for existing protocols
                     } else {
-                        console.log('🔄 Auto-saving new protocol draft');
                         // For new protocols, we don't auto-save to the protocols list yet
                         // Just keep the localStorage draft for now
                     }
@@ -75,11 +73,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     console.warn('Auto-save to protocols failed:', error);
                 }
             } else {
-                console.log('🚫 Skipping autosave - insufficient data:', {
-                    hasProtocolName,
-                    hasPeptides,
-                    hasNotes
-                });
+                // Insufficient data for auto-save - skip
             }
         }
     );
@@ -338,7 +332,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     };
 
     const handleDurationChange = (field, value) => {
-        console.log('🔢 Duration change:', { field, value, type: typeof value });
         
         setForm(prev => {
             // For count field, keep it simple - let the HTML5 number input handle validation
@@ -352,7 +345,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             // Update auto-save data
             updateFormData(newForm);
             
-            console.log('🔢 New duration:', newForm.duration);
             return newForm;
         });
     };

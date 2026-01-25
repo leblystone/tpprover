@@ -10,19 +10,18 @@ const DEFAULT_TEMPLATES = {
     name: 'Welcome Email',
     subject: 'Welcome to The Pep Planner!',
     heading: 'Welcome to The Pep Planner!',
-    greeting: "Hi there! We're thrilled to have you join our research community.",
+    greeting: "Hey there! Thanks for joining!",
     mainMessage: "We built this tool as researchers, for researchers. Everything you need, all in one place.",
     ctaText: 'Get Started',
     ctaLink: 'https://thepepplanner.app/app/dashboard',
-    highlightTitle: '🎁 Your Research Trial is Active!',
-    highlightMessage: 'Full access to all features. No credit card required.',
+    // No highlightTitle/highlightMessage for welcome email - keeps it clean
     features: [
-      'Create Custom Protocols – Build and manage research protocols',
-      'Track Your Progress – Calendar integration and task management',
-      'Reconstitution Calculator – Calculate dosages with precision',
-      'Inventory Management – Track orders, stockpile, and vendors',
-      'Research Notes – Document findings and observations',
-      'Data Analytics – Visualize trends and metrics'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   giftPurchaseConfirmation: {
@@ -611,12 +610,6 @@ export default function EmailTemplateManager({ theme }) {
 
   // Save templates to Firestore (and localStorage)
   const saveTemplates = async () => {
-    console.log('🔵 Save Templates Button Clicked!');
-    console.log('👤 Current user:', auth.currentUser?.email);
-    console.log('🔐 User authenticated:', !!auth.currentUser);
-    console.log('📧 Templates to save:', Object.keys(templates));
-    console.log('🎨 Colors to save:', colors);
-    
     // Check authentication first
     if (!auth.currentUser) {
       console.error('❌ User not authenticated - cannot save to Firestore');
@@ -628,14 +621,10 @@ export default function EmailTemplateManager({ theme }) {
     
     setIsSaving(true);
     try {
-      console.log('💾 Starting Firestore save operation...');
-      
       // Persist each template with embedded colors so backend can render consistently
       const entries = Object.entries(templates);
-      console.log(`📝 Saving ${entries.length} templates to Firestore...`);
       
       for (const [key, tpl] of entries) {
-        console.log(`  - Saving template: ${key} (${tpl.name})`);
         try {
           // Build template to save: include all current fields + colors
           // Remove html field entirely - we always generate from simple fields
@@ -663,7 +652,6 @@ export default function EmailTemplateManager({ theme }) {
           
           // Save with merge: true to allow deleteField() to work
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
-          console.log(`    ✅ Saved: ${key}`);
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
           throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
@@ -671,10 +659,8 @@ export default function EmailTemplateManager({ theme }) {
       }
       
       // Save branding colors separately too (optional)
-      console.log('🎨 Saving branding colors...');
       try {
         await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
-        console.log('  ✅ Branding colors saved');
       } catch (colorError) {
         console.error('  ❌ Failed to save branding colors:', colorError);
         throw new Error(`Failed to save branding colors: ${colorError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
@@ -682,9 +668,7 @@ export default function EmailTemplateManager({ theme }) {
 
       localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
       localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
-      console.log('💾 Templates also saved to localStorage');
     
-      console.log('✅ ALL TEMPLATES SAVED SUCCESSFULLY TO FIRESTORE!');
       setSaveSuccess(true);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '✅ Templates saved to Firestore!', type: 'success' }
@@ -696,9 +680,6 @@ export default function EmailTemplateManager({ theme }) {
       }, 2000);
     } catch (e) {
       console.error('❌ Failed to save templates to Firestore:', e);
-      console.error('❌ Error details:', e.message);
-      console.error('❌ Error code:', e.code);
-      console.error('❌ Full error object:', e);
       setSaveSuccess(false);
       
       // Provide more specific error messages
@@ -716,7 +697,6 @@ export default function EmailTemplateManager({ theme }) {
       }));
     } finally {
       setIsSaving(false);
-      console.log('🔵 Save operation completed');
     }
   };
 
@@ -733,19 +713,11 @@ export default function EmailTemplateManager({ theme }) {
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
 
       // Send specific template based on current selection WITH custom template data
-      console.log('📧 Calling testEmailSystem with:', {
-        testEmail: 'thepepplanner@gmail.com',
-        templateType: selectedTemplate,
-        hasTemplateData: !!currentTemplate
-      });
-      
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate,
         templateData: currentTemplate // Send the actual custom template
       });
-
-      console.log('📧 testEmailSystem response:', result.data);
 
       if (result.data && result.data.success) {
         setTestResult({ 
@@ -759,10 +731,6 @@ export default function EmailTemplateManager({ theme }) {
         const errorCode = result.data?.errorCode;
         
         console.error('❌ Email test failed:', detailedError);
-        console.error('❌ Error code:', errorCode);
-        console.error('❌ Full response:', result.data);
-        console.error('❌ Test details:', testDetails);
-        console.error('❌ Results object:', result.data?.results);
         
         // Show more detailed error message
         let displayError = detailedError || errorMsg;
@@ -777,12 +745,6 @@ export default function EmailTemplateManager({ theme }) {
       }
     } catch (error) {
       console.error('❌ Error sending test email:', error);
-      console.error('❌ Error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        stack: error.stack
-      });
       
       let errorMessage = 'Failed to send test email';
       if (error.code === 'functions/not-found') {
@@ -855,137 +817,9 @@ export default function EmailTemplateManager({ theme }) {
     updateTemplate('features', newFeatures);
   };
 
-  // Generate HTML from template fields (for simple mode) - V2 MODERN STYLE
-  const generateHTMLFromTemplate = (template) => {
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #F5F5F0;">
-  <!-- Full-width background wrapper -->
-  <div style="background-color: #F5F5F0; padding: 40px 20px;">
-    <!-- Main container -->
-    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);">
-      
-      <!-- Header - Matching Landing Page Topbar -->
-      <div style="background-color: #FFFFFF; padding: 16px 32px; border-bottom: 1px solid #DDE6DE;">
-        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-          <tr>
-            <!-- Left: Tagline (centered in column) -->
-            <td width="33%" valign="middle" align="center">
-              <p style="margin: 0; font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #9CA3AF; font-family: 'Poppins', sans-serif; text-align: center;">
-                Organize Your Research
-              </p>
-            </td>
-            
-            <!-- Center: Logo -->
-            <td width="34%" valign="middle" align="center">
-              <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
-                <img src="https://thepepplanner.app/tpp_logo.png" alt="The Pep Planner" style="width: 64px; height: 64px; border-radius: 50%; display: block; margin: 0 auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);" onerror="this.style.display='none';" />
-              </a>
-            </td>
-            
-            <!-- Right: Dashboard Link -->
-            <td width="33%" valign="middle" align="right">
-              <a href="https://thepepplanner.app/app/dashboard" style="color: ${colors.primary}; text-decoration: none; font-size: 13px; font-weight: 500; font-family: 'Poppins', sans-serif;">
-                Dashboard →
-              </a>
-            </td>
-          </tr>
-        </table>
-      </div>
-      
-      <!-- Section: Intro (light off-white) -->
-      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
-        <h1 style="color: ${colors.primary}; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; line-height: 1.3; text-align: center;">
-          ${(template.heading || 'Welcome to the Family!').replace(/🥼/g, '')}
-        </h1>
-        
-        <p style="font-size: 16px; line-height: 1.8; color: ${colors.text}; margin: 0 0 24px 0; text-align: center;">
-          ${template.greeting || ''}
-        </p>
-        
-        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; margin: 0 0 32px 0; text-align: center;">${template.mainMessage.replace(/\n/g, '<br>')}</p>` : ''}
-
-        ${template.ctaText ? `
-        <center style="margin: 24px 0 0 0;">
-          <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse: separate; border-spacing: 0; margin: 0 auto;">
-            <tr>
-              <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); box-shadow: 0 4px 16px rgba(52, 78, 65, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);">
-                <a href="${template.ctaLink || '#'}" style="display: inline-block; padding: 14px 32px; color: #FFFFFF !important; text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 12px;">
-                  ${template.ctaText}
-                </a>
-              </td>
-            </tr>
-          </table>
-        </center>
-        ` : ''}
-      </div>
-
-      ${template.features && template.features.length > 0 ? `
-      <!-- Section: Features (one card with bullets) -->
-      <div style="background-color: #EFF2EE; padding: 24px 32px 40px 32px;">
-        <div style="background-color: #FFFFFF; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-          <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">What's waiting for you:</h2>
-          <div style="text-align: left;">
-            ${template.features.map(feature => {
-              const [title, desc] = feature.includes(' – ') ? feature.split(' – ') : [feature, ''];
-              return `
-                <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
-                  <span style="color: ${colors.primary}; font-size: 18px; line-height: 1.2; flex-shrink: 0;">✓</span>
-                  <div>
-                    <p style="margin: 0; font-size: 15px; font-weight: 600; color: ${colors.text};">${title}</p>
-                    ${desc ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: ${colors.textLight}; line-height: 1.5;">${desc}</p>` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      </div>
-      ` : ''}
-
-      <!-- Section: Post-CTA Note + Signature (light off-white) -->
-      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
-
-        ${template.postCtaNote ? `
-        <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; text-align: center; margin: 0 0 32px 0; font-style: italic;">
-          ${template.postCtaNote}
-        </p>
-        ` : ''}
-
-        <div style="text-align: center; padding-top: 0;">
-          <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin: 0;">
-            Happy researching,
-          </p>
-          <p style="font-size: 16px; font-weight: 700; color: ${colors.primary}; margin: 4px 0 0 0;">
-            The Pep Planner Team
-          </p>
-        </div>
-      </div>
-      
-      <!-- Footer - Simple Copyright -->
-      <div style="background-color: #2F3B3A; padding: 32px; text-align: center;">
-        <p style="margin: 0 0 8px 0; font-size: 13px; color: #A0B9B3;">
-          © ${new Date().getFullYear()} The Pep Planner. All rights reserved.
-        </p>
-        <p style="margin: 0; font-size: 16px; color: #D1D9D6; font-family: 'Cedarville Cursive', cursive; font-style: italic;">
-          — for the love of research
-        </p>
-      </div>
-      
-    </div>
-  </div>
-</body>
-</html>
-    `;
-  };
+  // NOTE: generateHTMLFromTemplate has been REMOVED
+  // Preview is now generated by backend (single source of truth)
+  // This eliminates the sync issue between frontend and backend templates
 
   // Copy HTML to clipboard (uses backend-generated HTML)
   const copyHTML = () => {

@@ -253,7 +253,6 @@ export default function Recon() {
 				// Force immediate sync with skipMerge to overwrite server data
 				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
 				if (syncResult) {
-					console.log('✅ Draft removed and synced to cloud immediately');
 				} else {
 					console.error('❌ Failed to sync draft removal to cloud');
 				}
@@ -267,10 +266,6 @@ export default function Recon() {
 	const handleDelete = async (id) => {
 		// Find the item being deleted for logging
 		const itemToDelete = reconItems.find(item => item.id === id);
-		
-		if (itemToDelete) {
-			console.log('🗑️ Deleting recon item:', `${itemToDelete.peptide || 'Unknown'} ${itemToDelete.mg || ''}mg`);
-		}
 		
 		// Record deletion with item snapshot for restore functionality
 		if (itemToDelete) {
@@ -306,7 +301,6 @@ export default function Recon() {
 				// Force immediate sync with skipMerge to overwrite server data
 				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
 				if (syncResult) {
-					console.log('✅ Deleted recon item synced to cloud immediately');
 				} else {
 					console.error('❌ Failed to sync deleted recon item to cloud');
 				}
@@ -321,29 +315,21 @@ export default function Recon() {
 
     const adjustStockpileAfterRecon = useCallback((peptidesUsed) => {
         if (!Array.isArray(peptidesUsed) || peptidesUsed.length === 0) {
-            console.log('⚠️ adjustStockpileAfterRecon: No peptides provided or empty array');
             return;
         }
 
-        console.log('🔍 adjustStockpileAfterRecon: Processing peptides:', peptidesUsed);
-
         const usageMap = peptidesUsed.reduce((acc, pep) => {
             if (!pep || !pep.stockpileId) {
-                console.log('⚠️ Skipping peptide without stockpileId:', pep);
                 return acc;
             }
             const qty = Number(pep.quantityUsed) || 1;
             acc[pep.stockpileId] = (acc[pep.stockpileId] || 0) + qty;
-            console.log(`📦 Mapped usage: stockpileId=${pep.stockpileId}, quantityUsed=${qty}`);
             return acc;
         }, {});
 
         if (Object.keys(usageMap).length === 0) {
-            console.warn('⚠️ adjustStockpileAfterRecon: No valid stockpileIds found in peptides');
             return;
         }
-
-        console.log('📊 Usage map:', usageMap);
 
         setStockpile(prev => {
             let changed = false;
@@ -354,7 +340,6 @@ export default function Recon() {
                 const currentQty = Number(item.quantity) || 0;
                 const nextQty = Math.max(0, currentQty - usedQty);
 
-                console.log(`🔄 Updating stockpile item ${item.id}: ${currentQty} -> ${nextQty} (used ${usedQty})`);
 
                 if (nextQty === currentQty) {
                     return item;
@@ -382,7 +367,6 @@ export default function Recon() {
             const filtered = updated.filter(item => {
                 const qty = Number(item.quantity) || 0;
                 if (qty === 0) {
-                    console.log(`🗑️ Removing stockpile item with 0 quantity: ${item.name} (${item.id})`);
                     return false;
                 }
                 return true;
@@ -390,13 +374,6 @@ export default function Recon() {
 
             if (filtered.length !== updated.length) {
                 changed = true;
-                console.log(`✅ Removed ${updated.length - filtered.length} items with 0 quantity`);
-            }
-
-            if (changed) {
-                console.log('✅ Stockpile updated successfully');
-            } else {
-                console.warn('⚠️ No changes made to stockpile');
             }
 
             return changed ? filtered : prev;
@@ -464,13 +441,6 @@ export default function Recon() {
 
         const peptides = Array.isArray(data?.peptides) ? data.peptides : [];
         
-        // Log peptides to verify stockpileId is present
-        console.log('💾 handleCalculatorSave: Received peptides:', peptides.map(p => ({
-            name: p.name,
-            stockpileId: p.stockpileId,
-            quantityUsed: p.quantityUsed
-        })));
-        
         const peptideNames = peptides.length > 0
             ? peptides.map(p => p.name || 'Unnamed').join(' + ')
             : (data?.peptide || 'Unnamed');
@@ -519,7 +489,6 @@ export default function Recon() {
             : [newItem, ...reconItems];
         
         // Adjust stockpile - this will update quantities and remove items with 0
-        console.log('🔄 Calling adjustStockpileAfterRecon with peptides:', peptides);
         adjustStockpileAfterRecon(peptides);
 
         // Clear prefill and draft tracking
@@ -554,9 +523,7 @@ export default function Recon() {
                 const syncResult = await saveAppData(userId, appData, { skipMerge: true });
                 if (syncResult) {
                     if (draftId) {
-                        console.log('✅ Draft removed and new item synced to cloud immediately');
                     } else {
-                        console.log('✅ New item synced to cloud immediately');
                     }
                 } else {
                     console.error('❌ Failed to sync to cloud');
@@ -696,7 +663,6 @@ export default function Recon() {
                 // Force immediate sync with skipMerge to overwrite server data
                 const syncResult = await saveAppData(userId, appData, { skipMerge: true });
                 if (syncResult) {
-                    console.log('✅ Marked as used - synced to cloud immediately');
                 } else {
                     console.error('❌ Failed to sync marked-as-used item to cloud');
                 }
@@ -739,7 +705,6 @@ export default function Recon() {
 
                     const syncResult = await saveAppData(userId, appData, { skipMerge: true });
                     if (syncResult) {
-                        console.log('✅ Deleted recon history item synced to cloud immediately');
                     } else {
                         console.error('❌ Failed to sync recon history deletion to cloud');
                     }

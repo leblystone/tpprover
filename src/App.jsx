@@ -21,6 +21,7 @@ import InstallInstructionsModal from './components/common/InstallInstructionsMod
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 import NotificationPermissionPrompt from './components/common/NotificationPermissionPrompt';
 import AndroidPermissionPrompt from './components/common/AndroidPermissionPrompt';
+import NativeFirstLaunchPermission from './components/common/NativeFirstLaunchPermission';
 import IOSInstallPrompt from './components/common/IOSInstallPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
@@ -590,7 +591,11 @@ function App() {
         open={false} 
         onAccept={() => {}} 
       />
+      {/* Native first launch permission - shows IMMEDIATELY on first app open from Play Store/App Store */}
+      <NativeFirstLaunchPermission theme={theme} />
+      {/* PWA notification prompt - for web users, shows after 2 minutes */}
       <NotificationPermissionPrompt theme={theme} />
+      {/* Android follow-up prompt - only shows if first launch was dismissed and user is logged in */}
       <AndroidPermissionPrompt theme={theme} />
       <IOSInstallPrompt theme={theme} />
       <SubscriptionModal 

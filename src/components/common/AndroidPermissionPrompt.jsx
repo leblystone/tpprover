@@ -21,14 +21,24 @@ export default function AndroidPermissionPrompt({ theme }) {
       }
 
       try {
-        // Check if user has already dismissed this prompt
+        // Check if first launch permission prompt was already shown
+        // This component is a FOLLOW-UP prompt, not the initial one
+        const firstLaunchShown = localStorage.getItem('tpprover_native_first_launch_permission_shown');
+        if (firstLaunchShown !== 'true') {
+          // Let NativeFirstLaunchPermission handle the first prompt
+          console.log('📱 AndroidPermissionPrompt: First launch prompt not yet shown - deferring to NativeFirstLaunchPermission');
+          setIsChecking(false);
+          return;
+        }
+
+        // Check if user has already dismissed this follow-up prompt
         const dismissed = localStorage.getItem('tpprover_android_permission_prompt_dismissed');
         if (dismissed === 'true') {
           setIsChecking(false);
           return;
         }
 
-        // Check if user is logged in
+        // Check if user is logged in (this is a follow-up prompt, so require login)
         const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
         if (!user?.email) {
           setIsChecking(false);

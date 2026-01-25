@@ -13,7 +13,6 @@ if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
   console.error("❌ STRIPE_SECRET_KEY not found in environment variables!");
   console.error("Please create functions/.env file with STRIPE_SECRET_KEY");
 } else {
-  console.log("✅ Stripe key loaded:", STRIPE_SECRET_KEY.substring(0, 20) + "...");
 }
 
 const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
@@ -34,12 +33,6 @@ exports.createCheckoutSession = onCall(
       }
       
       // Debug logging
-      console.log("🔍 Stripe configuration check:");
-      console.log("Environment STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "✅ Found" : "❌ Missing");
-      console.log("Using fallback key:", STRIPE_SECRET_KEY.substring(0, 20) + "...");
-      console.log("Request data keys:", Object.keys(request.data || {}));
-      console.log("Price ID:", request.data?.priceId);
-      console.log("User Email:", request.data?.userEmail);
       
       try {
         // Validate request data
@@ -57,26 +50,14 @@ exports.createCheckoutSession = onCall(
           throw new Error("userEmail is required");
         }
         
-        console.log("✅ All required fields present, creating Stripe session...");
         
         // Log the exact price ID being used
-        console.log("🔍 Using price ID:", priceId);
-        console.log("🔍 Using secret key (first 20 chars):", STRIPE_SECRET_KEY.substring(0, 20));
         
         const safePriceId = String(priceId);
         
         // Validate the price ID exists and is active in Stripe (non-blocking - log warnings but continue)
         try {
-          console.log("🔍 Validating price ID with Stripe API...");
           const price = await stripe.prices.retrieve(safePriceId);
-          console.log("✅ Price validated:", {
-            id: price.id,
-            active: price.active,
-            type: price.type,
-            product: price.product,
-            unit_amount: price.unit_amount,
-            currency: price.currency
-          });
           
           if (!price.active) {
             console.error(`⚠️ WARNING: Price ID ${safePriceId} is not active. This may cause checkout to fail.`);
@@ -111,7 +92,6 @@ exports.createCheckoutSession = onCall(
           .includes(safePriceId);
         const sessionMode = (isGift || isLifetimeRequest) ? "payment" : "subscription";
         
-        console.log("🔍 Session mode:", sessionMode, isGift ? "(Gift - one-time payment)" : isLifetimeRequest ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
 
         let founderState = null;
         let founderApplied = false;
@@ -207,15 +187,8 @@ exports.createCheckoutSession = onCall(
         if (discounts.length > 0) {
           sessionPayload.discounts = discounts;
         }
-
-        console.log("🔍 Creating Stripe checkout session with payload:", {
-          priceId: effectivePriceId,
-          mode: sessionMode,
-          customerEmail: userEmail
-        });
         
         const session = await stripe.checkout.sessions.create(sessionPayload);
-        console.log("✅ Stripe checkout session created successfully:", session.id);
         return {id: session.id};
       } catch (error) {
         console.error("❌ Checkout session error:", error);

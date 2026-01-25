@@ -47,7 +47,6 @@ const INTRO_SCREENS = [
 ];
 
 export default function SwipeableIntro({ open, onComplete, theme }) {
-  console.log('🎬 SwipeableIntro rendering, open =', open);
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -57,7 +56,6 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   
-  console.log('🎬 SwipeableIntro state:', { currentIndex, isDragging, dragOffset });
 
   // Reset to first screen when opened
   useEffect(() => {
@@ -154,7 +152,6 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
   };
 
   if (!open) {
-    console.log('🎬 SwipeableIntro not rendering (open = false)');
     return null;
   }
 
@@ -162,9 +159,6 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
   const nextScreen = INTRO_SCREENS[currentIndex + 1];
   const prevScreen = INTRO_SCREENS[currentIndex - 1];
   
-  console.log('🎬 SwipeableIntro rendering screen:', currentScreen?.title);
-  console.log('🎬 Current index:', currentIndex, 'Total screens:', INTRO_SCREENS.length);
-  console.log('🎬 Screen data:', currentScreen);
 
   // Calculate background gradient based on swipe position
   const getBackgroundGradient = () => {

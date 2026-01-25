@@ -20,7 +20,6 @@ async function sendPushNotification(userId, title, body, data = {}) {
     const fcmToken = userData.fcmToken;
 
     if (!fcmToken) {
-      console.log(`📱 No FCM token for user ${userId} - skipping push notification`);
       return { success: false, error: 'No FCM token' };
     }
 
@@ -70,7 +69,6 @@ async function sendPushNotification(userId, title, body, data = {}) {
     };
 
     await admin.messaging().send(message);
-    console.log(`✅ Push notification sent to ${userId}: ${title}`);
     return { success: true };
   } catch (error) {
     console.error(`❌ Failed to send push notification to ${userId}:`, error);
@@ -85,7 +83,6 @@ async function getUserNotificationSettings(userId) {
   try {
     const userDoc = await admin.firestore().collection('users').doc(userId).get();
     if (!userDoc.exists) {
-      console.log(`📱 User ${userId} not found in Firestore`);
       return null;
     }
 
@@ -111,8 +108,6 @@ async function getUserNotificationSettings(userId) {
       cycleReminders: notificationSettings.cycleReminders === true
     };
     
-    console.log(`📱 User ${userId} notification settings:`, settings);
-    console.log(`📱 Raw notificationSettings:`, userData.notificationSettings);
     
     return settings;
   } catch (error) {
@@ -128,13 +123,11 @@ async function sendPushNotificationByType(userId, type, notificationData) {
   try {
     const settings = await getUserNotificationSettings(userId);
     if (!settings) {
-      console.log(`📱 No settings found for user ${userId}`);
       return { success: false, error: 'No settings found' };
     }
 
     // Check if push notifications are enabled and the specific type is enabled
     if (!settings.push || !settings[type]) {
-      console.log(`📱 Push notifications disabled for user ${userId}, type: ${type}`);
       return { success: false, error: 'Notifications disabled' };
     }
 
@@ -159,7 +152,6 @@ async function sendBulkPushNotification(userIds, title, body, data = {}) {
   }
   
   const successful = results.filter(r => r.success).length;
-  console.log(`📱 Bulk notification sent: ${successful}/${userIds.length} successful`);
   
   return { success: true, results, successful, total: userIds.length };
 }
@@ -178,7 +170,6 @@ async function sendNotificationToUsersWithSetting(settingType, title, body, data
     const userIds = usersSnapshot.docs.map(doc => doc.id);
     
     if (userIds.length === 0) {
-      console.log(`📱 No users found with ${settingType} notifications enabled`);
       return { success: true, sent: 0, total: 0 };
     }
 

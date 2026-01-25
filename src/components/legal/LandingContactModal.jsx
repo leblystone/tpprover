@@ -27,12 +27,6 @@ export default function LandingContactModal({ open, onClose, source = 'landing' 
         setSubmitStatus(null);
         
         try {
-            console.log('📤 Submitting general contact form...', {
-                name: formData.name,
-                email: formData.email,
-                subject: formData.subject
-            });
-            
             // Get reCAPTCHA token
             let recaptchaToken = null;
             try {
@@ -52,7 +46,6 @@ export default function LandingContactModal({ open, onClose, source = 'landing' 
                 recaptchaToken
             });
             
-            console.log('✅ Contact form submitted successfully:', result);
             setSubmitStatus('success');
             setFormData({ name: '', email: '', subject: '', message: '' });
             

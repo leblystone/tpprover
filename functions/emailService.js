@@ -918,40 +918,12 @@ function generateDefaultHTML(template, colors) {
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #F5F5F0;">
   <!-- Full-width background wrapper -->
-  <div style="background-color: #F5F5F0; padding: 40px 20px;">
-    <!-- Main container -->
-    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);">
+  <div style="background-color: #F5F5F0; padding: 20px;">
+    <!-- Main container - no outer card, content sits on background -->
+    <div style="max-width: 600px; margin: 0 auto;">
       
-      <!-- Header - Matching Landing Page Topbar -->
-      <div style="background-color: #FFFFFF; padding: 16px 32px; border-bottom: 1px solid #DDE6DE;">
-        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-          <tr>
-            <!-- Left: Tagline (centered in column) -->
-            <td width="33%" valign="middle" align="center">
-              <p style="margin: 0; font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #9CA3AF; font-family: 'Poppins', sans-serif; text-align: center;">
-                Organize Your Research
-              </p>
-            </td>
-            
-            <!-- Center: Logo -->
-            <td width="34%" valign="middle" align="center">
-              <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
-                <img src="${LOGO_URL}" alt="The Pep Planner" style="width: 64px; height: 64px; border-radius: 50%; display: block; margin: 0 auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);" onerror="this.style.display='none';" />
-              </a>
-            </td>
-            
-            <!-- Right: Dashboard Link -->
-            <td width="33%" valign="middle" align="right">
-              <a href="https://thepepplanner.app/app/dashboard" style="color: ${colors.primary}; text-decoration: none; font-size: 13px; font-weight: 500; font-family: 'Poppins', sans-serif;">
-                Dashboard →
-              </a>
-            </td>
-          </tr>
-        </table>
-      </div>
-      
-      <!-- Section: Intro (light off-white) -->
-      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
+      <!-- Section: Intro - sits directly on background -->
+      <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text}; border-radius: 16px 16px 0 0;">
         <h1 style="color: ${colors.primary}; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; line-height: 1.3; text-align: center;">
           ${(template.heading || 'Welcome!').replace(/🥼/g, '')}
         </h1>
@@ -1008,7 +980,7 @@ function generateDefaultHTML(template, colors) {
       </div>
       
       <!-- Footer - Simple Copyright -->
-      <div style="background-color: #2F3B3A; padding: 32px; text-align: center;">
+      <div style="background-color: #2F3B3A; padding: 32px; text-align: center; border-radius: 0 0 16px 16px;">
         <p style="margin: 0 0 8px 0; font-size: 13px; color: #A0B9B3;">
           © ${new Date().getFullYear()} The Pep Planner. All rights reserved.
         </p>

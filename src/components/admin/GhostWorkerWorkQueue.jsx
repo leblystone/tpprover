@@ -2,10 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Clock, Copy, CheckCircle2, AlertCircle, Eye, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
 
-export default function GhostWorkerWorkQueue() {
-  const { theme } = useTheme();
+export default function GhostWorkerWorkQueue({ theme }) {
+  // Fallback theme if not provided
+  const defaultTheme = {
+    text: '#000000',
+    textLight: '#6B7280',
+    background: '#F9FAFB',
+    cardBackground: '#FFFFFF',
+    border: '#E5E7EB',
+    primary: '#4a7c59'
+  };
+  
+  const activeTheme = theme || defaultTheme;
+  
   const [workQueue, setWorkQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedTicket, setExpandedTicket] = useState(null);
@@ -36,6 +46,9 @@ export default function GhostWorkerWorkQueue() {
         const ticket = ticketDoc.exists() ? ticketDoc.data() : null;
 
         if (ticket) {
+          // Get the original user message from the ticket
+          const firstMessage = ticket.messages?.[0]?.message || ticket.message || '';
+          
           const item = {
             logId: logDoc.id,
             ticketId: log.ticketId,
@@ -44,13 +57,15 @@ export default function GhostWorkerWorkQueue() {
             type: ticket.type || 'support',
             userName: ticket.userName || 'Unknown',
             userEmail: ticket.userEmail || '',
+            originalMessage: firstMessage,
             timestamp: log.timestamp,
             route: log.route,
             confidence: log.confidence,
+            reasoning: log.reasoning || log.routingReasoning || '',
             responseContent: log.responseContent || '',
             markedFixed: log.markedFixed || false,
             markedFixedAt: log.markedFixedAt || null,
-            executionCost: log.executionCost || 0,
+            executionCost: log.executionCost || log.cost?.total || 0,
             executionModel: log.executionModel || log.route
           };
 
@@ -122,7 +137,7 @@ export default function GhostWorkerWorkQueue() {
       <div style={{ 
         padding: '40px', 
         textAlign: 'center',
-        color: theme.textLight 
+        color: activeTheme.textLight 
       }}>
         Loading work queue...
       </div>
@@ -141,16 +156,16 @@ export default function GhostWorkerWorkQueue() {
         <div style={{
           padding: '16px',
           borderRadius: '12px',
-          backgroundColor: theme.cardBackground,
-          border: `1px solid ${theme.border}`
+          backgroundColor: activeTheme.cardBackground,
+          border: `1px solid ${activeTheme.border}`
         }}>
-          <div style={{ fontSize: '12px', color: theme.textLight, marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: activeTheme.textLight, marginBottom: '4px' }}>
             ⏰ Pending Work
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: theme.text }}>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: activeTheme.text }}>
             {stats.totalPending}
           </div>
-          <div style={{ fontSize: '11px', color: theme.textLight, marginTop: '4px' }}>
+          <div style={{ fontSize: '11px', color: activeTheme.textLight, marginTop: '4px' }}>
             Oldest first • Just start from top
           </div>
         </div>
@@ -158,16 +173,16 @@ export default function GhostWorkerWorkQueue() {
         <div style={{
           padding: '16px',
           borderRadius: '12px',
-          backgroundColor: theme.cardBackground,
-          border: `1px solid ${theme.border}`
+          backgroundColor: activeTheme.cardBackground,
+          border: `1px solid ${activeTheme.border}`
         }}>
-          <div style={{ fontSize: '12px', color: theme.textLight, marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: activeTheme.textLight, marginBottom: '4px' }}>
             ✅ Marked Fixed Today
           </div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#4CAF50' }}>
             {stats.markedFixed}
           </div>
-          <div style={{ fontSize: '11px', color: theme.textLight, marginTop: '4px' }}>
+          <div style={{ fontSize: '11px', color: activeTheme.textLight, marginTop: '4px' }}>
             Keep going!
           </div>
         </div>
@@ -175,16 +190,16 @@ export default function GhostWorkerWorkQueue() {
         <div style={{
           padding: '16px',
           borderRadius: '12px',
-          backgroundColor: theme.cardBackground,
-          border: `1px solid ${theme.border}`
+          backgroundColor: activeTheme.cardBackground,
+          border: `1px solid ${activeTheme.border}`
         }}>
-          <div style={{ fontSize: '12px', color: theme.textLight, marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: activeTheme.textLight, marginBottom: '4px' }}>
             💰 Total AI Cost
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: theme.text }}>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: activeTheme.text }}>
             ${stats.totalCost.toFixed(4)}
           </div>
-          <div style={{ fontSize: '11px', color: theme.textLight, marginTop: '4px' }}>
+          <div style={{ fontSize: '11px', color: activeTheme.textLight, marginTop: '4px' }}>
             All time
           </div>
         </div>
@@ -192,22 +207,22 @@ export default function GhostWorkerWorkQueue() {
 
       {/* Work Queue List */}
       <div style={{
-        backgroundColor: theme.cardBackground,
+        backgroundColor: activeTheme.cardBackground,
         borderRadius: '12px',
-        border: `1px solid ${theme.border}`,
+        border: `1px solid ${activeTheme.border}`,
         overflow: 'hidden'
       }}>
         <div style={{
           padding: '16px',
-          borderBottom: `1px solid ${theme.border}`,
+          borderBottom: `1px solid ${activeTheme.border}`,
           fontWeight: '600',
-          color: theme.text
+          color: activeTheme.text
         }}>
           📋 Work Queue
         </div>
 
         {workQueue.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: theme.textLight }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: activeTheme.textLight }}>
             🎉 All caught up! No tickets in the queue.
           </div>
         ) : (
@@ -216,8 +231,8 @@ export default function GhostWorkerWorkQueue() {
               <div 
                 key={ticket.ticketId}
                 style={{
-                  borderBottom: index < workQueue.length - 1 ? `1px solid ${theme.border}` : 'none',
-                  backgroundColor: ticket.markedFixed ? theme.background : theme.cardBackground,
+                  borderBottom: index < workQueue.length - 1 ? `1px solid ${activeTheme.border}` : 'none',
+                  backgroundColor: ticket.markedFixed ? activeTheme.background : activeTheme.cardBackground,
                   opacity: ticket.markedFixed ? 0.6 : 1
                 }}
               >
@@ -250,7 +265,7 @@ export default function GhostWorkerWorkQueue() {
                     }}>
                       <span style={{ 
                         fontWeight: '600', 
-                        color: theme.text,
+                        color: activeTheme.text,
                         fontSize: '14px'
                       }}>
                         #{ticket.ticketNumber}
@@ -264,13 +279,13 @@ export default function GhostWorkerWorkQueue() {
                       }}>
                         {ticket.route === 'gemini-pro' ? '🎨 Gemini' : '🔧 Claude'}
                       </span>
-                      <span style={{ fontSize: '12px', color: theme.textLight }}>
+                      <span style={{ fontSize: '12px', color: activeTheme.textLight }}>
                         {ticket.confidence}% conf
                       </span>
                     </div>
                     <div style={{ 
                       fontSize: '14px', 
-                      color: theme.text,
+                      color: activeTheme.text,
                       marginBottom: '4px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -278,7 +293,7 @@ export default function GhostWorkerWorkQueue() {
                     }}>
                       {ticket.subject}
                     </div>
-                    <div style={{ fontSize: '12px', color: theme.textLight }}>
+                    <div style={{ fontSize: '12px', color: activeTheme.textLight }}>
                       {ticket.userName} • {new Date(ticket.timestamp?.toDate?.() || ticket.timestamp).toLocaleDateString()}
                     </div>
                   </div>
@@ -286,9 +301,9 @@ export default function GhostWorkerWorkQueue() {
                   {/* Expand/Collapse Icon */}
                   <div style={{ flexShrink: 0 }}>
                     {expandedTicket === ticket.ticketId ? (
-                      <ChevronUp size={20} style={{ color: theme.textLight }} />
+                      <ChevronUp size={20} style={{ color: activeTheme.textLight }} />
                     ) : (
-                      <ChevronDown size={20} style={{ color: theme.textLight }} />
+                      <ChevronDown size={20} style={{ color: activeTheme.textLight }} />
                     )}
                   </div>
                 </div>
@@ -297,60 +312,145 @@ export default function GhostWorkerWorkQueue() {
                 {expandedTicket === ticket.ticketId && (
                   <div style={{
                     padding: '16px',
-                    paddingTop: '0',
-                    borderTop: `1px solid ${theme.border}`
+                    paddingTop: '12px',
+                    borderTop: `1px solid ${activeTheme.border}`
                   }}>
-                    {/* Admin Notes */}
-                    <div style={{
-                      padding: '16px',
-                      backgroundColor: theme.background,
-                      borderRadius: '8px',
-                      marginBottom: '16px',
-                      fontFamily: 'monospace',
-                      fontSize: '13px',
-                      lineHeight: '1.6',
-                      whiteSpace: 'pre-wrap',
-                      color: theme.text,
-                      maxHeight: '400px',
-                      overflowY: 'auto'
-                    }}>
-                      {ticket.responseContent}
+                    {/* Original User Message */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        fontWeight: '600', 
+                        color: activeTheme.textLight, 
+                        marginBottom: '8px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        📨 Original Message
+                      </div>
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: '#FEF3C7',
+                        border: '1px solid #F59E0B',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        color: '#92400E'
+                      }}>
+                        {ticket.originalMessage || 'No message content available'}
+                      </div>
+                    </div>
+
+                    {/* Ghosty's Reasoning */}
+                    {ticket.reasoning && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          fontWeight: '600', 
+                          color: activeTheme.textLight, 
+                          marginBottom: '8px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          🧠 Ghosty's Reasoning
+                        </div>
+                        <div style={{
+                          padding: '12px',
+                          backgroundColor: '#EDE9FE',
+                          border: '1px solid #8B5CF6',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          lineHeight: '1.5',
+                          color: '#5B21B6'
+                        }}>
+                          {ticket.reasoning}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ghosty's Response / Admin Notes */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        fontWeight: '600', 
+                        color: activeTheme.textLight, 
+                        marginBottom: '8px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        👻 Ghosty's Response & Admin Notes
+                      </div>
+                      {ticket.responseContent ? (
+                        <div style={{
+                          padding: '16px',
+                          backgroundColor: activeTheme.background,
+                          borderRadius: '8px',
+                          fontFamily: 'monospace',
+                          fontSize: '13px',
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap',
+                          color: activeTheme.text,
+                          maxHeight: '400px',
+                          overflowY: 'auto',
+                          border: `1px solid ${activeTheme.border}`
+                        }}>
+                          {ticket.responseContent}
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '16px',
+                          backgroundColor: '#FEE2E2',
+                          border: '1px solid #EF4444',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          color: '#991B1B'
+                        }}>
+                          ⚠️ No Cursor-ready notes available for this ticket.<br/><br/>
+                          This ticket was processed before we started storing detailed admin notes. 
+                          To get Cursor-ready prompts, you'll need to:<br/>
+                          1. Go to <strong>Ghosty👻</strong> tab<br/>
+                          2. Test this ticket again with the ticket ID<br/>
+                          3. Approve the new response via Telegram<br/><br/>
+                          <strong>Ticket ID:</strong> {ticket.ticketId}
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyAdminNotes(ticket);
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: copySuccess[ticket.ticketId] ? '#4CAF50' : theme.primary,
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {copySuccess[ticket.ticketId] ? (
-                          <>
-                            <CheckCircle2 size={16} />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={16} />
-                            Copy Cursor Prompt
-                          </>
-                        )}
-                      </button>
+                      {ticket.responseContent && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyAdminNotes(ticket);
+                          }}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: copySuccess[ticket.ticketId] ? '#4CAF50' : activeTheme.primary,
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {copySuccess[ticket.ticketId] ? (
+                            <>
+                              <CheckCircle2 size={16} />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={16} />
+                              Copy Cursor Prompt
+                            </>
+                          )}
+                        </button>
+                      )}
 
                       {!ticket.markedFixed && (
                         <button
@@ -387,9 +487,9 @@ export default function GhostWorkerWorkQueue() {
                         }}
                         style={{
                           padding: '10px 16px',
-                          backgroundColor: theme.cardBackground,
-                          color: theme.text,
-                          border: `1px solid ${theme.border}`,
+                          backgroundColor: activeTheme.cardBackground,
+                          color: activeTheme.text,
+                          border: `1px solid ${activeTheme.border}`,
                           borderRadius: '8px',
                           fontSize: '14px',
                           fontWeight: '500',
@@ -416,13 +516,13 @@ export default function GhostWorkerWorkQueue() {
       <div style={{
         marginTop: '24px',
         padding: '16px',
-        backgroundColor: theme.cardBackground,
-        border: `1px solid ${theme.border}`,
+        backgroundColor: activeTheme.cardBackground,
+        border: `1px solid ${activeTheme.border}`,
         borderRadius: '12px',
         fontSize: '13px',
-        color: theme.textLight
+        color: activeTheme.textLight
       }}>
-        <strong style={{ color: theme.text }}>💡 How to use:</strong><br/>
+        <strong style={{ color: activeTheme.text }}>💡 How to use:</strong><br/>
         1. Start from the top (oldest first)<br/>
         2. Click ticket to expand and see admin notes<br/>
         3. Click "Copy Cursor Prompt" to copy the fix instructions<br/>

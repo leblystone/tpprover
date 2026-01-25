@@ -240,11 +240,6 @@ export default function Calendar() {
             scheduledBuys: scheduledBuys?.length || 0
           };
           
-          if (dataCheck.protocols === 0 && dataCheck.supplements === 0) {
-            console.warn('⚠️ Calendar loadData: No protocols or supplements available', dataCheck);
-          } else {
-            console.log('📅 Calendar loadData: Starting with data', dataCheck);
-          }
           
           const supps = supplements
           // Calculate date range based on view mode
@@ -952,9 +947,6 @@ export default function Calendar() {
                    (dayData?.supplements && dayData.supplements.length > 0);
           });
           if (keysWithTasks.length > 0) {
-            console.log('📅 Calendar: Scheduled tasks found for', keysWithTasks.length, 'days');
-          } else {
-            console.warn('⚠️ Calendar: No scheduled tasks found in loadData. Protocols:', protocols.length, 'Supplements:', supps.length);
           }
           setScheduled(next)
         } catch (e) {
@@ -979,9 +971,7 @@ export default function Calendar() {
     
     // Log when data becomes available (especially useful for Android debugging)
     if (dataStatus.protocols > 0 || dataStatus.supplements > 0) {
-      console.log('📅 Calendar: Data available', dataStatus);
-    } else {
-      console.warn('⚠️ Calendar: No protocols or supplements loaded yet', dataStatus);
+      // Data is available - calendar should render properly
     }
   }, [protocols, supplements, reconItems, scheduledBuys, scheduled]);
 
@@ -992,7 +982,6 @@ export default function Calendar() {
     const hasScheduled = Object.keys(scheduled).length > 0;
     
     if (hasData && !hasScheduled) {
-      console.log('🔄 Calendar: Data available but no scheduled items - forcing refresh');
       setCalendarBump(prev => prev + 1);
       // Also trigger loadData directly
       setTimeout(() => {
@@ -1015,14 +1004,6 @@ export default function Calendar() {
     // Always check actual completion status from localStorage
     const currentlyCompleted = isTaskCompleted(taskId, dateKey, task.time);
     const newCompletedState = !currentlyCompleted;
-    
-    console.log('🔄 Calendar: Toggling task', {
-      taskName: task.name,
-      taskId,
-      dateKey,
-      date: date.toDateString(),
-      newCompletedState
-    });
     
     // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
@@ -1181,7 +1162,6 @@ export default function Calendar() {
   useEffect(() => {
     const handleTaskCompletionChange = (event) => {
       const { taskId, completed, date, timeSlot } = event.detail;
-      console.log('📡 Calendar: Received task completion change', { taskId, completed, date, timeSlot });
       
       // Refresh calendar data to reflect changes from other views
       setDone(getCalendarDone());
@@ -1196,9 +1176,6 @@ export default function Calendar() {
     window.refreshCalendar = loadData;
     window.debugSupplements = () => {
       const supps = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]');
-      console.log('🔍 DEBUG: Supplements in localStorage:', supps);
-      console.log('🔍 DEBUG: Current supplements state:', supplements);
-      console.log('🔍 DEBUG: Current scheduled state keys:', Object.keys(scheduled || {}).slice(0, 10));
       return { localStorage: supps, state: supplements, scheduled: Object.keys(scheduled || {}).length };
     };
     return () => { 

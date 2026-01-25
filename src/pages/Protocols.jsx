@@ -511,7 +511,6 @@ export default function Protocols() {
   useEffect(() => {
     const migrationResult = migrateProtocolHistoryEntries();
     if (migrationResult.migrated > 0) {
-      console.log(`📋 Protocol history migration: ${migrationResult.migrated} entries updated with IDs`);
     }
   }, []);
 
@@ -519,7 +518,6 @@ export default function Protocols() {
   useEffect(() => {
     const statusMigrationResult = migrateProtocolHistoryCompletionStatus();
     if (statusMigrationResult.updated > 0) {
-      console.log(`📋 Completion status migration: ${statusMigrationResult.updated} entries updated`);
     }
   }, [protocols]); // Include protocols in dependency to ensure we have protocol data for lookup
 
@@ -755,40 +753,25 @@ export default function Protocols() {
   // 🔧 MIGRATION: Fix endDate for ALL existing protocols (active & inactive) - runs once
   useEffect(() => {
     const migrationKey = 'tpprover_enddate_migration_v2';
-    console.log('🔧 Migration check - already run?', localStorage.getItem(migrationKey));
-    console.log('🔧 Protocols available:', protocols.length);
     
     // FORCE RUN FOR DEBUGGING - remove this later
     if (localStorage.getItem(migrationKey)) {
-      console.log('⚠️ Migration was marked as done, but forcing re-run for debugging');
       localStorage.removeItem(migrationKey);
     }
     
     if (!protocols || protocols.length === 0) {
-      console.log('⚠️ No protocols available yet, skipping migration');
       return;
     }
     
     let migratedCount = 0;
-    console.log('🔧 Starting migration loop through', protocols.length, 'protocols');
     protocols.forEach((p, index) => {
-      console.log(`🔍 [${index}] Checking protocol:`, { 
-        name: p.name || p.protocolName, 
-        startDate: p.startDate,
-        currentEndDate: p.endDate,
-        hasPeptides: p.peptides?.length,
-        duration: p.duration,
-        peptideFrequencies: p.peptides?.map(pep => ({ name: pep.name, type: pep.frequency?.type, onDays: pep.frequency?.onDays, offDays: pep.frequency?.offDays }))
-      });
       if (!p?.startDate) {
-        console.log(`  ⏭️ Skipping - no startDate`);
         return;
       }
       
       // Recalculate endDate using centralized date utilities
       const start = parseDateString(p.startDate);
       if (!start) {
-        console.log(`  ⏭️ Skipping - couldn't parse startDate`);
         return;
       }
       const startNormalized = normalizeToMidnight(start);
@@ -796,7 +779,6 @@ export default function Protocols() {
       
       // Check for cycle-based peptides
       const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
-      console.log('🔄 Found cycle peptide?', cyclePeptide?.name, cyclePeptide?.frequency);
       
       // SPECIAL CASE: Ongoing cycles - calculate far-future endDate for scheduling
       if (cyclePeptide && p.duration?.noEnd) {
