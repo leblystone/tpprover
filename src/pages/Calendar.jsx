@@ -588,7 +588,7 @@ export default function Calendar() {
 
                   if (isBlended) {
                     const peptides = getNormalizedPeptides(p);
-                    // Check if any peptide has unitValue
+                    // Check if any peptide has unitValue (manual override)
                     const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
                     
                     // Build dose display from all peptides in the blend
@@ -596,8 +596,7 @@ export default function Calendar() {
                         `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
                     );
                     
-                    // For blended protocols, build dose display with pipe format
-                    // Get the first peptide's dose info for the base display
+                    // For blended protocols, build dose display
                     const firstPeptide = peptides[0];
                     const baseDose = firstPeptide?.dosage?.amount || '';
                     const baseUnit = firstPeptide?.dosage?.unit || 'mcg';
@@ -605,11 +604,13 @@ export default function Calendar() {
                     let dose = '';
                     let unit = '';
                     
-                    if (additionalUnits) {
-                        // Show original dose/unit with pipe separator: "600 mcg | 15 units"
-                        dose = `${baseDose} ${baseUnit} | ${additionalUnits} units`;
-                        unit = ''; // Clear unit since it's included in dose
+                    // Priority: Manual unitValue > Calculated > Default dose/unit
+                    if (additionalUnits && additionalUnits.trim() !== '') {
+                        // User manually entered units - ALWAYS prioritize this
+                        dose = `${additionalUnits} units`;
+                        unit = '';
                     } else if (reconItem) {
+                        // No manual override, use calculated units if available
                         const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
                             const dose = Number(pep.dose) || 0;
                             return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
@@ -618,14 +619,14 @@ export default function Calendar() {
                         const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
                         if (calc.unitsPerDose > 0) {
                             dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                            unit = ''; // Clear unit since it's included in dose
+                            unit = '';
                         } else {
                             dose = `${baseDose} ${baseUnit}`;
-                            unit = ''; // Clear unit since it's included in dose
+                            unit = '';
                         }
                     } else {
                         dose = `${baseDose} ${baseUnit}`;
-                        unit = ''; // Clear unit since it's included in dose
+                        unit = '';
                     }
 
                     // For blended protocols, all peptides share the same frequency
@@ -730,14 +731,15 @@ export default function Calendar() {
                               
                               let dose = pep.dosage?.amount || '';
                               let unit = pep.dosage?.unit || '';
-                              let additionalUnits = pep.unitValue || ''; // Get units value from peptide
+                              let additionalUnits = pep.unitValue || ''; // Get manual units value from peptide
 
-                              // Build dose display with pipe format to match Today's Research widget
-                              if (additionalUnits) {
-                                  // Show original dose/unit with pipe separator: "600 mcg | 15 units"
-                                  dose = `${dose} ${unit} | ${additionalUnits} units`;
-                                  unit = ''; // Clear unit since it's included in dose
+                              // Priority: Manual unitValue > Calculated > Default dose/unit
+                              if (additionalUnits && additionalUnits.trim() !== '') {
+                                  // User manually entered units - ALWAYS prioritize this
+                                  dose = `${additionalUnits} units`;
+                                  unit = '';
                               } else if (reconItem) {
+                                  // No manual override, use calculated units if available
                                   const calc = calculateRecon({ 
                                       mg: reconItem.mg, 
                                       water: reconItem.water, 
@@ -745,15 +747,15 @@ export default function Calendar() {
                                   });
                                   if (calc.unitsPerDose > 0) {
                                       dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                                      unit = ''; // Clear unit since it's included in dose
+                                      unit = '';
                                   } else {
                                       dose = `${dose} ${unit}`;
-                                      unit = ''; // Clear unit since it's included in dose
+                                      unit = '';
                                   }
                               } else {
-                                  // Simple case: just dose and unit
+                                  // No recon item, use default dose/unit
                                   dose = `${dose} ${unit}`;
-                                  unit = ''; // Clear unit since it's included in dose
+                                  unit = '';
                               }
 
                               let deliveryInfo = '';

@@ -224,12 +224,32 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         
         // Check if there are unread responses
         if (visibleTicket) {
-          // For open tickets, check admin messages
-          if ((visibleTicket.status === 'new' || visibleTicket.status === 'in-progress') && visibleTicket.lastAdminMessageAt) {
+          // For open tickets, check admin OR ghost-worker messages
+          if (visibleTicket.status === 'new' || visibleTicket.status === 'in-progress') {
             const lastRead = localStorage.getItem(`ticket_${visibleTicket.id}_lastRead`);
             const lastReadTime = lastRead ? new Date(lastRead) : new Date(0);
-            const lastAdminTime = visibleTicket.lastAdminMessageAt?.toDate ? visibleTicket.lastAdminMessageAt.toDate() : new Date(visibleTicket.lastAdminMessageAt);
-            const hasUnread = lastAdminTime > lastReadTime;
+            
+            // Check both lastAdminMessageAt and lastMessageAt (which includes Ghosty responses)
+            const lastAdminTime = visibleTicket.lastAdminMessageAt?.toDate 
+              ? visibleTicket.lastAdminMessageAt.toDate() 
+              : (visibleTicket.lastAdminMessageAt ? new Date(visibleTicket.lastAdminMessageAt) : null);
+            
+            const lastMessageTime = visibleTicket.lastMessageAt?.toDate 
+              ? visibleTicket.lastMessageAt.toDate() 
+              : (visibleTicket.lastMessageAt ? new Date(visibleTicket.lastMessageAt) : null);
+            
+            // Use the most recent time between admin and any message (includes Ghosty)
+            let mostRecentResponseTime = lastReadTime;
+            
+            if (lastAdminTime && lastAdminTime > mostRecentResponseTime) {
+              mostRecentResponseTime = lastAdminTime;
+            }
+            
+            if (lastMessageTime && lastMessageTime > mostRecentResponseTime) {
+              mostRecentResponseTime = lastMessageTime;
+            }
+            
+            const hasUnread = mostRecentResponseTime > lastReadTime;
             setHasUnreadResponse(hasUnread);
           }
           // For closed tickets, check if unread

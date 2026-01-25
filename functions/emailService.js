@@ -899,7 +899,21 @@ function generateDefaultHTML(template, colors) {
           ${template.greeting || ''}
         </p>
         
-        ${template.mainMessage ? `<p style="font-size: 16px; line-height: 1.6; color: ${colors.text};">${template.mainMessage}</p>` : ''}
+        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.text};">${template.mainMessage.replace(/\n/g, '<br>')}</p>` : ''}
+
+        ${template.ctaText ? `
+        <center style="margin: 24px 0 0 0;">
+          <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse: separate; border-spacing: 0; margin: 0 auto;">
+            <tr>
+              <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); box-shadow: 0 4px 16px rgba(52, 78, 65, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);">
+                <a href="${template.ctaLink || '#'}" style="display: inline-block; padding: 14px 32px; color: #FFFFFF !important; text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 12px;">
+                  ${template.ctaText}
+                </a>
+              </td>
+            </tr>
+          </table>
+        </center>
+        ` : ''}
 
         ${template.highlightTitle ? `
         <div style="background-color: #F0FDF4; border-left: 4px solid ${colors.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
@@ -910,30 +924,23 @@ function generateDefaultHTML(template, colors) {
         </div>
         ` : ''}
 
-        ${template.ctaText ? `
-        <center>
-          <a href="${template.ctaLink || '#'}" style="display: inline-block; padding: 16px 32px; background-color: ${colors.primary}; color: ${colors.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-            ${template.ctaText}
-          </a>
-        </center>
-        ` : ''}
-
         ${template.postCtaNote ? `
         <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; font-style: italic; text-align: center; margin: 16px 0 24px 0;">
           <strong>${template.postCtaNote}</strong>
         </p>
         ` : ''}
 
-        <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 24px;">
+        <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 0;">
           Happy Researching! ✌🏻,<br>
           <strong style="color: ${colors.primary};">The Pep Planner Team</strong>
         </p>
       </div>
-      <div style="background-color: ${colors.sage}; padding: 32px; text-align: center; color: ${colors.textLight}; font-size: 13px;">
-        <p style="margin: 0 0 12px 0; font-weight: 600; color: ${colors.text};">The Pep Planner</p>
-        <p style="margin: 0 0 16px 0;">Organize Your Research</p>
-        <p style="margin: 16px 0 0 0; font-size: 11px; color: ${colors.textLight};">
-          © 2025 The Pep Planner. All rights reserved.
+      <div style="background-color: #2F3B3A; padding: 32px; text-align: center;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #A0B9B3;">
+          © ${new Date().getFullYear()} The Pep Planner. All rights reserved.
+        </p>
+        <p style="margin: 0; font-size: 12px; color: #D1D9D6; font-style: italic;">
+          — for the love of research
         </p>
       </div>
     </div>

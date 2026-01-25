@@ -1042,6 +1042,60 @@ Need anything else?
 The Pep Planner Team
 ```
 
+### Bug Report Response
+
+**When user reports a bug:**
+
+**DO:**
+- ✅ Acknowledge the bug clearly (repeat it back)
+- ✅ Offer a workaround if one exists
+- ✅ Keep response under 4 sentences
+- ✅ Be honest if you can't fix it immediately
+
+**DON'T:**
+- ❌ Promise timelines ("we'll fix this by...")
+- ❌ Make vague promises ("we're working on it")
+- ❌ Over-explain what went wrong technically
+- ❌ Say "your data is safe" unless they asked
+
+**Template:**
+```
+Got it - [restate the bug in their words].
+
+Workaround: [if available, give them something they can do NOW]
+
+We're on it and will update you when it's fixed.
+
+The Pep Planner Team
+```
+
+**Example - Good:**
+```
+Got it - the Today's Research widget isn't syncing across platforms, and it's showing units twice in the display.
+
+Quick workaround: Refresh the calendar page after completing research to see updates faster.
+
+We're on it and will update you when it's fixed.
+
+The Pep Planner Team
+```
+
+**Example - Bad (too vague and wordy):**
+```
+Thanks for reporting these sync and display issues! We've identified problems with how the Today's Research widget communicates between the app, website, and calendar.
+
+For the sync issue: Your research completions should update everywhere instantly. We're fixing the connection between these features.
+
+For the display issue: You're absolutely right - it should show "BPC-157 (PM) .25 mg | 5 units" instead of showing units twice.
+
+We're prioritizing both fixes and will update you once they're resolved. Your tracking data is safe and secure.
+
+The Pep Planner Team
+```
+**Why bad:** Too corporate, makes promises without offering immediate help, mentions data safety when user didn't ask.
+
+---
+
 ### Can't Reproduce Issue
 ```
 Hey there,

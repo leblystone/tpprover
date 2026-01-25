@@ -227,15 +227,33 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
                   
                   <div className="text-sm whitespace-pre-wrap">{message.message}</div>
 
+                  {/* Display screenshots with better formatting */}
                   {message.imageUrls && message.imageUrls.length > 0 && (
-                    <div className="mt-3 flex gap-2 flex-wrap">
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs text-gray-600 font-medium">📸 Attachments:</div>
                       {message.imageUrls.map((url, idx) => (
-                        <img
-                          key={idx}
-                          src={url}
-                          alt={`Attachment ${idx + 1}`}
-                          className="h-20 w-20 object-cover rounded border border-gray-300"
-                        />
+                        <div key={idx} className="relative">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block hover:opacity-90 transition-opacity"
+                          >
+                            <img
+                              src={url}
+                              alt={`Screenshot ${idx + 1}`}
+                              className="rounded-lg border border-gray-300 max-w-full"
+                              style={{
+                                maxHeight: '400px',
+                                objectFit: 'contain'
+                              }}
+                              loading="lazy"
+                            />
+                          </a>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Screenshot {idx + 1} • Click to view full size
+                          </p>
+                        </div>
                       ))}
                     </div>
                   )}

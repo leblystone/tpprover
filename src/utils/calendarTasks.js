@@ -211,7 +211,13 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 let dose = doseParts.join(' + ');
                 let unit = '';
                 
-                if (reconItem) {
+                // Priority: Manual unitValue > Calculated > Default dose/unit
+                if (additionalUnits && additionalUnits.trim() !== '') {
+                    // User manually entered units - ALWAYS prioritize this
+                    dose = `${additionalUnits} units`;
+                    unit = '';
+                } else if (reconItem) {
+                    // No manual override, use calculated units if available
                     const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
                         const dose = Number(pep.dose) || 0;
                         return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
@@ -219,22 +225,10 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
                     const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
                     if (calc.unitsPerDose > 0) {
-                        if (additionalUnits) {
-                            // Use pipe format to match Calendar display: "15 units | 15 units" (if both present)
-                            dose = `${calc.unitsPerDose.toFixed(0)} units | ${additionalUnits} units`;
-                        } else {
-                            dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                        }
-                        unit = '';
-                    } else if (additionalUnits) {
-                        // Use pipe format to match Calendar display: "600 mcg | 15 units"
-                        dose = `${dose} | ${additionalUnits} units`;
+                        dose = `${calc.unitsPerDose.toFixed(0)} units`;
                         unit = '';
                     }
-                } else if (additionalUnits) {
-                    // Use pipe format to match Calendar display: "600 mcg | 15 units"
-                    dose = `${dose} | ${additionalUnits} units`;
-                    unit = '';
+                    // else: keep default dose (doseParts.join)
                 }
 
                 // Extract unit from dose if not set
@@ -328,35 +322,28 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     let unit = pep.dosage?.unit || '';
                     const additionalUnits = pep.unitValue || '';
 
-                    if (reconItem) {
+                    // Priority: Manual unitValue > Calculated > Default dose/unit
+                    if (additionalUnits && additionalUnits.trim() !== '') {
+                        // User manually entered units - ALWAYS prioritize this
+                        dose = `${additionalUnits} units`;
+                        unit = '';
+                    } else if (reconItem) {
+                        // No manual override, use calculated units if available
                         const calc = calculateRecon({
                             mg: reconItem.mg,
                             water: reconItem.water,
                             dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount
                         });
                         if (calc.unitsPerDose > 0) {
-                            if (additionalUnits) {
-                                // Use pipe format to match Calendar display: "15 units | 15 units" (if both present)
-                                dose = `${calc.unitsPerDose.toFixed(0)} units | ${additionalUnits} units`;
-                            } else {
-                                dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                            }
-                            unit = '';
-                        } else if (additionalUnits) {
-                            // Use pipe format to match Calendar display: "600 mcg | 15 units"
-                            dose = `${dose} ${unit} | ${additionalUnits} units`;
+                            dose = `${calc.unitsPerDose.toFixed(0)} units`;
                             unit = '';
                         } else {
-                            // Simple case: just dose and unit
+                            // No calculation available, use default dose/unit
                             dose = `${dose} ${unit}`;
                             unit = '';
                         }
-                    } else if (additionalUnits) {
-                        // Use pipe format to match Calendar display: "600 mcg | 15 units"
-                        dose = `${dose} ${unit} | ${additionalUnits} units`;
-                        unit = '';
                     } else {
-                        // Simple case: just dose and unit
+                        // No recon item, use default dose/unit
                         dose = `${dose} ${unit}`;
                         unit = '';
                     }

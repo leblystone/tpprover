@@ -12,6 +12,7 @@ import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
+import TimePicker15Min from '../components/common/inputs/TimePicker15Min'
 import { penColors } from '../utils/penColors'
 import { formatCurrency } from '../utils/currencyUtils'
 import ProtocolCard from '../components/protocols/ProtocolCard'
@@ -2062,22 +2063,19 @@ export default function Protocols() {
           <div className="space-y-2">
             <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
               <ClockPlus size={16} />
-              Pick your own time
+              Pick your AM time (15 min increments)
             </label>
             <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={customTimeInput.am || reminderSettings.amTime}
-                onChange={(e) => {
-                  setCustomTimeInput(prev => ({ ...prev, am: e.target.value }));
-                }}
-                className="flex-1 px-3 py-2 rounded-lg border text-sm"
-                style={{
-                  borderColor: theme.border,
-                  backgroundColor: theme.cardBackground,
-                  color: theme.text
-                }}
-              />
+              <div className="flex-1">
+                <TimePicker15Min
+                  value={customTimeInput.am || reminderSettings.amTime}
+                  onChange={(time) => {
+                    setCustomTimeInput(prev => ({ ...prev, am: time }));
+                  }}
+                  theme={theme}
+                  timeRange="am"
+                />
+              </div>
               <button
                 onClick={() => {
                   if (customTimeInput.am) {
@@ -2085,7 +2083,7 @@ export default function Protocols() {
                     setTimeModalOpen(prev => ({ ...prev, am: false }));
                   }
                 }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[0.98] active:scale-95"
                 style={{ backgroundColor: theme.primary }}
               >
                 Set
@@ -2145,22 +2143,19 @@ export default function Protocols() {
           <div className="space-y-2">
             <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
               <ClockPlus size={16} />
-              Pick your own time
+              Pick your PM time (15 min increments)
             </label>
             <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={customTimeInput.pm || reminderSettings.pmTime}
-                onChange={(e) => {
-                  setCustomTimeInput(prev => ({ ...prev, pm: e.target.value }));
-                }}
-                className="flex-1 px-3 py-2 rounded-lg border text-sm"
-                style={{
-                  borderColor: theme.border,
-                  backgroundColor: theme.cardBackground,
-                  color: theme.text
-                }}
-              />
+              <div className="flex-1">
+                <TimePicker15Min
+                  value={customTimeInput.pm || reminderSettings.pmTime}
+                  onChange={(time) => {
+                    setCustomTimeInput(prev => ({ ...prev, pm: time }));
+                  }}
+                  theme={theme}
+                  timeRange="pm"
+                />
+              </div>
               <button
                 onClick={() => {
                   if (customTimeInput.pm) {
@@ -2168,7 +2163,7 @@ export default function Protocols() {
                     setTimeModalOpen(prev => ({ ...prev, pm: false }));
                   }
                 }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[0.98] active:scale-95"
                 style={{ backgroundColor: theme.primary }}
               >
                 Set

@@ -5,6 +5,7 @@ import { loadSettings, saveSettings, getDefaultSettings } from '../utils/setting
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
 import TimezoneChangeModal from '../components/ui/TimezoneChangeModal'
+import CustomDropdown from '../components/common/inputs/CustomDropdown'
 
 export default function SettingsPreferences() {
   const { theme } = useOutletContext()
@@ -276,8 +277,8 @@ export default function SettingsPreferences() {
           </div>
         </div>
 
-        {/* Regional Settings - Hidden until fully implemented */}
-        {/* <div className="space-y-3">
+        {/* Regional Settings */}
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Globe size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -286,40 +287,28 @@ export default function SettingsPreferences() {
           </div>
 
           <div 
-            className="px-4 rounded-2xl border-2 transition-all shadow-sm"
+            className="p-4 rounded-2xl border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
-            <SettingSelect 
-              label="Language" 
-              value={settings.region.language} 
-              onChange={e => update('region.language', e.target.value)} 
-              options={[
-                { value: 'en-US', label: 'English (US)' }, 
-                { value: 'en-GB', label: 'English (UK)' }, 
-                { value: 'es-ES', label: 'Español (ES)' }
-              ]} 
-              theme={theme} 
-              icon={Languages}
-            />
-            <SettingSelect 
-              label="Currency" 
-              value={settings.region.currency} 
-              onChange={e => update('region.currency', e.target.value)} 
-              options={currencyOptions} 
-              theme={theme} 
-              icon={CircleDollarSign}
-            />
-            <SettingSelect 
-              label="Time Zone" 
-              value={settings.region.timeZone} 
-              onChange={e => handleTimezoneChange(e.target.value)} 
-              options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))} 
-              theme={theme} 
-              icon={Clock}
-              isLast={true}
-            />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock size={14} style={{ color: theme.primary, opacity: 0.7 }} />
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
+                  Time Zone
+                </label>
+              </div>
+              <CustomDropdown
+                value={settings.region.timeZone}
+                onChange={(newValue) => handleTimezoneChange(newValue)}
+                options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))}
+                placeholder="Select timezone..."
+                theme={theme}
+                outlined={true}
+                customShadow={true}
+              />
+            </div>
           </div>
-        </div> */}
+        </div>
 
         {/* Calendar Settings */}
         <div className="space-y-3">

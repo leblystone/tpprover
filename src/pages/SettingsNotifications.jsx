@@ -8,6 +8,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useFirebase } from '../context/FirebaseContext'
 import { debugNotifications } from '../utils/debugNotifications'
+import TimePicker15Min from '../components/common/inputs/TimePicker15Min'
 
 /**
  * Save push token to Firestore for server-side push notifications
@@ -323,6 +324,76 @@ export default function SettingsNotifications() {
               isLast={true}
             />
           </div>
+
+          {/* Reminder Time Settings */}
+          {settings.notifications.researchReminders && (
+            <div 
+              className="p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
+              style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            >
+              <div className="flex items-start gap-2 mb-1">
+                <Bell size={14} className="mt-0.5" style={{ color: theme.primary }} />
+                <div className="flex-1">
+                  <h5 className="text-xs font-bold mb-0.5" style={{ color: theme.text }}>
+                    Daily Reminder Times
+                  </h5>
+                  <p className="text-[10px] leading-relaxed opacity-60" style={{ color: theme.text }}>
+                    Set when you'd like to receive your daily research reminders. Changes sync across all pages.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <TimePicker15Min
+                  label="Morning Reminder"
+                  value={settings.notifications.researchReminderTimeAM || '08:00'}
+                  onChange={(time) => update('notifications.researchReminderTimeAM', time)}
+                  theme={theme}
+                  disabled={!settings.notifications.push}
+                  timeRange="am"
+                />
+                <TimePicker15Min
+                  label="Evening Reminder"
+                  value={settings.notifications.researchReminderTimePM || '18:00'}
+                  onChange={(time) => update('notifications.researchReminderTimePM', time)}
+                  theme={theme}
+                  disabled={!settings.notifications.push}
+                  timeRange="pm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <input
+                    type="checkbox"
+                    id="amReminder"
+                    checked={settings.notifications.researchRemindersAM ?? false}
+                    onChange={(e) => update('notifications.researchRemindersAM', e.target.checked)}
+                    disabled={!settings.notifications.push}
+                    className="w-4 h-4 rounded"
+                    style={{ accentColor: theme.primary }}
+                  />
+                  <label htmlFor="amReminder" className="text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
+                    Enable AM
+                  </label>
+                </div>
+                <div className="flex items-center gap-1.5 flex-1">
+                  <input
+                    type="checkbox"
+                    id="pmReminder"
+                    checked={settings.notifications.researchRemindersPM ?? false}
+                    onChange={(e) => update('notifications.researchRemindersPM', e.target.checked)}
+                    disabled={!settings.notifications.push}
+                    className="w-4 h-4 rounded"
+                    style={{ accentColor: theme.primary }}
+                  />
+                  <label htmlFor="pmReminder" className="text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
+                    Enable PM
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Orders & Stock */}

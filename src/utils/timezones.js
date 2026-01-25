@@ -6,11 +6,12 @@
 // Major timezone groups
 const TIMEZONE_GROUPS = {
   'Popular': [
-    'UTC',
     'America/New_York',    // Eastern Time
     'America/Chicago',     // Central Time  
     'America/Denver',      // Mountain Time
     'America/Los_Angeles', // Pacific Time
+    'America/Anchorage',   // Alaska Time
+    'Pacific/Honolulu',    // Hawaii Time
     'Europe/London',       // GMT/BST
     'Europe/Paris',        // Central European Time
     'Asia/Tokyo',          // Japan Standard Time
@@ -33,7 +34,6 @@ const TIMEZONE_GROUPS = {
   ],
   
   'Europe': [
-    'UTC',                        // Coordinated Universal Time
     'Europe/London',              // GMT/BST
     'Europe/Dublin',              // GMT/IST
     'Europe/Paris',               // Central European Time
@@ -50,6 +50,7 @@ const TIMEZONE_GROUPS = {
     'Europe/Athens',              // Eastern European Time
     'Europe/Istanbul',            // Turkey Time
     'Europe/Moscow',              // Moscow Standard Time
+    'UTC',                        // Coordinated Universal Time (for advanced users)
   ],
   
   'Asia': [
@@ -138,16 +139,101 @@ export function getTimezoneList(currentUserTimezone = null) {
  */
 export function getTimezoneDisplayName(timezone) {
   try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      timeZoneName: 'short'
-    });
+    // Map of timezone IDs to friendly names
+    const friendlyNames = {
+      // United States
+      'America/New_York': 'United States - New York (Eastern)',
+      'America/Chicago': 'United States - Chicago (Central)',
+      'America/Denver': 'United States - Denver (Mountain)',
+      'America/Los_Angeles': 'United States - Los Angeles (Pacific)',
+      'America/Anchorage': 'United States - Anchorage (Alaska)',
+      'Pacific/Honolulu': 'United States - Honolulu (Hawaii)',
+      
+      // Canada
+      'America/St_Johns': 'Canada - St. Johns (Newfoundland)',
+      'America/Halifax': 'Canada - Halifax (Atlantic)',
+      'America/Toronto': 'Canada - Toronto (Eastern)',
+      'America/Winnipeg': 'Canada - Winnipeg (Central)',
+      'America/Edmonton': 'Canada - Edmonton (Mountain)',
+      'America/Vancouver': 'Canada - Vancouver (Pacific)',
+      
+      // Europe
+      'UTC': 'UTC - Coordinated Universal Time',
+      'Europe/London': 'United Kingdom - London (GMT)',
+      'Europe/Dublin': 'Ireland - Dublin (GMT)',
+      'Europe/Paris': 'France - Paris (CET)',
+      'Europe/Berlin': 'Germany - Berlin (CET)',
+      'Europe/Amsterdam': 'Netherlands - Amsterdam (CET)',
+      'Europe/Rome': 'Italy - Rome (CET)',
+      'Europe/Madrid': 'Spain - Madrid (CET)',
+      'Europe/Brussels': 'Belgium - Brussels (CET)',
+      'Europe/Vienna': 'Austria - Vienna (CET)',
+      'Europe/Warsaw': 'Poland - Warsaw (CET)',
+      'Europe/Prague': 'Czech Republic - Prague (CET)',
+      'Europe/Stockholm': 'Sweden - Stockholm (CET)',
+      'Europe/Helsinki': 'Finland - Helsinki (EET)',
+      'Europe/Athens': 'Greece - Athens (EET)',
+      'Europe/Istanbul': 'Turkey - Istanbul',
+      'Europe/Moscow': 'Russia - Moscow (MSK)',
+      
+      // Asia
+      'Asia/Dubai': 'United Arab Emirates - Dubai',
+      'Asia/Kolkata': 'India - Kolkata',
+      'Asia/Dhaka': 'Bangladesh - Dhaka',
+      'Asia/Kathmandu': 'Nepal - Kathmandu',
+      'Asia/Bangkok': 'Thailand - Bangkok',
+      'Asia/Jakarta': 'Indonesia - Jakarta',
+      'Asia/Shanghai': 'China - Shanghai',
+      'Asia/Hong_Kong': 'Hong Kong',
+      'Asia/Taipei': 'Taiwan - Taipei',
+      'Asia/Singapore': 'Singapore',
+      'Asia/Manila': 'Philippines - Manila',
+      'Asia/Seoul': 'South Korea - Seoul',
+      'Asia/Tokyo': 'Japan - Tokyo',
+      
+      // Australia & Pacific
+      'Pacific/Auckland': 'New Zealand - Auckland',
+      'Australia/Sydney': 'Australia - Sydney',
+      'Australia/Melbourne': 'Australia - Melbourne',
+      'Australia/Brisbane': 'Australia - Brisbane',
+      'Australia/Adelaide': 'Australia - Adelaide',
+      'Australia/Darwin': 'Australia - Darwin',
+      'Australia/Perth': 'Australia - Perth',
+      'Pacific/Fiji': 'Fiji',
+      'Pacific/Guam': 'Guam',
+      
+      // South America
+      'America/Sao_Paulo': 'Brazil - São Paulo',
+      'America/Argentina/Buenos_Aires': 'Argentina - Buenos Aires',
+      'America/Lima': 'Peru - Lima',
+      'America/Santiago': 'Chile - Santiago',
+      'America/Bogota': 'Colombia - Bogotá',
+      'America/Caracas': 'Venezuela - Caracas',
+      
+      // Africa
+      'Africa/Cairo': 'Egypt - Cairo',
+      'Africa/Johannesburg': 'South Africa - Johannesburg',
+      'Africa/Lagos': 'Nigeria - Lagos',
+      'Africa/Nairobi': 'Kenya - Nairobi',
+      'Africa/Casablanca': 'Morocco - Casablanca',
+      
+      // Middle East
+      'Asia/Jerusalem': 'Israel - Jerusalem',
+      'Asia/Riyadh': 'Saudi Arabia - Riyadh',
+      'Asia/Tehran': 'Iran - Tehran',
+      'Asia/Baghdad': 'Iraq - Baghdad',
+    };
     
+    if (friendlyNames[timezone]) {
+      const offset = getTimezoneOffset(timezone);
+      const offsetStr = formatOffset(offset);
+      return `${friendlyNames[timezone]} ${offsetStr ? `(UTC${offsetStr})` : ''}`.trim();
+    }
+    
+    // Fallback for unmapped timezones
     const offset = getTimezoneOffset(timezone);
     const offsetStr = formatOffset(offset);
-    
-    return `${timezone.replace('_', ' ')} (UTC${offsetStr})`;
+    return `${timezone.replace(/_/g, ' ')} (UTC${offsetStr})`;
   } catch (error) {
     return timezone;
   }

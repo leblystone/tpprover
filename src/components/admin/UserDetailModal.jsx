@@ -750,7 +750,7 @@ export default function UserDetailModal({
                         backgroundColor: enhancedTheme.background, 
                         color: enhancedTheme.text 
                       }}
-                      placeholder="Type your message here. This will appear as a 'From the Team🥼' notification in the user's dashboard."
+                      placeholder="Type your message here. This will appear as a 'From the Team' notification in the user's dashboard."
                     />
                     <p className="text-xs mt-2" style={{ color: enhancedTheme.textLight }}>
                       This is a one-way message. The user will see it in their dashboard but cannot reply directly.

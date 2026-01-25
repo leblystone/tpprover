@@ -182,6 +182,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 if (normalized.unitValue === undefined || normalized.unitValue === null) {
                     normalized.unitValue = '';
                 }
+                // Normalize frequency.time to ensure it's always a valid array
+                // Preserve user's selection (AM or PM) - don't force default to AM
+                if (normalized.frequency) {
+                    if (!normalized.frequency.time || !Array.isArray(normalized.frequency.time) || normalized.frequency.time.length === 0) {
+                        // Only default to AM if time is completely missing
+                        normalized.frequency.time = ['AM'];
+                    } else {
+                        // Ensure time array only contains valid values (AM or PM)
+                        normalized.frequency.time = normalized.frequency.time.filter(t => t === 'AM' || t === 'PM');
+                        // If filtering removed all values, default to AM
+                        if (normalized.frequency.time.length === 0) {
+                            normalized.frequency.time = ['AM'];
+                        }
+                    }
+                }
                 // Normalize titration steps
                 if (normalized.titration && Array.isArray(normalized.titration)) {
                     normalized.titration = normalized.titration.map(step => ({

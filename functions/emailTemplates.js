@@ -3401,6 +3401,22 @@ exports.welcomeEmailV2 = (userName, userEmail) => {
         or just trying to stay organized — you're in the right place.
       </p>
 
+      <p style="font-size: 17px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 32px 0; font-weight: 600;">
+        The Pep Planner is your all-in-one research tool, designed by a fellow researcher!
+      </p>
+
+      <center style="margin: 32px 0;">
+        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse: separate; border-spacing: 0;">
+          <tr>
+            <td align="center" style="border-radius: 16px; background: linear-gradient(135deg, ${MODERN_COLORS.primary} 0%, ${MODERN_COLORS.primaryDark} 100%); box-shadow: 0 6px 20px rgba(127, 158, 149, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);">
+              <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 20px 48px; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 17px; letter-spacing: 0.5px; border: 3px solid rgba(255, 255, 255, 0.2); border-radius: 16px;">
+                🚀 Start Exploring Now
+              </a>
+            </td>
+          </tr>
+        </table>
+      </center>
+
       ${modernCard(`
         <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: ${MODERN_COLORS.text};">
           🎁 Your trial is live!
@@ -3409,8 +3425,6 @@ exports.welcomeEmailV2 = (userName, userEmail) => {
           Full access to everything. No credit card needed. Just dive in and explore.
         </p>
       `, MODERN_COLORS.successBg, MODERN_COLORS.success)}
-
-      ${modernButton('Open Your Dashboard →', 'https://thepepplanner.app/app/dashboard')}
 
       ${modernDivider()}
 

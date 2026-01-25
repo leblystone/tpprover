@@ -35,6 +35,23 @@ async function sendPushNotification(userId, title, body, data = {}) {
         timestamp: Date.now().toString(),
         click_action: data.clickAction || 'FLUTTER_NOTIFICATION_CLICK'
       },
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: '/logo192.png',
+          badge: '/logo192.png',
+          tag: data.tag || 'default',
+          requireInteraction: false,
+          data: {
+            ...data,
+            url: data.clickAction || 'https://thepepplanner.com/app/dashboard'
+          }
+        },
+        fcm_options: {
+          link: data.clickAction || 'https://thepepplanner.com/app/dashboard'
+        }
+      },
       android: {
         notification: {
           icon: 'ic_notification',

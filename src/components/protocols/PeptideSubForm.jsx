@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan } from 'lucide-react';
-import { getChromeGradient } from '../../utils/recon';
+import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
+import { AppContext } from '../../context/AppContext';
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
+    const { reconItems } = useContext(AppContext);
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
     const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
@@ -44,11 +46,21 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
         // Only default when the time field is being changed or time is empty
         if (field === 'time') {
             // When time field is being changed, ensure it's not empty
+            // But preserve the user's selection - don't force AM if they selected PM
             if (!Array.isArray(newFreq.time) || newFreq.time.length === 0) {
-                newFreq.time = ['AM'];
+                // Only default to AM if there's no existing time preference
+                // Check the original item's time to preserve user's last selection
+                const existingTime = item.frequency?.time;
+                if (Array.isArray(existingTime) && existingTime.length > 0) {
+                    // Preserve the last selected time if available
+                    newFreq.time = existingTime;
+                } else {
+                    newFreq.time = ['AM'];
+                }
             }
         } else {
             // When other fields change, preserve existing time or default to AM
+            // Don't reset time if it already exists
             if (!newFreq.time || !Array.isArray(newFreq.time) || newFreq.time.length === 0) {
                 newFreq.time = ['AM'];
             }
@@ -211,6 +223,53 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     customTextColor={theme.isDark ? null : "#181A18"}
                                     customShadow
                                 />
+                                {/* Smart helper text - shows comparison with calculated units */}
+                                {(() => {
+                                    // Find matching recon item for this peptide
+                                    const reconItem = reconItems?.find(r => {
+                                        if (!r.peptides || r.peptides.length === 0) return false;
+                                        const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                                        const itemName = (item.name || '').toLowerCase().trim();
+                                        return reconPeptideNames.includes(itemName);
+                                    });
+
+                                    if (!reconItem) return null;
+
+                                    // Calculate units from recon item
+                                    const calc = calculateRecon({
+                                        mg: reconItem.mg,
+                                        water: reconItem.water,
+                                        dose: item.dosage?.unit === 'mg' ? (item.dosage?.amount || 0) * 1000 : item.dosage?.amount
+                                    });
+
+                                    if (calc.unitsPerDose <= 0) return null;
+
+                                    const calculatedUnits = calc.unitsPerDose.toFixed(0);
+                                    const manualUnits = (item.unitValue || '').trim();
+
+                                    if (manualUnits && manualUnits !== calculatedUnits) {
+                                        // Manual override is different from calculated
+                                        return (
+                                            <div style={{ fontSize: '11px', marginTop: '4px', color: '#E5A87A' }}>
+                                                ⚠️ Override active. Calc suggests: {calculatedUnits} units
+                                            </div>
+                                        );
+                                    } else if (!manualUnits) {
+                                        // No manual value, showing what will be auto-filled
+                                        return (
+                                            <div style={{ fontSize: '11px', marginTop: '4px', color: '#8B9F98' }}>
+                                                ✓ Auto-calculated: {calculatedUnits} units
+                                            </div>
+                                        );
+                                    } else {
+                                        // Manual matches calculated
+                                        return (
+                                            <div style={{ fontSize: '11px', marginTop: '4px', color: '#5F7F76' }}>
+                                                ✓ Matches calculation
+                                            </div>
+                                        );
+                                    }
+                                })()}
                             </div>
                         </div>
                     )}
@@ -482,7 +541,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 onClick={() => {
                                                     const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
                                                     const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                    handleFrequencyChange('time', next.length === 0 ? ['AM'] : next);
+                                                    // Don't allow empty array - if user deselects the last option, keep the other one
+                                                    // If both are selected and user clicks one, remove it
+                                                    // If only one is selected and user clicks it, toggle to the other one
+                                                    if (next.length === 0) {
+                                                        // If array becomes empty, toggle to the opposite option
+                                                        const opposite = t === 'AM' ? ['PM'] : ['AM'];
+                                                        handleFrequencyChange('time', opposite);
+                                                    } else {
+                                                        handleFrequencyChange('time', next);
+                                                    }
                                                 }}
                                                 className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
                                                 style={active ? { backgroundColor: theme.primary } : {}}

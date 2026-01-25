@@ -313,13 +313,24 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
       // Handle different actions
       switch (action) {
         case 'approve':
-          // Post the response to the ticket
-          await approveAndPostResponse(ticketId, db);
-          
-          // Update Telegram message
-          await sendTelegramMessage(botToken, chatId, `✅ *Approved!*\n\nResponse posted to ticket ${ticketId}`, {
-            message_id: messageId
-          });
+          try {
+            // Post the response to the ticket
+            await approveAndPostResponse(ticketId, db);
+            
+            // Get ticket number for confirmation
+            const ticketDoc = await db.collection('supportTickets').doc(ticketId).get();
+            const ticketNumber = ticketDoc.data()?.ticketNumber || ticketId;
+            
+            // Update Telegram message
+            await sendTelegramMessage(botToken, chatId, `✅ *Approved & Posted!*\n\n🎫 Ticket: ${ticketNumber}\n✉️ Response sent to user\n\n_Check admin panel to see the posted message._`, {
+              message_id: messageId
+            });
+          } catch (error) {
+            logger.error(`Error approving ticket ${ticketId}:`, error);
+            await sendTelegramMessage(botToken, chatId, `❌ *Error!*\n\nFailed to post response for ticket ${ticketId}\n\nError: ${error.message}\n\n_Check Firebase logs for details._`, {
+              message_id: messageId
+            });
+          }
           
           break;
           
@@ -363,25 +374,119 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
 );
 
 /**
+ * Extract customer-facing response from full Ghosty response
+ * Removes admin notes and formatting headers
+ */
+function extractCustomerResponse(fullResponse) {
+  try {
+    // Split by the admin notes section
+    const parts = fullResponse.split(/---\s*##\s*ADMIN NOTES/i);
+    
+    if (parts.length === 0) {
+      return fullResponse; // Fallback to full response if parsing fails
+    }
+    
+    // Get the customer response part (everything before admin notes)
+    let customerResponse = parts[0];
+    
+    // Remove the "## CUSTOMER RESPONSE:" header if present
+    customerResponse = customerResponse.replace(/^##\s*CUSTOMER RESPONSE:\s*/i, '');
+    
+    // Remove any leading/trailing whitespace and extra newlines
+    customerResponse = customerResponse.trim();
+    
+    // Remove the trailing "---" separator if present
+    customerResponse = customerResponse.replace(/---\s*$/, '').trim();
+    
+    return customerResponse;
+  } catch (error) {
+    logger.error('Error extracting customer response:', error);
+    return fullResponse; // Fallback to full response on error
+  }
+}
+
+/**
  * Helper to approve and post response
  */
 async function approveAndPostResponse(ticketId, db) {
-  // Get the generated response from Ghosty logs
-  const logsRef = db.collection('ai_worker_logs');
-  const q = logsRef.where('ticketId', '==', ticketId).orderBy('timestamp', 'desc').limit(1);
-  const snapshot = await q.get();
-  
-  if (snapshot.empty) {
-    logger.error(`No Ghosty log found for ticket ${ticketId}`);
-    return;
+  try {
+    // Get the generated response from Ghosty logs
+    const logsRef = db.collection('ai_worker_logs');
+    const q = logsRef.where('ticketId', '==', ticketId).orderBy('timestamp', 'desc').limit(1);
+    const snapshot = await q.get();
+    
+    if (snapshot.empty) {
+      logger.error(`No Ghosty log found for ticket ${ticketId}`);
+      throw new Error('No Ghosty response found for this ticket');
+    }
+    
+    const logData = snapshot.docs[0].data();
+    
+    // Verify response content exists
+    if (!logData.responseContent) {
+      logger.error(`No response content stored for ticket ${ticketId}`);
+      throw new Error('Response content not found in log');
+    }
+    
+    // Extract ONLY the customer-facing response (strip admin notes)
+    const customerResponse = extractCustomerResponse(logData.responseContent);
+    
+    logger.info(`📝 Customer response extracted (${customerResponse.length} chars, full was ${logData.responseContent.length} chars)`);
+    
+    // Get ticket reference
+    const ticketRef = db.collection('supportTickets').doc(ticketId);
+    const ticketDoc = await ticketRef.get();
+    
+    if (!ticketDoc.exists) {
+      throw new Error('Ticket not found');
+    }
+    
+    // Post ONLY the customer response to ticket messages
+    const messageRef = ticketRef.collection('messages').doc();
+    
+    await messageRef.set({
+      messageId: messageRef.id,
+      ticketId: ticketId,
+      senderType: 'ghost-worker',
+      senderEmail: 'ghosty@thepepplanner.com',
+      senderName: `Ghosty👻 (${logData.route === 'gemini-pro' ? 'Gemini' : 'Claude'})`,
+      message: customerResponse, // ONLY customer-facing content
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+      metadata: {
+        model: logData.executionModel,
+        confidence: logData.confidence,
+        tokensUsed: logData.executionTokensTotal,
+        estimatedCost: logData.executionCost,
+        approvedVia: 'telegram',
+        fullResponseInLog: true // Flag that admin notes are in the log
+      }
+    });
+    
+    // Update ticket status
+    await ticketRef.update({
+      status: 'in-progress',
+      lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      'metadata.ghostWorker.responsePosted': true,
+      'metadata.ghostWorker.postedAt': admin.firestore.FieldValue.serverTimestamp(),
+      'metadata.ghostWorker.approvedVia': 'telegram'
+    });
+    
+    // Update the log to mark as posted
+    await snapshot.docs[0].ref.update({
+      responsePosted: true,
+      postedAt: admin.firestore.FieldValue.serverTimestamp(),
+      approvedVia: 'telegram'
+    });
+    
+    logger.info(`✅ Approved and posted Ghosty response for ticket ${ticketId}`);
+    return true;
+    
+  } catch (error) {
+    logger.error(`Error approving and posting response for ticket ${ticketId}:`, error);
+    throw error;
   }
-  
-  const logData = snapshot.docs[0].data();
-  
-  // TODO: Get full response content and post to ticket
-  // This would need to be stored in the log or retrieved from a temp storage
-  
-  logger.info(`✅ Approved and posted response for ticket ${ticketId}`);
 }
 
 // ==================== ERROR NOTIFICATIONS ====================
