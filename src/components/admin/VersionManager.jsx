@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
-import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info, History, Clock, Siren } from 'lucide-react';
+import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, History, Clock, Siren, Code } from 'lucide-react';
+import { APP_VERSION } from '../../utils/appVersion';
 
 export default function VersionManager({ theme }) {
   const { firebaseUser } = useFirebase();
@@ -164,6 +165,41 @@ export default function VersionManager({ theme }) {
         <Smartphone size={32} style={{ color: theme.primary }} />
       </div>
 
+      {/* Current Deployed Version Banner */}
+      <div
+        className="rounded-lg p-4 flex items-center justify-between"
+        style={{
+          background: theme.cardBackground,
+          border: `2px solid ${theme.primary}`,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div 
+            className="p-2 rounded-lg"
+            style={{ background: theme.primary + '20' }}
+          >
+            <Code size={24} style={{ color: theme.primary }} />
+          </div>
+          <div>
+            <p className="text-xs font-medium" style={{ color: theme.textLight }}>
+              Current Code Version (package.json)
+            </p>
+            <p className="text-2xl font-bold" style={{ color: theme.primary }}>
+              v{APP_VERSION}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs" style={{ color: theme.textLight }}>
+            This is what users have after they update
+          </p>
+          <p className="text-xs font-medium" style={{ color: theme.text }}>
+            Auto-synced from package.json ✨
+          </p>
+        </div>
+      </div>
+
       {/* Status Message */}
       {message && (
         <div
@@ -187,30 +223,6 @@ export default function VersionManager({ theme }) {
         </div>
       )}
 
-      {/* Info Box */}
-      <div
-        className="rounded-lg p-4"
-        style={{
-          background: theme.cardBackground,
-          border: `1px solid ${theme.border}`
-        }}
-      >
-        <div className="flex items-start gap-3">
-          <Info size={20} style={{ color: theme.info, marginTop: '2px' }} />
-          <div className="flex-1">
-            <p className="text-sm font-medium" style={{ color: theme.text }}>
-              How it works:
-            </p>
-            <ul className="text-sm mt-2 space-y-1" style={{ color: theme.textLight }}>
-              <li>• <strong>Latest Version:</strong> Users below this will see update prompts</li>
-              <li>• <strong>Minimum Version:</strong> Users below this get REQUIRED update (blocks app)</li>
-              <li>• <strong>Release Notes:</strong> Shown to users (one item per line)</li>
-              <li>• <strong>Store URLs:</strong> Direct links to Play Store / App Store</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* Form */}
       <div
         className="rounded-lg p-6 space-y-6"
@@ -224,18 +236,32 @@ export default function VersionManager({ theme }) {
           <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
             Latest Version <span style={{ color: '#ef4444' }}>*</span>
           </label>
-          <input
-            type="text"
-            value={config.latestVersion}
-            onChange={(e) => handleInputChange('latestVersion', e.target.value)}
-            placeholder="1.0.4"
-            className="w-full px-4 py-2 rounded-lg text-sm"
-            style={{
-              background: theme.background,
-              color: theme.text,
-              border: `1px solid ${theme.border}`
-            }}
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={config.latestVersion}
+              onChange={(e) => handleInputChange('latestVersion', e.target.value)}
+              placeholder="1.0.4"
+              className="flex-1 px-4 py-2 rounded-lg text-sm"
+              style={{
+                background: theme.background,
+                color: theme.text,
+                border: `1px solid ${theme.border}`
+              }}
+            />
+            <button
+              onClick={() => handleInputChange('latestVersion', APP_VERSION)}
+              className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+              style={{
+                background: theme.primary + '20',
+                color: theme.primary,
+                border: `1px solid ${theme.primary}`
+              }}
+              title="Use current code version"
+            >
+              Use v{APP_VERSION}
+            </button>
+          </div>
           <p className="text-xs mt-1" style={{ color: theme.textLight }}>
             Format: X.Y.Z (e.g., 1.0.4). Users below this version will see "Update Available"
           </p>

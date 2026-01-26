@@ -1858,6 +1858,81 @@ exports.sendAccountDeletionRequestToAdmin = async (userEmail, userName = null, d
 };
 
 /**
+ * Send account deletion request admin notification (NEW MANUAL SYSTEM)
+ * Sends notification email to admin about pending deletion request
+ */
+exports.sendAccountDeletionRequestAdminNotification = async (userEmail, userName = null, dataSummary = {}, subscriptionInfo = null, source = 'settings') => {
+  const adminEmail = 'contact@thepepplanner.com';
+  
+  const subject = `Account Deletion Request - ${userEmail}`;
+  
+  // Calculate total items
+  const totalItems = Object.values(dataSummary).reduce((sum, count) => sum + count, 0);
+  
+  // Build data summary text
+  const dataSummaryText = Object.entries(dataSummary)
+    .map(([key, value]) => {
+      const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+      return `  • ${label}: ${value}`;
+    })
+    .join('\n');
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #344E41, #3A5A40); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .data-summary { background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #dc2626; border-radius: 4px; }
+        .footer { background: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 8px 8px; }
+        .warning { color: #dc2626; font-weight: bold; }
+        .info { background: #e0f2fe; padding: 10px; border-radius: 4px; margin: 10px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>🗑️ Account Deletion Request</h2>
+        </div>
+        <div class="content">
+          <p><strong>User Email:</strong> ${userEmail}</p>
+          <p><strong>User Name:</strong> ${userName || 'kaylatilley83'}</p>
+          <p><strong>Request Date:</strong> ${new Date().toLocaleString()}</p>
+          
+          <div class="data-summary">
+            <p class="warning">⚠️ The following data will be deleted:</p>
+            <pre style="margin: 10px 0; font-family: monospace; font-size: 12px;">${dataSummaryText || '  • No data summary available'}</pre>
+          </div>
+          
+          ${subscriptionInfo?.hasSubscription ? `
+            <div class="info">
+              <p style="margin: 0;"><strong>⚠️ Active Subscription:</strong> ${subscriptionInfo.status || 'active'}</p>
+              <p style="margin: 5px 0 0 0; font-size: 12px;">Stripe subscription will be automatically cancelled upon deletion approval.</p>
+            </div>
+          ` : ''}
+          
+          <p><strong>Action Required:</strong> Please review and manually approve this deletion request in the admin panel (Settings → Deletions → Pending Requests). The user will receive a confirmation email once you click "Approve & Delete".</p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <small>This is an automated notification from The Pep Planner manual deletion system.</small>
+          </p>
+        </div>
+        <div class="footer">
+          <p>The Pep Planner - Account Management System</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  return sendEmail(adminEmail, subject, html);
+};
+
+/**
  * Send trial expired survey email
  * Uses queue system to track email count
  */

@@ -2908,6 +2908,22 @@ exports.submitAccountDeletionRequest = onCall(
         // Don't fail the request if work queue creation fails
       }
 
+      // Send admin notification email
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionRequestAdminNotification(
+          userEmail,
+          displayName,
+          dataSummary,
+          subscriptionInfo,
+          source
+        );
+        logger.info(`✅ Admin notification email sent for deletion request`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not send admin notification email: ${error.message}`);
+        // Don't fail the request if email sending fails
+      }
+
       return {
         success: true,
         message: 'Your account deletion request has been submitted. An admin will review it within 24-48 hours.',
@@ -4425,7 +4441,8 @@ exports.getSecurityData = onCall(
           'tempmailo.com', 'zoho.com'
         ];
         const domain = user.email?.split('@')[1]?.toLowerCase();
-        if (domain && disposableDomains.includes(domain)) return true;
+        const isDisposable = domain && disposableDomains.includes(domain);
+        if (isDisposable) return true;
         
         // Check for bot-like email patterns (contains app name + random numbers)
         const emailLower = user.email?.toLowerCase() || '';
@@ -4436,7 +4453,7 @@ exports.getSecurityData = onCall(
         
         // Only flag as suspicious if:
         // 1. Never logged in AND created more than 14 days ago
-        // 2. OR inactive for more than 60 days (not just 7)
+        // 2. OR inactive for more than 90 days (increased from 60)
         const now = new Date();
         let daysSinceCreation = 0;
         let daysSinceActive = 0;
@@ -4454,22 +4471,101 @@ exports.getSecurityData = onCall(
           daysSinceActive = daysSinceCreation;
         }
         
-        // Suspicious if: never used AND old (14+ days) OR inactive for 60+ days
+        // Suspicious if: never used AND old (14+ days) OR inactive for 90+ days (increased threshold)
         if (!user.lastActive && daysSinceCreation > 14) return true;
-        if (daysSinceActive > 60) return true;
+        if (daysSinceActive > 90) return true; // Changed from 60 to 90 days
         
         return false;
+      });
+      
+      // Add extra metadata for frontend display
+      const enrichedUnverified = unverifiedAccounts.map(user => {
+        const domain = user.email?.split('@')[1]?.toLowerCase();
+        const disposableDomains = [
+          'passmail.net', '10minutemail.com', 'guerrillamail.com', 'mailinator.com', 
+          'tempmail.com', 'throwaway.email', 'temp-mail.org', 'getnada.com', 
+          'mohmal.com', 'yopmail.com', 'maildrop.cc', 'sharklasers.com',
+          'grr.la', 'guerrillamailblock.com', 'pokemail.net', 'spam4.me',
+          'bccto.me', 'chitthi.in', 'dispostable.com', 'meltmail.com',
+          'mintemail.com', 'mytemp.email', 'tempail.com', 'tempr.email',
+          'tmpmail.org', 'trashmail.com', 'trashmailer.com', 'emailondeck.com',
+          'fakeinbox.com', 'getairmail.com', 'inboxkitten.com', 'mailcatch.com',
+          'mailsac.com', 'mytrashmail.com', 'throwawaymail.com', 'tmpmail.net',
+          'mailnesia.com', 'melt.li', 'nada.email', 'spamgourmet.com',
+          'tempmailo.com', 'zoho.com'
+        ];
+        
+        const now = new Date();
+        let daysSinceCreation = 0;
+        let daysSinceActive = 0;
+        
+        if (user.createdAt) {
+          const created = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+          daysSinceCreation = (now - created) / (1000 * 60 * 60 * 24);
+        }
+        
+        if (user.lastActive) {
+          const lastActive = user.lastActive.toDate ? user.lastActive.toDate() : new Date(user.lastActive);
+          daysSinceActive = (now - lastActive) / (1000 * 60 * 60 * 24);
+        }
+        
+        return {
+          ...user,
+          isDisposableEmail: domain && disposableDomains.includes(domain),
+          daysSinceCreation: Math.floor(daysSinceCreation),
+          daysSinceActive: Math.floor(daysSinceActive),
+          hasSubscription: user.subscription?.status === 'active' || user.subscription?.status === 'trialing'
+        };
+      });
+      
+      const enrichedSuspicious = suspiciousAccounts.map(user => {
+        const domain = user.email?.split('@')[1]?.toLowerCase();
+        const disposableDomains = [
+          'passmail.net', '10minutemail.com', 'guerrillamail.com', 'mailinator.com', 
+          'tempmail.com', 'throwaway.email', 'temp-mail.org', 'getnada.com', 
+          'mohmal.com', 'yopmail.com', 'maildrop.cc', 'sharklasers.com',
+          'grr.la', 'guerrillamailblock.com', 'pokemail.net', 'spam4.me',
+          'bccto.me', 'chitthi.in', 'dispostable.com', 'meltmail.com',
+          'mintemail.com', 'mytemp.email', 'tempail.com', 'tempr.email',
+          'tmpmail.org', 'trashmail.com', 'trashmailer.com', 'emailondeck.com',
+          'fakeinbox.com', 'getairmail.com', 'inboxkitten.com', 'mailcatch.com',
+          'mailsac.com', 'mytrashmail.com', 'throwawaymail.com', 'tmpmail.net',
+          'mailnesia.com', 'melt.li', 'nada.email', 'spamgourmet.com',
+          'tempmailo.com', 'zoho.com'
+        ];
+        
+        const now = new Date();
+        let daysSinceCreation = 0;
+        let daysSinceActive = 0;
+        
+        if (user.createdAt) {
+          const created = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+          daysSinceCreation = (now - created) / (1000 * 60 * 60 * 24);
+        }
+        
+        if (user.lastActive) {
+          const lastActive = user.lastActive.toDate ? user.lastActive.toDate() : new Date(user.lastActive);
+          daysSinceActive = (now - lastActive) / (1000 * 60 * 60 * 24);
+        }
+        
+        return {
+          ...user,
+          isDisposableEmail: domain && disposableDomains.includes(domain),
+          daysSinceCreation: Math.floor(daysSinceCreation),
+          daysSinceActive: Math.floor(daysSinceActive),
+          hasSubscription: user.subscription?.status === 'active' || user.subscription?.status === 'trialing'
+        };
       });
 
       // Get blocked accounts
       const blockedAccounts = allUsers.filter(user => user.disabled);
 
-      logger.info(`📊 Security data: ${unverifiedAccounts.length} unverified, ${suspiciousAccounts.length} suspicious, ${blockedAccounts.length} blocked`);
+      logger.info(`📊 Security data: ${enrichedUnverified.length} unverified, ${enrichedSuspicious.length} suspicious, ${blockedAccounts.length} blocked`);
 
       return {
         success: true,
-        unverifiedAccounts,
-        suspiciousAccounts,
+        unverifiedAccounts: enrichedUnverified,
+        suspiciousAccounts: enrichedSuspicious,
         blockedAccounts
       };
     } catch (error) {

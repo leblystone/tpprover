@@ -254,6 +254,19 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions can write logs
     }
     
+    // Account deletion requests - users can create their own requests, admin can read/update all
+    match /accountDeletionRequests/{requestId} {
+      allow create: if request.auth != null; // Authenticated users can submit deletion requests
+      allow read, update: if isAdmin(); // Only admin can read and process deletion requests
+      allow delete: if false; // Only cloud functions can delete (they bypass rules)
+    }
+    
+    // Account deletions history - admin can read for audit trail
+    match /accountDeletions/{deletionId} {
+      allow read: if isAdmin(); // Only admin can read deletion history
+      allow write: if false; // Only Cloud Functions can write deletion records
+    }
+    
     match /{document=**} {
       allow read, write: if false;
     }

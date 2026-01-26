@@ -45,7 +45,7 @@ export default function AccountDeletionHistory({ theme }) {
 
       setDeletions(deletionData);
       
-      // Calculate stats
+      // Calculate stats - use full dataset, not filtered
       const total = deletionData.length;
       const selfService = deletionData.filter(d => d.deletionType === 'self_service').length;
       const adminTerminated = deletionData.filter(d => d.deletionType === 'admin_terminated').length;
@@ -57,10 +57,20 @@ export default function AccountDeletionHistory({ theme }) {
         adminTerminated,
         withSubscriptions
       });
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error loading deletion history:', error);
-    } finally {
+      // Set loading to false even on error
       setLoading(false);
+      // Set empty data on error
+      setDeletions([]);
+      setStats({
+        total: 0,
+        selfService: 0,
+        adminTerminated: 0,
+        withSubscriptions: 0
+      });
     }
   };
 
