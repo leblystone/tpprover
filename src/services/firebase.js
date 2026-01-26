@@ -971,11 +971,28 @@ export async function getUserByEmail(email) {
     
     const userDoc = querySnapshot.docs[0];
     const userData = userDoc.data();
+    const userId = userDoc.id;
+    
+    // Also fetch subscription data from userSubscriptions collection
+    let subscriptionStatus = userData.subscriptionStatus;
+    let subscriptionType = userData.subscriptionType;
+    
+    try {
+      const subDoc = await getDoc(doc(db, 'userSubscriptions', userId));
+      if (subDoc.exists()) {
+        const subData = subDoc.data();
+        // Override with subscription collection data if available
+        subscriptionStatus = subData.status || subscriptionStatus;
+        subscriptionType = subData.type || subscriptionType;
+      }
+    } catch (error) {
+      console.warn('Could not fetch subscription data:', error);
+    }
     
     return {
-      userId: userDoc.id,  // Add userId field
-      id: userDoc.id,
-      uid: userDoc.id,
+      userId: userId,
+      id: userId,
+      uid: userId,
       email: userData.email,
       displayName: userData.displayName,
       createdAt: userData.createdAt,
@@ -984,8 +1001,8 @@ export async function getUserByEmail(email) {
       inviteCodeUsed: userData.inviteCodeUsed,
       isActive: userData.isActive,
       subscription: userData.subscription,
-      subscriptionStatus: userData.subscriptionStatus,
-      subscriptionType: userData.subscriptionType
+      subscriptionStatus: subscriptionStatus,
+      subscriptionType: subscriptionType
     };
   } catch (error) {
     console.error('Failed to get user by email:', error);
