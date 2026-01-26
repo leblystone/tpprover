@@ -564,17 +564,20 @@ export default function GhostWorkerWorkQueue({ theme }) {
                         border: 'none',
                         cursor: 'pointer',
                         fontWeight: '600',
+                        // Prioritize subscriptionType, then subscriptionStatus
                         backgroundColor: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF620' :
                                          ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D420' :
+                                         ticket.userAccountInfo.subscriptionType === 'monthly' ? '#3B82F620' :
                                          ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B98120' :
-                                         ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF444420' :
+                                         ticket.userAccountInfo.subscriptionStatus === 'canceled' || ticket.userAccountInfo.subscriptionStatus === 'cancelled' ? '#EF444420' :
                                          ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B20' :
                                          ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC262620' :
                                          '#6B728020',
                         color: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF6' :
                                ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D4' :
+                               ticket.userAccountInfo.subscriptionType === 'monthly' ? '#3B82F6' :
                                ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B981' :
-                               ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF4444' :
+                               ticket.userAccountInfo.subscriptionStatus === 'canceled' || ticket.userAccountInfo.subscriptionStatus === 'cancelled' ? '#EF4444' :
                                ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B' :
                                ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC2626' :
                                '#6B7280',
@@ -586,6 +589,8 @@ export default function GhostWorkerWorkQueue({ theme }) {
                     >
                       {ticket.userAccountInfo.subscriptionType === 'lifetime' ? '👑' : 
                        ticket.userAccountInfo.subscriptionType === 'annual' ? '📅' : 
+                       ticket.userAccountInfo.subscriptionType === 'monthly' ? '📆' :
+                       ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '🔄' :
                        '👤'} {ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus}
                     </button>
                   )}

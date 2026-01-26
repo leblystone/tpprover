@@ -79,12 +79,19 @@ Users can now **request** account deletion instead of it happening immediately. 
 2. Click **"Approve & Delete"** button:
    - Confirms with warning dialog
    - Calls existing `adminTerminateUser` function
-   - Deletes ALL user data from Firestore
-   - Cancels Stripe subscription if exists
-   - Deletes from Firebase Auth
-   - Sends confirmation email to user
-   - Logs to `accountDeletions` collection
+   - **STEP 1: Sends "We're Sad to See You Go" email FIRST** (while data still exists):
+     - Friendly goodbye message
+     - Confirmation of permanent deletion
+     - Info about rejoining (need new account)
+     - "Share Your Feedback" CTA button (links to feedback survey)
+     - Features list (account status, data removal, subscription cancelled, rejoining info)
+   - **STEP 2: Cancels Stripe subscription** (if exists)
+   - **STEP 3: Deletes ALL user data from Firestore**
+   - **STEP 4: Deletes from Firebase Auth** (FINAL step)
+   - **STEP 5: Logs to `accountDeletions` collection**
    - Updates request status to 'approved'
+
+   **⚠️ IMPORTANT ORDER:** Email is sent FIRST before any deletion so we still have their email/data!
 
 3. Or click **"Reject"** button:
    - Optionally enter reason
@@ -128,6 +135,43 @@ firebase deploy --only functions:submitAccountDeletionRequest
 ### Existing Collections Used:
 - **`accountDeletions`** - Historical log of completed deletions (unchanged)
 - **`ai_worker_logs`** - Work queue items (new deletion request type added)
+
+---
+
+## 📧 Deletion Confirmation Email
+
+When you click "Approve & Delete", the user automatically receives a friendly confirmation email **FIRST, before any data is deleted**:
+
+**Critical Order:**
+1. ✅ **Email sent FIRST** (while we still have their email and data)
+2. ✅ Stripe subscription cancelled
+3. ✅ Firestore data deleted
+4. ✅ Firebase Auth account deleted
+5. ✅ Logged to history
+
+**Email Details:**
+- **Subject:** "We're Sad to See You Go - The Pep Planner"
+- **Heading:** "We're Sad to See You Go! 😢"
+- **Content:**
+  - Confirms account and data permanently deleted
+  - Explains this cannot be undone
+  - Mentions subscription cancelled (if applicable)
+  - Invitation to return (will need new account)
+- **CTA Button:** "Share Your Feedback" (links to feedback survey)
+- **Features List:**
+  - Account Status – Permanently deleted
+  - Data Removal – All research data removed
+  - Subscription – Cancelled (if applicable)
+  - Rejoining – New account required
+
+**Customizing the Email:**
+You can edit this email template in the admin panel:
+1. Go to **Comms → Email Templates**
+2. Find "Account Deletion Confirmation" under "Custom & Announcements"
+3. Edit the subject, message, CTA button text/link
+4. Click "Save" to update
+
+**Note:** Update the CTA link from `https://thepepplanner.app/feedback` to your actual survey URL after you deploy it!
 
 ---
 

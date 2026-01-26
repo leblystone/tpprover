@@ -2944,7 +2944,7 @@ exports.deleteUserAccount = onCall(
       const db = admin.firestore();
       const auth = admin.auth();
       
-      // Get user info before deletion for email
+      // STEP 1: Get user info BEFORE any deletion (needed for email)
       let userRecord;
       let userName = null;
       try {
@@ -2952,9 +2952,10 @@ exports.deleteUserAccount = onCall(
         userName = userRecord.displayName || userEmail.split('@')[0];
       } catch (error) {
         logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+        userName = userEmail.split('@')[0]; // Fallback to email username
       }
 
-      // Get subscription info before deletion
+      // STEP 2: Get subscription info BEFORE deletion (needed for email)
       let subscriptionInfo = null;
       try {
         const subscriptionDoc = await db.collection('userSubscriptions').doc(userId).get();
@@ -2965,7 +2966,20 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // Cancel Stripe subscription if active
+      // STEP 3: SEND CONFIRMATION EMAIL FIRST (while we still have their email/data)
+      logger.info(`📧 Sending goodbye email BEFORE deletion to: ${userEmail}`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(userEmail, userName);
+        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        // CRITICAL: If email fails, we should probably not continue with deletion
+        // But we'll continue anyway since user requested deletion
+        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
+      }
+
+      // STEP 4: Cancel Stripe subscription (if active)
       if (subscriptionInfo?.stripeSubscriptionId) {
         try {
           const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -2986,7 +3000,7 @@ exports.deleteUserAccount = onCall(
         }
       }
 
-      // Delete all Firestore collections
+      // STEP 5: Delete all Firestore collections
       const collectionsToDelete = [
         'users',
         'userData',
@@ -3013,21 +3027,7 @@ exports.deleteUserAccount = onCall(
 
       await Promise.all(deletePromises);
 
-      // Clean up tokens (password reset and verification tokens)
-      // These are stored with token as document ID, so we need to query by userId if stored
-      // For now, we'll skip this as tokens expire anyway and are typically stored differently
-
-      // Send confirmation email
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(userEmail, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
-      } catch (error) {
-        logger.warn(`⚠️ Could not send confirmation email: ${error.message}`);
-        // Continue with deletion even if email fails
-      }
-
-      // Delete from Firebase Auth (must be last step)
+      // STEP 6: Delete from Firebase Auth (FINAL step)
       try {
         await auth.deleteUser(userId);
         logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
@@ -4543,7 +4543,7 @@ exports.terminateUser = onCall(
       const auth = admin.auth();
       const db = admin.firestore();
       
-      // Get user info before deletion for email
+      // STEP 1: Get user info BEFORE any deletion (needed for email)
       let userRecord;
       let userName = null;
       try {
@@ -4551,9 +4551,10 @@ exports.terminateUser = onCall(
         userName = userRecord.displayName || email.split('@')[0];
       } catch (error) {
         logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+        userName = email.split('@')[0]; // Fallback to email username
       }
 
-      // Get subscription info before deletion
+      // STEP 2: Get subscription info BEFORE deletion (needed for email)
       let subscriptionInfo = null;
       try {
         const subscriptionDoc = await db.collection('userSubscriptions').doc(userId).get();
@@ -4564,7 +4565,20 @@ exports.terminateUser = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // Cancel Stripe subscription if active
+      // STEP 3: SEND CONFIRMATION EMAIL FIRST (while we still have their email/data)
+      logger.info(`📧 Sending goodbye email BEFORE deletion to: ${email}`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(email, userName);
+        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        // CRITICAL: If email fails, we should probably not continue with deletion
+        // But we'll continue anyway since user requested deletion
+        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
+      }
+
+      // STEP 4: Cancel Stripe subscription (if active)
       if (subscriptionInfo?.stripeSubscriptionId) {
         try {
           const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -4585,7 +4599,7 @@ exports.terminateUser = onCall(
         }
       }
 
-      // Delete all Firestore collections
+      // STEP 5: Delete all Firestore collections
       const collectionsToDelete = [
         'users',
         'userData',
@@ -4612,17 +4626,7 @@ exports.terminateUser = onCall(
 
       await Promise.all(deletePromises);
 
-      // Send confirmation email
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(email, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
-      } catch (error) {
-        logger.warn(`⚠️ Could not send confirmation email: ${error.message}`);
-        // Continue with deletion even if email fails
-      }
-
-      // Delete from Firebase Auth (must be last step)
+      // STEP 6: Delete from Firebase Auth (FINAL step)
       try {
         await auth.deleteUser(userId);
         logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);

@@ -981,13 +981,29 @@ export async function getUserByEmail(email) {
       const subDoc = await getDoc(doc(db, 'userSubscriptions', userId));
       if (subDoc.exists()) {
         const subData = subDoc.data();
-        // Override with subscription collection data if available
-        subscriptionStatus = subData.status || subscriptionStatus;
-        subscriptionType = subData.type || subscriptionType;
+        console.log('📊 Subscription data from userSubscriptions:', subData);
+        
+        // Check multiple possible field names for status
+        subscriptionStatus = subData.status || 
+                            subData.subscriptionStatus || 
+                            subData.subscription_status ||
+                            subscriptionStatus;
+        
+        // Check multiple possible field names for type
+        subscriptionType = subData.type || 
+                          subData.subscriptionType || 
+                          subData.subscription_type ||
+                          subData.plan ||
+                          subData.planType ||
+                          subscriptionType;
+      } else {
+        console.log('⚠️ No userSubscriptions doc found for user:', userId);
       }
     } catch (error) {
       console.warn('Could not fetch subscription data:', error);
     }
+    
+    console.log('✅ Final subscription data:', { subscriptionStatus, subscriptionType });
     
     return {
       userId: userId,

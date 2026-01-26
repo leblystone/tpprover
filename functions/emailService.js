@@ -1629,52 +1629,40 @@ exports.sendCustomAnnouncementEmail = async (userEmail, userName = null) => {
  * Send account deletion email
  */
 exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
-  // Temporarily bypass Firestore template to ensure correct account deletion email is sent
-  // TODO: Once Firestore template is updated, re-enable template loading with validation
-  logger.info('📧 Using account deletion confirmation template');
+  logger.info('📧 Sending account deletion confirmation email');
   
-  const subject = 'Account Deletion Confirmation - The Pep Planner';
-  const defaultTemplate = {
-    heading: 'Your Account Has Been Deleted',
-    greeting: `Hi ${userName || 'User'},`,
-    mainMessage: `Your account associated with ${userEmail} has been permanently deleted. All your research data, protocols, and account information have been removed from our system.`,
-    ctaText: '',
-    ctaLink: '',
-    highlightTitle: '⚠️ Important Information',
-    highlightMessage: 'This action cannot be undone. If you would like to use The Pep Planner again in the future, you will need to create a new account.',
-    features: []
-  };
-  const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });
-  return sendEmail(userEmail, subject, html);
-  
-  /* Original code with Firestore loading - commented out temporarily
+  // Try to load custom template from Firestore
   try {
     const customTemplate = await loadEmailTemplate('accountDeletion');
-    if (customTemplate) {
-      // Validate template to ensure it's not the old lifetime access template
-      const templateText = JSON.stringify(customTemplate).toLowerCase();
-      const isOldTemplate = customTemplate.html && customTemplate.html.toLowerCase().includes('lifetime access') ||
-        customTemplate.heading && (
-          customTemplate.heading.toLowerCase().includes('lifetime') ||
-          customTemplate.heading.toLowerCase().includes('access granted')
-        ) ||
-        (customTemplate.mainMessage && customTemplate.mainMessage.toLowerCase().includes('lifetime access')) ||
-        templateText.includes('lifetime access granted');
-      
-      if (!isOldTemplate && customTemplate.heading && customTemplate.heading.toLowerCase().includes('deleted')) {
-        logger.info('✅ Using account deletion template from Firestore');
-        const subject = customTemplate.subject || 'Account Deletion Confirmation - The Pep Planner';
-        const html = generateEmailHTML(customTemplate, { userName, userEmail });
-        return sendEmail(userEmail, subject, html);
-      } else {
-        logger.warn('⚠️ Found old or invalid template in Firestore, using updated fallback template instead');
-        logger.warn('⚠️ Template heading:', customTemplate.heading);
-      }
+    if (customTemplate && customTemplate.heading) {
+      logger.info('✅ Using account deletion template from Firestore');
+      const subject = customTemplate.subject || 'We\'re Sad to See You Go - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { userName: userName || 'User', userEmail });
+      return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
     logger.warn('Failed to load account deletion template, using default:', error);
   }
-  */
+  
+  // Fallback to default template
+  const subject = 'We\'re Sad to See You Go - The Pep Planner';
+  const defaultTemplate = {
+    heading: 'We\'re Sad to See You Go! 😢',
+    greeting: `Hi ${userName || 'User'},`,
+    mainMessage: `Your account and all associated data have been permanently deleted from The Pep Planner. We understand that sometimes things don't work out, and we respect your decision.\n\nAll your research data, protocols, and account information have been completely removed from our system. This action cannot be undone.`,
+    ctaText: 'Share Your Feedback',
+    ctaLink: 'https://thepepplanner.app/feedback',
+    highlightTitle: '💡 Want to Return?',
+    highlightMessage: 'If you change your mind and would like to use The Pep Planner again in the future, you\'ll need to create a new account. We\'d love to have you back!',
+    features: [
+      'Account Status – Permanently deleted',
+      'Data Removal – All research data removed',
+      'Subscription – Cancelled (if applicable)',
+      'Rejoining – New account required'
+    ]
+  };
+  const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });
+  return sendEmail(userEmail, subject, html);
 };
 
 /**

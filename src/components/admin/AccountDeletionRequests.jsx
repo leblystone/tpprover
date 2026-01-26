@@ -20,7 +20,10 @@ export default function AccountDeletionRequests({ theme }) {
   });
 
   useEffect(() => {
-    loadRequests();
+    const unsubscribe = loadRequests();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const loadRequests = () => {
@@ -29,31 +32,38 @@ export default function AccountDeletionRequests({ theme }) {
       const requestsRef = collection(db, 'accountDeletionRequests');
       const q = query(requestsRef, orderBy('requestedAt', 'desc'));
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const requestData = [];
-        let pending = 0, approved = 0, rejected = 0;
-        
-        snapshot.forEach((doc) => {
-          const data = {
-            id: doc.id,
-            ...doc.data()
-          };
-          requestData.push(data);
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const requestData = [];
+          let pending = 0, approved = 0, rejected = 0;
           
-          if (data.status === 'pending') pending++;
-          else if (data.status === 'approved') approved++;
-          else if (data.status === 'rejected') rejected++;
-        });
+          snapshot.forEach((doc) => {
+            const data = {
+              id: doc.id,
+              ...doc.data()
+            };
+            requestData.push(data);
+            
+            if (data.status === 'pending') pending++;
+            else if (data.status === 'approved') approved++;
+            else if (data.status === 'rejected') rejected++;
+          });
 
-        setRequests(requestData);
-        setStats({ pending, approved, rejected });
-        setLoading(false);
-      });
+          setRequests(requestData);
+          setStats({ pending, approved, rejected });
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Error loading deletion requests:', error);
+          setLoading(false);
+        }
+      );
 
-      return () => unsubscribe();
+      return unsubscribe;
     } catch (error) {
-      console.error('Error loading deletion requests:', error);
+      console.error('Error setting up deletion requests listener:', error);
       setLoading(false);
+      return null;
     }
   };
 

@@ -310,16 +310,21 @@ const DEFAULT_TEMPLATES = {
     features: []
   },
   accountDeletion: {
-    name: 'Account Deletion',
-    subject: 'Account Deletion Confirmation - The Pep Planner',
-    heading: 'Your Account Has Been Deleted',
+    name: 'Account Deletion Confirmation',
+    subject: 'We\'re Sad to See You Go - The Pep Planner',
+    heading: 'We\'re Sad to See You Go! 😢',
     greeting: 'Hi %USERNAME%,',
-    mainMessage: 'Your account associated with %USEREMAIL% has been permanently deleted. All your research data, protocols, and account information have been removed from our system.',
-    ctaText: '',
-    ctaLink: '',
-    highlightTitle: 'Important Information',
-    highlightMessage: 'This action cannot be undone. If you would like to use The Pep Planner again in the future, you will need to create a new account.',
-    features: []
+    mainMessage: 'Your account and all associated data have been permanently deleted from The Pep Planner. We understand that sometimes things don\'t work out, and we respect your decision.\n\nAll your research data, protocols, and account information have been completely removed from our system. This action cannot be undone.',
+    ctaText: 'Share Your Feedback',
+    ctaLink: 'https://thepepplanner.app/feedback',
+    highlightTitle: '💡 Want to Return?',
+    highlightMessage: 'If you change your mind and would like to use The Pep Planner again in the future, you\'ll need to create a new account. We\'d love to have you back!',
+    features: [
+      'Account Status – Permanently deleted',
+      'Data Removal – All research data removed',
+      'Subscription – Cancelled (if applicable)',
+      'Rejoining – New account required'
+    ]
   },
   inDepthRequest: {
     name: 'In-Depth Request',
