@@ -707,15 +707,20 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-1">
                             <CalendarClock size={28} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                            <div className="flex flex-col gap-0.5 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Optional</span>
+                                </div>
                                 <div className="flex items-center gap-2 ml-1">
                                     <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                        Timeline & Washout
-                                    </span>
+                                    {!isTimelineExpanded && (
+                                        <span className="text-[10px] font-medium tracking-wide" style={{ color: theme.textLight }}>
+                                            {form.duration?.noEnd ? 'Run indefinitely' : form.duration?.count ? `${form.duration.count} ${form.duration.unit || 'weeks'}` : 'Click to set timeline'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1039,15 +1044,20 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         onClick={() => setIsAdditionalDetailsExpanded(!isAdditionalDetailsExpanded)}
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-1">
                             <ImageUp size={28} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
+                            <div className="flex flex-col gap-0.5 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Optional</span>
+                                </div>
                                 <div className="flex items-center gap-2 ml-1">
                                     <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                        Notes & Preview
-                                    </span>
+                                    {!isAdditionalDetailsExpanded && (
+                                        <span className="text-[10px] font-medium tracking-wide" style={{ color: theme.textLight }}>
+                                            {form.notes ? 'Notes added • Preview available' : 'Click to add notes or preview schedule'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>

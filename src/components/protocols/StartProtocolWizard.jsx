@@ -13,6 +13,7 @@ import { appendStockEvent } from '../../utils/stockHistory';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { generateId } from '../../utils/string';
+import SchedulingPreview from './SchedulingPreview';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -856,13 +857,23 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 )}
                 
-                 <div className="mt-3 flex justify-end">
+                 <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-between items-center">
+                    <button 
+                        onClick={() => {
+                            // Skip all linking and go straight to confirm
+                            setStageWithAnimation('confirm');
+                        }}
+                        className="px-4 py-2 rounded-md text-sm font-medium transition-all hover:opacity-80 order-2 sm:order-1" 
+                        style={{ backgroundColor: theme.secondary, color: theme.text }}
+                    >
+                        Start without vials
+                    </button>
                     <button 
                         onClick={handleContinue} 
-                        className="px-4 py-2 rounded-md text-sm" 
+                        className="px-6 py-2 rounded-md text-sm font-bold order-1 sm:order-2" 
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     >
-                        Continue
+                        Continue →
                     </button>
                 </div>
             </div>
@@ -1154,6 +1165,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 </div>
 
+                {/* Visual Calendar Preview */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Calendar size={20} style={{ color: theme.primary }} />
+                        <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Your Schedule Preview</h4>
+                    </div>
+                    <SchedulingPreview protocol={protocol} theme={theme} />
+                </div>
+
                 {/* What Happens Next - Enhanced Horizontal View */}
                 <div className="relative overflow-hidden rounded-xl border p-3" style={{ 
                     backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.5)' : 'rgba(255, 255, 255, 0.5)',
@@ -1382,12 +1402,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             open={open}
             onClose={onClose}
             onBack={canGoBack() ? handleBack : undefined}
-            title="Start Protocol"
+            title={`Start Protocol: ${protocol?.protocolName || 'Unnamed'}`}
             theme={theme}
             maxHeight="90vh"
             titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
         >
-            {renderProgressIndicator()}
+            {/* Removed progress indicator for cleaner flow */}
             {renderContent()}
         </BottomSheet>
     );
