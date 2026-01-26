@@ -551,7 +551,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   )}
                 </div>
                 <div style={{ fontSize: '12px', color: t.textLight }}>
-                  {ticket.userName} • {formatRelativeTime(ticket.timestamp)}
+                  {ticket.userEmail || ticket.userName || 'Unknown'} • {formatRelativeTime(ticket.timestamp)}
                 </div>
               </div>
               <div style={{ 
