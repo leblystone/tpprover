@@ -3407,7 +3407,9 @@ export default function Protocols() {
 
             const withTimes = ensureTimes(finalizedProtocol);
             const explicitEnd = computeEndDate(withTimes);
-            const toSave = explicitEnd ? { ...withTimes, endDate: explicitEnd } : withTimes;
+            const toSave = explicitEnd 
+                ? { ...withTimes, endDate: explicitEnd, active: true } 
+                : { ...withTimes, active: true };
 
             updateProtocol(toSave);
 
