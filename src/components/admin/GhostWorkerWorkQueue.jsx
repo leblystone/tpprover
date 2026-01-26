@@ -549,9 +549,13 @@ export default function GhostWorkerWorkQueue({ theme }) {
                         fontWeight: '600',
                         backgroundColor: ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B98120' :
                                          ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF444420' :
+                                         ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B20' :
+                                         ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC262620' :
                                          '#6B728020',
                         color: ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B981' :
                                ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF4444' :
+                               ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B' :
+                               ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC2626' :
                                '#6B7280',
                         transition: 'opacity 0.15s'
                       }}
@@ -1109,10 +1113,12 @@ export default function GhostWorkerWorkQueue({ theme }) {
                     backgroundColor: viewingUserAccount.subscriptionStatus === 'active' ? '#10B98120' :
                                      viewingUserAccount.subscriptionStatus === 'canceled' ? '#EF444420' :
                                      viewingUserAccount.subscriptionStatus === 'trialing' ? '#F59E0B20' :
+                                     viewingUserAccount.subscriptionStatus === 'trial_expired' ? '#DC262620' :
                                      '#6B728020',
                     color: viewingUserAccount.subscriptionStatus === 'active' ? '#10B981' :
                            viewingUserAccount.subscriptionStatus === 'canceled' ? '#EF4444' :
                            viewingUserAccount.subscriptionStatus === 'trialing' ? '#F59E0B' :
+                           viewingUserAccount.subscriptionStatus === 'trial_expired' ? '#DC2626' :
                            '#6B7280'
                   }}>
                     {viewingUserAccount.subscriptionStatus || 'none'}
