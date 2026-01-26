@@ -266,10 +266,34 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
       
     default:
       return (
-        <div className="p-6 h-full flex items-center justify-center">
-          <p style={{ color: theme.textLight }}>
-            Unknown widget type: {widget.type}
-          </p>
+        <div className="h-full flex flex-col p-4">
+          <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+              {widget.title || 'Unknown Widget'}
+              <span className="text-xs font-normal px-2 py-1 rounded" style={{ backgroundColor: theme.error + '20', color: theme.error }}>
+                Unknown Type
+              </span>
+            </h3>
+          </div>
+          <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
+            <div className="mb-4">
+              <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
+                <span className="text-2xl">⚠️</span>
+              </div>
+            </div>
+            <p className="text-sm font-medium mb-2" style={{ color: theme.text }}>
+              Unknown Widget Type
+            </p>
+            <p className="text-xs mb-1" style={{ color: theme.textLight }}>
+              Type: <code className="px-2 py-1 rounded" style={{ backgroundColor: theme.isDark ? '#374151' : '#f3f4f6', color: theme.text }}>{widget.type || 'undefined'}</code>
+            </p>
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              ID: <code className="px-2 py-1 rounded" style={{ backgroundColor: theme.isDark ? '#374151' : '#f3f4f6', color: theme.text }}>{widget.id || 'undefined'}</code>
+            </p>
+            <p className="text-xs mt-4 px-4" style={{ color: theme.textLight }}>
+              This widget type is not recognized. Please check your dashboard configuration or contact support.
+            </p>
+          </div>
         </div>
       );
   }

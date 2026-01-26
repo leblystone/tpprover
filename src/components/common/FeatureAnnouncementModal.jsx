@@ -68,10 +68,10 @@ export default function FeatureAnnouncementModal({
         {/* Minimal Header */}
         <div className="mb-8 text-center px-4">
           <h2 className="text-2xl font-semibold tracking-tight mb-2" style={{ color: theme?.text }}>
-            A Fresh Experience
+            Your Pep Planner Has Been Updated!
           </h2>
           <p className="text-sm opacity-60 leading-relaxed" style={{ color: theme?.text }}>
-            We've made The Pep Planner faster, smarter, and easier to use with helpful new features throughout.
+            We've added powerful new features to help you track peptides more efficiently with smarter tools and better support.
           </p>
         </div>
 
@@ -79,57 +79,45 @@ export default function FeatureAnnouncementModal({
         <div className="space-y-6 px-4 mb-8">
           <div className="flex gap-4 group">
             <div className="flex-shrink-0 mt-0.5">
-              <Sparkles size={20} style={{ color: theme?.primary }} strokeWidth={2} />
+              <Activity size={20} style={{ color: theme?.primary }} strokeWidth={2} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Smarter Tracking
+              <h4 className="text-sm font-semibold" style={{ color: theme?.text }}>
+                Push Notifications
               </h4>
-              <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Units now change automatically based on what you pick—switch to nasal and it converts to "sprays." Your tasks are also grouped by day to keep you organized.
-              </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Zap size={20} style={{ color: theme?.info }} strokeWidth={2} />
+              <Sparkles size={20} style={{ color: theme?.info }} strokeWidth={2} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Find Anything Fast
+              <h4 className="text-sm font-semibold" style={{ color: theme?.text }}>
+                Enhanced Support System
               </h4>
-              <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Use the new search bar to find logs, inventory, or orders in seconds. Hold down any menu icon for quick shortcuts too.
-              </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Monitor size={20} style={{ color: theme?.success }} strokeWidth={2} />
+              <FlaskConical size={20} style={{ color: theme?.success }} strokeWidth={2} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Better Notifications
+              <h4 className="text-sm font-semibold" style={{ color: theme?.text }}>
+                Smarter Recon Calculator
               </h4>
-              <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                Every action now gives you instant feedback. Plus, mobile users get subtle vibrations when tapping buttons or opening menus.
-              </p>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-shrink-0 mt-0.5">
-              <Layout size={20} style={{ color: theme?.warning }} strokeWidth={2} />
+              <Monitor size={20} style={{ color: theme?.warning }} strokeWidth={2} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>
-                Stay Updated
+              <h4 className="text-sm font-semibold" style={{ color: theme?.text }}>
+                Better Feedback
               </h4>
-              <p className="text-[13px] leading-relaxed" style={{ color: theme?.textLight }}>
-                We'll let you know when a new version is ready so you always have the latest features and improvements at your fingertips.
-              </p>
             </div>
           </div>
         </div>
