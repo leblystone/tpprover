@@ -983,18 +983,26 @@ export async function getUserByEmail(email) {
         const subData = subDoc.data();
         console.log('📊 Subscription data from userSubscriptions:', subData);
         
+        // Subscription data is nested inside a 'subscription' object
+        const sub = subData.subscription || {};
+        
         // Check multiple possible field names for status
-        subscriptionStatus = subData.status || 
+        subscriptionStatus = sub.status || 
+                            sub.subscriptionStatus || 
+                            sub.subscription_status ||
+                            subData.status || 
                             subData.subscriptionStatus || 
-                            subData.subscription_status ||
                             subscriptionStatus;
         
-        // Check multiple possible field names for type
-        subscriptionType = subData.type || 
+        // Check multiple possible field names for type/plan
+        subscriptionType = sub.plan ||  // ← This is where it is!
+                          sub.type || 
+                          sub.subscriptionType || 
+                          sub.subscription_type ||
+                          sub.planType ||
+                          subData.type || 
                           subData.subscriptionType || 
-                          subData.subscription_type ||
                           subData.plan ||
-                          subData.planType ||
                           subscriptionType;
       } else {
         console.log('⚠️ No userSubscriptions doc found for user:', userId);
