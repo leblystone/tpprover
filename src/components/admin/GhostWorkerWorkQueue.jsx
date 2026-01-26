@@ -6,7 +6,7 @@ import {
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
   DollarSign, Calendar, TrendingUp, FileText, HelpCircle,
-  ChevronDown, ChevronUp, Info, User, Mail, CreditCard
+  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2
 } from 'lucide-react';
 
 // Quick response templates
@@ -520,19 +520,36 @@ export default function GhostWorkerWorkQueue({ theme }) {
               onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
               onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              <AlertCircle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+              {ticket.type === 'account_deletion_request' ? (
+                <Trash2 size={16} style={{ color: '#DC2626', flexShrink: 0 }} />
+              ) : (
+                <AlertCircle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>#{ticket.ticketNumber}</span>
-                  <span style={{
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    backgroundColor: ticket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF',
-                    color: ticket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED'
-                  }}>
-                    {ticket.route === 'gemini-pro' ? '🎨' : '🔧'} {ticket.confidence}%
-                  </span>
+                  {ticket.type === 'account_deletion_request' ? (
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      backgroundColor: '#FEE2E2',
+                      color: '#DC2626',
+                      fontWeight: '600'
+                    }}>
+                      🗑️ DELETION REQUEST
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      backgroundColor: ticket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF',
+                      color: ticket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED'
+                    }}>
+                      {ticket.route === 'gemini-pro' ? '🎨' : '🔧'} {ticket.confidence}%
+                    </span>
+                  )}
                   {ticket.userAccountInfo && (
                     <button
                       type="button"
@@ -547,12 +564,16 @@ export default function GhostWorkerWorkQueue({ theme }) {
                         border: 'none',
                         cursor: 'pointer',
                         fontWeight: '600',
-                        backgroundColor: ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B98120' :
+                        backgroundColor: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF620' :
+                                         ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D420' :
+                                         ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B98120' :
                                          ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF444420' :
                                          ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B20' :
                                          ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC262620' :
                                          '#6B728020',
-                        color: ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B981' :
+                        color: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF6' :
+                               ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D4' :
+                               ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B981' :
                                ticket.userAccountInfo.subscriptionStatus === 'canceled' ? '#EF4444' :
                                ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B' :
                                ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC2626' :
@@ -561,9 +582,11 @@ export default function GhostWorkerWorkQueue({ theme }) {
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                       onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      title={`Click to view account: ${ticket.userAccountInfo.subscriptionStatus} ${ticket.userAccountInfo.subscriptionType || ''}`}
+                      title={`Click to view account: ${ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus} | ID: ${ticket.userAccountInfo.userId || 'N/A'}`}
                     >
-                      👤 {ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus}
+                      {ticket.userAccountInfo.subscriptionType === 'lifetime' ? '👑' : 
+                       ticket.userAccountInfo.subscriptionType === 'annual' ? '📅' : 
+                       '👤'} {ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus}
                     </button>
                   )}
                   {!ticket.userAccountInfo && ticket.userEmail && (
@@ -582,16 +605,33 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   {ticket.userEmail || ticket.userName || 'Unknown'} • {formatRelativeTime(ticket.timestamp)}
                 </div>
               </div>
-              <div style={{ 
-                padding: '6px 12px', 
-                backgroundColor: t.primary, 
-                color: '#fff', 
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '500'
-              }}>
-                Open
-              </div>
+              {ticket.type === 'account_deletion_request' ? (
+                <div style={{ 
+                  padding: '6px 12px', 
+                  backgroundColor: '#DC2626', 
+                  color: '#fff', 
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Trash2 size={12} />
+                  Review
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '6px 12px', 
+                  backgroundColor: t.primary, 
+                  color: '#fff', 
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  Open
+                </div>
+              )}
             </div>
           ))
         )}
@@ -1179,13 +1219,16 @@ export default function GhostWorkerWorkQueue({ theme }) {
                     backgroundColor: t.background,
                     color: t.text
                   }}>
-                    {viewingUserAccount.userId}
+                    {viewingUserAccount.userId || viewingUserAccount.uid || viewingUserAccount.id || 'N/A'}
                   </code>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(viewingUserAccount.userId);
-                      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'User ID copied!', type: 'success' } }));
+                      const userId = viewingUserAccount.userId || viewingUserAccount.uid || viewingUserAccount.id;
+                      if (userId) {
+                        navigator.clipboard.writeText(userId);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'User ID copied!', type: 'success' } }));
+                      }
                     }}
                     style={{
                       padding: '6px',

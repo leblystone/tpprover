@@ -51,51 +51,54 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
       return;
     }
 
-    // Final confirmation since this is immediate and irreversible
-    if (!window.confirm('⚠️ FINAL WARNING: This will immediately and permanently delete your account and all data. This cannot be undone. Are you absolutely sure?')) {
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
       const functions = getFunctions();
-      const deleteUserAccount = httpsCallable(functions, 'deleteUserAccount');
+      const submitDeletionRequest = httpsCallable(functions, 'submitAccountDeletionRequest');
       
-      const result = await deleteUserAccount();
+      const result = await submitDeletionRequest({
+        dataSummary: dataSummary,
+        userName: firebaseUser?.displayName || firebaseUser?.email?.split('@')[0],
+        source: 'user_settings'
+      });
 
       if (result.data.success) {
-        // Account has been deleted - user will be logged out automatically
-        // Show success message briefly before redirect
+        // Show success message
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { 
-            message: 'Account deleted successfully. You will be logged out shortly.', 
+            message: result.data.alreadyExists 
+              ? 'You already have a pending deletion request. An admin will review it shortly.' 
+              : 'Your account deletion request has been submitted. An admin will review it within 24-48 hours and send you a confirmation email once processed.', 
             type: 'success',
-            duration: 5000
+            duration: 7000
           }
         }));
         
-        // Clear local storage
-        localStorage.clear();
-        sessionStorage.clear();
+        // Store deletion request status in localStorage
+        localStorage.setItem('tpp_deletion_request_submitted', JSON.stringify({
+          requestId: result.data.requestId,
+          submittedAt: new Date().toISOString()
+        }));
         
-        // Redirect to home page after a short delay
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
+        // Dispatch event for UI updates
+        window.dispatchEvent(new CustomEvent('tpp:deletion-request-submitted'));
+        
+        // Close modal
+        handleClose();
       } else {
-        throw new Error(result.data.message || 'Failed to delete account');
+        throw new Error(result.data.message || 'Failed to submit deletion request');
       }
     } catch (error) {
-      console.error('Error deleting account:', error);
+      console.error('Error submitting deletion request:', error);
       
       // Provide more helpful error messages
-      let errorMessage = 'Failed to delete account. ';
+      let errorMessage = 'Failed to submit deletion request. ';
       
       if (error.code === 'functions/not-found' || error.message?.includes('CORS') || error.message?.includes('ERR_FAILED')) {
         errorMessage += 'The function may not be deployed yet. Please contact support at contact@thepepplanner.com to request account deletion.';
       } else if (error.code === 'functions/unauthenticated') {
-        errorMessage += 'You must be logged in to delete your account.';
+        errorMessage += 'You must be logged in to request account deletion.';
       } else if (error.message) {
         errorMessage += error.message;
       } else {
@@ -139,7 +142,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
       title={
         <div className="flex items-center gap-2">
           <Trash2 size={20} />
-          <span>Delete Account Permanently</span>
+          <span>Request Account Deletion</span>
         </div>
       }
       theme={theme}
@@ -170,10 +173,10 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
               {isSubmitting ? (
                 <>
                   <Loader size={16} className="animate-spin" />
-                  Deleting Account...
+                  Submitting Request...
                 </>
               ) : (
-                'Delete Account Permanently'
+                'Submit Deletion Request'
               )}
             </button>
           </div>
@@ -187,10 +190,10 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-2" style={{ color: theme?.primaryDark }}>
-              Deleting Your Account...
+              Submitting Request...
             </h3>
             <p className="text-sm" style={{ color: theme?.text }}>
-              Please wait while we permanently delete your account and all associated data.
+              Please wait while we submit your account deletion request to our admin team.
             </p>
           </div>
         </div>
@@ -207,10 +210,10 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
             <AlertTriangle size={20} style={{ color: '#dc2626', flexShrink: 0 }} />
             <div>
               <h3 className="font-bold text-sm mb-0.5" style={{ color: '#dc2626' }}>
-                This Action Cannot Be Undone
+                Account Deletion Request
               </h3>
               <p className="text-xs" style={{ color: theme?.textLight }}>
-                Once confirmed, your account and all research data will be immediately and permanently deleted. This process is irreversible and happens instantly.
+                Your request will be reviewed by an admin within 24-48 hours. Once approved, your account and all research data will be permanently deleted. This action cannot be undone.
               </p>
             </div>
           </div>
@@ -293,7 +296,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
               className="text-xs cursor-pointer leading-relaxed"
               style={{ color: theme?.text }}
             >
-              I confirm that I want to delete my account and all associated research data. I understand this is permanent.
+              I confirm that I want to request deletion of my account and all associated research data. I understand this action is permanent once approved.
             </label>
           </div>
         </div>

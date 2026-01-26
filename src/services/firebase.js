@@ -973,6 +973,7 @@ export async function getUserByEmail(email) {
     const userData = userDoc.data();
     
     return {
+      userId: userDoc.id,  // Add userId field
       id: userDoc.id,
       uid: userDoc.id,
       email: userData.email,

@@ -2797,6 +2797,130 @@ exports.sendAccountDeletionRequestToAdmin = onCall(
 );
 
 /**
+ * Submit account deletion request
+ * Creates a pending deletion request for admin approval
+ */
+exports.submitAccountDeletionRequest = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated to request account deletion');
+    }
+
+    const userId = request.auth.uid;
+    const userEmail = request.auth.token.email;
+    const { dataSummary, userName, source } = request.data;
+
+    logger.info(`📝 Account deletion request submitted by: ${userEmail} (${userId}) from: ${source || 'unknown'}`);
+
+    try {
+      const db = admin.firestore();
+      
+      // Check if there's already a pending request
+      const existingRequestQuery = await db.collection('accountDeletionRequests')
+        .where('userId', '==', userId)
+        .where('status', '==', 'pending')
+        .get();
+
+      if (!existingRequestQuery.empty) {
+        logger.info(`⚠️ User ${userEmail} already has a pending deletion request`);
+        return {
+          success: true,
+          message: 'You already have a pending deletion request. An admin will review it shortly.',
+          alreadyExists: true
+        };
+      }
+
+      // Get user info
+      let userRecord;
+      let displayName = userName || null;
+      try {
+        userRecord = await admin.auth().getUser(userId);
+        displayName = userRecord.displayName || userName || userEmail.split('@')[0];
+      } catch (error) {
+        logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+      }
+
+      // Get subscription info
+      let subscriptionInfo = null;
+      try {
+        const subscriptionDoc = await db.collection('userSubscriptions').doc(userId).get();
+        if (subscriptionDoc.exists) {
+          subscriptionInfo = subscriptionDoc.data();
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
+      }
+
+      // Create deletion request
+      const deletionRequest = {
+        userId: userId,
+        userEmail: userEmail,
+        userName: displayName,
+        requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending', // pending, approved, rejected
+        source: source || 'settings',
+        dataSummary: dataSummary || {},
+        subscriptionInfo: subscriptionInfo ? {
+          hasSubscription: true,
+          stripeSubscriptionId: subscriptionInfo.stripeSubscriptionId || null,
+          status: subscriptionInfo.status || 'unknown'
+        } : {
+          hasSubscription: false
+        }
+      };
+
+      const docRef = await db.collection('accountDeletionRequests').add(deletionRequest);
+      logger.info(`✅ Deletion request created: ${docRef.id} for user: ${userEmail}`);
+
+      // Also create a work queue item for admin visibility
+      try {
+        await db.collection('ai_worker_logs').add({
+          ticketId: docRef.id,
+          ticketNumber: docRef.id.slice(-6).toUpperCase(),
+          type: 'account_deletion_request',
+          subject: 'Account Deletion Request',
+          userName: displayName,
+          userEmail: userEmail,
+          originalMessage: `User requested account deletion from ${source || 'settings'}. ${dataSummary?.totalItems ? `Has ${dataSummary.totalItems} items of data.` : ''}`,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          route: 'admin_review',
+          confidence: 1.0,
+          reasoning: 'Manual account deletion request requires admin approval',
+          adminNotes: '',
+          markedFixed: false,
+          followUpSent: false,
+          executionCost: 0,
+          userAccountInfo: {
+            userId: userId,
+            email: userEmail,
+            displayName: displayName,
+            subscriptionStatus: subscriptionInfo?.status || 'none',
+            hasActiveSubscription: subscriptionInfo?.status === 'active' || subscriptionInfo?.status === 'trialing'
+          }
+        });
+        logger.info(`✅ Work queue item created for deletion request`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not create work queue item: ${error.message}`);
+        // Don't fail the request if work queue creation fails
+      }
+
+      return {
+        success: true,
+        message: 'Your account deletion request has been submitted. An admin will review it within 24-48 hours.',
+        requestId: docRef.id
+      };
+    } catch (error) {
+      logger.error(`❌ Error creating deletion request: ${error.message}`);
+      throw new HttpsError('internal', `Failed to submit deletion request: ${error.message}`);
+    }
+  }
+);
+
+/**
  * Automated account deletion function
  * Allows users to delete their own account and all associated data
  */
