@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getUserByEmail } from '../../services/firebase';
 import { 
@@ -158,7 +158,31 @@ export default function GhostWorkerWorkQueue({ theme }) {
           userAccountInfo: log.userAccountInfo || null
         };
 
-        // If userAccountInfo is missing and we have an email, fetch it
+        // Fetch full ticket data to get email and user info
+        if (item.ticketId) {
+          try {
+            const ticketRef = doc(db, 'supportTickets', item.ticketId);
+            const ticketSnap = await getDoc(ticketRef);
+            
+            if (ticketSnap.exists()) {
+              const ticketData = ticketSnap.data();
+              
+              // Update with ticket data (ticket data is more complete)
+              if (ticketData.userEmail) item.userEmail = ticketData.userEmail;
+              if (ticketData.userName) item.userName = ticketData.userName;
+              if (ticketData.userDisplayName) item.userName = ticketData.userDisplayName;
+              
+              // Get userAccountInfo from ticket if available
+              if (ticketData.userAccountInfo) {
+                item.userAccountInfo = ticketData.userAccountInfo;
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching ticket data:', error);
+          }
+        }
+
+        // If still no userAccountInfo and we have an email, fetch it
         if (!item.userAccountInfo && item.userEmail) {
           try {
             const userInfo = await getUserByEmail(item.userEmail);
