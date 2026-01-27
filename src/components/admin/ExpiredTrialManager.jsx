@@ -147,22 +147,26 @@ export default function ExpiredTrialManager({ theme }) {
   };
 
   const bulkSendSurvey = async () => {
-    if (expiredUsers.length === 0) {
+    // Only send to users who are eligible (5+ days since expiration)
+    const eligibleUsers = expiredUsers.filter(u => u.daysSinceExpiration >= 5);
+    
+    if (eligibleUsers.length === 0) {
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'No expired trial users to send surveys to.', type: 'warning' }
+        detail: { message: 'No eligible expired trial users to send surveys to. Users must be expired for at least 5 days.', type: 'warning' }
       }));
       return;
     }
 
     const confirmed = window.confirm(
-      `Send survey emails to ${expiredUsers.length} expired trial users?\n\n` +
-      `This will send the "Trial Expired Survey" email template to all users.`
+      `Send survey emails to ${eligibleUsers.length} eligible expired trial users?\n\n` +
+      `This will send the "Trial Expired Survey" email template to users who have been expired for 5+ days.\n\n` +
+      `(Total expired users: ${expiredUsers.length}, Eligible: ${eligibleUsers.length})`
     );
 
     if (!confirmed) return;
 
     setLoading(prev => ({ ...prev, sending: true }));
-    setSendProgress({ sent: 0, total: expiredUsers.length, failed: 0 });
+    setSendProgress({ sent: 0, total: eligibleUsers.length, failed: 0 });
 
     try {
       const functions = getFunctions();
@@ -173,8 +177,8 @@ export default function ExpiredTrialManager({ theme }) {
 
       // Send emails in batches to avoid overwhelming the system
       const batchSize = 5;
-      for (let i = 0; i < expiredUsers.length; i += batchSize) {
-        const batch = expiredUsers.slice(i, i + batchSize);
+      for (let i = 0; i < eligibleUsers.length; i += batchSize) {
+        const batch = eligibleUsers.slice(i, i + batchSize);
         
         const batchPromises = batch.map(async (user) => {
           try {
@@ -197,7 +201,7 @@ export default function ExpiredTrialManager({ theme }) {
         await Promise.all(batchPromises);
         
         // Small delay between batches to avoid rate limiting
-        if (i + batchSize < expiredUsers.length) {
+        if (i + batchSize < eligibleUsers.length) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -302,7 +306,7 @@ export default function ExpiredTrialManager({ theme }) {
         </button>
         <button
           onClick={bulkSendSurvey}
-          disabled={loading.sending || expiredUsers.length === 0}
+          disabled={loading.sending || expiredUsers.filter(u => u.daysSinceExpiration >= 5).length === 0}
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
           style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
         >
@@ -314,7 +318,7 @@ export default function ExpiredTrialManager({ theme }) {
           ) : (
             <>
               <Send size={16} />
-              Send Survey to All ({expiredUsers.length})
+              Send Survey to Eligible ({expiredUsers.filter(u => u.daysSinceExpiration >= 5).length})
             </>
           )}
         </button>

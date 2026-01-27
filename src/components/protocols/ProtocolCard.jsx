@@ -201,7 +201,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 className="p-2 rounded-md action-button-hover"
                                 aria-label={hasDraftStart ? 'Resume Protocol' : 'Start Protocol'}
                                 style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
-                                onClick={() => onStartClick(p, { manage: false })}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card's onClick from firing
+                                    onStartClick(p, { manage: false });
+                                }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'translateY(-1px)';
                                     e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primaryDark}40`;
@@ -214,7 +217,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 <Play className="h-4 w-4" />
                             </button>
                             <button 
-                                onClick={handleShare} 
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card's onClick from firing
+                                    handleShare();
+                                }} 
                                 className="p-2 rounded-md action-button-hover" 
                                 aria-label="Share"
                                 style={{ color: theme.textLight }}
@@ -232,7 +238,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             <button 
                                 className="p-2 rounded-md action-button-hover" 
                                 aria-label="History" 
-                                onClick={() => onHistoryClick(p)}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card's onClick from firing
+                                    onHistoryClick(p);
+                                }}
                                 style={{ color: theme.textLight }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
@@ -248,7 +257,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             <button 
                                 className="p-2 rounded-md action-button-hover" 
                                 aria-label="Edit" 
-                                onClick={() => onEditClick(p)}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card's onClick from firing
+                                    onEditClick(p);
+                                }}
                                 style={{ color: theme.textLight }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
@@ -311,6 +323,22 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                         <Clock size={12} />
                                         <span>Active since {formatMMDDYYYY(parseDateString(p.startDate))}</span>
                                     </div>
+                                )}
+                                {isActive && p.quickStart && (!p.linkedItems || Object.keys(p.linkedItems).length === 0) && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onStartClick(p, { manage: true, tab: 'edit' });
+                                        }}
+                                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105"
+                                        style={{ 
+                                            backgroundColor: theme.primary + '15',
+                                            color: theme.primary,
+                                            border: `1px solid ${theme.primary}40`
+                                        }}
+                                    >
+                                        🔗 Link Vials
+                                    </button>
                                 )}
                             </div>
                         </div>
