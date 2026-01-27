@@ -732,7 +732,7 @@ exports.onOrderStatusChange = onDocumentUpdated('userdata/{userId}/orders/{order
       appUrl: 'https://thepepplanner.com/app/orders'
     };
 
-    return pushNotifications.sendPushNotificationByType(userId, 'billing', notificationData);
+    return pushNotifications.sendPushNotificationByType(userId, 'orderStatusUpdates', notificationData);
   }
   
   return null;

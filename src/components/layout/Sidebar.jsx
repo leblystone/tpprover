@@ -99,7 +99,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
       `}</style>
       <aside 
         className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden overflow-y-hidden"
-        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border, display: 'flex', flexDirection: 'column' }}
+        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
       >
         <div className="mb-4 mt-2 flex flex-col items-center gap-3 flex-shrink-0">
           <img 

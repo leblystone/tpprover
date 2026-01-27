@@ -348,18 +348,21 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                 style={{ color: theme.textLight }}
                                             />
                                         </button>
-                                        {penTypeDropdownOpen && (
+                                        {penTypeDropdownOpen && createPortal(
                                             <div 
-                                                className={`absolute w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                className="fixed rounded-lg shadow-lg border overflow-hidden"
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
+                                                    width: `${penTypeDropdownPosition.width}px`,
+                                                    top: `${penTypeDropdownPosition.top}px`,
+                                                    left: `${penTypeDropdownPosition.left}px`,
                                                     maxHeight: '300px',
                                                     overflowY: 'auto',
-                                                    zIndex: 10005,
-                                                    position: 'absolute',
+                                                    zIndex: 2147483647,
                                                     boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                 }}
+                                                data-dropdown-container
                                             >
                                                 {[
                                                     { value: '', label: 'Pen Type' },
@@ -415,7 +418,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                         </button>
                                                     </React.Fragment>
                                                 ))}
-                                            </div>
+                                            </div>,
+                                            document.body
                                         )}
                                     </div>
 
@@ -628,18 +632,21 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                 style={{ color: theme.textLight }}
                                             />
                                         </button>
-                                        {penTypeDropdownOpen && (
+                                        {penTypeDropdownOpen && createPortal(
                                             <div 
-                                                className={`absolute w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                className="fixed rounded-lg shadow-lg border overflow-hidden"
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
+                                                    width: `${penTypeDropdownPosition.width}px`,
+                                                    top: `${penTypeDropdownPosition.top}px`,
+                                                    left: `${penTypeDropdownPosition.left}px`,
                                                     maxHeight: '300px',
                                                     overflowY: 'auto',
-                                                    zIndex: 10005,
-                                                    position: 'absolute',
+                                                    zIndex: 2147483647,
                                                     boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                 }}
+                                                data-dropdown-container
                                             >
                                                 {[
                                                     { value: '', label: 'Pen Type' },
@@ -695,7 +702,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                         </button>
                                                     </React.Fragment>
                                                 ))}
-                                            </div>
+                                            </div>,
+                                            document.body
                                         )}
                                     </div>
 

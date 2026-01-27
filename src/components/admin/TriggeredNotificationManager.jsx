@@ -242,7 +242,12 @@ export default function TriggeredNotificationManager({ theme }) {
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem('tpp_triggered_notifications');
-      return saved ? JSON.parse(saved) : DEFAULT_TRIGGERED_NOTIFICATIONS;
+      if (saved) {
+        const savedNotifications = JSON.parse(saved);
+        // Merge with defaults to ensure new default notifications appear
+        return { ...DEFAULT_TRIGGERED_NOTIFICATIONS, ...savedNotifications };
+      }
+      return DEFAULT_TRIGGERED_NOTIFICATIONS;
     } catch (error) {
       console.error('Failed to load triggered notifications:', error);
       return DEFAULT_TRIGGERED_NOTIFICATIONS;

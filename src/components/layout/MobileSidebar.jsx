@@ -51,7 +51,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
         }}
       />
       <div 
-        className="absolute top-0 left-0 h-full w-80 max-w-[85vw] shadow-xl px-4 pb-4 flex flex-col mobile-nav-container z-10" 
+        className="absolute top-0 left-0 h-full w-80 max-w-[85vw] shadow-xl px-4 pb-4 flex flex-col mobile-nav-container z-10 overflow-hidden" 
         onClick={(e) => e.stopPropagation()}
         style={{ 
           transform: visible ? 'translateX(0%) scale(1)' : 'translateX(-100%) scale(0.95)', 
@@ -62,10 +62,12 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
           backgroundColor: theme.cardBackground,
           paddingTop: 'max(var(--safe-area-top, 24px), 24px)',
           paddingBottom: 'max(var(--safe-area-bottom, 16px), 16px)',
-          pointerEvents: visible ? 'auto' : 'none'
+          pointerEvents: visible ? 'auto' : 'none',
+          overflowY: 'hidden',
+          overflowX: 'hidden'
         }}
       >
-        <div className="mb-3">
+        <div className="mb-3 flex-shrink-0">
           <div className="flex items-center justify-between mb-2">
             {/* Left side: Close button and Text */}
             <div className="flex items-center gap-3">
@@ -94,13 +96,13 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
             />
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: theme.cardBackground }}>
+        <nav className="flex-1 overflow-hidden flex flex-col min-h-0" style={{ backgroundColor: theme.cardBackground, overflowY: 'hidden', overflowX: 'hidden' }}>
           {links.map(({ to, label, icon: Icon }, index) => (
             <NavLink
               key={to}
               to={to}
               onClick={onClose}
-              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 ${isActive ? 'sidebar-link-active' : ''}`}
+              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 flex-shrink-0 ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({
                 animationDelay: visible ? `${index * 50}ms` : '0ms',
                 opacity: visible ? 1 : 0,
@@ -153,7 +155,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
             }
           `}</style>
           
-          <div className="mt-auto" style={{ borderColor: theme.border }}>
+          <div className="mt-auto flex-shrink-0 overflow-hidden" style={{ borderColor: theme.border, overflowY: 'hidden', overflowX: 'hidden' }}>
             {/* Beta Chip - Clickable - Right ABOVE page break line */}
             <div className="flex justify-center px-4 mb-2">
               <button
@@ -184,7 +186,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
               target="_blank"
               rel="noopener noreferrer"
               onClick={onClose}
-              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200"
+              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 flex-shrink-0"
               style={{
                 animationDelay: visible ? `${links.length * 50}ms` : '0ms',
                 opacity: visible ? 1 : 0,
@@ -204,7 +206,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
                 key={to}
                 to={to}
                 onClick={onClose}
-                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 ${isActive ? 'sidebar-link-active' : ''}`}
+                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 flex-shrink-0 ${isActive ? 'sidebar-link-active' : ''}`}
                 style={({ isActive }) => ({
                   animationDelay: visible ? `${(links.length + index + 1) * 50}ms` : '0ms',
                   opacity: visible ? 1 : 0,
@@ -225,7 +227,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
                 onClose()
                 onSupportClick()
               }}
-              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 cursor-pointer flex-shrink-0"
               style={{
                 animationDelay: visible ? `${(links.length + bottomLinks.length + 1) * 50}ms` : '0ms',
                 opacity: visible ? 1 : 0,
