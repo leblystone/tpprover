@@ -440,7 +440,7 @@ export default function TriggeredNotificationManager({ theme }) {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="p-3 rounded-lg border flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex-1">
           <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
             <Bell size={20} />
@@ -450,14 +450,6 @@ export default function TriggeredNotificationManager({ theme }) {
             Automate notifications based on user behavior, data conditions, and time triggers
           </p>
         </div>
-        <button
-          onClick={handleCreateNew}
-          className="px-3 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-        >
-          <Plus size={16} />
-          Create
-        </button>
       </div>
 
       {/* Notifications Grid */}
@@ -577,16 +569,9 @@ export default function TriggeredNotificationManager({ theme }) {
             <p className="text-base font-medium mb-1" style={{ color: theme.text }}>
               No triggered notifications yet
             </p>
-            <p className="text-xs mb-3" style={{ color: theme.textLight }}>
-              Create your first automated notification to engage users
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              Configured notifications will appear here
             </p>
-            <button
-              onClick={handleCreateNew}
-              className="px-3 py-2 rounded-lg font-semibold text-sm"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              Create Your First Notification
-            </button>
           </div>
         )}
       </div>

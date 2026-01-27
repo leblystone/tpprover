@@ -99,7 +99,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
       `}</style>
       <aside 
         className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden overflow-y-hidden"
-        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border, display: 'flex', flexDirection: 'column' }}
       >
         <div className="mb-4 mt-2 flex flex-col items-center gap-3 flex-shrink-0">
           <img 
@@ -118,10 +118,10 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             onError={(e) => { e.currentTarget.style.display = 'none' }} 
           />
         </div>
-        <nav className="flex flex-col space-y-2 flex-1 overflow-x-hidden min-h-0">
+        <nav className="flex flex-col space-y-2 flex-1 overflow-hidden min-h-0" style={{ overflowY: 'hidden', overflowX: 'hidden' }}>
           {links.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} title={label} 
-              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
+              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 flex-shrink-0 ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({ color: isActive ? theme.primary : theme.textLight })}
             >
               <Icon className="h-6 w-6 flex-shrink-0" />
@@ -157,9 +157,11 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           </button>
         </div>
         
-        <div className="mt-auto space-y-2 flex-shrink-0 overflow-x-hidden" style={{
+        <div className="mt-auto space-y-2 flex-shrink-0 overflow-hidden" style={{
           borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
-          paddingTop: '0.5rem'
+          paddingTop: '0.5rem',
+          overflowY: 'hidden',
+          overflowX: 'hidden'
         }}>
           {/* Physical Planner Shop Link */}
           <a 
@@ -167,7 +169,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             target="_blank" 
             rel="noopener noreferrer"
             title="Shop Planners"
-            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg flex-shrink-0"
             style={{ 
               color: theme.isDark ? '#a8b5a0' : theme.textLight,
               backgroundColor: theme.isDark ? '#1f2937' : 'transparent',
@@ -180,7 +182,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           
           {bottomLinks.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} title={label}
-              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg ${isActive ? 'sidebar-link-active' : ''}`}
+              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg flex-shrink-0 ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({ 
                 color: isActive ? theme.primary : (theme.isDark ? '#a8b5a0' : theme.textLight),
                 backgroundColor: isActive ? undefined : (theme.isDark ? '#1f2937' : 'transparent')
@@ -195,7 +197,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           <button 
             onClick={onSupportClick}
             title="Support"
-            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg cursor-pointer"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg cursor-pointer flex-shrink-0"
             style={{ 
               color: theme.isDark ? '#a8b5a0' : theme.textLight,
               backgroundColor: theme.isDark ? '#1f2937' : 'transparent',

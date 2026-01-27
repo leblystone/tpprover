@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
@@ -14,7 +15,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     const [penTypes, setPenTypes] = useState([]);
     const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
     const [penTypeDropdownUp, setPenTypeDropdownUp] = useState(false);
+    const [penTypeDropdownPosition, setPenTypeDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const penTypeDropdownRef = React.useRef(null);
+    const penTypeButtonRef = React.useRef(null);
     
     useEffect(() => {
         try {
@@ -126,16 +129,24 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
         };
     }, [isPenTypeDropdownOpen]);
 
-    // Check if dropdown should open upward
+    // Check if dropdown should open upward and calculate position
     React.useEffect(() => {
-        if (isPenTypeDropdownOpen && penTypeDropdownRef.current) {
-            const rect = penTypeDropdownRef.current.getBoundingClientRect();
+        if (isPenTypeDropdownOpen && penTypeButtonRef.current) {
+            const rect = penTypeButtonRef.current.getBoundingClientRect();
             const dropdownHeight = 300; // Approximate dropdown height
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
             
             // If not enough space below but enough above, open upward
-            setPenTypeDropdownUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+            const shouldOpenUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+            setPenTypeDropdownUp(shouldOpenUp);
+            
+            // Calculate position for fixed dropdown
+            setPenTypeDropdownPosition({
+                top: shouldOpenUp ? rect.top - dropdownHeight : rect.bottom,
+                left: rect.left,
+                width: rect.width
+            });
         }
     }, [isPenTypeDropdownOpen]);
 
@@ -438,8 +449,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 {/* Pen Options */}
                                 {(item.deliveryMethod || 'pipette') === 'pen' && (
                                     <div className="grid grid-cols-2 gap-2">
-                                        <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
+                                        <div className="relative" ref={penTypeDropdownRef}>
                                             <button
+                                                ref={penTypeButtonRef}
                                                 type="button"
                                                 onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
                                                 onMouseDown={(e) => e.preventDefault()}
@@ -466,61 +478,62 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </button>
-                                            {isPenTypeDropdownOpen && (
-                                                <div className="relative" data-dropdown-container style={{ zIndex: 10004 }}>
-                                                    <div 
-                                                        className={`absolute right-0 rounded-lg shadow-lg border overflow-hidden w-full ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
-                                                        style={{
-                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                            borderColor: theme.border,
-                                                            minWidth: '100px',
-                                                            maxHeight: '300px',
-                                                            overflowY: 'auto',
-                                                            zIndex: 10005,
-                                                            position: 'absolute',
-                                                            boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
-                                                        }}
-                                                    >
-                                                        {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option, idx) => (
-                                                            <React.Fragment key={option.id || 'placeholder'}>
-                                                                {idx > 0 && (
-                                                                    <div 
-                                                                        className="h-px mx-2"
-                                                                        style={{ backgroundColor: theme.border }}
-                                                                    />
-                                                                )}
-                                                                <button
-                                                                    key={option.id || 'placeholder'}
-                                                                    type="button"
-                                                                    onMouseDown={(e) => e.preventDefault()}
-                                                                    onTouchStart={(e) => e.preventDefault()}
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        handleChange('penType', option.id);
-                                                                        setIsPenTypeDropdownOpen(false);
-                                                                    }}
-                                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                                    style={{
-                                                                        color: item.penType === option.id ? theme.primary : theme.text,
-                                                                        backgroundColor: 'transparent',
-                                                                        WebkitTapHighlightColor: 'transparent'
-                                                                    }}
-                                                                    onMouseEnter={(e) => {
-                                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                                        e.currentTarget.style.color = theme.primary;
-                                                                    }}
-                                                                    onMouseLeave={(e) => {
-                                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                                        e.currentTarget.style.color = item.penType === option.id ? theme.primary : theme.text;
-                                                                    }}
-                                                                >
-                                                                    {option.name}
-                                                                </button>
-                                                            </React.Fragment>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                            {isPenTypeDropdownOpen && createPortal(
+                                                <div 
+                                                    className="fixed rounded-lg shadow-lg border overflow-hidden"
+                                                    style={{
+                                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                        borderColor: theme.border,
+                                                        width: `${penTypeDropdownPosition.width}px`,
+                                                        top: `${penTypeDropdownPosition.top}px`,
+                                                        left: `${penTypeDropdownPosition.left}px`,
+                                                        maxHeight: '300px',
+                                                        overflowY: 'auto',
+                                                        zIndex: 2147483647,
+                                                        boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
+                                                    }}
+                                                    data-dropdown-container
+                                                >
+                                                    {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option, idx) => (
+                                                        <React.Fragment key={option.id || 'placeholder'}>
+                                                            {idx > 0 && (
+                                                                <div 
+                                                                    className="h-px mx-2"
+                                                                    style={{ backgroundColor: theme.border }}
+                                                                />
+                                                            )}
+                                                            <button
+                                                                key={option.id || 'placeholder'}
+                                                                type="button"
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onTouchStart={(e) => e.preventDefault()}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    handleChange('penType', option.id);
+                                                                    setIsPenTypeDropdownOpen(false);
+                                                                }}
+                                                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                                style={{
+                                                                    color: item.penType === option.id ? theme.primary : theme.text,
+                                                                    backgroundColor: 'transparent',
+                                                                    WebkitTapHighlightColor: 'transparent'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                    e.currentTarget.style.color = theme.primary;
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                                    e.currentTarget.style.color = item.penType === option.id ? theme.primary : theme.text;
+                                                                }}
+                                                            >
+                                                                {option.name}
+                                                            </button>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>,
+                                                document.body
                                             )}
                                         </div>
                                         <ColorSwatchDropdown

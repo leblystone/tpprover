@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import TextInput from '../common/inputs/TextInput';
@@ -12,7 +13,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState(false);
     const [penTypeDropdownUp, setPenTypeDropdownUp] = useState(false);
+    const [penTypeDropdownPosition, setPenTypeDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const penTypeDropdownRef = useRef(null);
+    const penTypeButtonRef = useRef(null);
 
     const vialOptions = useMemo(() => {
         const peptideName = (peptide.name || '').toLowerCase();
@@ -60,16 +63,24 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
         }
     }, [penTypeDropdownOpen]);
 
-    // Check if dropdown should open upward
+    // Check if dropdown should open upward and calculate position
     useEffect(() => {
-        if (penTypeDropdownOpen && penTypeDropdownRef.current) {
-            const rect = penTypeDropdownRef.current.getBoundingClientRect();
+        if (penTypeDropdownOpen && penTypeButtonRef.current) {
+            const rect = penTypeButtonRef.current.getBoundingClientRect();
             const dropdownHeight = 300; // Approximate dropdown height
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
             
             // If not enough space below but enough above, open upward
-            setPenTypeDropdownUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+            const shouldOpenUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+            setPenTypeDropdownUp(shouldOpenUp);
+            
+            // Calculate position for fixed dropdown
+            setPenTypeDropdownPosition({
+                top: shouldOpenUp ? rect.top - dropdownHeight : rect.bottom,
+                left: rect.left,
+                width: rect.width
+            });
         }
     }, [penTypeDropdownOpen]);
 
@@ -301,8 +312,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="mt-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
-                                    <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
+                                    <div className="relative" ref={penTypeDropdownRef}>
                                         <button
+                                            ref={penTypeButtonRef}
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
                                             onMouseDown={(e) => {
@@ -580,8 +592,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="mt-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
-                                    <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
+                                    <div className="relative" ref={penTypeDropdownRef}>
                                         <button
+                                            ref={penTypeButtonRef}
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
                                             onMouseDown={(e) => {
