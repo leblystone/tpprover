@@ -438,7 +438,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 {/* Pen Options */}
                                 {(item.deliveryMethod || 'pipette') === 'pen' && (
                                     <div className="grid grid-cols-2 gap-2">
-                                        <div className="relative" ref={penTypeDropdownRef}>
+                                        <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
                                             <button
                                                 type="button"
                                                 onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
