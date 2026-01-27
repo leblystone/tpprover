@@ -467,7 +467,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 </svg>
                                             </button>
                                             {isPenTypeDropdownOpen && (
-                                                <div className="relative" data-dropdown-container style={{ zIndex: 10003 }}>
+                                                <div className="relative" data-dropdown-container style={{ zIndex: 10004 }}>
                                                     <div 
                                                         className={`absolute right-0 rounded-lg shadow-lg border overflow-hidden w-full ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                         style={{
@@ -476,7 +476,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                             minWidth: '100px',
                                                             maxHeight: '300px',
                                                             overflowY: 'auto',
-                                                            zIndex: 10003,
+                                                            zIndex: 10005,
+                                                            position: 'absolute',
                                                             boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                         }}
                                                     >
