@@ -7,13 +7,45 @@ const emailTemplates = require('./emailTemplates');
 const { fetchFounderState } = require('./founderOffer');
 
 /**
- * Escape HTML to prevent XSS attacks
+ * Sanitize text by removing all HTML tags and dangerous content
+ * This prevents any HTML/script tags from appearing in emails
+ * @param {string} text - Text to sanitize
+ * @returns {string} - Clean, safe text (no HTML tags)
+ */
+function sanitizeText(text) {
+  if (!text) return '';
+  let sanitized = String(text);
+  
+  // Remove all HTML tags completely (script, iframe, object, style, etc.)
+  sanitized = sanitized.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities that might have been encoded
+  sanitized = sanitized
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  
+  // Remove any remaining script-like content
+  sanitized = sanitized.replace(/javascript:/gi, '');
+  sanitized = sanitized.replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
+  
+  return sanitized.trim();
+}
+
+/**
+ * Escape HTML to prevent XSS attacks (for cases where we need to display HTML as text)
  * @param {string} text - Text to escape
  * @returns {string} - Escaped HTML-safe text
  */
 function escapeHtml(text) {
   if (!text) return '';
-  return String(text)
+  // First sanitize to remove any HTML tags
+  const sanitized = sanitizeText(text);
+  // Then escape remaining special characters
+  return sanitized
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
