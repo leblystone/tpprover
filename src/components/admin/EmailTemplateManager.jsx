@@ -35,10 +35,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: 'Gift Details',
     highlightMessage: 'Type: %SUBSCRIPTIONTYPE% • Price: %PRICEPAID% • Gift ID: %GIFTID%',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Recipient receives instructions to redeem access',
-      'You can track redemption status anytime',
-      'No account required for the recipient until redemption'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   giftRedeemed: {
@@ -51,10 +56,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: 'Access Details',
     highlightMessage: 'Ends on %SUBSCRIPTIONENDDATE%',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Create and manage research protocols',
-      'Track vendors, orders, and stockpile',
-      'Use calculators and analytics to optimize your research'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   giftRedeemedNotification: {
@@ -66,7 +76,17 @@ const DEFAULT_TEMPLATES = {
     ctaText: 'View Gifts',
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: 'Redemption Details',
-    highlightMessage: 'Your gift is active and ready to use.'
+    highlightMessage: 'Your gift is active and ready to use.',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   verification: {
     name: 'Email Verification',
@@ -78,10 +98,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: '%VERIFICATION_LINK%',
     highlightTitle: '',
     highlightMessage: "If you didn't create an account with The Pep Planner, you can safely ignore this email.",
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Reset your password if needed',
-      'Receive important account notifications',
-      'Access all features securely'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   passwordReset: {
@@ -94,7 +119,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: '%RESET_LINK%',
     highlightTitle: '⏱️ This link expires in 1 hour',
     highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   trialEnding: {
     name: 'Trial Ending Soon',
@@ -106,7 +140,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '✨ Continue Your Research Journey',
     highlightMessage: 'Choose from flexible plans starting at $8.99/month',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   trialExtension: {
     name: 'Trial Extension Notification',
@@ -118,12 +161,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: '⏰ Updated Trial Period',
     highlightMessage: 'Additional Days: %DAYSADDED% | New End Date: %NEWENDDATE%',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Unlimited research protocol tracking',
-      'Vendor management and comparison',
-      'Order history and analytics',
-      'Lab access tracking and planning',
-      'Comprehensive research notes'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   subscription: {
@@ -136,7 +182,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: 'Subscription Details',
     highlightMessage: 'Plan: Pro Plan • Status: Active ✓',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   paymentFailed: {
     name: 'Payment Failed',
@@ -148,7 +203,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: 'Immediate Action Required',
     highlightMessage: 'Your subscription will be suspended in 3 days if payment is not updated. Don\'t lose access to your research data!',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   weeklyReminder: {
     name: 'Weekly Research Reminder',
@@ -160,12 +224,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: '💡 Research Tip',
     highlightMessage: 'Consistent logging helps identify patterns and optimize your research outcomes.',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Log your daily protocols',
-      'Track your progress metrics',
-      'Update your research notes',
-      'Review your inventory levels',
-      'Plan your next research phase'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   paymentSuccessful: {
@@ -178,7 +245,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: '🎉 Subscription Active',
     highlightMessage: 'Your research data is safe and all features are unlocked.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   renewalReminder: {
     name: 'Subscription Renewal Reminder',
@@ -190,7 +266,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '💳 Automatic Renewal',
     highlightMessage: 'Your subscription will continue seamlessly. Update payment method if needed.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   subscriptionCancelled: {
     name: 'Subscription Cancelled',
@@ -202,7 +287,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '📊 Your Research Data',
     highlightMessage: 'Your data remains accessible until [END_DATE]. Export your research if needed.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   lifetimeAccessGranted: {
     name: 'Lifetime Access Granted',
@@ -214,14 +308,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/dashboard',
     highlightTitle: '🏆 Lifetime Access Activated',
     highlightMessage: 'Full access to all features forever. Happy researching!',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Create Custom Protocols – Build and manage research protocols',
-      'Track Your Progress – Calendar integration and task management', 
-      'Reconstitution Calculator – Calculate dosages with precision',
-      'Inventory Management – Track orders, stockpile, and vendors',
-      'Research Notes – Document findings and observations',
-      'Data Analytics – Visualize trends and metrics',
-      'Priority Support – Get help when you need it'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   manualLifetimeGrant: {
@@ -234,10 +329,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/login?email=%USEREMAIL%&signup=true&pregrant=true',
     highlightTitle: 'Access Details',
     highlightMessage: 'Status: Active • Type: Admin Granted • Expires: Never',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Full access to all research features',
-      'Priority support',
-      'All future updates included',
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   giftNotification: {
@@ -250,10 +350,15 @@ const DEFAULT_TEMPLATES = {
     highlightMessage: 'This gift includes full access for the selected term. Activate to begin your research journey.',
     ctaText: 'Redeem Your Gift',
     ctaLink: 'https://thepepplanner.app/app/redeem',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Full access to all features during the gift period',
-      'Keep your data — upgrade anytime to continue',
-      'Fast setup — be up and running in minutes',
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   giftExpiringSoon: {
@@ -266,11 +371,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '⏰ Time Remaining',
     highlightMessage: 'Your gift expires in 3 days. Continue your research journey with our flexible plans.',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Continue organizing your research seamlessly',
-      'Keep all your data and research notes',
-      'Choose from monthly, quarterly, or annual plans',
-      'Flexible pricing to fit your research needs'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   squarespaceActivation: {
@@ -283,7 +392,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: '%ACTIVATION_LINK%',
     highlightTitle: "What's Next?",
     highlightMessage: 'Click below to activate your account and start using The Pep Planner app. This will only take a moment!',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   squarespaceActivated: {
     name: 'Squarespace Subscription Activated',
@@ -295,7 +413,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app',
     highlightTitle: 'Access Granted',
     highlightMessage: 'You now have full access to all features of The Pep Planner.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   customAnnouncement: {
     name: 'Custom Announcement / Maintenance',
@@ -307,7 +434,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app',
     highlightTitle: 'Action Required',
     highlightMessage: 'Please review this information carefully.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   accountDeletion: {
     name: 'Account Deletion Confirmation',
@@ -319,11 +455,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/feedback',
     highlightTitle: '💡 Want to Return?',
     highlightMessage: 'If you change your mind and would like to use The Pep Planner again in the future, you\'ll need to create a new account. We\'d love to have you back!',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Account Status – Permanently deleted',
-      'Data Removal – All research data removed',
-      'Subscription – Cancelled (if applicable)',
-      'Rejoining – New account required'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   inDepthRequest: {
@@ -336,7 +476,16 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '📋 Request Received',
     highlightMessage: 'We typically respond within 24-48 hours.',
-    features: []
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   inviteEmail: {
     name: 'Invite Email',
@@ -348,12 +497,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/signup',
     highlightTitle: '🎁 Special Invitation',
     highlightMessage: 'Join our research community and start organizing your protocols today.',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Create Custom Protocols – Build and manage research protocols',
-      'Track Your Progress – Calendar integration and task management',
-      'Reconstitution Calculator – Calculate dosages with precision',
-      'Inventory Management – Track orders, stockpile, and vendors',
-      'Research Notes – Document findings and observations'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
   trialExpiredSurvey: {
@@ -366,11 +518,15 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header',
     highlightTitle: '📗As a thank you; 14 day trial extension!',
     highlightMessage: 'Complete this quick survey (less than 2 minutes) and we\'ll extend your trial by 14 days so you can continue your research!',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
     features: [
-      'Help us improve The Pep Planner',
-      'Share what worked and what didn\'t',
-      'Suggest features you\'d like to see',
-      'Get 14 days of free access upon completion'
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   }
 };
@@ -1351,25 +1507,24 @@ export default function EmailTemplateManager({ theme }) {
               </div>
 
               {/* Features Card Controls */}
-              {(selectedTemplate === 'welcome' || selectedTemplate === 'verification' || selectedTemplate === 'lifetimeAccessGranted') && (
-                <div className="p-2 rounded-lg border mb-2" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                  {/* Show/Hide Toggle */}
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
-                      Features Card
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={currentTemplate.showFeatures !== false}
-                        onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
-                        className="w-3 h-3 rounded"
-                      />
-                      <span className="text-[10px]" style={{ color: theme.text }}>
-                        {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
-                      </span>
-                    </label>
-                  </div>
+              <div className="p-2 rounded-lg border mb-2" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                {/* Show/Hide Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
+                    Features Card
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentTemplate.showFeatures !== false}
+                      onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
+                      className="w-3 h-3 rounded"
+                    />
+                    <span className="text-[10px]" style={{ color: theme.text }}>
+                      {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
+                    </span>
+                  </label>
+                </div>
                   
                   {/* Features Title */}
                   {currentTemplate.showFeatures !== false && (
@@ -1430,7 +1585,6 @@ export default function EmailTemplateManager({ theme }) {
                     </div>
                   ))}
                 </div>
-              )}
             </div>
           </div>
 
