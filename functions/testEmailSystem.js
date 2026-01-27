@@ -13,37 +13,64 @@ async function sendEmailViaResend(to, subject, html) {
   const apiKey = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.trim() : null;
   
   if (!apiKey) {
+    logger.error('❌ RESEND_API_KEY environment variable is not set');
     throw new Error('RESEND_API_KEY environment variable is not set');
   }
   
   if (!apiKey.startsWith('re_') || apiKey.length < 30) {
+    logger.error(`❌ Invalid Resend API key format. Got: ${apiKey.substring(0, 20)}... (length: ${apiKey.length})`);
     throw new Error(`Invalid Resend API key format. Got: ${apiKey.substring(0, 20)}... (length: ${apiKey.length})`);
   }
   
+  logger.info(`📧 Sending email via Resend to: ${to}`);
+  logger.info(`📧 Subject: ${subject}`);
+  logger.info(`📧 HTML length: ${html ? html.length : 0} characters`);
+  
   const resend = new Resend(apiKey);
-  const result = await resend.emails.send({
-    from: 'The Pep Planner <contact@thepepplanner.com>',
-    to,
-    subject,
-    html,
-    replyTo: 'contact@thepepplanner.com',
-    headers: {
-      'X-Entity-Ref-ID': `tpp-test-${Date.now()}`,
-      'List-Unsubscribe': '<https://thepepplanner.app/app/account>',
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    },
-    tags: [
-      { name: 'category', value: 'test' },
-      { name: 'source', value: 'the-pep-planner' }
-    ],
-  });
+  let result;
+  
+  try {
+    result = await resend.emails.send({
+      from: 'The Pep Planner <contact@thepepplanner.com>',
+      to,
+      subject,
+      html,
+      replyTo: 'contact@thepepplanner.com',
+      headers: {
+        'X-Entity-Ref-ID': `tpp-test-${Date.now()}`,
+        'List-Unsubscribe': '<https://thepepplanner.app/app/account>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+      tags: [
+        { name: 'category', value: 'test' },
+        { name: 'source', value: 'the-pep-planner' }
+      ],
+    });
+    
+    logger.info('📧 Resend API response:', JSON.stringify(result, null, 2));
+  } catch (sendError) {
+    logger.error('❌ Resend API call failed:', sendError);
+    logger.error('❌ Error message:', sendError.message);
+    logger.error('❌ Error stack:', sendError.stack);
+    throw sendError;
+  }
   
   if (result.data && result.data.id) {
-    return true;
+    logger.info(`✅ Email sent successfully! Resend ID: ${result.data.id}`);
+    logger.info(`✅ Email sent to: ${to}`);
+    logger.info(`✅ Subject: ${subject}`);
+    // Return both formats for backward compatibility
+    const emailResult = { success: true, emailId: result.data.id, result };
+    // Also set success property for backward compatibility
+    emailResult.success = true;
+    return emailResult;
   } else if (result.error) {
+    logger.error('❌ Resend API returned error:', result.error);
+    logger.error('❌ Full error object:', JSON.stringify(result.error, null, 2));
     throw new Error(result.error.message || 'Resend API error');
   } else {
-    throw new Error('Unexpected Resend response');
+    logger.error('❌ Unexpected Resend response:', JSON.stringify(result, null, 2));
+    throw new Error('Unexpected Resend response - no data.id and no error');
   }
 }
 
@@ -132,9 +159,16 @@ exports.testEmailSystem = onCall(
       
       // Direct Resend test for welcome email
       try {
-        await sendEmailViaResend(testEmail, subjectText, htmlContent);
-        logger.info('✅ Direct Resend email sent successfully');
-        emailResult = true;
+        const sendResult = await sendEmailViaResend(testEmail, subjectText, htmlContent);
+        if (sendResult && (sendResult === true || sendResult.success)) {
+          logger.info('✅ Direct Resend email sent successfully');
+          if (sendResult.emailId) {
+            logger.info(`📧 Resend Email ID: ${sendResult.emailId}`);
+          }
+          emailResult = true;
+        } else {
+          throw new Error('Email send returned false or no success flag');
+        }
       } catch (error) {
         logger.error('❌ Direct Resend failed:', error);
         logger.error('Error details:', {
@@ -1043,9 +1077,18 @@ exports.testEmailSystem = onCall(
         
         // Send the email if we generated HTML
         if (htmlContent) {
-          await sendEmailViaResend(testEmail, subjectText, htmlContent);
-          emailResult = true;
-          logger.info('✅ Trial expired survey test email sent successfully');
+          const sendResult = await sendEmailViaResend(testEmail, subjectText, htmlContent);
+          if (sendResult && sendResult.success) {
+            emailResult = true;
+            logger.info('✅ Trial expired survey test email sent successfully');
+            logger.info(`📧 Email ID: ${sendResult.emailId}`);
+          } else {
+            emailResult = false;
+            logger.error('❌ Failed to send trial expired survey email');
+          }
+        } else {
+          logger.error('❌ No HTML content generated for trial expired survey email');
+          emailResult = false;
         }
       } catch (error) {
         logger.error('❌ Trial expired survey email failed:', error);
