@@ -301,7 +301,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="mt-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
-                                    <div className="relative" ref={penTypeDropdownRef}>
+                                    <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
                                         <button
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
@@ -313,7 +313,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                               // Prevent any parent blur events on touch devices
                                               e.preventDefault();
                                             }}
-                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation relative z-20"
                                             style={{
                                                 borderColor: penTypeDropdownOpen ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
@@ -338,13 +338,15 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         </button>
                                         {penTypeDropdownOpen && (
                                             <div 
-                                                className={`absolute z-50 w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                className={`absolute w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
                                                     maxHeight: '300px',
                                                     overflowY: 'auto',
-                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                    zIndex: 10005,
+                                                    position: 'absolute',
+                                                    boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                 }}
                                             >
                                                 {[
@@ -578,7 +580,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="mt-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
-                                    <div className="relative" ref={penTypeDropdownRef}>
+                                    <div className="relative" ref={penTypeDropdownRef} style={{ zIndex: 10004 }}>
                                         <button
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
@@ -590,7 +592,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                               // Prevent any parent blur events on touch devices
                                               e.preventDefault();
                                             }}
-                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation relative z-20"
                                             style={{
                                                 borderColor: penTypeDropdownOpen ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
@@ -615,13 +617,15 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         </button>
                                         {penTypeDropdownOpen && (
                                             <div 
-                                                className={`absolute z-50 w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                className={`absolute w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
                                                     maxHeight: '300px',
                                                     overflowY: 'auto',
-                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                    zIndex: 10005,
+                                                    position: 'absolute',
+                                                    boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                 }}
                                             >
                                                 {[

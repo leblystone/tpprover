@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Timer, FlaskConical, ShieldCheck, Unlock } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 
-export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
+export default function WelcomeModal({ open, onClose, theme }) {
     const [showPricing, setShowPricing] = useState(false);
 
     // Set session flag when modal is actually displayed

@@ -2808,14 +2808,16 @@ export default function Protocols() {
 
                 {/* Vials & Delivery Methods - Accordion */}
                 {manageConfirm?.active && manageConfirm?.linkedItems && (
-                    <div className="rounded-lg border mb-4" style={{ 
+                    <div className="rounded-lg border mb-4 relative" style={{ 
                       borderColor: theme.border,
-                      backgroundColor: theme.cardBackground 
+                      backgroundColor: theme.cardBackground,
+                      zIndex: 1
                     }}>
                       <button
                         type="button"
                         onClick={() => setExpandedManageSections(prev => ({ ...prev, vials: !prev.vials }))}
-                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity relative"
+                        style={{ zIndex: 1 }}
                       >
                         <div className="flex items-center gap-3">
                           <TestTubes size={20} style={{ color: theme.primary }} />
@@ -2834,13 +2836,14 @@ export default function Protocols() {
                       </button>
                       
                       <div 
-                        className="overflow-hidden transition-all duration-300"
+                        className="overflow-hidden transition-all duration-300 relative"
                         style={{
                           maxHeight: expandedManageSections.vials ? '3000px' : '0',
-                          opacity: expandedManageSections.vials ? 1 : 0
+                          opacity: expandedManageSections.vials ? 1 : 0,
+                          zIndex: 2
                         }}
                       >
-                        <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                        <div className="px-3 pb-3 pt-2 border-t relative" style={{ borderColor: theme.border, zIndex: 2 }}>
                           <EditActiveProtocolVials
                             protocol={manageConfirm}
                             stockpile={stockpile}

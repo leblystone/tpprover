@@ -413,23 +413,15 @@ export default function RecentlyDeleted({ theme }) {
   if (deletedItems.length === 0) {
     return (
       <div 
-        className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+        className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
         style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
       >
-        <div className="flex items-start gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-            <Trash2 size={18} style={{ color: theme.primary }} />
-          </div>
-          <div>
-            <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
-              Recently Deleted
-            </div>
-            <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
-              Items deleted in the last 14 days will appear here. You can restore accidentally deleted protocols, orders, or stockpile items.
-            </p>
-          </div>
+        <div className="mb-3">
+          <p className="text-[10px] opacity-50 leading-relaxed text-center" style={{ color: theme.text }}>
+            Items deleted in the last 14 days will appear here. You can restore accidentally deleted protocols, orders, or stockpile items.
+          </p>
         </div>
-        <div className="p-6 text-center rounded-xl border border-dashed" style={{ borderColor: theme.border }}>
+        <div className="p-4 text-center rounded-xl border border-dashed" style={{ borderColor: theme.border }}>
           <p className="text-xs opacity-50" style={{ color: theme.text }}>
             No recently deleted items
           </p>
@@ -440,40 +432,22 @@ export default function RecentlyDeleted({ theme }) {
 
   return (
     <div 
-      className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+      className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
       style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
     >
-      <div className="flex items-start gap-4 mb-6">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-          <Trash2 size={18} style={{ color: theme.primary }} />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
-              Recently Deleted
-            </div>
-            {deletedItems.length > 0 && (
-              <span 
-                className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                style={{ backgroundColor: theme.warning + '20', color: theme.warning }}
-              >
-                {deletedItems.length}
-              </span>
-            )}
-          </div>
-          <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
-            Items deleted in the last 14 days. Click restore to recover accidentally deleted items.
-          </p>
-        </div>
+      <div className="mb-3">
+        <p className="text-[10px] opacity-50 leading-relaxed text-center" style={{ color: theme.text }}>
+          Items deleted in the last 14 days. Click restore to recover accidentally deleted items.
+        </p>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {deletedItems.slice(0, 2).map((item) => {
           const isRestoring = restoring === item.itemId
           return (
             <div
               key={`${item.dataType}-${item.itemId}`}
-              className="flex items-center gap-3 p-4 rounded-xl border transition-all"
+              className="flex items-center gap-3 p-3 rounded-xl border transition-all"
               style={{ 
                 borderColor: theme.border,
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
@@ -499,7 +473,7 @@ export default function RecentlyDeleted({ theme }) {
                 >
                   {getItemDisplayName(item)}
                 </p>
-                <div className="flex flex-col gap-1 mt-1.5">
+                <div className="flex flex-col gap-1 mt-1">
                   <div className="flex items-center gap-1.5">
                     <Clock size={12} style={{ color: theme.mutedText }} />
                     <span className="text-xs" style={{ color: theme.mutedText }}>
@@ -520,7 +494,7 @@ export default function RecentlyDeleted({ theme }) {
               <button
                 onClick={() => handleRestore(item)}
                 disabled={isRestoring}
-                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                className="px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
                 style={{
                   backgroundColor: theme.primary,
                   color: '#FFFFFF'
@@ -538,10 +512,10 @@ export default function RecentlyDeleted({ theme }) {
       </div>
       
       {deletedItems.length > 2 && (
-        <div className="mt-4">
+        <div className="mt-3">
           <button
             onClick={() => setShowAllModal(true)}
-            className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95"
+            className="w-full px-6 py-3 rounded-2xl font-medium uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95"
             style={{
               borderColor: theme.border,
               color: theme.text
@@ -602,7 +576,7 @@ export default function RecentlyDeleted({ theme }) {
                     >
                       {getItemDisplayName(item)}
                     </p>
-                    <div className="flex flex-col gap-1 mt-1.5">
+                    <div className="flex flex-col gap-1 mt-1">
                       <div className="flex items-center gap-1.5">
                         <Clock size={12} style={{ color: theme.mutedText }} />
                         <span className="text-xs" style={{ color: theme.mutedText }}>

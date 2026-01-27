@@ -224,13 +224,26 @@ exports.checkTrialEndingSoon = onSchedule({
 
       logger.info(`📧 Found ${usersSnapshot.size} users with trials ending in 2 days`);
 
+      // Import pushNotifications to check billing preferences
+      const pushNotifications = require('./pushNotifications');
+
       const emailPromises = [];
       
-      usersSnapshot.forEach((doc) => {
+      for (const doc of usersSnapshot.docs) {
         const userData = doc.data();
         const userEmail = userData.email;
+        const userId = doc.id;
         
         if (userEmail) {
+          // Check if user has billing notifications enabled
+          const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+          const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+          
+          if (!billingEnabled) {
+            logger.info(`⏭️ Skipping trial ending email for ${userEmail} - billing notifications disabled`);
+            continue;
+          }
+          
           logger.info(`📤 Sending trial ending email to ${userEmail}`);
           emailPromises.push(
             emailService.sendTrialEndingEmail(userEmail, 2)
@@ -252,7 +265,7 @@ exports.checkTrialEndingSoon = onSchedule({
               })
           );
         }
-      });
+      }
 
       await Promise.all(emailPromises);
       logger.info('✅ Trial ending email check completed');
@@ -311,12 +324,25 @@ exports.checkRenewalReminders = onSchedule({
 
       logger.info(`📧 Found ${filteredUsers.length} users with renewals in 3 days (excluding gift subscriptions)`);
 
+      // Import pushNotifications to check billing preferences
+      const pushNotifications = require('./pushNotifications');
+
       const emailPromises = [];
       
-      filteredUsers.forEach(({ doc, data: userData }) => {
+      for (const { doc, data: userData } of filteredUsers) {
         const userEmail = userData.email;
+        const userId = doc.id;
         
         if (userEmail) {
+          // Check if user has billing notifications enabled
+          const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+          const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+          
+          if (!billingEnabled) {
+            logger.info(`⏭️ Skipping renewal reminder for ${userEmail} - billing notifications disabled`);
+            continue;
+          }
+          
           logger.info(`📤 Sending renewal reminder to ${userEmail}`);
           emailPromises.push(
             emailService.sendRenewalReminderEmail(userEmail, userData.subscriptionPlan || 'Pro Plan')
@@ -338,7 +364,7 @@ exports.checkRenewalReminders = onSchedule({
               })
           );
         }
-      });
+      }
 
       await Promise.all(emailPromises);
       logger.info('✅ Renewal reminder check completed');

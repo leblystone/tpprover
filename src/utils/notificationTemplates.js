@@ -1,5 +1,7 @@
 // src/utils/notificationTemplates.js
 import { loadSettings } from '../pages/Settings';
+import { db } from '../config/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 // Default notification templates with personality
 const DEFAULT_TEMPLATES = {
@@ -56,6 +58,12 @@ const DEFAULT_TEMPLATES = {
     body: "You have {peptideCount} peptide(s) and {supplementCount} supplement(s) scheduled for this evening.",
     actionText: "View Schedule",
     actionUrl: "/app/dashboard"
+  },
+  trialEnding: {
+    title: "⏰ Trial Ending Soon",
+    body: "Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!",
+    actionText: "View Subscription",
+    actionUrl: "/app/account"
   }
 };
 
@@ -86,12 +94,26 @@ export function getNotificationTemplate(type, variables = {}) {
   }
 }
 
-// Save custom templates to localStorage
-export function saveNotificationTemplate(type, template) {
+// Save custom templates to localStorage and Firestore
+export async function saveNotificationTemplate(type, template) {
   try {
+    // Save to localStorage (for client-side use)
     const customTemplates = JSON.parse(localStorage.getItem('tpp_notification_templates') || '{}');
     customTemplates[type] = template;
     localStorage.setItem('tpp_notification_templates', JSON.stringify(customTemplates));
+    
+    // Also save to Firestore (for server-side use)
+    try {
+      await setDoc(doc(db, 'notificationTemplates', type), {
+        ...template,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      console.log(`✅ Saved notification template '${type}' to Firestore`);
+    } catch (firestoreError) {
+      console.warn('⚠️ Could not save notification template to Firestore:', firestoreError);
+      // Don't fail the whole operation if Firestore save fails
+    }
+    
     return true;
   } catch (error) {
     console.error('Error saving notification template:', error);
@@ -162,6 +184,10 @@ export function getNotificationVariables(type, data = {}) {
       return {
         peptideName: data.peptideName || 'your research',
         taskCount: data.taskCount || 0
+      };
+    case 'trialEnding':
+      return {
+        daysLeft: data.daysLeft || 7
       };
     default:
       return {};

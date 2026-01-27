@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faStripe, faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
-// Note: Squarespace doesn't have a FontAwesome icon, we'll use a custom SVG or text
+import { faStripe, faGooglePlay, faApple, faSquarespace } from '@fortawesome/free-brands-svg-icons'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -72,6 +71,14 @@ export default function AccountSubscription() {
       console.log('💳 [BILLING] Subscription object:', sub)
       console.log('💳 [BILLING] Subscription type:', typeof sub)
       console.log('💳 [BILLING] Subscription keys:', sub ? Object.keys(sub) : 'NULL')
+      
+      // CRITICAL: Check for lifetime access FIRST - regardless of where it was purchased
+      // If user has lifetime access, show the lifetime billing page instead
+      if (sub?.hasLifetimeAccess || sub?.interval === 'lifetime' || sub?.plan === 'lifetime') {
+        console.log('💳 [BILLING] ✅✅✅ DETECTED LIFETIME ACCESS - ROUTING TO LIFETIME BILLING PAGE ✅✅✅')
+        navigate('/app/account/subscription/lifetime-billing')
+        return
+      }
       
       // Check for Google Play indicators - check ALL possible fields
       const hasGooglePlayProductId = sub?.googlePlayProductId
@@ -669,16 +676,10 @@ export default function AccountSubscription() {
                 border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
               }}
             >
-              <span 
-                style={{ 
-                  fontSize: '20px', 
-                  fontWeight: '600',
-                  color: theme.isDark ? '#ffffff' : '#222222',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                Squarespace
-              </span>
+              <FontAwesomeIcon 
+                icon={faSquarespace} 
+                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#222222' }}
+              />
             </div>
           </div>
 

@@ -43,9 +43,9 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
     setHasChanges(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedTemplate && editedTemplate) {
-      const success = saveNotificationTemplate(selectedTemplate, editedTemplate);
+      const success = await saveNotificationTemplate(selectedTemplate, editedTemplate);
       if (success) {
         setTemplates(prev => ({
           ...prev,
@@ -57,6 +57,13 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
           detail: { 
             type: 'success', 
             message: 'Notification template saved successfully!' 
+          }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { 
+            type: 'error', 
+            message: 'Failed to save notification template' 
           }
         }));
       }
@@ -218,6 +225,7 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       case 'cycleReminder': return <Bell size={16} />;
       case 'cycleEndReminder': return <Bell size={16} />;
       case 'researchReminder': return <Bell size={16} />;
+      case 'trialEnding': return <AlertTriangle size={16} />;
       default: return <MessageSquare size={16} />;
     }
   };
@@ -230,7 +238,10 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       washoutReminder: 'Reminders about washout periods',
       cycleReminder: 'Reminders about upcoming cycles',
       cycleEndReminder: 'Reminders when cycles are ending',
-      researchReminder: 'Daily research task reminders'
+      researchReminder: 'Daily research task reminders',
+      researchReminderAM: 'Morning research task reminders',
+      researchReminderPM: 'Evening research task reminders',
+      trialEnding: 'Push notification sent at day 23 of trial (7 days remaining)'
     };
     return descriptions[type] || 'Custom notification template';
   };

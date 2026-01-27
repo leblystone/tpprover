@@ -59,9 +59,14 @@ export default function ResearchStatusWidget({ theme, subscription }) {
     return end.getTime() - now.getTime() <= 0;
   })();
 
+  // Testing mode: Show widgets even for lifetime users (for testing purposes)
+  const testingMode = new URLSearchParams(window.location.search).get('testWidgets') === 'true' || 
+                     localStorage.getItem('tpp_test_widgets') === 'true';
+  
   // Hide widget only if user has active paid subscription (including lifetime)
   // Show for trial, canceled, expired, or no subscription
-  if ((isActive && !isCanceled) || hasLifetimeAccess) {
+  // EXCEPTION: Show in testing mode even for lifetime users
+  if (((isActive && !isCanceled) || hasLifetimeAccess) && !testingMode) {
     return null;
   }
 
@@ -91,7 +96,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
           <div className="space-y-3">
             <div>
               <div className="text-lg font-bold" style={{ color: theme.primaryDark }}>
-                7-Day Lab Access
+                30-Day of The Pep Planner
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
                 {(() => {

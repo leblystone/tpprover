@@ -214,11 +214,16 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                             subData?.plan === 'lifetime';
   const trialPlanNames = ['30-Day Research Trial', '7-Day Free Trial'];
   
+  // Testing mode: Show widgets even for lifetime users (for testing purposes)
+  const testingMode = new URLSearchParams(window.location.search).get('testWidgets') === 'true' || 
+                     localStorage.getItem('tpp_test_widgets') === 'true';
+  
   // Don't show if user has active PAID subscription (including lifetime)
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
+  // EXCEPTION: Show in testing mode even for lifetime users
   const isActivePaidSubscription = (subData?.status === 'active' && !trialPlanNames.includes(subData?.plan)) || hasLifetimeAccess;
   
-  if (isActivePaidSubscription || isDismissed) {
+  if ((isActivePaidSubscription && !testingMode) || isDismissed) {
     return null;
   }
   

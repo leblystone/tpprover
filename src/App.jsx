@@ -15,7 +15,6 @@ import SuccessModal from './components/ui/SuccessModal';
 // Beta pages no longer needed - app is live
 // import BetaEnded from './pages/BetaEnded';
 // import BetaClosed from './pages/BetaClosed';
-import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
@@ -479,23 +478,6 @@ function App() {
     }
   };
 
-  const startTour = async () => {
-    setShowWelcome(false);
-    // Session flag already set when modal was shown - no need to set again
-    // Save to cloud storage
-    if (user?.uid) {
-      try {
-        const { saveUserState, loadUserState } = await import('./services/cloudStorage');
-        const currentState = await loadUserState(user.uid) || {};
-        await saveUserState(user.uid, { ...currentState, hasOnboarded: true });
-        console.log('☁️ Saved onboarding state to cloud');
-      } catch (error) {
-        console.error('❌ Failed to save onboarding state:', error);
-      }
-    }
-    // Navigate to dashboard with tour query param
-    navigate('/app/dashboard?tour=true', { replace: true });
-  };
 
   const glossaryTerm = new URLSearchParams(window.location.search).get('glossary');
 
@@ -560,10 +542,8 @@ function App() {
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
-        onStartTour={startTour}
         theme={theme}
       />
-      <TourController theme={theme} installPrompt={installPrompt} />
       <SuccessModal
         open={showDemoSuccessModal}
         onClose={() => setShowDemoSuccessModal(false)}

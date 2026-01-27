@@ -5,6 +5,7 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailService = require('./emailService');
+const pushNotifications = require('./pushNotifications');
 
 const FieldValue = admin.firestore.FieldValue;
 const DEFAULT_FOUNDER_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
@@ -813,13 +814,34 @@ async function handlePaymentFailed(event, stripe) {
     return;
   }
 
-  // Send payment failed email
-  await emailService.sendPaymentFailedEmail(
-    userEmail,
-    paymentIntent.amount / 100,
-    paymentIntent.currency.toUpperCase(),
-    null // No invoice URL available in payment intent
-  );
+  // Get userId and check billing notification preference
+  let userId = await findUserIdByEmail(userEmail);
+
+  // Check if user has billing notifications enabled
+  if (userId) {
+    const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+    const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+    
+    if (!billingEnabled) {
+      logger.info(`⏭️ Skipping payment failed email for ${userEmail} - billing notifications disabled`);
+    } else {
+      // Send payment failed email
+      await emailService.sendPaymentFailedEmail(
+        userEmail,
+        paymentIntent.amount / 100,
+        paymentIntent.currency.toUpperCase(),
+        null // No invoice URL available in payment intent
+      );
+    }
+  } else {
+    // If we can't find userId, send email anyway (backward compatibility)
+    await emailService.sendPaymentFailedEmail(
+      userEmail,
+      paymentIntent.amount / 100,
+      paymentIntent.currency.toUpperCase(),
+      null // No invoice URL available in payment intent
+    );
+  }
 
   // Log the event
   await admin.firestore().collection('stripeEvents').add({
@@ -971,13 +993,48 @@ async function handleInvoicePaymentSucceeded(event, stripe) {
     return;
   }
 
-  // Send payment successful email with invoice link
-  await emailService.sendPaymentSuccessfulEmail(
-    userEmail,
-    invoice.amount_paid / 100,
-    invoice.currency.toUpperCase(),
-    invoice.hosted_invoice_url
-  );
+  // Get userId and check billing notification preference
+  let userId = null;
+  if (invoice.subscription) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+      userId = subscription.metadata?.userId;
+    } catch (error) {
+      logger.warn(`⚠️ Failed to retrieve subscription for payment success:`, error);
+    }
+  }
+  
+  // If no userId from subscription, try to find by email
+  if (!userId) {
+    userId = await findUserIdByEmail(userEmail);
+  }
+
+  // Check if user has billing notifications enabled
+  if (userId) {
+    const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+    const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+    
+    if (!billingEnabled) {
+      logger.info(`⏭️ Skipping payment successful email for ${userEmail} - billing notifications disabled`);
+      // Still update subscription state even if email is skipped
+    } else {
+      // Send payment successful email with invoice link
+      await emailService.sendPaymentSuccessfulEmail(
+        userEmail,
+        invoice.amount_paid / 100,
+        invoice.currency.toUpperCase(),
+        invoice.hosted_invoice_url
+      );
+    }
+  } else {
+    // If we can't find userId, send email anyway (backward compatibility)
+    await emailService.sendPaymentSuccessfulEmail(
+      userEmail,
+      invoice.amount_paid / 100,
+      invoice.currency.toUpperCase(),
+      invoice.hosted_invoice_url
+    );
+  }
 
   // Log the event
   await admin.firestore().collection('stripeEvents').add({
@@ -1026,13 +1083,48 @@ async function handleInvoicePaymentFailed(event, stripe) {
     return;
   }
 
-  // Send payment failed email
-  await emailService.sendPaymentFailedEmail(
-    userEmail,
-    invoice.amount_due / 100,
-    invoice.currency.toUpperCase(),
-    invoice.hosted_invoice_url
-  );
+  // Get userId and check billing notification preference
+  let userId = null;
+  if (invoice.subscription) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+      userId = subscription.metadata?.userId;
+    } catch (error) {
+      logger.warn(`⚠️ Failed to retrieve subscription for payment failure:`, error);
+    }
+  }
+  
+  // If no userId from subscription, try to find by email
+  if (!userId) {
+    userId = await findUserIdByEmail(userEmail);
+  }
+
+  // Check if user has billing notifications enabled
+  if (userId) {
+    const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+    const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+    
+    if (!billingEnabled) {
+      logger.info(`⏭️ Skipping payment failed email for ${userEmail} - billing notifications disabled`);
+      // Still update subscription state even if email is skipped
+    } else {
+      // Send payment failed email
+      await emailService.sendPaymentFailedEmail(
+        userEmail,
+        invoice.amount_due / 100,
+        invoice.currency.toUpperCase(),
+        invoice.hosted_invoice_url
+      );
+    }
+  } else {
+    // If we can't find userId, send email anyway (backward compatibility)
+    await emailService.sendPaymentFailedEmail(
+      userEmail,
+      invoice.amount_due / 100,
+      invoice.currency.toUpperCase(),
+      invoice.hosted_invoice_url
+    );
+  }
 
   // Log the event
   await admin.firestore().collection('stripeEvents').add({
@@ -1084,6 +1176,23 @@ async function handleInvoiceUpcoming(event, stripe) {
   // Get subscription details
   const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
   const planName = subscription.items.data[0]?.price?.nickname || 'Pro Plan';
+
+  // Get userId and check billing notification preference
+  let userId = subscription.metadata?.userId;
+  if (!userId) {
+    userId = await findUserIdByEmail(userEmail);
+  }
+
+  // Check if user has billing notifications enabled
+  if (userId) {
+    const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+    const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
+    
+    if (!billingEnabled) {
+      logger.info(`⏭️ Skipping renewal reminder email for ${userEmail} - billing notifications disabled`);
+      return;
+    }
+  }
 
   // Send renewal reminder email
   await emailService.sendRenewalReminderEmail(userEmail, planName);

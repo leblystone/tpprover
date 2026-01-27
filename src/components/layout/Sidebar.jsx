@@ -31,13 +31,13 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
   }
 
   const links = [
-    { to: '/app/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
-    { to: '/app/calendar', label: 'Calendar', icon: Calendar, tourId: 'sidebar-calendar' },
-    { to: '/app/protocols', label: 'Protocols', icon: FlaskConical, tourId: 'sidebar-protocols' },
-    { to: '/app/recon', label: 'Reconstitute', icon: Calculator, tourId: 'sidebar-recon' },
-    { to: '/app/stockpile', label: 'Stockpile', icon: Boxes, tourId: 'sidebar-stockpile' },
-    { to: '/app/orders', label: 'Orders', icon: ShoppingCart, tourId: 'sidebar-orders' },
-    { to: '/app/vendors', label: 'Vendors', icon: Store, tourId: 'sidebar-vendors' },
+    { to: '/app/dashboard', label: 'Dashboard', icon: Home },
+    { to: '/app/calendar', label: 'Calendar', icon: Calendar },
+    { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
+    { to: '/app/recon', label: 'Reconstitute', icon: Calculator },
+    { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
+    { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
+    { to: '/app/vendors', label: 'Vendors', icon: Store },
   ]
 
   const bottomLinks = [
@@ -119,8 +119,8 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           />
         </div>
         <nav className="flex flex-col space-y-2 flex-1 overflow-y-auto overflow-x-hidden">
-          {links.map(({ to, icon: Icon, label, tourId }) => (
-            <NavLink key={to} to={to} title={label} data-tour={tourId} 
+          {links.map(({ to, icon: Icon, label }) => (
+            <NavLink key={to} to={to} title={label} 
               className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({ color: isActive ? theme.primary : theme.textLight })}
             >
@@ -178,8 +178,8 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             <span className="text-sm font-semibold ml-4 sidebar-link-label">Shop Planners</span>
           </a>
           
-          {bottomLinks.map(({ to, icon: Icon, label, tourId }) => (
-            <NavLink key={to} to={to} title={label} data-tour={tourId}
+          {bottomLinks.map(({ to, icon: Icon, label }) => (
+            <NavLink key={to} to={to} title={label}
               className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({ 
                 color: isActive ? theme.primary : (theme.isDark ? '#a8b5a0' : theme.textLight),

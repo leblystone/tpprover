@@ -195,6 +195,30 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
       timezone: 'user_local',
       preferredTime: '09:00'
     }
+  },
+  trialEnding: {
+    id: 'trialEnding',
+    name: 'Trial Ending Soon',
+    title: '⏰ Trial Ending Soon',
+    body: 'Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!',
+    enabled: true,
+    triggers: {
+      type: 'time_based',
+      condition: 'trial_ending',
+      delay: 7, // 7 days remaining (day 23 of trial)
+      unit: 'days'
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'subscription.status', operator: 'equals', value: 'trialing' }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      preferredTime: '10:00'
+    }
   }
 };
 

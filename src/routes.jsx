@@ -31,6 +31,7 @@ const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'Se
 const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
 const AccountProfile = lazyWithRetry(() => import('./pages/AccountProfile.jsx'), 'AccountProfile')
 const AccountSubscription = lazyWithRetry(() => import('./pages/AccountSubscription.jsx'), 'AccountSubscription')
+const LifetimeBilling = lazyWithRetry(() => import('./pages/LifetimeBilling.jsx'), 'LifetimeBilling')
 const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'AccountLegal')
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
@@ -263,6 +264,7 @@ export const router = createBrowserRouter([
           { path: 'account', element: <Account /> },
           { path: 'account/profile', element: <AccountProfile /> },
           { path: 'account/subscription', element: <AccountSubscription /> },
+          { path: 'account/subscription/lifetime-billing', element: <LifetimeBilling /> },
           { path: 'account/security', element: <Navigate to="/app/account/profile" replace /> },
           { path: 'account/legal', element: <AccountLegal /> },
           { path: 'trial-expired', element: <TrialExpired /> },

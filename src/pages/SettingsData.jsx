@@ -461,7 +461,7 @@ export default function SettingsData() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-4 pb-6">
+    <section className="max-w-xl mx-auto space-y-3 pb-4">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
@@ -481,10 +481,10 @@ export default function SettingsData() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-3 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
 
       {/* Data Settings */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Deletion Request Chip */}
         {hasDeletionRequest && (
           <div 
@@ -501,7 +501,7 @@ export default function SettingsData() {
               <AlertCircle size={20} style={{ color: '#991B1B' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-black tracking-tight" style={{ color: '#991B1B' }}>
+              <p className="text-sm font-bold tracking-tight" style={{ color: '#991B1B' }}>
                 Account Deletion Pending
               </p>
               <p className="text-[10px] opacity-60" style={{ color: '#991B1B' }}>
@@ -512,7 +512,7 @@ export default function SettingsData() {
         )}
 
         {/* Recently Deleted Section */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Trash2 size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -523,7 +523,7 @@ export default function SettingsData() {
         </div>
 
         {/* Recovery Section */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Database size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
@@ -532,18 +532,18 @@ export default function SettingsData() {
           </div>
 
           <div 
-            className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
           >
-            <div className="flex items-start gap-4 mb-6">
+            <div className="flex items-start gap-4 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
                 <RotateCcw size={18} style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>
+                <div className="text-sm font-bold tracking-tight" style={{ color: theme.text }}>
                   Cloud Data Recovery
                 </div>
-                <p className="text-[10px] opacity-50 leading-relaxed" style={{ color: theme.text }}>
+                <p className="text-xs opacity-60 leading-relaxed" style={{ color: theme.text }}>
                   Restores your research protocols and inventory from the latest cloud backup.
                 </p>
               </div>
@@ -551,7 +551,7 @@ export default function SettingsData() {
 
             <div className="grid grid-cols-1 gap-3">
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 disabled:opacity-50" 
+                className="w-full px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 disabled:opacity-50" 
                 style={{ 
                   backgroundColor: theme.primary, 
                   color: '#ffffff' 
@@ -569,7 +569,7 @@ export default function SettingsData() {
               
               {pwaPrompted && (
                 <button 
-                  className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border active:scale-95" 
+                  className="w-full px-6 py-3 rounded-2xl font-medium uppercase tracking-widest text-[10px] transition-all border active:scale-95" 
                   style={{ borderColor: theme.border, color: theme.text }} 
                   onClick={handleInstall}
                 >
@@ -578,7 +578,7 @@ export default function SettingsData() {
               )}
 
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
+                className="w-full px-6 py-3 rounded-2xl font-medium uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
                 style={{ borderColor: theme.border, color: theme.text }}
                 onClick={exportAllCSV}
               >
@@ -587,7 +587,7 @@ export default function SettingsData() {
               </button>
               
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
+                className="w-full px-6 py-3 rounded-2xl font-medium uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 border active:scale-95" 
                 style={{ borderColor: theme.border, color: theme.text }}
                 onClick={exportAllPDF}
               >
@@ -599,7 +599,7 @@ export default function SettingsData() {
         </div>
 
         {/* Danger Zone Section */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1 text-red-800">
             <Trash2 size={14} />
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">
@@ -608,12 +608,12 @@ export default function SettingsData() {
           </div>
 
           <div 
-            className="p-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
             style={{ backgroundColor: theme.cardBackground, borderColor: '#991B1B20' }}
           >
             <div className="space-y-3">
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 bg-black/5 hover:bg-black/10 active:scale-95"
+                className="w-full px-6 py-3 rounded-2xl font-medium uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 bg-black/5 hover:bg-black/10 active:scale-95"
                 style={{ color: theme.text }}
                 onClick={clearSessionOnly}
               >
@@ -621,7 +621,7 @@ export default function SettingsData() {
               </button>
               
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
+                className="w-full px-6 py-3 rounded-2xl font-semibold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
                 style={{ backgroundColor: '#991B1B15', color: '#991B1B' }}
                 onClick={clearAllData}
               >
@@ -629,14 +629,14 @@ export default function SettingsData() {
               </button>
               
               <button 
-                className="w-full px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
+                className="w-full px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 active:scale-95" 
                 style={{ backgroundColor: '#991B1B', color: '#ffffff' }}
                 onClick={() => setShowDeleteAccountModal(true)}
               >
                 Permanently Delete Account
               </button>
             </div>
-            <p className="text-[10px] mt-4 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
+            <p className="text-[10px] mt-3 text-center opacity-40 leading-relaxed" style={{ color: theme.text }}>
               Action cannot be undone. "Wipe Local" clears browser data.<br/>
               "Delete Account" removes everything from our research servers.
             </p>

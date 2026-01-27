@@ -2291,6 +2291,136 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
   }
 });
 
+// Scheduled function to send trial ending push notification at day 23
+exports.scheduledTrialEndingPushNotification = onSchedule({
+  schedule: '0 10 * * *', // Run once daily at 10 AM UTC
+  timeZone: 'UTC',
+  secrets: []
+}, async (event) => {
+  logger.info('🔔 Running scheduled trial ending push notification check (day 23)...');
+  
+  try {
+    const pushNotifications = require('./pushNotifications');
+    const db = admin.firestore();
+    const now = new Date();
+    
+    // Find all users with active trials
+    const usersSnapshot = await db
+      .collection('users')
+      .where('subscription.status', '==', 'trialing')
+      .get();
+    
+    let eligibleUsers = 0;
+    let sentCount = 0;
+    let skippedCount = 0;
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const userId = userDoc.id;
+      const subscription = userData.subscription || {};
+      
+      if (!subscription.currentPeriodEnd) {
+        continue;
+      }
+      
+      const trialEndDate = new Date(subscription.currentPeriodEnd);
+      const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
+      
+      // Send notification if exactly 23 days left (7 days remaining)
+      if (daysLeft === 7) {
+        eligibleUsers++;
+        
+        // Check if user has billing notifications enabled
+        const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
+        const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set
+        
+        if (!billingEnabled) {
+          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - billing notifications disabled`);
+          skippedCount++;
+          continue;
+        }
+        
+        // Check if push notifications are enabled
+        if (!notificationSettings?.push) {
+          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - push notifications disabled`);
+          skippedCount++;
+          continue;
+        }
+        
+        // Check if we already sent this notification (prevent duplicates)
+        const notificationHistoryQuery = await db
+          .collection('notificationHistory')
+          .where('userId', '==', userId)
+          .where('type', '==', 'trial_ending_push')
+          .where('daysLeft', '==', 7)
+          .get();
+        
+        if (!notificationHistoryQuery.empty) {
+          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - already sent`);
+          skippedCount++;
+          continue;
+        }
+        
+        // Load notification template from Firestore (if available) or use default
+        let notificationTitle = '⏰ Trial Ending Soon';
+        let notificationBody = `Your 30-day trial ends in 7 days. Subscribe to keep your research data!`;
+        
+        try {
+          const templateDoc = await db.collection('notificationTemplates').doc('trialEnding').get();
+          if (templateDoc.exists) {
+            const template = templateDoc.data();
+            notificationTitle = template.title || notificationTitle;
+            notificationBody = template.body || notificationBody;
+            // Replace variables
+            notificationBody = notificationBody.replace(/{daysLeft}/g, '7');
+            logger.info('✅ Using custom trial ending notification template from Firestore');
+          }
+        } catch (error) {
+          logger.warn('⚠️ Could not load notification template from Firestore, using default');
+        }
+        
+        // Send push notification
+        const notificationData = {
+          title: notificationTitle,
+          body: notificationBody,
+          data: {
+            type: 'trial_ending',
+            daysLeft: 7,
+            clickAction: 'https://thepepplanner.com/app/account',
+            appUrl: '/app/account'
+          }
+        };
+        
+        const result = await pushNotifications.sendPushNotificationByType(userId, 'billing', notificationData);
+        
+        if (result.success) {
+          sentCount++;
+          // Log to notification history
+          await db.collection('notificationHistory').add({
+            type: 'trial_ending_push',
+            userId: userId,
+            userEmail: userData.email,
+            daysLeft: 7,
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'sent',
+            sentBy: 'scheduled'
+          });
+          logger.info(`✅ Trial ending push notification sent to ${userData.email}`);
+        } else {
+          logger.warn(`⚠️ Failed to send trial ending push notification to ${userData.email}: ${result.error}`);
+        }
+      }
+    }
+    
+    logger.info(`✅ Trial ending push notifications: ${sentCount} sent, ${skippedCount} skipped, ${eligibleUsers} eligible`);
+    return { success: true, sent: sentCount, skipped: skippedCount, eligible: eligibleUsers };
+    
+  } catch (error) {
+    logger.error('❌ Error in scheduled trial ending push notification:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Send custom announcement email (for maintenance, downtime, etc.)
 exports.sendCustomAnnouncementEmail = onCall(
   {

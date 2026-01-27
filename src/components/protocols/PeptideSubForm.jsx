@@ -444,7 +444,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
                                                 onMouseDown={(e) => e.preventDefault()}
                                                 onTouchStart={(e) => e.preventDefault()}
-                                                className="w-full px-3 py-2 rounded-lg flex items-center justify-between transition-all border-none outline-none"
+                                                className="w-full px-3 py-2 rounded-lg flex items-center justify-between transition-all border-none outline-none relative z-20"
                                                 data-dropdown-container
                                                 style={{ 
                                                     border: `1px solid ${theme.isDark ? '#4b5563' : '#f0eee7'}`,
@@ -467,16 +467,17 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 </svg>
                                             </button>
                                             {isPenTypeDropdownOpen && (
-                                                <div className="relative" data-dropdown-container>
+                                                <div className="relative" data-dropdown-container style={{ zIndex: 10003 }}>
                                                     <div 
-                                                        className={`absolute right-0 z-50 rounded-lg shadow-lg border overflow-hidden w-full ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                        className={`absolute right-0 rounded-lg shadow-lg border overflow-hidden w-full ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                         style={{
                                                             backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                             borderColor: theme.border,
                                                             minWidth: '100px',
                                                             maxHeight: '300px',
                                                             overflowY: 'auto',
-                                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                            zIndex: 10003,
+                                                            boxShadow: theme.isDark ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.15)'
                                                         }}
                                                     >
                                                         {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option, idx) => (
