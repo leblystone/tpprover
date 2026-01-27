@@ -46,6 +46,7 @@ const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminU
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
 const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
 const AdminUsersGifts = lazyWithRetry(() => import('./pages/admin/AdminUsersGifts.jsx'), 'AdminUsersGifts')
+const AdminUsersExpiredTrials = lazyWithRetry(() => import('./pages/admin/AdminUsersExpiredTrials.jsx'), 'AdminUsersExpiredTrials')
 const AdminContent = lazyWithRetry(() => import('./pages/admin/AdminContent.jsx'), 'AdminContent')
 const AdminFeedback = lazyWithRetry(() => import('./pages/admin/AdminFeedback.jsx'), 'AdminFeedback')
 const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprovements.jsx'), 'AdminImprovements')
@@ -112,6 +113,7 @@ export const router = createBrowserRouter([
       { path: 'users/lifetime', element: <AdminUsersLifetime /> },
       { path: 'users/annual', element: <AdminUsersAnnual /> },
       { path: 'users/gifts', element: <AdminUsersGifts /> },
+      { path: 'users/expired-trials', element: <AdminUsersExpiredTrials /> },
       { path: 'users', element: <Navigate to="/admin/users/subscriptions" replace /> },
       { path: 'content', element: <AdminContent /> },
       { path: 'feedback', element: <AdminFeedback /> },

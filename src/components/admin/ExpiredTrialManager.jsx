@@ -22,15 +22,52 @@ export default function ExpiredTrialManager({ theme }) {
       const expired = [];
 
       for (const user of allUsers) {
-        // Skip if user has active subscription or lifetime access
-        if (user.subscription?.status === 'active' && 
-            user.subscription?.plan && 
-            !['10-Day Research Trial', '7-Day Free Trial'].includes(user.subscription?.plan)) {
+        const subscription = user.subscription || {};
+        
+        // ============================================
+        // FILTERING LOGIC: Only include users who:
+        // 1. Never had a paid subscription (monthly, annual, lifetime)
+        // 2. Only had trial subscriptions
+        // 3. Trial has expired
+        // ============================================
+        
+        // Skip if user has lifetime access (granted or purchased)
+        if (subscription.hasLifetimeAccess || subscription.interval === 'lifetime') {
           continue;
         }
         
-        if (user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime') {
+        // Skip if user has active paid subscription (not trial)
+        if (subscription.status === 'active' && 
+            subscription.plan && 
+            !['10-Day Research Trial', '7-Day Free Trial'].includes(subscription.plan)) {
           continue;
+        }
+        
+        // CRITICAL: Skip if user EVER had a paid subscription (even if now canceled/expired)
+        // Check for payment indicators that prove they paid at some point
+        const hasPaymentHistory = 
+          subscription.stripeSubscriptionId || 
+          subscription.stripeCustomerId ||
+          subscription.paymentMethodId ||
+          subscription.paymentProvider ||
+          (subscription.platform && ['stripe', 'google-play', 'apple', 'squarespace'].includes(subscription.platform)) ||
+          subscription.googlePlayPurchaseToken ||
+          subscription.appleTransactionId ||
+          subscription.customerId;
+        
+        if (hasPaymentHistory) {
+          // This user has payment history - they've paid before, skip them
+          continue;
+        }
+        
+        // Skip if subscription plan indicates paid subscription (even if status is canceled/expired)
+        const plan = subscription.plan?.toLowerCase() || '';
+        const paidPlanIndicators = ['monthly', 'annual', 'yearly', 'year', 'lifetime', 'subscription'];
+        if (paidPlanIndicators.some(indicator => plan.includes(indicator) && !plan.includes('trial'))) {
+          // Check if it's actually a trial plan name
+          if (!plan.includes('trial') && !plan.includes('free')) {
+            continue;
+          }
         }
 
         // Determine trial end date
@@ -197,7 +234,7 @@ export default function ExpiredTrialManager({ theme }) {
               Expired Trial Users
             </h2>
             <p className="text-sm" style={{ color: theme.textLight }}>
-              Manage and survey users whose trials have expired
+              Manage and survey users whose trials have expired (never had paid subscription)
             </p>
           </div>
         </div>

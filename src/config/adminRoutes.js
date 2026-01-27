@@ -29,6 +29,7 @@ export const adminPrimaryTabs = [
       { id: 'lifetime', label: 'Lifetime', path: `${ADMIN_BASE}/users/lifetime` },
       { id: 'annual', label: 'Annual', path: `${ADMIN_BASE}/users/annual` },
       { id: 'gifts', label: 'Gifts', path: `${ADMIN_BASE}/users/gifts` },
+      { id: 'expired-trials', label: 'Expired Trials', path: `${ADMIN_BASE}/users/expired-trials` },
     ],
   },
   {
@@ -80,6 +81,7 @@ export const adminPaths = {
   usersLifetime: `${ADMIN_BASE}/users/lifetime`,
   usersAnnual: `${ADMIN_BASE}/users/annual`,
   usersGifts: `${ADMIN_BASE}/users/gifts`,
+  usersExpiredTrials: `${ADMIN_BASE}/users/expired-trials`,
   contact: `${ADMIN_BASE}/contact`,
   content: `${ADMIN_BASE}/content`,
   feedback: `${ADMIN_BASE}/feedback`,
