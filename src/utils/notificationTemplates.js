@@ -1,5 +1,5 @@
 // src/utils/notificationTemplates.js
-import { loadSettings } from '../pages/Settings';
+import { loadSettings } from './settingsHelpers';
 import { db } from '../config/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
