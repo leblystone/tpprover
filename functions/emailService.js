@@ -6,6 +6,21 @@ const admin = require('firebase-admin');
 const emailTemplates = require('./emailTemplates');
 const { fetchFounderState } = require('./founderOffer');
 
+/**
+ * Escape HTML to prevent XSS attacks
+ * @param {string} text - Text to escape
+ * @returns {string} - Escaped HTML-safe text
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Resend API key will be stored in Firebase environment config
 // Run: firebase functions:secrets:set RESEND_API_KEY
 
@@ -682,10 +697,18 @@ function generateEmailHTML(template, variables = {}) {
   } else {
     logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   }
-  // Ensure the link is absolute (starts with http:// or https://)
-  if (ctaLinkValue && ctaLinkValue !== '#' && !ctaLinkValue.startsWith('http://') && !ctaLinkValue.startsWith('https://')) {
-    logger.warn(`⚠️ ctaLink is not absolute, prepending https://: ${ctaLinkValue}`);
-    ctaLinkValue = `https://${ctaLinkValue}`;
+  // Validate and sanitize link - prevent javascript:, data:, and other dangerous protocols
+  if (ctaLinkValue && ctaLinkValue !== '#') {
+    // Reject dangerous protocols
+    const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:'];
+    const lowerLink = ctaLinkValue.toLowerCase().trim();
+    if (dangerousProtocols.some(proto => lowerLink.startsWith(proto))) {
+      logger.error(`❌ Rejected dangerous link protocol: ${ctaLinkValue}`);
+      ctaLinkValue = '#';
+    } else if (!lowerLink.startsWith('http://') && !lowerLink.startsWith('https://')) {
+      logger.warn(`⚠️ ctaLink is not absolute, prepending https://: ${ctaLinkValue}`);
+      ctaLinkValue = `https://${ctaLinkValue}`;
+    }
   }
   processedTemplate.ctaLink = ctaLinkValue;
   processedTemplate.postCtaNote = replaceVars(template.postCtaNote);
@@ -884,12 +907,12 @@ function generateDefaultHTML(template, colors) {
   <div style="background-color: #EFF2EE; padding: 24px 0 40px 0;">
     <div style="max-width: 600px; margin: 0 auto; padding: 0 20px;">
       <div style="background-color: #FFFFFF; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-        <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">${featuresTitle}</h2>
+        <h2 style="font-size: 18px; font-weight: 700; color: ${colors.primary}; margin: 0 0 24px 0; text-align: center;">${escapeHtml(featuresTitle)}</h2>
         <div style="text-align: left;">
           ${template.features.map(feature => {
             const parts = feature.includes(' – ') ? feature.split(' – ') : [feature, ''];
-            const title = parts[0];
-            const desc = parts[1] || '';
+            const title = escapeHtml(parts[0]);
+            const desc = escapeHtml(parts[1] || '');
             return `
               <div style="margin-bottom: 16px;">
                 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
@@ -961,14 +984,14 @@ function generateDefaultHTML(template, colors) {
       <!-- Section: Intro (light off-white) -->
       <div style="background-color: #F5F5F0; padding: 40px 32px; color: ${colors.text};">
         <h1 style="color: ${colors.primary}; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; line-height: 1.3; text-align: center;">
-          ${(template.heading || 'Welcome!').replace(/🥼/g, '')}
+          ${escapeHtml((template.heading || 'Welcome!').replace(/🥼/g, ''))}
         </h1>
         
         <p style="font-size: 16px; line-height: 1.8; color: ${colors.text}; margin: 0 0 24px 0; text-align: center;">
-          ${template.greeting || ''}
+          ${escapeHtml(template.greeting || '')}
         </p>
         
-        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; margin: 0 0 32px 0; text-align: center;">${template.mainMessage.replace(/\n/g, '<br>')}</p>` : ''}
+        ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; margin: 0 0 32px 0; text-align: center;">${escapeHtml(template.mainMessage).replace(/\n/g, '<br>')}</p>` : ''}
 
         ${template.ctaText ? `
         <center style="margin: 24px 0 0 0;">
@@ -976,7 +999,7 @@ function generateDefaultHTML(template, colors) {
             <tr>
               <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); box-shadow: 0 4px 16px rgba(52, 78, 65, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);">
                 <a href="${template.ctaLink || '#'}" style="display: inline-block; padding: 14px 32px; color: #FFFFFF !important; text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 12px;">
-                  ${template.ctaText}
+                  ${escapeHtml(template.ctaText)}
                 </a>
               </td>
             </tr>
@@ -993,7 +1016,7 @@ function generateDefaultHTML(template, colors) {
 
         ${template.postCtaNote ? `
         <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; text-align: center; margin: 0 0 32px 0; font-style: italic;">
-          ${template.postCtaNote}
+          ${escapeHtml(template.postCtaNote)}
         </p>
         ` : ''}
 
@@ -1663,6 +1686,40 @@ exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
   };
   const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });
   return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send account deletion request received confirmation to user
+ * Sends immediate confirmation that their deletion request was received
+ */
+exports.sendAccountDeletionRequestConfirmation = async (userEmail, userName = null) => {
+  logger.info('📧 Sending deletion request confirmation email to user');
+  
+  const subject = 'Deletion of Pep Planner Account';
+  const template = {
+    heading: 'We\'ve Received Your Deletion Request',
+    greeting: `Hi ${userName || 'User'},`,
+    mainMessage: `Thank you for letting us know. We've received your request to delete your Pep Planner account.\n\n**This action is irreversible once processed.** Our admin team will review and process your request within 48 hours. You will receive a final confirmation email once your account and all associated data have been permanently deleted.`,
+    ctaText: '',
+    ctaLink: '',
+    highlightTitle: '⚠️ Important',
+    highlightMessage: 'Once your account is deleted, all your research data, protocols, and account information will be permanently removed. This cannot be undone.',
+    features: [
+      'Request Status – Pending admin review',
+      'Processing Time – Within 48 hours',
+      'Confirmation – You\'ll receive an email when complete',
+      'Data Removal – All data will be permanently deleted'
+    ],
+    footer: 'If you did not request this deletion or have changed your mind, please contact us immediately at contact@thepepplanner.com.'
+  };
+  
+  const html = generateEmailHTML(template, { userName: userName || 'User', userEmail });
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'account_deletion_request_confirmation',
+    recipientName: userName,
+    sentBy: 'system'
+  });
 };
 
 /**
