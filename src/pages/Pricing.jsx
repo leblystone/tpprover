@@ -74,7 +74,7 @@ export default function Pricing() {
   const faqs = [
     {
       question: "Is there a free trial?",
-      answer: "Yes! Every plan starts with a 10-day research trial. No credit card required to explore the workspace."
+      answer: "Yes! Every plan starts with a 30-day research trial. No credit card required to explore the workspace."
     },
     {
       question: "Can I change plans anytime?",
@@ -136,7 +136,7 @@ export default function Pricing() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl md:text-2xl mb-8" style={{ color: theme.textLight }}>
-            Choose the plan that fits your research needs. Every plan includes a 10-day research trial.
+            Choose the plan that fits your research needs. Every plan includes a 30-day research trial.
           </p>
           
           {/* Billing Toggle */}
@@ -288,7 +288,7 @@ export default function Pricing() {
                 <Zap className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                10-Day Free Trial
+                30-Day Free Trial
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
                 Try all features risk-free. No credit card required to get started.

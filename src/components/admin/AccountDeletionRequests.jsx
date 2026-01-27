@@ -18,6 +18,8 @@ export default function AccountDeletionRequests({ theme }) {
     approved: 0,
     rejected: 0
   });
+  const [manualDeleteEmail, setManualDeleteEmail] = useState('');
+  const [isManualDeleting, setIsManualDeleting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = loadRequests();
@@ -155,6 +157,70 @@ export default function AccountDeletionRequests({ theme }) {
     }
   };
 
+  const handleManualDelete = async () => {
+    if (!manualDeleteEmail || !manualDeleteEmail.includes('@')) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'Please enter a valid email address', 
+          type: 'warning'
+        }
+      }));
+      return;
+    }
+
+    if (!window.confirm(`⚠️ ARE YOU ABSOLUTELY SURE?\n\nThis will PERMANENTLY DELETE the account for:\n${manualDeleteEmail}\n\nThis action:\n• Sends a goodbye email to the user\n• Cancels their subscription (if any)\n• Deletes ALL their data from Firestore\n• Deletes their Firebase Auth account\n• CANNOT BE UNDONE\n\nType the email again to confirm.`)) {
+      return;
+    }
+
+    const confirmEmail = window.prompt(`Type the email address to confirm deletion:\n\n${manualDeleteEmail}`);
+    if (confirmEmail !== manualDeleteEmail) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'Email mismatch. Deletion cancelled for safety.', 
+          type: 'warning'
+        }
+      }));
+      return;
+    }
+
+    setIsManualDeleting(true);
+
+    try {
+      const functions = getFunctions();
+      const adminTerminateUser = httpsCallable(functions, 'adminTerminateUser');
+      
+      const result = await adminTerminateUser({
+        email: manualDeleteEmail
+      });
+
+      if (result.data.success) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { 
+            message: `✅ Account ${manualDeleteEmail} deleted successfully! Goodbye email sent to user.`, 
+            type: 'success',
+            duration: 7000
+          }
+        }));
+        
+        // Clear the input
+        setManualDeleteEmail('');
+      } else {
+        throw new Error(result.data.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Error manually deleting account:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: `❌ Error: ${error.message}`, 
+          type: 'error',
+          duration: 7000
+        }
+      }));
+    } finally {
+      setIsManualDeleting(false);
+    }
+  };
+
   const filteredRequests = requests.filter(request => {
     const matchesSearch = 
       request.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,6 +242,56 @@ export default function AccountDeletionRequests({ theme }) {
 
   return (
     <div className="space-y-6">
+      {/* Manual Deletion Section */}
+      <div className="p-4 rounded-lg border" style={{ borderColor: '#dc2626', backgroundColor: theme.cardBackground }}>
+        <div className="flex items-start gap-3 mb-3">
+          <AlertCircle size={20} style={{ color: '#dc2626', flexShrink: 0, marginTop: 2 }} />
+          <div className="flex-1">
+            <h3 className="font-bold text-sm mb-1" style={{ color: '#dc2626' }}>
+              Manual User Deletion (Emergency Use Only)
+            </h3>
+            <p className="text-xs mb-3" style={{ color: theme.textLight }}>
+              Delete a user account by email address. Use this for legacy requests or emergency deletions. 
+              The user will receive a goodbye email confirmation.
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                placeholder="Enter user email address..."
+                value={manualDeleteEmail}
+                onChange={(e) => setManualDeleteEmail(e.target.value)}
+                disabled={isManualDeleting}
+                className="flex-1 px-3 py-2 rounded-lg border text-sm"
+                style={{ 
+                  borderColor: theme.border, 
+                  backgroundColor: theme.background, 
+                  color: theme.text 
+                }}
+              />
+              <button
+                onClick={handleManualDelete}
+                disabled={isManualDeleting || !manualDeleteEmail}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                style={{ backgroundColor: '#dc2626' }}
+              >
+                {isManualDeleting ? (
+                  <>
+                    <Loader size={14} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Delete User
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>

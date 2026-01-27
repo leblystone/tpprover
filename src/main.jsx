@@ -16,8 +16,6 @@ import './index.css'
 initCacheBusting();
 setupSafeAreaSupport();
 
-console.log('🎯 main.jsx: Starting app initialization...');
-
 // Global error handlers to prevent renderer crashes
 if (typeof window !== 'undefined') {
   // Catch unhandled JavaScript errors
@@ -69,8 +67,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-console.log('🎯 main.jsx: React app rendered successfully');
-
 // Expose debug controls to window
 if (typeof window !== 'undefined') {
   window.toggleDebugMode = toggleDebugMode;
@@ -88,7 +84,6 @@ if ('serviceWorker' in navigator) {
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
         if (isDev || isNative()) {
-          console.log('💻 Development/Native environment detected: disabling service worker');
           const registrations = await navigator.serviceWorker.getRegistrations();
           for (let registration of registrations) {
             await registration.unregister();

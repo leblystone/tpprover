@@ -10,12 +10,12 @@ window.testExpiredTrial = () => {
   
   const expiredTrial = {
     id: `trial_${Date.now()}`,
-    plan: '10-Day Research Trial',
+    plan: '30-Day Research Trial',
     price: 0,
     interval: 'trial',
     currency: 'USD',
     status: 'trialing',  // Status is trialing but date has passed
-    startedAt: new Date(now.getTime() - (11 * 24 * 60 * 60 * 1000)).toISOString(),
+    startedAt: new Date(now.getTime() - (31 * 24 * 60 * 60 * 1000)).toISOString(),
     currentPeriodEnd: yesterday.toISOString(),  // Expired yesterday
     paymentMethod: null,
     subscriptionId: `trial_${Date.now()}`

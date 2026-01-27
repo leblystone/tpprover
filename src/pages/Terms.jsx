@@ -222,7 +222,7 @@ export default function Terms() {
               </h2>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: theme.textLight }}>
                 <p>
-                  <strong>Research Trial:</strong> We offer a 10-day research trial for new users. No credit card is required to start your trial.
+                  <strong>Research Trial:</strong> We offer a 30-day research trial for new users. No credit card is required to start your trial.
                 </p>
                 <p>
                   <strong>Subscription Plans:</strong> After the trial period, you must subscribe to a paid plan to continue using the Service. Subscription fees are billed in advance.

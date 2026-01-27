@@ -302,7 +302,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs" style={{ color: theme.text }}>
                 <CheckCircle size={12} style={{ color: theme.primary }} />
-                <span>10-day research trial access</span>
+                <span>30-day research trial access</span>
               </div>
               <div className="flex items-center gap-2 text-xs" style={{ color: theme.text }}>
                 <CheckCircle size={12} style={{ color: theme.primary }} />

@@ -39,7 +39,7 @@ export default function ExpiredTrialManager({ theme }) {
         // Skip if user has active paid subscription (not trial)
         if (subscription.status === 'active' && 
             subscription.plan && 
-            !['10-Day Research Trial', '7-Day Free Trial'].includes(subscription.plan)) {
+            !['30-Day Research Trial', '7-Day Free Trial'].includes(subscription.plan)) {
           continue;
         }
         
@@ -81,11 +81,11 @@ export default function ExpiredTrialManager({ theme }) {
             user.trialEndDate.toDate() : 
             new Date(user.trialEndDate);
         } else if (user.createdAt) {
-          // Default 7-day trial from creation
+          // Default 30-day trial from creation
           const createdDate = user.createdAt.toDate ? 
             user.createdAt.toDate() : 
             new Date(user.createdAt);
-          trialEndDate = new Date(createdDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+          trialEndDate = new Date(createdDate.getTime() + (30 * 24 * 60 * 60 * 1000));
         }
 
         if (!trialEndDate || isNaN(trialEndDate.getTime())) {

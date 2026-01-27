@@ -19,5 +19,4 @@ export function getVersionInfo() {
   };
 }
 
-// Log version on import (useful for debugging)
-console.log(`📱 The Pep Planner v${APP_VERSION} (${import.meta.env.MODE})`);
+// Version available via getVersionInfo() function

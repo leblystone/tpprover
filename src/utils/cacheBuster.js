@@ -213,5 +213,4 @@ export function initCacheBusting() {
   });
 
   window.emergencyCacheClear = emergencyCacheClear;
-  console.log('🚨 Emergency cache clear available: window.emergencyCacheClear()');
 }

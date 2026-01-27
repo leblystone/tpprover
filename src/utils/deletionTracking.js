@@ -126,7 +126,6 @@ export function cleanupOldDeletions() {
 
   if (cleaned) {
     saveDeletionTracking(tracking);
-    console.log('🧹 Cleaned up old deletion records');
   }
 }
 

@@ -18,11 +18,7 @@ export function loadSettings() {
     settingsCache = settings;
     settingsCacheTimestamp = now;
     
-    // Only log in development mode (first load only per session)
-    if (import.meta.env.DEV && !window._settingsLoaded) {
-      console.log('📥 Settings loaded from localStorage:', settings);
-      window._settingsLoaded = true;
-    }
+    // Settings loaded from cache
     
     return settings
   } catch (error) {
@@ -44,11 +40,6 @@ export function saveSettings(obj) {
     // Update cache
     settingsCache = obj;
     settingsCacheTimestamp = Date.now();
-    
-    // Only log in development mode
-    if (import.meta.env.DEV) {
-      console.log('✅ Settings saved to localStorage:', obj)
-    }
   } catch (error) {
     console.error('❌ Failed to save settings:', error)
   }
@@ -143,9 +134,6 @@ export async function loadNotificationSettingsFromFirestore() {
       timeZone: firestoreRegionSettings.timeZone || getLocalTimezone()
     } : null;
 
-    if (import.meta.env.DEV) {
-      console.log('📥 Notification settings loaded from Firestore:', notificationSettings);
-    }
 
     return {
       notifications: notificationSettings,

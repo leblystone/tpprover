@@ -39,7 +39,6 @@ export function FounderOfferProvider({ children }) {
     const skipFunctionCall = isDev && !process.env.VITE_ENABLE_FOUNDER_FUNCTION;
     
     if (!functions || skipFunctionCall) {
-      console.info('ℹ️ Using default founder pricing (function not available in dev mode)');
       setState((prev) => ({
         ...prev,
         loading: false,

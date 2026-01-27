@@ -174,7 +174,6 @@ export function AppProvider({ children }) {
                 // Save migrated data back to localStorage
                 try {
                     localStorage.setItem('tpprover_calendar_notes', JSON.stringify(migrated));
-                    console.log('✅ Migrated calendar notes to ID-based format');
                 } catch (e) {
                     console.error('Failed to save migrated calendar notes:', e);
                 }
@@ -333,10 +332,6 @@ export function AppProvider({ children }) {
                         
                         // Save merged settings back to localStorage
                         saveSettings(mergedSettings);
-                        
-                        if (import.meta.env.DEV) {
-                            console.log('✅ Notification settings synced from Firestore to localStorage');
-                        }
                     }
                 } catch (settingsError) {
                     console.warn('⚠️ Failed to load notification settings from Firestore:', settingsError);
@@ -2147,7 +2142,6 @@ export function AppProvider({ children }) {
             return;
         }
 
-        console.log('🔄 Setting up real-time sync listeners for user:', firebaseUser.uid);
         const userId = firebaseUser.uid;
 
         // Sample data state listener with debounce

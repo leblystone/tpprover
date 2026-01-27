@@ -82,6 +82,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     useEffect(() => {
         if (!open) return;
 
+        // IMPORTANT: Clear any stale localStorage draft when loading fresh protocol data
+        // This prevents old drafts from overwriting updated protocol data
+        if (protocol?.id) {
+            const draftKey = `tpprover_protocol_draft_${protocol.id}`;
+            try {
+                localStorage.removeItem(draftKey);
+            } catch (e) {
+                console.warn('Failed to clear stale draft:', e);
+            }
+        }
+
         let initialData = protocol ? { ...createEmpty(), ...protocol } : createEmpty();
         
         // Clean duration data on load to prevent corruption
@@ -115,6 +126,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // Map blendMode to protocolType for form state
         if (initialData.blendMode) {
             initialData.protocolType = initialData.blendMode;
+        }
+        
+        // Auto-set to 'separate' if only 1 peptide (can't be blended with just one)
+        if (initialData.peptides && initialData.peptides.length === 1) {
+            initialData.protocolType = 'separate';
         }
 
         // If it's a blended protocol, sync the frequency from the first peptide to a shared root-level frequency
@@ -205,6 +221,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             });
         }
         
+        // DEBUG: Log what's being loaded into the form
+        console.log('🔴 FORM INIT - peptides frequency:', initialData.peptides?.map(p => ({ name: p.name, time: p.frequency?.time })));
+        
         setForm(initialData);
         
         // Initialize expanded peptides - collapse all by default
@@ -277,6 +296,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 peptides: [...(prev.peptides || []), { id: generateId(), frequency: newPeptideFrequency, unitValue: '' }]
             };
             
+            // Auto-set to 'separate' if only 1 peptide (shouldn't happen here, but ensure consistency)
+            if (newState.peptides.length === 1) {
+                newState.protocolType = 'separate';
+            }
+            
             // Auto-expand the newly added peptide
             const newIndex = newState.peptides.length - 1;
             setExpandedPeptides(prev => new Set([...prev, newIndex]));
@@ -306,6 +330,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 ...prev,
                 peptides: prev.peptides.filter((_, i) => i !== index)
             };
+            
+            // Auto-set to 'separate' if only 1 peptide remains
+            if (newState.peptides.length === 1) {
+                newState.protocolType = 'separate';
+            }
             
             // Update expanded peptides - remove the deleted index and adjust others
             setExpandedPeptides(prevExpanded => {
@@ -505,6 +534,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
                 {/* Protocol Basics - Compact Layout */}
                 <div className="flex flex-col gap-4">
+                    {/* Protocol Name - Full Width */}
+                    <div className="w-full">
+                        <TextInput
+                            label="Protocol Name"
+                            value={form.protocolName || ''}
+                            onChange={v => handleChange('protocolName', v)}
+                            placeholder="e.g., Retatrutide, GLOW, etc."
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow
+                        />
+                    </div>
+
+                    {/* Purpose/Goal - Full Width */}
                     <div className="w-full">
                         <TextInput
                             label="Purpose/Goal"
@@ -518,22 +562,27 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-                        <div className="lg:col-span-8">
-                            <TextInput
-                                label="Protocol Name"
-                                value={form.protocolName || ''}
-                                onChange={v => handleChange('protocolName', v)}
-                                placeholder="e.g., Retatrutide, GLOW, etc."
-                                theme={theme}
-                                outlined={true}
-                                customTextColor={theme.isDark ? null : "#181A18"}
-                                customShadow
-                            />
+                </div>
+
+                {/* Peptides Section - Accordion Structure */}
+                <div className="space-y-3">
+                    {/* Section Header */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <TestTube size={28} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Dosage & Schedule
+                                </span>
+                            </div>
                         </div>
-                        
-                        {/* Protocol Type - Segmented Control */}
-                        <div className="lg:col-span-4 pb-0.5">
+                    </div>
+
+                    {/* Protocol Type - Only show when 2+ peptides */}
+                    {form.peptides && form.peptides.length > 1 && (
+                        <div className="w-full">
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40 ml-1" style={{ color: theme.text }}>Type</span>
                                 <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
@@ -563,24 +612,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Peptides Section - Accordion Structure */}
-                <div className="space-y-3">
-                    {/* Section Header */}
-                    <div className="flex items-center gap-2 mb-1">
-                        <TestTube size={28} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Dosage & Schedule
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Shared Settings for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
@@ -607,7 +639,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 ? `Daily ${p.frequency?.time?.join('/') || 'AM'}`
                                 : p.frequency?.type === 'weekly'
                                     ? `Weekly (${p.frequency?.days?.length || 0} days)`
-                                    : p.frequency?.type || 'Not set';
+                                    : p.frequency?.type === 'cycle'
+                                        ? (() => {
+                                            const cycleStr = `Cycle: ${p.frequency?.onDays || '-'} on / ${p.frequency?.offDays || '-'} off`;
+                                            const timeStr = p.frequency?.time && Array.isArray(p.frequency.time) && p.frequency.time.length > 0 
+                                                ? ` ${p.frequency.time.join('/')}` 
+                                                : '';
+                                            return cycleStr + timeStr;
+                                        })()
+                                        : p.frequency?.type || 'Not set';
                             
                             return (
                                 <div 

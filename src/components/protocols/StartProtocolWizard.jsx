@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -14,6 +14,7 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { generateId } from '../../utils/string';
 import SchedulingPreview from './SchedulingPreview';
+import VisualSchedulePreview from './VisualSchedulePreview';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -81,7 +82,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     <div>
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            Skipped. Select delivery method below.
+                            Skipped - manual tracking
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -154,17 +155,21 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
 
 export default function StartProtocolWizard({ open, onClose, protocol, stockpile, setStockpile, theme, onStart }) {
-    const [stage, setStage] = useState('linking'); // linking, recon_strategy, reconstituting, confirm
+    // ACCORDION STATE - No more stages!
+    const [expandedSections, setExpandedSections] = useState({
+        preview: true, // Auto-expand preview to show schedule
+        linking: false, // Collapse optional linking section
+        recon: false,
+        delivery: false
+    });
+    
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => getLocalDateString());
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
+    const [reconComplete, setReconComplete] = useState(false); // Track if recon was completed
     const [skippedPeptideDeliveryMethods, setSkippedPeptideDeliveryMethods] = useState({}); // Store delivery method info for skipped peptides
-    const [isSkippedQuestionsOpen, setIsSkippedQuestionsOpen] = useState(false);
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState({}); // Track which peptide's dropdown is open
     const penTypeDropdownRefs = useRef({});
-    const [animationDirection, setAnimationDirection] = useState('forward'); // 'forward' | 'backward'
-    const [isTransitioning, setIsTransitioning] = useState(false);
-    const previousStageRef = useRef('linking');
 
     // Close dropdowns when clicking outside (supports both mouse and touch)
     useEffect(() => {
@@ -237,7 +242,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
     }, [setStockpile]);
 
-    // Auto-save wizard state - manual implementation to avoid infinite loops
+    // Auto-save wizard state
     const storageKey = `tpprover_start_protocol_draft_${protocol?.id || 'new'}`;
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState(null);
@@ -254,10 +259,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         }
 
         const currentState = {
-            stage,
+            expandedSections,
             linkedData,
             startDate,
             reconStrategy,
+            reconComplete,
             skippedPeptideDeliveryMethods
         };
 
@@ -300,7 +306,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 clearTimeout(autoSaveTimeoutRef.current);
             }
         };
-    }, [stage, linkedData, startDate, reconStrategy, skippedPeptideDeliveryMethods, open, protocol, storageKey]);
+    }, [expandedSections, linkedData, startDate, reconStrategy, reconComplete, skippedPeptideDeliveryMethods, open, protocol, storageKey]);
 
     const clearSavedData = React.useCallback(() => {
         try {
@@ -326,12 +332,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     if (parsedData.data && Object.keys(parsedData.data).length > 0) {
                         const savedState = parsedData.data;
                         isRestoringRef.current = true; // Prevent auto-save from triggering
-                        if (savedState.stage) setStage(savedState.stage);
+                        const today = getLocalDateString();
+                        // Always use today's date - don't load stale dates from saved drafts
+                        setStartDate(today);
+                        if (savedState.expandedSections) setExpandedSections(savedState.expandedSections);
                         if (savedState.linkedData) setLinkedData(savedState.linkedData);
-                        if (savedState.startDate) setStartDate(savedState.startDate);
                         if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
+                        if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
                         if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
-                        previousStateRef.current = savedState;
+                        previousStateRef.current = { ...savedState, startDate: today };
                         setLastSaved(new Date(parsedData.timestamp));
                         return;
                     }
@@ -342,7 +351,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
             // Initialize fresh state if no saved draft
             isRestoringRef.current = true;
-            setStage('linking');
+            const today = getLocalDateString(); // Always use today's date for fresh start
             const initialData = {};
             protocol.peptides.forEach((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;
@@ -350,22 +359,21 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 initialData[uniqueKey] = { status: 'pending' };
             });
             setLinkedData(initialData);
+            setStartDate(today); // Reset to today when opening fresh
             setReconStrategy(null);
+            setReconComplete(false);
             setSkippedPeptideDeliveryMethods({});
-            previousStateRef.current = { stage: 'linking', linkedData: initialData, startDate, reconStrategy: null, skippedPeptideDeliveryMethods: {} };
+            setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
+            previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: today, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
         }
-    }, [open, protocol, storageKey]);
+    }, [open, protocol, storageKey, startDate]);
 
     const handleSelectVial = React.useCallback((peptideId, vialId) => {
         setLinkedData(prev => {
-            // Ensure we only update the specific peptide and preserve all others
-            // Create a completely new object to avoid any reference issues
             const updated = {};
-            // First, copy all existing entries
             Object.keys(prev).forEach(key => {
                 updated[key] = { ...prev[key] };
             });
-            // Then update only the specific peptide
             updated[peptideId] = { status: 'linked', vialId };
             return updated;
         });
@@ -373,14 +381,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     const handleUnlinkPeptide = (peptideId) => {
         setLinkedData(prev => {
-            // Ensure we only update the specific peptide and preserve all others
-            // Create a completely new object to avoid any reference issues
             const updated = {};
-            // First, copy all existing entries
             Object.keys(prev).forEach(key => {
                 updated[key] = { ...prev[key] };
             });
-            // Then update only the specific peptide
             updated[peptideId] = { status: 'pending' };
             return updated;
         });
@@ -394,27 +398,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     const handleSkipPeptide = (peptideId) => {
         setLinkedData(prev => {
-            // Ensure we only update the specific peptide and preserve all others
-            // Create a completely new object to avoid any reference issues
             const updated = {};
-            // First, copy all existing entries
             Object.keys(prev).forEach(key => {
                 updated[key] = { ...prev[key] };
             });
-            // Then update only the specific peptide
             updated[peptideId] = { status: 'skipped' };
             return updated;
         });
-        // Initialize delivery method data for skipped peptide
-        setSkippedPeptideDeliveryMethods(prev => ({
-            ...prev,
-            [peptideId]: {
-                deliveryMethod: 'pipette',
-                administrationRoute: 'subq',
-                penType: '',
-                penColor: ''
-            }
-        }));
+        // Auto-expand delivery section when peptides are skipped
+        setExpandedSections(prev => ({ ...prev, delivery: true, preview: false }));
     };
 
     const handleSaveNewAndLink = (peptideId, newItemData) => {
@@ -424,463 +416,38 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             notes: "Added during protocol start. Review details."
         };
         
-        // Update the main stockpile state via the callback
         const updatedStockpile = [newItem, ...stockpile];
         setStockpile(updatedStockpile);
 
-        // Now link it - ensure we only update the specific peptide
         setLinkedData(prev => {
-            // Create a completely new object to avoid any reference issues
             const updated = {};
-            // First, copy all existing entries
             Object.keys(prev).forEach(key => {
                 updated[key] = { ...prev[key] };
             });
-            // Then update only the specific peptide
             updated[peptideId] = { status: 'linked', vialId: newItem.id };
             return updated;
         });
     };
 
-    const handleContinue = () => {
-        const linkedPeptides = protocol.peptides.filter((p, index) => {
+    const handleSkipAllVials = () => {
+        // Skip all peptides
+        const updated = {};
+        protocol.peptides.forEach((p, index) => {
             const peptideId = p.id || `peptide-${index}`;
-            return linkedData[peptideId]?.status === 'linked';
+            updated[peptideId] = { status: 'skipped' };
         });
-        
-        // Get unique peptide names from linked peptides
-        const uniquePeptideNames = new Set(linkedPeptides.map(p => (p.name || '').toLowerCase().trim()).filter(Boolean));
-        
-        // Also check the actual vials - get unique peptide names from linked vials
-        const linkedVialIds = linkedPeptides.map((p, index) => {
-            const peptideId = p.id || `peptide-${index}`;
-            return linkedData[peptideId]?.vialId;
-        }).filter(Boolean);
-        
-        const vialPeptideNames = new Set();
-        linkedVialIds.forEach(vialId => {
-            const vial = stockpile.find(item => item.id === vialId);
-            if (vial && vial.name) {
-                vialPeptideNames.add((vial.name || '').toLowerCase().trim());
-            }
-        });
-        
-        // Combine both sets to get all unique peptide names
-        const allUniqueNames = new Set([...uniquePeptideNames, ...vialPeptideNames]);
-        
-        // Only show recon strategy if there are multiple different peptide names
-        if (allUniqueNames.size > 1) {
-            setStageWithAnimation('recon_strategy');
-        } else if (linkedPeptides.length === 1) {
-            setReconStrategy('separate'); // Implicit strategy for one peptide
-            setStageWithAnimation('reconstituting');
-        } else {
-            setStageWithAnimation('confirm');
-        }
+        setLinkedData(updated);
+        // Collapse linking, expand delivery
+        setExpandedSections({ preview: false, linking: false, recon: false, delivery: true });
     };
 
-    const renderLinkingStep = () => {
-        if (!protocol) return null;
-        
-        // Get skipped peptides with their IDs
-        const skippedPeptides = protocol.peptides
-            .map((p, index) => {
-                const peptideId = p.id || `peptide-${index}`;
-                return { ...p, peptideId, originalIndex: index };
-            })
-            .filter(item => linkedData[item.peptideId]?.status === 'skipped');
-        
-        return (
-            <div className="space-y-3">
-                <p className="text-sm mb-3 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
-                <div className="space-y-3">
-                    {protocol.peptides.map((p, index) => {
-                        // Ensure we have a unique identifier - use index as fallback if ID is missing
-                        const peptideId = p.id || `peptide-${index}`;
-                        return (
-                            <PeptideLinkerRow
-                                key={peptideId}
-                                peptide={p}
-                                peptideId={peptideId}
-                                stockpile={stockpile}
-                                linkedVialId={linkedData[peptideId]?.status === 'linked' ? linkedData[peptideId].vialId : (linkedData[peptideId]?.status === 'skipped' ? 'skipped' : null)}
-                                onSelectVial={handleSelectVial}
-                                onSaveNew={handleSaveNewAndLink}
-                                onSkip={handleSkipPeptide}
-                                onUnlink={handleUnlinkPeptide}
-                                theme={theme}
-                            />
-                        );
-                    })}
-                </div>
-                
-                {/* Skipped Peptides Follow-up Questions */}
-                {skippedPeptides.length > 0 && (
-                    <div className="mt-6">
-                        <button
-                            onClick={() => setIsSkippedQuestionsOpen(!isSkippedQuestionsOpen)}
-                            className="w-full flex items-center justify-between p-3 rounded-lg transition-all"
-                            style={{
-                                backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                                borderLeft: '4px solid #e0ded7'
-                            }}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Droplets size={18} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                                <span className="font-semibold text-sm" style={{ color: theme.text }}>
-                                    Delivery Method for Skipped Peptides ({skippedPeptides.length})
-                                </span>
-                            </div>
-                            <ChevronDown 
-                                size={18} 
-                                className={`transition-transform duration-200 ${isSkippedQuestionsOpen ? 'rotate-180' : ''}`}
-                                style={{ color: theme.textLight }}
-                            />
-                        </button>
-                        
-                        {isSkippedQuestionsOpen && (
-                            <div className="mt-2 space-y-3 p-3 rounded-lg" style={{ 
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                border: `1px solid ${theme.border}`
-                            }}>
-                                {skippedPeptides.map((p) => {
-                                    const peptideId = p.peptideId;
-                                    const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
-                                        deliveryMethod: 'pipette',
-                                        administrationRoute: 'subq',
-                                        penType: '',
-                                        penColor: ''
-                                    };
-                                    
-                                    return (
-                                        <div key={peptideId} className="space-y-3">
-                                            <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
-                                                <h5 className="font-semibold text-sm" style={{ color: theme.text }}>{p.name}</h5>
-                                            </div>
-                                            
-                                            {/* Delivery Method Selection */}
-                                            <div>
-                                                <div 
-                                                    className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
-                                                    style={{ 
-                                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
-                                                        borderLeft: '4px solid #e0ded7' 
-                                                    }}
-                                                >
-                                                    <h4 
-                                                        className="font-bold text-xs tracking-wider uppercase" 
-                                                        style={{ 
-                                                            color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
-                                                            letterSpacing: '0.1em' 
-                                                        }}
-                                                    >
-                                                        DELIVERY METHOD
-                                                    </h4>
-                                                    <Droplets size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSkippedPeptideDeliveryMethods(prev => ({
-                                                                ...prev,
-                                                                [peptideId]: {
-                                                                    ...deliveryData,
-                                                                    deliveryMethod: 'pipette'
-                                                                }
-                                                            }));
-                                                        }}
-                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                                        style={{
-                                                            backgroundColor: deliveryData.deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                                            color: deliveryData.deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
-                                                            borderColor: deliveryData.deliveryMethod === 'pipette' ? theme.primary : theme.border
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'pipette') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                                            }
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'pipette') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Pipette size={14} /> Syringe
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSkippedPeptideDeliveryMethods(prev => ({
-                                                                ...prev,
-                                                                [peptideId]: {
-                                                                    ...deliveryData,
-                                                                    deliveryMethod: 'pen'
-                                                                }
-                                                            }));
-                                                        }}
-                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                                        style={{
-                                                            backgroundColor: deliveryData.deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                                            color: deliveryData.deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
-                                                            borderColor: deliveryData.deliveryMethod === 'pen' ? theme.primary : theme.border
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'pen') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                                            }
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'pen') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Pen size={14} /> Pen
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSkippedPeptideDeliveryMethods(prev => ({
-                                                                ...prev,
-                                                                [peptideId]: {
-                                                                    ...deliveryData,
-                                                                    deliveryMethod: 'nasal'
-                                                                }
-                                                            }));
-                                                        }}
-                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                                        style={{
-                                                            backgroundColor: deliveryData.deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                                            color: deliveryData.deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
-                                                            borderColor: deliveryData.deliveryMethod === 'nasal' ? theme.primary : theme.border
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'nasal') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                                                            }
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            if (deliveryData.deliveryMethod !== 'nasal') {
-                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Droplets size={14} /> Nasal
-                                                    </button>
-                                                </div>
-                                                
-                                                {/* Administration Route for Syringe */}
-                                                {deliveryData.deliveryMethod === 'pipette' && (
-                                                    <div className="mt-3">
-                                                        <div 
-                                                            className="flex items-center gap-1 p-1 rounded-md" 
-                                                            style={{ 
-                                                                backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
-                                                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
-                                                            }}
-                                                        >
-                                                            {['subq', 'im', 'iv'].map(route => (
-                                                                <button
-                                                                    key={route}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setSkippedPeptideDeliveryMethods(prev => ({
-                                                                            ...prev,
-                                                                            [peptideId]: {
-                                                                                ...deliveryData,
-                                                                                administrationRoute: route
-                                                                            }
-                                                                        }));
-                                                                    }}
-                                                                    className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
-                                                                        deliveryData.administrationRoute === route 
-                                                                            ? 'text-white shadow-sm' 
-                                                                            : 'text-gray-600 hover:bg-gray-200'
-                                                                    }`}
-                                                                    style={deliveryData.administrationRoute === route ? { backgroundColor: theme.primary } : {}}
-                                                                >
-                                                                    {route.toUpperCase()}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Pen Type and Color for Pen */}
-                                                {deliveryData.deliveryMethod === 'pen' && (
-                                                    <div className="mt-3">
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            {/* Pen Type Selection */}
-                                                            <div className="relative" ref={el => penTypeDropdownRefs.current[peptideId] = el}>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setPenTypeDropdownOpen(prev => ({
-                                                                            ...prev,
-                                                                            [peptideId]: !prev[peptideId]
-                                                                        }));
-                                                                    }}
-                                                                    onMouseDown={(e) => {
-                                                                      // Prevent any parent blur events on mobile
-                                                                      e.preventDefault();
-                                                                    }}
-                                                                    onTouchStart={(e) => {
-                                                                      // Prevent any parent blur events on touch devices
-                                                                      e.preventDefault();
-                                                                    }}
-                                                                    className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
-                                                                    style={{
-                                                                        borderColor: penTypeDropdownOpen[peptideId] ? theme.primary : theme.border,
-                                                                        backgroundColor: theme.cardBackground,
-                                                                        color: deliveryData.penType ? theme.text : theme.textLight,
-                                                                        WebkitTapHighlightColor: 'transparent'
-                                                                    }}
-                                                                >
-                                                                    <span>
-                                                                        {deliveryData.penType ? (
-                                                                            deliveryData.penType === 'bird-pen' ? 'Bird Pen' : 
-                                                                            deliveryData.penType === 'v1' ? 'V1' : 
-                                                                            deliveryData.penType === 'v2' ? 'V2' : 
-                                                                            deliveryData.penType === 'v3' ? 'V3' : 
-                                                                            deliveryData.penType.charAt(0).toUpperCase() + deliveryData.penType.slice(1)
-                                                                        ) : 'Pen Type'}
-                                                                    </span>
-                                                                    <ChevronDown 
-                                                                        size={16} 
-                                                                        className={`transition-transform duration-200 ${penTypeDropdownOpen[peptideId] ? 'rotate-180' : ''}`}
-                                                                        style={{ color: theme.textLight }}
-                                                                    />
-                                                                </button>
-                                                                {penTypeDropdownOpen[peptideId] && (
-                                                                    <div 
-                                                                        className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
-                                                                        style={{
-                                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                                            borderColor: theme.border,
-                                                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                                                        }}
-                                                                    >
-                                                                        {[
-                                                                            { value: '', label: 'Pen Type' },
-                                                                            { value: 'savvio', label: 'Savvio' },
-                                                                            { value: 'novo', label: 'Novo' },
-                                                                            { value: 'v1', label: 'V1' },
-                                                                            { value: 'v2', label: 'V2' },
-                                                                            { value: 'v3', label: 'V3' },
-                                                                            { value: 'bird-pen', label: 'Bird Pen' },
-                                                                            { value: 'luxura', label: 'Luxura' },
-                                                                            { value: 'gansulin', label: 'Gansulin' },
-                                                                            { value: 'other', label: 'Other' }
-                                                                        ].map((option, optIdx) => (
-                                                                            <React.Fragment key={option.value}>
-                                                                                {optIdx > 0 && (
-                                                                                    <div 
-                                                                                        className="h-px mx-2"
-                                                                                        style={{ backgroundColor: theme.border }}
-                                                                                    />
-                                                                                )}
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onMouseDown={(e) => {
-                                                                                      // Prevent blur events on mobile
-                                                                                      e.preventDefault();
-                                                                                    }}
-                                                                                    onTouchStart={(e) => {
-                                                                                      // Prevent blur events on touch devices
-                                                                                      e.preventDefault();
-                                                                                    }}
-                                                                                    onClick={(e) => {
-                                                                                        e.preventDefault();
-                                                                                        e.stopPropagation();
-                                                                                        setSkippedPeptideDeliveryMethods(prev => ({
-                                                                                            ...prev,
-                                                                                            [peptideId]: {
-                                                                                                ...deliveryData,
-                                                                                                penType: option.value
-                                                                                            }
-                                                                                        }));
-                                                                                        setPenTypeDropdownOpen(prev => ({
-                                                                                            ...prev,
-                                                                                            [peptideId]: false
-                                                                                        }));
-                                                                                    }}
-                                                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                                                    style={{
-                                                                                        color: deliveryData.penType === option.value ? theme.primary : theme.text,
-                                                                                        WebkitTapHighlightColor: 'transparent',
-                                                                                        backgroundColor: 'transparent'
-                                                                                    }}
-                                                                                    onMouseEnter={(e) => {
-                                                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                                                        e.currentTarget.style.color = theme.primary;
-                                                                                    }}
-                                                                                    onMouseLeave={(e) => {
-                                                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                                                        e.currentTarget.style.color = deliveryData.penType === option.value ? theme.primary : theme.text;
-                                                                                    }}
-                                                                                >
-                                                                                    {option.label}
-                                                                                </button>
-                                                                            </React.Fragment>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Pen Color Selection */}
-                                                            <ColorSwatchDropdown
-                                                                value={penColors.find(p => p.name === deliveryData.penColor)?.hex || '#9ca3af'}
-                                                                onChange={(hex) => {
-                                                                    const selectedColor = penColors.find(p => p.hex === hex);
-                                                                    if (selectedColor) {
-                                                                        setSkippedPeptideDeliveryMethods(prev => ({
-                                                                            ...prev,
-                                                                            [peptideId]: {
-                                                                                ...deliveryData,
-                                                                                penColor: selectedColor.name
-                                                                            }
-                                                                        }));
-                                                                    }
-                                                                }}
-                                                                colors={penColors}
-                                                                theme={theme}
-                                                                placeholder="Pen Color"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-                
-                 <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-between items-center">
-                    <button 
-                        onClick={() => {
-                            // Skip all linking and go straight to confirm
-                            setStageWithAnimation('confirm');
-                        }}
-                        className="px-4 py-2 rounded-md text-sm font-medium transition-all hover:opacity-80 order-2 sm:order-1" 
-                        style={{ backgroundColor: theme.secondary, color: theme.text }}
-                    >
-                        Start without vials
-                    </button>
-                    <button 
-                        onClick={handleContinue} 
-                        className="px-6 py-2 rounded-md text-sm font-bold order-1 sm:order-2" 
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    >
-                        Continue →
-                    </button>
-                </div>
-            </div>
-        );
+    const toggleSection = (section) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
     };
-    
-    // Bringing back the other render functions
+
     const linkedPeptides = useMemo(() => {
         if (!protocol) return [];
         return protocol.peptides.filter((p, index) => {
@@ -889,355 +456,84 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
     }, [linkedData, protocol]);
 
-    const renderReconStrategyStep = () => {
-        return (
-            <div className="space-y-3">
-                {/* Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <Beaker size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Reconstitution Strategy</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Preparation Method
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                
-                <p className="text-sm text-center italic mb-3" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
-                    You've linked {linkedPeptides.length} peptide(s). How would you like to <span style={{ whiteSpace: 'nowrap' }}>reconstitute</span> them?
-                </p>
-                <div className="mt-6 grid grid-cols-2 lg:grid-cols-1 gap-2">
-                    {[
-                        { key: 'separate', name: 'Separately', icon: Ungroup, description: 'Individual vials' },
-                        { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
-                    ].map(option => {
-                        const Icon = option.icon
-                        const isSelected = reconStrategy === option.key
-                        return (
-                            <button
-                                key={option.key}
-                                type="button"
-                                onClick={() => { setReconStrategy(option.key); setStageWithAnimation('reconstituting'); }}
-                                className="flex flex-col items-center justify-center p-1 rounded-lg transition-all"
-                                style={{
-                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                                    border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                                    color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
-                                    minHeight: '50px',
-                                    boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
-                                    position: 'relative'
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!isSelected) {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
-                                        e.currentTarget.style.color = theme.text
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!isSelected) {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
-                                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
-                                    }
-                                }}
-                            >
-                                <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
-                                <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
-                                <span className="text-xs text-center leading-tight opacity-75 mt-0.5" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
-                            </button>
-                        )
-                    })}
-                </div>
-                 <div className="mt-3 text-center">
-                    <button onClick={() => setStageWithAnimation('confirm')} className="text-sm text-gray-500 hover:underline">
-                        Skip reconstitution
-                    </button>
-                </div>
-            </div>
-        );
-    };
-    
-    const renderReconstitutingStep = () => {
-         const prefill = {
-            peptides: linkedPeptides.map((p, index) => {
+    const skippedPeptides = useMemo(() => {
+        if (!protocol) return [];
+        return protocol.peptides
+            .map((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;
-                const vialId = linkedData[peptideId]?.vialId;
-                const vial = stockpile.find(item => item.id === vialId);
-                if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '', stockpileId: null, quantityUsed: 1 };
-                const totalCost = Number(vial.cost) || 0;
-                const quantity = Number(vial.quantity) || 1;
-                // For recon calculations, we need the cost of ONE vial being reconstituted
-                // If user entered total cost for multiple vials, divide by quantity to get per-vial cost
-                const singleVialCost = quantity > 0 ? totalCost / quantity : 0;
-                return {
-                    id: peptideId, name: p.name, mg: vial.mg,
-                    mgUnit: vial.mgUnit || 'mg', // Include mgUnit to preserve unit context
-                    dose: p.dosage?.amount || '', doseUnit: p.dosage?.unit || 'mcg',
-                    cost: singleVialCost, 
-                    costPerMg: vial.costPerMg || '', // Include costPerMg if available (may be cost per mg/g/ml/iu)
-                    vendor: vial.vendor,
-                    stockpileId: vial.id,
-                    quantityUsed: 1,
-                    unit: vial.unit
-                };
-            }),
-            protocolName: protocol.protocolName,
-            reconStrategy: reconStrategy
-        };
-        return (
-             <div className="space-y-3">
-                {/* Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <Beaker size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Reconstitute Vials</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Calculate & Prepare
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                
-                <p className="text-sm italic text-center mb-2" style={{ color: theme.textLight }}>
-                    Confirm your vial(s) for the {reconStrategy === 'separate' ? 'separate' : 'blended'} protocol.
-                </p>
-                <div className="mt-2">
-                    <ReconCalculatorPanel
-                        theme={theme}
-                        prefill={prefill}
-                        noCard={true}
-                        reconStrategy={reconStrategy}
-                        allowRemovePeptide={false}
-                        allowAddPeptide={false}
-                        hideHeader={true}
-                        inlineVendorDate={true}
-                        onSave={(reconData) => {
-                            const newReconId = `recon-${generateId()}`;
+                return { ...p, peptideId, originalIndex: index };
+            })
+            .filter(item => linkedData[item.peptideId]?.status === 'skipped');
+    }, [linkedData, protocol]);
 
-                            // We need to enrich the peptides with their original vial cost for accurate history
-                            const peptidesWithDetails = reconData.peptides.map(p => {
-                                const originalPrefill = prefill.peptides.find(pref => pref.id === p.id);
-                                return { 
-                                    ...p, 
-                                    cost: originalPrefill?.cost || 0, 
-                                    vendor: originalPrefill?.vendor || '', 
-                                    stockpileId: p.stockpileId || originalPrefill?.stockpileId || null,
-                                    quantityUsed: p.quantityUsed || originalPrefill?.quantityUsed || 1
-                                };
-                            });
-
-                            const newReconItem = { 
-                                ...reconData, 
-                                id: newReconId, 
-                                name: `${protocol.protocolName} (${reconStrategy})`,
-                                reconStrategy: reconStrategy,
-                                peptides: peptidesWithDetails,
-                                date: new Date().toISOString() // Add the current date
-                            };
-
-                            try {
-                                const raw = localStorage.getItem('tpprover_recon_items');
-                                const items = raw ? JSON.parse(raw) : [];
-                                localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
-                            } catch (e) { console.error("Failed to save new recon item", e); }
-
-                            adjustStockpileAfterRecon(peptidesWithDetails);
-
-                            let updatedLinkedData = { ...linkedData };
-                            linkedPeptides.forEach((p, index) => {
-                                const peptideId = p.id || `peptide-${index}`;
-                                updatedLinkedData[peptideId] = { ...updatedLinkedData[peptideId], reconId: newReconId };
-                            });
-                            setLinkedData(updatedLinkedData);
-                            setStageWithAnimation('confirm');
-                        }}
-                    />
-                </div>
-            </div>
+    const needsReconStrategy = useMemo(() => {
+        // Check if multiple unique peptide names exist
+        const uniquePeptideNames = new Set(
+            linkedPeptides.map(p => (p.name || '').toLowerCase().trim()).filter(Boolean)
         );
-    };
+        return uniquePeptideNames.size > 1;
+    }, [linkedPeptides]);
 
-     const renderConfirmStep = () => {
-        return (
-             <div className="space-y-3">
-                {/* Section Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <Calendar size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Confirm & Start</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Final Review
-                            </span>
+    // Get completion status for sections
+    const linkingComplete = useMemo(() => {
+        if (!protocol) return false;
+        return protocol.peptides.every((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            const status = linkedData[peptideId]?.status;
+            return status === 'linked' || status === 'skipped';
+        });
+    }, [linkedData, protocol]);
+
+    const deliveryComplete = useMemo(() => {
+        if (skippedPeptides.length === 0) return true;
+        return skippedPeptides.every(p => {
+            const deliveryData = skippedPeptideDeliveryMethods[p.peptideId];
+            if (!deliveryData) return false;
+            // Pipette needs route, pen needs type+color, nasal is ok as-is
+            if (deliveryData.deliveryMethod === 'pipette') return !!deliveryData.administrationRoute;
+            if (deliveryData.deliveryMethod === 'pen') return !!deliveryData.penType && !!deliveryData.penColor;
+            return true;
+        });
+    }, [skippedPeptides, skippedPeptideDeliveryMethods]);
+
+    const canStart = linkingComplete && deliveryComplete;
+
+    if (!protocol) return null;
+
+    return (
+        <BottomSheet
+            open={open}
+            onClose={onClose}
+            title={`Start Protocol: ${protocol?.protocolName || 'Unnamed'}`}
+            theme={theme}
+            maxHeight="90vh"
+            titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
+            footer={
+                <div className="w-full space-y-2">
+                    {/* Warning tip above buttons */}
+                    {!canStart && (
+                        <div className="text-xs text-center py-1" style={{ color: theme.textLight }}>
+                            {!linkingComplete && '⚠️ Complete vial linking or skip all peptides'}
+                            {linkingComplete && !deliveryComplete && '⚠️ Set delivery method for skipped peptides'}
                         </div>
-                    </div>
-                </div>
-                
-                <p className="text-sm mb-3 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
-
-                {/* Start Date Input with Glassmorphism Date Picker */}
-                <div className="relative">
-                    <GlassmorphismDatePicker
-                        value={startDate}
-                        onChange={(dateString) => setStartDate(dateString)}
-                        theme={theme}
-                        placeholder="Start Date"
-                    />
-                </div>
-
-                {/* Protocol Summary Card */}
-                <div>
-                    {/* Section Header */}
-                    <div className="flex items-center gap-4 mb-2">
-                        <ClipboardList size={32} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Summary</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Ready to Begin
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-3 rounded-lg" style={{ 
-                        border: `1px solid #f0eee7`,
-                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground
-                    }}>
-                        <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
-                        <div className="flex justify-between">
-                            <span>Protocol Name:</span>
-                            <span className="font-semibold" style={{ color: theme.text }}>{protocol.protocolName}</span>
-                        </div>
-                        {protocol.duration && !protocol.duration.noEnd && (
-                            <div className="flex justify-between">
-                                <span>Duration:</span>
-                                <span className="font-semibold" style={{ color: theme.text }}>
-                                    {protocol.duration.count} {protocol.duration.unit}
-                                </span>
-                            </div>
-                        )}
-                        <div>
-                            <div className="mb-2 font-medium" style={{ color: theme.text }}>Peptide(s):</div>
-                            <div className="space-y-2 ml-2">
-                                {protocol.peptides?.map((peptide, index) => {
-                                    const peptideId = peptide.id || `confirm-peptide-${index}`;
-                                    return (
-                                    <div key={peptideId} className="flex items-start gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
-                                        <div className="flex-1">
-                                            <div className="font-medium" style={{ color: theme.text }}>{peptide.name}</div>
-                                            <div className="flex gap-3 mt-1">
-                                                {peptide.dosage && (
-                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        {peptide.dosage.amount} {peptide.dosage.unit}
-                                                    </span>
-                                                )}
-                                                {peptide.frequency && (
-                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        {peptide.frequency.type === 'daily' ? 
-                                                         (peptide.frequency.time && Array.isArray(peptide.frequency.time) && peptide.frequency.time.length > 0 ? 
-                                                          `Daily (${peptide.frequency.time.join(', ')})` : 'Daily') :
-                                                         peptide.frequency.type === 'weekly' ? `Weekly (${peptide.frequency.days?.join(', ') || ''})` :
-                                                         peptide.frequency.type === 'cycle' ? `Cycle: ${peptide.frequency.onDays} on / ${peptide.frequency.offDays} off` :
-                                                         peptide.frequency.type === 'custom' ? (peptide.frequency.customDays ? `Every ${peptide.frequency.customDays} days` : 'Every X days') :
-                                                         'Custom'}
-                                                    </span>
-                                                )}
-                                                {peptide.timing && (
-                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        {peptide.timing}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}) || <div className="text-xs italic">No compounds configured</div>}
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Visual Calendar Preview */}
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Calendar size={20} style={{ color: theme.primary }} />
-                        <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Your Schedule Preview</h4>
-                    </div>
-                    <SchedulingPreview protocol={protocol} theme={theme} />
-                </div>
-
-                {/* What Happens Next - Enhanced Horizontal View */}
-                <div className="relative overflow-hidden rounded-xl border p-3" style={{ 
-                    backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-                    borderColor: theme.border,
-                    backdropFilter: 'blur(8px)'
-                }}>
-                    {/* Subtle Background Accent */}
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-5 pointer-events-none">
-                        <Zap size={80} style={{ color: theme.primary }} />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                            <Zap size={10} fill="currentColor" />
-                            Next Steps
-                        </div>
-                        
-                        <div className="flex-1 grid grid-cols-3 gap-2 w-full">
-                            {/* Feature 1 */}
-                            <div className="flex flex-col items-center text-center gap-1 group">
-                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                                    <LayoutDashboard size={14} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Dashboard</span>
-                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Today's Research</span>
-                                </div>
-                            </div>
-
-                            {/* Feature 2 */}
-                            <div className="flex flex-col items-center text-center gap-1 group">
-                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                                    <Calendar size={14} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Calendar</span>
-                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Fully Schedualed</span>
-                                </div>
-                            </div>
-
-                            {/* Feature 3 */}
-                            <div className="flex flex-col items-center text-center gap-1 group">
-                                <div className="p-1.5 rounded-lg transition-all group-hover:scale-110" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                                    <Activity size={14} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold" style={{ color: theme.text }}>Tracking</span>
-                                    <span className="text-[9px] opacity-60 leading-tight" style={{ color: theme.text }}>Progress Notes</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-2 pt-1">
-                    <div className="flex gap-2">
-                        <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}>
+                    )}
+                    
+                    {/* Two CTAs side by side */}
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={onClose} 
+                            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-70" 
+                            style={{ 
+                                color: theme.text, 
+                                background: 'transparent',
+                                border: `1px solid ${theme.border}`
+                            }}
+                        >
                             Cancel
                         </button>
                         <button 
                             onClick={() => {
-                                markAsSubmitted(); // Clear draft on successful start
-                                // Merge skipped peptide delivery methods into linkedData
+                                markAsSubmitted();
                                 const enrichedLinkedData = { ...linkedData };
                                 Object.keys(skippedPeptideDeliveryMethods).forEach(peptideId => {
                                     if (enrichedLinkedData[peptideId]) {
@@ -1248,167 +544,666 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     }
                                 });
                                 onStart({ ...protocol, startDate, active: true, linkedItems: enrichedLinkedData });
+                                onClose();
                             }}
-                            className="px-4 py-2 rounded-lg font-medium transition-all"
-                            style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                            disabled={!canStart}
+                            className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
+                            style={{ 
+                                backgroundColor: canStart ? theme.primary : (theme.isDark ? '#374151' : theme.secondary), 
+                                color: canStart ? '#ffffff' : theme.textLight,
+                                opacity: canStart ? 1 : 0.5,
+                                cursor: canStart ? 'pointer' : 'not-allowed'
+                            }}
                         >
                             Start Protocol
                         </button>
                     </div>
                 </div>
-            </div>
-        );
-    };
+            }
+        >
+            <div className="space-y-4">
+                {/* Start Date - Compact Inline */}
+                <div className="flex items-center gap-3 py-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <Calendar size={16} style={{ color: theme.primary }} />
+                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Start</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <GlassmorphismDatePicker
+                            value={startDate}
+                            onChange={(dateString) => setStartDate(dateString)}
+                            theme={theme}
+                            placeholder="Start Date"
+                        />
+                    </div>
+                </div>
 
-    // Progress indicator component
-    const stages = [
-        { id: 'linking', label: 'Link Peptides' },
-        { id: 'recon_strategy', label: 'Strategy' },
-        { id: 'reconstituting', label: 'Reconstitute' },
-        { id: 'confirm', label: 'Confirm' }
-    ];
+                {/* Schedule Preview - Collapsible */}
+                <div className="rounded-lg border" style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground 
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('preview')}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Calendar size={18} style={{ color: theme.primary }} />
+                            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>
+                                Schedule Preview
+                            </h4>
+                        </div>
+                        {expandedSections.preview ? (
+                            <ChevronDown size={18} style={{ color: theme.textLight }} />
+                        ) : (
+                            <ChevronRight size={18} style={{ color: theme.textLight }} />
+                        )}
+                    </button>
+                    <div 
+                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        style={{
+                            maxHeight: expandedSections.preview ? '500px' : '0',
+                            opacity: expandedSections.preview ? 1 : 0
+                        }}
+                    >
+                        <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                            <VisualSchedulePreview 
+                                protocol={protocol} 
+                                startDate={startDate}
+                                theme={theme} 
+                                daysToShow={7}
+                            />
+                        </div>
+                    </div>
+                </div>
 
-    const getCurrentStageIndex = () => {
-        return stages.findIndex(s => s.id === stage);
-    };
-
-    const canGoBack = () => {
-        return getCurrentStageIndex() > 0;
-    };
-
-    const handleBack = () => {
-        const currentIndex = getCurrentStageIndex();
-        if (currentIndex > 0) {
-            const newStage = stages[currentIndex - 1].id;
-            setAnimationDirection('backward');
-            setIsTransitioning(true);
-            setTimeout(() => {
-                setStage(newStage);
-                previousStageRef.current = newStage;
-                setTimeout(() => setIsTransitioning(false), 300);
-            }, 10);
-        }
-    };
-
-    // Enhanced setStage with animation
-    const setStageWithAnimation = (newStage) => {
-        const currentIndex = getCurrentStageIndex();
-        const newIndex = stages.findIndex(s => s.id === newStage);
-        const direction = newIndex > currentIndex ? 'forward' : 'backward';
-        
-        setAnimationDirection(direction);
-        setIsTransitioning(true);
-        setTimeout(() => {
-            setStage(newStage);
-            previousStageRef.current = newStage;
-            setTimeout(() => setIsTransitioning(false), 300);
-        }, 10);
-    };
-
-    const renderProgressIndicator = () => {
-        const currentIndex = getCurrentStageIndex();
-        return (
-            <div className="mb-2 overflow-x-hidden">
-                <div className="flex items-center justify-between" style={{ minWidth: 0 }}>
-                    {stages.map((s, index) => {
-                        const isActive = index === currentIndex;
-                        const isCompleted = index < currentIndex;
-                        const isClickable = index < currentIndex; // Can click to go back to completed stages
-                        
-                        return (
-                            <React.Fragment key={s.id}>
-                                <div className="flex flex-col items-center flex-1">
-                                    <button
-                                        onClick={() => isClickable && setStageWithAnimation(s.id)}
-                                        disabled={!isClickable}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                                            isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                                        }`}
-                                        style={{
-                                            backgroundColor: isActive 
-                                                ? theme.primary 
-                                                : isCompleted 
-                                                    ? theme.secondary 
-                                                    : theme.isDark ? '#374151' : '#e5e7eb',
-                                            color: isActive 
-                                                ? '#ffffff' 
-                                                : isCompleted 
-                                                    ? theme.primary 
-                                                    : theme.textLight,
-                                            border: isActive ? `2px solid ${theme.primary}` : 'none'
-                                        }}
-                                    >
-                                        {isCompleted ? '✓' : index + 1}
-                                    </button>
-                                    <span 
-                                        className="text-xs mt-1.5 text-center"
-                                        style={{ 
-                                            color: isActive ? theme.primary : theme.textLight,
-                                            fontWeight: isActive ? '600' : '400'
-                                        }}
-                                    >
-                                        {s.label}
+                {/* SECTION 1: Link Vials (Accordion) */}
+                <div className="rounded-lg border" style={{ 
+                    borderColor: linkingComplete ? `${theme.primary}60` : theme.border,
+                    backgroundColor: theme.cardBackground 
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('linking')}
+                        className="w-full p-4 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-3 flex-1">
+                            {linkingComplete ? (
+                                <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                            ) : (
+                                <TestTubes size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                            )}
+                            <div className="flex flex-col gap-0.5 flex-1 text-left">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                                        Link Vials to Protocol
+                                    </h4>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                        backgroundColor: linkingComplete ? `${theme.primary}20` : theme.secondary, 
+                                        color: linkingComplete ? theme.primary : theme.textLight 
+                                    }}>
+                                        {linkingComplete ? 'Complete' : 'Optional'}
                                     </span>
                                 </div>
-                                {index < stages.length - 1 && (
-                                    <div 
-                                        className="flex-1 h-0.5 mx-2 mt-[-16px]"
-                                        style={{ 
-                                            backgroundColor: isCompleted ? theme.primary : (theme.isDark ? '#374151' : '#e5e7eb')
-                                        }}
-                                    />
+                                {!expandedSections.linking && (
+                                    <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+                                        {linkingComplete 
+                                            ? `${Object.values(linkedData).filter(d => d.status === 'linked').length} vials linked, ${skippedPeptides.length} skipped`
+                                            : 'Click to link vials from stockpile or skip for manual tracking'
+                                        }
+                                    </span>
                                 )}
-                            </React.Fragment>
-                        );
-                    })}
+                            </div>
+                        </div>
+                        {expandedSections.linking ? (
+                            <ChevronDown size={20} style={{ color: theme.textLight }} />
+                        ) : (
+                            <ChevronRight size={20} style={{ color: theme.textLight }} />
+                        )}
+                    </button>
+
+                    {/* Linking Content */}
+                    <div 
+                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        style={{
+                            maxHeight: expandedSections.linking ? '2000px' : '0',
+                            opacity: expandedSections.linking ? 1 : 0
+                        }}
+                    >
+                        <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
+                            <p className="text-sm text-center italic mb-2" style={{ color: theme.textLight }}>
+                                For each peptide, select a vial from stockpile, add new, or skip.
+                            </p>
+                            
+                            {/* Quick Skip All Button */}
+                            {!linkingComplete && (
+                                <button
+                                    onClick={handleSkipAllVials}
+                                    className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80 mb-3"
+                                    style={{ 
+                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                        color: theme.text,
+                                        border: `1px dashed ${theme.border}`
+                                    }}
+                                >
+                                    <X size={14} className="inline mr-1" />
+                                    Skip All - Track Manually
+                                </button>
+                            )}
+                            
+                            <div className="space-y-3">
+                                {protocol.peptides.map((p, index) => {
+                                    const peptideId = p.id || `peptide-${index}`;
+                                    return (
+                                        <PeptideLinkerRow
+                                            key={peptideId}
+                                            peptide={p}
+                                            peptideId={peptideId}
+                                            stockpile={stockpile}
+                                            linkedVialId={linkedData[peptideId]?.status === 'linked' ? linkedData[peptideId].vialId : (linkedData[peptideId]?.status === 'skipped' ? 'skipped' : null)}
+                                            onSelectVial={handleSelectVial}
+                                            onSaveNew={handleSaveNewAndLink}
+                                            onSkip={handleSkipPeptide}
+                                            onUnlink={handleUnlinkPeptide}
+                                            theme={theme}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                {/* SECTION 2: Reconstitute (Accordion - Only if vials linked) */}
+                {linkedPeptides.length > 0 && (
+                    <div className="rounded-lg border" style={{ 
+                        borderColor: reconComplete ? `${theme.primary}60` : theme.border,
+                        backgroundColor: theme.cardBackground 
+                    }}>
+                        <button
+                            type="button"
+                            onClick={() => toggleSection('recon')}
+                            className="w-full p-4 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        >
+                            <div className="flex items-center gap-3 flex-1">
+                                {reconComplete ? (
+                                    <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                ) : (
+                                    <Beaker size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                )}
+                            <div className="flex flex-col gap-0.5 flex-1 text-left">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                                        Reconstitute Vials
+                                    </h4>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                            backgroundColor: reconComplete ? `${theme.primary}20` : theme.secondary, 
+                                            color: reconComplete ? theme.primary : theme.textLight 
+                                        }}>
+                                            {reconComplete ? 'Complete' : 'Optional'}
+                                        </span>
+                                    </div>
+                                    {!expandedSections.recon && (
+                                        <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+                                            {reconComplete 
+                                                ? `Reconstitution calculated for ${linkedPeptides.length} vial(s)`
+                                                : 'Click to use recon calculator or skip'
+                                            }
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            {expandedSections.recon ? (
+                                <ChevronDown size={20} style={{ color: theme.textLight }} />
+                            ) : (
+                                <ChevronRight size={20} style={{ color: theme.textLight }} />
+                            )}
+                        </button>
+
+                        {/* Recon Content */}
+                        <div 
+                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            style={{
+                                maxHeight: expandedSections.recon ? '3000px' : '0',
+                                opacity: expandedSections.recon ? 1 : 0
+                            }}
+                        >
+                            <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
+                                {/* Skip Button at Top */}
+                                <button
+                                    onClick={() => {
+                                        setReconComplete(false);
+                                        setExpandedSections(prev => ({ ...prev, recon: false }));
+                                    }}
+                                    className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+                                    style={{ 
+                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                        color: theme.text,
+                                        border: `1px dashed ${theme.border}`
+                                    }}
+                                >
+                                    <X size={14} className="inline mr-1" />
+                                    Skip - I'll do this later
+                                </button>
+                                
+                                {/* Recon Strategy Selection (if needed) */}
+                                {needsReconStrategy && !reconStrategy && (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-center italic" style={{ color: theme.textLight }}>
+                                            You have multiple peptides. Mix them or keep separate?
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { key: 'separate', name: 'Separately', icon: Ungroup, description: 'Individual vials' },
+                                                { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
+                                            ].map(option => {
+                                                const Icon = option.icon;
+                                                return (
+                                                    <button
+                                                        key={option.key}
+                                                        type="button"
+                                                        onClick={() => setReconStrategy(option.key)}
+                                                        className="flex flex-col items-center justify-center p-3 rounded-lg transition-all"
+                                                        style={{
+                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                            border: `1px solid ${theme.border}`,
+                                                            color: theme.text
+                                                        }}
+                                                    >
+                                                        <Icon size={18} />
+                                                        <span className="text-xs font-medium mt-1">{option.name}</span>
+                                                        <span className="text-xs opacity-60">{option.description}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recon Calculator (if strategy selected or only one peptide) */}
+                                {(reconStrategy || linkedPeptides.length === 1) && (
+                                    <div className="mt-3">
+                                        <ReconCalculatorPanel
+                                            theme={theme}
+                                            prefill={{
+                                                peptides: linkedPeptides.map((p, index) => {
+                                                    const peptideId = p.id || `peptide-${index}`;
+                                                    const vialId = linkedData[peptideId]?.vialId;
+                                                    const vial = stockpile.find(item => item.id === vialId);
+                                                    if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '', stockpileId: null, quantityUsed: 1 };
+                                                    const totalCost = Number(vial.cost) || 0;
+                                                    const quantity = Number(vial.quantity) || 1;
+                                                    const singleVialCost = quantity > 0 ? totalCost / quantity : 0;
+                                                    return {
+                                                        id: peptideId, 
+                                                        name: p.name, 
+                                                        mg: vial.mg,
+                                                        mgUnit: vial.mgUnit || 'mg',
+                                                        dose: p.dosage?.amount || '', 
+                                                        doseUnit: p.dosage?.unit || 'mcg',
+                                                        cost: singleVialCost, 
+                                                        costPerMg: vial.costPerMg || '',
+                                                        vendor: vial.vendor,
+                                                        stockpileId: vial.id,
+                                                        quantityUsed: 1,
+                                                        unit: vial.unit
+                                                    };
+                                                }),
+                                                protocolName: protocol.protocolName,
+                                                reconStrategy: reconStrategy || 'separate'
+                                            }}
+                                            noCard={true}
+                                            reconStrategy={reconStrategy || 'separate'}
+                                            allowRemovePeptide={false}
+                                            allowAddPeptide={false}
+                                            hideHeader={true}
+                                            inlineVendorDate={true}
+                                            onSave={(reconData) => {
+                                                const newReconId = `recon-${generateId()}`;
+                                                const peptidesWithDetails = reconData.peptides.map(p => {
+                                                    const originalPrefill = linkedPeptides.find(lp => {
+                                                        const lpId = lp.id || `peptide-${linkedPeptides.indexOf(lp)}`;
+                                                        return lpId === p.id;
+                                                    });
+                                                    const peptideId = originalPrefill?.id || p.id;
+                                                    const vialId = linkedData[peptideId]?.vialId;
+                                                    const vial = stockpile.find(item => item.id === vialId);
+                                                    const totalCost = vial ? Number(vial.cost) || 0 : 0;
+                                                    const quantity = vial ? Number(vial.quantity) || 1 : 1;
+                                                    const cost = quantity > 0 ? totalCost / quantity : 0;
+                                                    return { 
+                                                        ...p, 
+                                                        cost, 
+                                                        vendor: vial?.vendor || '', 
+                                                        stockpileId: p.stockpileId || vial?.id || null,
+                                                        quantityUsed: p.quantityUsed || 1
+                                                    };
+                                                });
+
+                                                const newReconItem = { 
+                                                    ...reconData, 
+                                                    id: newReconId, 
+                                                    name: `${protocol.protocolName} (${reconStrategy || 'separate'})`,
+                                                    reconStrategy: reconStrategy || 'separate',
+                                                    peptides: peptidesWithDetails,
+                                                    date: new Date().toISOString()
+                                                };
+
+                                                try {
+                                                    const raw = localStorage.getItem('tpprover_recon_items');
+                                                    const items = raw ? JSON.parse(raw) : [];
+                                                    localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
+                                                } catch (e) { console.error("Failed to save new recon item", e); }
+
+                                                adjustStockpileAfterRecon(peptidesWithDetails);
+
+                                                let updatedLinkedData = { ...linkedData };
+                                                linkedPeptides.forEach((p, index) => {
+                                                    const peptideId = p.id || `peptide-${index}`;
+                                                    updatedLinkedData[peptideId] = { ...updatedLinkedData[peptideId], reconId: newReconId };
+                                                });
+                                                setLinkedData(updatedLinkedData);
+                                                setReconComplete(true);
+                                                setExpandedSections(prev => ({ ...prev, recon: false }));
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* SECTION 3: Delivery Method for Skipped Peptides (Accordion) */}
+                {skippedPeptides.length > 0 && (
+                    <div className="rounded-lg border" style={{ 
+                        borderColor: deliveryComplete ? `${theme.primary}60` : theme.border,
+                        backgroundColor: theme.cardBackground 
+                    }}>
+                        <button
+                            type="button"
+                            onClick={() => toggleSection('delivery')}
+                            className="w-full p-4 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        >
+                            <div className="flex items-center gap-3 flex-1">
+                                {deliveryComplete ? (
+                                    <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                ) : (
+                                    <Droplets size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                )}
+                            <div className="flex flex-col gap-0.5 flex-1 text-left">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                                        Delivery Method
+                                    </h4>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                            backgroundColor: deliveryComplete ? `${theme.primary}20` : `${theme.primary}40`, 
+                                            color: deliveryComplete ? theme.primary : theme.text 
+                                        }}>
+                                            {deliveryComplete ? 'Complete' : 'Required'}
+                                        </span>
+                                    </div>
+                                    {!expandedSections.delivery && (
+                                        <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+                                            {deliveryComplete 
+                                                ? `${skippedPeptides.length} peptide(s) configured`
+                                                : `${skippedPeptides.length} skipped peptide(s) need delivery method`
+                                            }
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            {expandedSections.delivery ? (
+                                <ChevronDown size={20} style={{ color: theme.textLight }} />
+                            ) : (
+                                <ChevronRight size={20} style={{ color: theme.textLight }} />
+                            )}
+                        </button>
+
+                        {/* Delivery Content */}
+                        <div 
+                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            style={{
+                                maxHeight: expandedSections.delivery ? '3000px' : '0',
+                                opacity: expandedSections.delivery ? 1 : 0
+                            }}
+                        >
+                            <div className="px-4 pb-4 pt-2 border-t space-y-4" style={{ borderColor: theme.border }}>
+                                {skippedPeptides.map((p) => {
+                                    const peptideId = p.peptideId;
+                                    const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
+                                        deliveryMethod: 'pipette',
+                                        administrationRoute: 'subq',
+                                        penType: '',
+                                        penColor: ''
+                                    };
+                                    
+                                    return (
+                                        <div key={peptideId} className="p-3 rounded-lg space-y-3" style={{ 
+                                            backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                                            border: `1px solid ${theme.border}`
+                                        }}>
+                                            <h5 className="font-semibold text-sm pb-2 border-b" style={{ color: theme.text, borderColor: theme.border }}>
+                                                {p.name}
+                                            </h5>
+                                            
+                                            {/* Delivery Method Selection */}
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                    Delivery Method
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {[
+                                                        { key: 'pipette', icon: Pipette, label: 'Syringe' },
+                                                        { key: 'pen', icon: Pen, label: 'Pen' },
+                                                        { key: 'nasal', icon: Droplets, label: 'Nasal' }
+                                                    ].map(method => {
+                                                        const Icon = method.icon;
+                                                        const isSelected = deliveryData.deliveryMethod === method.key;
+                                                        return (
+                                                            <button
+                                                                key={method.key}
+                                                                onClick={() => {
+                                                                    setSkippedPeptideDeliveryMethods(prev => ({
+                                                                        ...prev,
+                                                                        [peptideId]: {
+                                                                            ...deliveryData,
+                                                                            deliveryMethod: method.key
+                                                                        }
+                                                                    }));
+                                                                }}
+                                                                className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg border transition-all"
+                                                                style={{
+                                                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                                                    color: isSelected ? '#ffffff' : theme.text,
+                                                                    borderColor: isSelected ? theme.primary : theme.border
+                                                                }}
+                                                            >
+                                                                <Icon size={16} />
+                                                                <span className="text-xs font-semibold">{method.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Administration Route for Syringe */}
+                                            {deliveryData.deliveryMethod === 'pipette' && (
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                        Route
+                                                    </label>
+                                                    <div className="flex gap-1 p-1 rounded-lg" style={{ 
+                                                        backgroundColor: theme.isDark ? '#0f172a' : '#ffffff',
+                                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                                    }}>
+                                                        {['subq', 'im', 'iv'].map(route => {
+                                                            const isSelected = deliveryData.administrationRoute === route;
+                                                            return (
+                                                                <button
+                                                                    key={route}
+                                                                    onClick={() => {
+                                                                        setSkippedPeptideDeliveryMethods(prev => ({
+                                                                            ...prev,
+                                                                            [peptideId]: {
+                                                                                ...deliveryData,
+                                                                                administrationRoute: route
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                    className="flex-1 py-2 rounded text-xs font-bold uppercase transition-all"
+                                                                    style={{
+                                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
+                                                                        color: isSelected ? '#ffffff' : theme.text
+                                                                    }}
+                                                                >
+                                                                    {route.toUpperCase()}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Pen Details */}
+                                            {deliveryData.deliveryMethod === 'pen' && (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {/* Pen Type */}
+                                                    <div className="relative" ref={el => penTypeDropdownRefs.current[peptideId] = el}>
+                                                        <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                            Pen Type
+                                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPenTypeDropdownOpen(prev => ({
+                                                    ...prev,
+                                                    [peptideId]: !prev[peptideId]
+                                                }));
+                                            }}
+                                            className="w-full px-3 py-2 text-sm border rounded-lg flex items-center justify-between transition-all relative z-20"
+                                            style={{
+                                                borderColor: penTypeDropdownOpen[peptideId] ? theme.primary : theme.border,
+                                                backgroundColor: theme.cardBackground,
+                                                color: deliveryData.penType ? theme.text : theme.textLight
+                                            }}
+                                                        >
+                                                            <span>
+                                                                {deliveryData.penType ? (
+                                                                    deliveryData.penType === 'bird-pen' ? 'Bird Pen' : 
+                                                                    deliveryData.penType === 'v1' ? 'V1' : 
+                                                                    deliveryData.penType === 'v2' ? 'V2' : 
+                                                                    deliveryData.penType === 'v3' ? 'V3' : 
+                                                                    deliveryData.penType.charAt(0).toUpperCase() + deliveryData.penType.slice(1)
+                                                                ) : 'Select pen type'}
+                                                            </span>
+                                                            <ChevronDown 
+                                                                size={16} 
+                                                                className={`transition-transform duration-200 ${penTypeDropdownOpen[peptideId] ? 'rotate-180' : ''}`}
+                                                                style={{ color: theme.textLight }}
+                                                            />
+                                                        </button>
+                                                        {penTypeDropdownOpen[peptideId] && (
+                                                            <div 
+                                                                className="absolute z-[9999] w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                                style={{
+                                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                                    borderColor: theme.border,
+                                                                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+                                                                }}
+                                                            >
+                                                                {[
+                                                                    { value: 'savvio', label: 'Savvio' },
+                                                                    { value: 'novo', label: 'Novo' },
+                                                                    { value: 'v1', label: 'V1' },
+                                                                    { value: 'v2', label: 'V2' },
+                                                                    { value: 'v3', label: 'V3' },
+                                                                    { value: 'bird-pen', label: 'Bird Pen' },
+                                                                    { value: 'luxura', label: 'Luxura' },
+                                                                    { value: 'gansulin', label: 'Gansulin' },
+                                                                    { value: 'other', label: 'Other' }
+                                                                ].map((option, optIdx) => (
+                                                                    <React.Fragment key={option.value}>
+                                                                        {optIdx > 0 && (
+                                                                            <div 
+                                                                                className="h-px mx-2"
+                                                                                style={{ backgroundColor: theme.border }}
+                                                                            />
+                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                setSkippedPeptideDeliveryMethods(prev => ({
+                                                                                    ...prev,
+                                                                                    [peptideId]: {
+                                                                                        ...deliveryData,
+                                                                                        penType: option.value
+                                                                                    }
+                                                                                }));
+                                                                                setPenTypeDropdownOpen(prev => ({
+                                                                                    ...prev,
+                                                                                    [peptideId]: false
+                                                                                }));
+                                                                            }}
+                                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                                            style={{
+                                                                                color: deliveryData.penType === option.value ? theme.primary : theme.text,
+                                                                                backgroundColor: 'transparent'
+                                                                            }}
+                                                                            onMouseEnter={(e) => {
+                                                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                                e.currentTarget.style.color = theme.primary;
+                                                                            }}
+                                                                            onMouseLeave={(e) => {
+                                                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                                                e.currentTarget.style.color = deliveryData.penType === option.value ? theme.primary : theme.text;
+                                                                            }}
+                                                                        >
+                                                                            {option.label}
+                                                                        </button>
+                                                                    </React.Fragment>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Pen Color */}
+                                                    <div>
+                                                        <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                            Pen Color
+                                                        </label>
+                                                        <ColorSwatchDropdown
+                                                            value={penColors.find(p => p.name === deliveryData.penColor)?.hex || '#9ca3af'}
+                                                            onChange={(hex) => {
+                                                                const selectedColor = penColors.find(p => p.hex === hex);
+                                                                if (selectedColor) {
+                                                                    setSkippedPeptideDeliveryMethods(prev => ({
+                                                                        ...prev,
+                                                                        [peptideId]: {
+                                                                            ...deliveryData,
+                                                                            penColor: selectedColor.name
+                                                                        }
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            colors={penColors}
+                                                            theme={theme}
+                                                            placeholder="Select color"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-        );
-    };
-
-    const renderContent = () => {
-        const getContent = () => {
-            if (stage === 'linking') return renderLinkingStep();
-            if (stage === 'recon_strategy') return renderReconStrategyStep();
-            if (stage === 'reconstituting') return renderReconstitutingStep();
-            if (stage === 'confirm') return renderConfirmStep();
-            return <div>Unknown stage</div>;
-        };
-
-        return (
-            <div className="relative overflow-hidden" style={{ minHeight: '200px' }}>
-                <div
-                    key={stage}
-                    className="transition-all duration-300 ease-in-out"
-                    style={{
-                        transform: isTransitioning
-                            ? `translateX(${animationDirection === 'forward' ? '-20px' : '20px'})`
-                            : 'translateX(0)',
-                        opacity: isTransitioning ? 0 : 1,
-                        willChange: 'transform, opacity'
-                    }}
-                >
-                    {getContent()}
-                </div>
-            </div>
-        );
-    };
-    
-    // Safeguard from original code
-    if (!protocol) return null;
-
-    return (
-        <BottomSheet
-            open={open}
-            onClose={onClose}
-            onBack={canGoBack() ? handleBack : undefined}
-            title={`Start Protocol: ${protocol?.protocolName || 'Unnamed'}`}
-            theme={theme}
-            maxHeight="90vh"
-            titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
-        >
-            {/* Removed progress indicator for cleaner flow */}
-            {renderContent()}
         </BottomSheet>
     );
 }

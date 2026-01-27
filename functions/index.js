@@ -320,7 +320,7 @@ exports.adminExtendTrialPeriod = onCall(
       // Update subscription - explicitly reactivate trial
       const updatedSubscription = {
         ...existingSubscription,
-        plan: '10-Day Research Trial',
+        plan: '30-Day Research Trial',
         interval: 'trial',
         status: 'trialing', // Force status to trialing
         startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),
@@ -2921,6 +2921,19 @@ exports.submitAccountDeletionRequest = onCall(
         logger.info(`✅ Admin notification email sent for deletion request`);
       } catch (error) {
         logger.warn(`⚠️ Could not send admin notification email: ${error.message}`);
+        // Don't fail the request if email sending fails
+      }
+
+      // Send user confirmation email
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionRequestConfirmation(
+          userEmail,
+          displayName
+        );
+        logger.info(`✅ User confirmation email sent for deletion request`);
+      } catch (error) {
+        logger.warn(`⚠️ Could not send user confirmation email: ${error.message}`);
         // Don't fail the request if email sending fails
       }
 

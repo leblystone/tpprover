@@ -286,35 +286,7 @@ if (typeof window !== 'undefined') {
     console.log('   Run showSafeAreaOverlay() again to hide it');
   };
 
-  // Log that debug functions are available
-  console.log('🔧 Debug Functions Available:');
-  console.log('   - debugDashboardData() - Diagnose data issues');
-  console.log('   - fixDashboardData() - Clean up mock/demo data (no auto-refresh)');
-  console.log('   - fixDashboardData(true) - Clean up mock/demo data with auto-refresh');
-  console.log('   - inspectLocalStorage() - View all stored data');
-  console.log('   - clearAllTPPData() - Clear all data (with confirmation)');
-  console.log('🧪 Lab Access Testing Functions:');
-  console.log('   - createLabAccessSubscription(days) - Create a lab access subscription (default 7 days)');
-  console.log('   - createExpiredLabAccess() - Create an expired lab access for testing');
-  console.log('   - clearSubscription() - Remove current subscription');
-  console.log('   - getCurrentSubscription() - View current subscription details');
-  console.log('🔔 PWA Notification Testing Functions:');
-  console.log('   - verifyPWANotifications() - Test if PWA notifications are working properly');
-  console.log('   - testPWANotifications() - Run detailed PWA notification tests');
-  console.log('   - requestNotificationPermission() - Request notification permission from user');
-  console.log('   - showPWANotification(title, options) - Show a test PWA notification');
-  console.log('   - testPWAService() - Test the PWA notification service');
-  console.log('   - enablePWANotifications() - Enable PWA notifications');
-  console.log('   - disablePWANotifications() - Disable PWA notifications');
-  console.log('   - getPWAStatus() - Get current PWA notification status');
-  console.log('🔍 Notification Debug Functions:');
-  console.log('   - debugNotifications() - Debug why scheduled notifications aren\'t working');
-  console.log('📐 Safe Area Testing Functions:');
-  console.log('   - testSafeAreas() - Show current safe area values');
-  console.log('   - simulateBottomNavigation(height) - Simulate bottom nav (default 56px)');
-  console.log('   - simulateTopStatusBar(height) - Simulate status bar (default 24px)');
-  console.log('   - clearSafeAreaSimulation() - Clear simulation');
-  console.log('   - showSafeAreaOverlay() - Show visual overlay of safe areas');
+  // Debug functions are available on window object but not logged to reduce console noise
 }
 
 export { diagnoseDashboardData, fixDataInconsistencies };

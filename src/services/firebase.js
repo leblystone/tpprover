@@ -981,7 +981,6 @@ export async function getUserByEmail(email) {
       const subDoc = await getDoc(doc(db, 'userSubscriptions', userId));
       if (subDoc.exists()) {
         const subData = subDoc.data();
-        console.log('📊 Subscription data from userSubscriptions:', subData);
         
         // Subscription data is nested inside a 'subscription' object
         const sub = subData.subscription || {};
@@ -1004,14 +1003,10 @@ export async function getUserByEmail(email) {
                           subData.subscriptionType || 
                           subData.plan ||
                           subscriptionType;
-      } else {
-        console.log('⚠️ No userSubscriptions doc found for user:', userId);
       }
     } catch (error) {
-      console.warn('Could not fetch subscription data:', error);
+      // Silently handle subscription fetch errors (permission issues are expected for some users)
     }
-    
-    console.log('✅ Final subscription data:', { subscriptionStatus, subscriptionType });
     
     return {
       userId: userId,
@@ -1351,8 +1346,6 @@ export async function getAllTickets() {
     
     // Enrich tickets with user account info if missing
     if (ticketsNeedingEnrichment.length > 0) {
-      console.log(`🔍 Enriching ${ticketsNeedingEnrichment.length} tickets with user account info...`);
-      
       for (const ticket of ticketsNeedingEnrichment) {
         try {
           const userAccount = await getUserByEmail(ticket.userEmail);
@@ -1390,7 +1383,6 @@ export async function getAllTickets() {
       });
     }
     
-    console.log('✅ Loaded tickets:', tickets.length);
     return tickets;
   } catch (error) {
     console.error('❌ Failed to get all tickets:', error);

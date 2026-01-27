@@ -68,7 +68,8 @@ Users can now **request** account deletion instead of it happening immediately. 
 2. Sees modal explaining their data will be deleted
 3. Clicks "Submit Deletion Request"
 4. Gets toast: "Your request has been submitted, admin will review within 24-48 hours"
-5. Sees "Account Deletion Pending" chip in their settings
+5. **Receives confirmation email immediately:** "Deletion of Pep Planner Account" with details
+6. Sees "Account Deletion Pending" chip in their settings
 
 ### Admin Side:
 1. Request appears in 3 places:
@@ -90,6 +91,7 @@ Users can now **request** account deletion instead of it happening immediately. 
    - **STEP 4: Deletes from Firebase Auth** (FINAL step)
    - **STEP 5: Logs to `accountDeletions` collection**
    - Updates request status to 'approved'
+   - **NOTE:** Admin also receives an email notification immediately when a new deletion request is submitted
 
    **⚠️ IMPORTANT ORDER:** Email is sent FIRST before any deletion so we still have their email/data!
 
@@ -138,9 +140,26 @@ firebase deploy --only functions:submitAccountDeletionRequest
 
 ---
 
-## 📧 Deletion Confirmation Email
+## 📧 Email Notifications
 
-When you click "Approve & Delete", the user automatically receives a friendly confirmation email **FIRST, before any data is deleted**:
+### When User Submits Request:
+The system automatically sends **two emails**:
+
+1. **To User** - "Deletion of Pep Planner Account"
+   - Confirms request was received
+   - Warns that deletion is irreversible once processed
+   - States admin will process within 48 hours
+   - Mentions they'll receive final confirmation when complete
+   - Includes contact info if they change their mind
+
+2. **To Admin** (contact@thepepplanner.com) - "Account Deletion Request - [email]"
+   - User's email, name, and request date
+   - Data summary (protocols, orders, etc.)
+   - Subscription status (if active)
+   - Link to admin panel for approval
+
+### When Admin Approves Deletion:
+**To User** - "We're Sad to See You Go - The Pep Planner"
 
 **Critical Order:**
 1. ✅ **Email sent FIRST** (while we still have their email and data)

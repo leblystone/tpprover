@@ -212,7 +212,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const hasLifetimeAccess = subData?.hasLifetimeAccess || 
                             subData?.interval === 'lifetime' || 
                             subData?.plan === 'lifetime';
-  const trialPlanNames = ['10-Day Research Trial', '7-Day Free Trial'];
+  const trialPlanNames = ['30-Day Research Trial', '7-Day Free Trial'];
   
   // Don't show if user has active PAID subscription (including lifetime)
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
@@ -243,7 +243,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
               <div className="flex items-center gap-2">
                 <Crown size={18} style={{ color: theme.isDark ? '#d97706' : theme.primary }} />
                 <span className="font-semibold text-base" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>
-                  10-Day Research Trial
+                  30-Day Research Trial
                 </span>
               </div>
               <div className="flex items-center gap-2">

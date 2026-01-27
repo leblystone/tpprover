@@ -22,7 +22,6 @@ let getAppDataFunction = null;
  */
 export function registerAppDataGetter(getter) {
   getAppDataFunction = getter;
-  console.log('✅ Safe reload: App data getter registered');
 }
 
 /**

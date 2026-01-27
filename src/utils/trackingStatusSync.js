@@ -67,10 +67,7 @@ export async function syncOrderStatusFromTracking(order) {
         return null;
       }
       
-      // For other errors, log them (but less verbosely)
-      if (!isServiceNotConfigured) {
-        console.log(`⚠️ Order ${order.id}: Tracking unavailable (${trackingInfo?.error || 'unknown error'})`);
-      }
+      // Silently handle tracking errors
       return null;
     }
 

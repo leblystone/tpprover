@@ -1,6 +1,6 @@
 // Subscription Ended - Resubscribe Page
 import React, { useState } from 'react';
-import { CreditCard, Download, Trash2, Eye, Lock, FileText, RefreshCw } from 'lucide-react';
+import { CreditCard, Download, Trash2, Eye, BookOpenCheck, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
@@ -140,7 +140,7 @@ export default function SubscriptionExpired() {
       key: 'monthly',
       name: SUBSCRIPTION_PLANS.monthly.label,
       intervalLabel: 'per month',
-      description: 'Perfect for trying out premium features',
+      description: 'Most Flexible',
       priceId: STRIPE_CONFIG.prices.monthly,
       display: planPricing.monthly,
       cta: SUBSCRIPTION_PLANS.monthly.cta,
@@ -150,7 +150,7 @@ export default function SubscriptionExpired() {
       key: 'annual',
       name: SUBSCRIPTION_PLANS.annual.label,
       intervalLabel: 'per year',
-      description: 'Best value for consistent research',
+      description: 'Same price as our planners!',
       priceId: STRIPE_CONFIG.prices.annual,
       display: planPricing.annual,
       cta: SUBSCRIPTION_PLANS.annual.cta,
@@ -161,7 +161,7 @@ export default function SubscriptionExpired() {
       key: 'lifetime',
       name: SUBSCRIPTION_PLANS.lifetime.label,
       intervalLabel: 'one-time',
-      description: 'Pay once, use forever',
+      description: 'Pay Once',
       priceId: STRIPE_CONFIG.prices.lifetime,
       display: planPricing.lifetime,
       cta: SUBSCRIPTION_PLANS.lifetime.cta,
@@ -180,10 +180,10 @@ export default function SubscriptionExpired() {
               className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
               style={{ backgroundColor: theme.primary }}
             >
-              <RefreshCw size={28} style={{ color: '#ffffff' }} />
+              <BookOpenCheck size={28} style={{ color: '#ffffff' }} />
             </div>
           </div>
-          <h1 className="text-3xl font-bold mb-1" style={{ color: theme.primaryDark }}>
+          <h1 className="text-3xl mb-1" style={{ color: theme.primaryDark }}>
             Subscription Has Ended
           </h1>
           <p className="text-base" style={{ color: theme.textLight }}>
@@ -219,7 +219,7 @@ export default function SubscriptionExpired() {
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <span 
-                        className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
+                        className="px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter"
                         style={{ 
                           backgroundColor: theme?.primary, 
                           color: '#ffffff' 
@@ -231,16 +231,16 @@ export default function SubscriptionExpired() {
                   )}
                   
                   <div className="text-center flex-1">
-                    <h3 className="text-lg font-bold mb-1" style={{ color: theme.primaryDark }}>
+                    <h3 className="text-lg mb-1" style={{ color: theme.primaryDark }}>
                       {plan.name}
                     </h3>
                     
                     <div className="mb-3">
                       <div className="flex items-center justify-center gap-1.5">
-                        <span className="text-2xl font-black" style={{ color: theme.primary }}>
+                        <span className="text-2xl" style={{ color: theme.primary }}>
                           {discountActive ? plan.display.founder : plan.display.base}
                         </span>
-                        <span className="text-[10px] opacity-60 font-bold" style={{ color: theme.textLight }}>
+                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
                           {plan.intervalLabel}
                         </span>
                       </div>
@@ -260,7 +260,7 @@ export default function SubscriptionExpired() {
                     <button
                       onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
                       disabled={isCheckoutProcessing}
-                      className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                      className="w-full py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
                       style={{
                         backgroundColor: theme.primary,
                         color: theme.textOnPrimary || '#ffffff'
@@ -289,18 +289,19 @@ export default function SubscriptionExpired() {
           }}
         >
           <div className="text-center mb-5">
-            <h3 className="text-sm font-bold mb-1" style={{ color: theme?.text }}>
-              Your Research is Safe
+            <h3 className="text-sm mb-1" style={{ color: theme?.text }}>
+              Your Research is Yours!
             </h3>
             <p className="text-xs max-w-lg mx-auto" style={{ color: theme?.textLight }}>
-              You still have full read-only access and can export your entries anytime.
+              You still have full read-only access and can export your entries anytime.<br />
+              Come back anytime and resume where you left off. Your research is safe.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={() => setShowDataModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
                 color: theme?.text
@@ -312,7 +313,7 @@ export default function SubscriptionExpired() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleExportCSV}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
                   color: theme?.text
@@ -323,7 +324,7 @@ export default function SubscriptionExpired() {
               </button>
               <button
                 onClick={handleExportPDF}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
                   color: theme?.text
@@ -340,7 +341,7 @@ export default function SubscriptionExpired() {
         <div className="text-center pt-4">
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity flex items-center gap-1.5 mx-auto"
+            className="text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity flex items-center gap-1.5 mx-auto"
             style={{ color: theme?.text }}
           >
             <Trash2 size={12} />

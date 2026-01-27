@@ -43,10 +43,10 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                                 <div className="flex flex-col items-center">
                                     <div className="flex items-center justify-center gap-2 mb-1.5">
                                         <Timer className="w-5 h-5" style={{ color: theme.primary }} />
-                                        <h3 className="text-base font-bold text-gray-800 tracking-tight">10 Days to Test Drive</h3>
+                                        <h3 className="text-base font-bold text-gray-800 tracking-tight">30 Days to Test Drive</h3>
                                     </div>
                                     <p className="text-gray-600 max-w-sm mx-auto text-[13px] leading-relaxed">
-                                        Take <strong>10 full days</strong> to explore every corner: protocols, calendars, inventory tracking, the works. No inital payment, no strings.<br />
+                                        Take <strong>30 full days</strong> to explore every corner: protocols, calendars, inventory tracking, the works. No inital payment, no strings.<br />
                                         Just see if it works for you.
                                     </p>
                                 </div>

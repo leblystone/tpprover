@@ -13,6 +13,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
     const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
+    const [penTypeDropdownUp, setPenTypeDropdownUp] = useState(false);
     const penTypeDropdownRef = React.useRef(null);
     
     useEffect(() => {
@@ -123,6 +124,19 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleClickOutside);
         };
+    }, [isPenTypeDropdownOpen]);
+
+    // Check if dropdown should open upward
+    React.useEffect(() => {
+        if (isPenTypeDropdownOpen && penTypeDropdownRef.current) {
+            const rect = penTypeDropdownRef.current.getBoundingClientRect();
+            const dropdownHeight = 300; // Approximate dropdown height
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            // If not enough space below but enough above, open upward
+            setPenTypeDropdownUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+        }
     }, [isPenTypeDropdownOpen]);
 
     return (
@@ -428,25 +442,82 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             <button
                                                 type="button"
                                                 onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
-                                                className="w-full px-2 py-1.5 text-xs border rounded-md flex items-center justify-between transition-all"
-                                                style={{ borderColor: '#f0eee7', backgroundColor: theme.cardBackground, color: item.penType ? theme.text : theme.textLight }}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onTouchStart={(e) => e.preventDefault()}
+                                                className="w-full px-3 py-2 rounded-lg flex items-center justify-between transition-all border-none outline-none"
+                                                data-dropdown-container
+                                                style={{ 
+                                                    border: `1px solid ${theme.isDark ? '#4b5563' : '#f0eee7'}`,
+                                                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                                    color: item.penType ? theme.text : theme.textLight
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                                }}
                                             >
-                                                <span className="truncate">{item.penType ? penTypes.find(t => t.id === item.penType)?.name || 'Other' : 'Pen Type'}</span>
-                                                <ChevronDown size={14} className={`transition-transform ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                                                <span className="text-sm font-semibold truncate">
+                                                    {item.penType ? penTypes.find(t => t.id === item.penType)?.name || 'Other' : 'Pen Type'}
+                                                </span>
+                                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
                                             </button>
                                             {isPenTypeDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border }}>
-                                                    {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option) => (
-                                                        <button
-                                                            key={option.id}
-                                                            type="button"
-                                                            onClick={() => { handleChange('penType', option.id); setIsPenTypeDropdownOpen(false); }}
-                                                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 transition-colors"
-                                                            style={{ color: item.penType === option.id ? theme.primary : theme.text }}
-                                                        >
-                                                            {option.name}
-                                                        </button>
-                                                    ))}
+                                                <div className="relative" data-dropdown-container>
+                                                    <div 
+                                                        className={`absolute right-0 z-50 rounded-lg shadow-lg border overflow-hidden w-full ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                                                        style={{
+                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                            borderColor: theme.border,
+                                                            minWidth: '100px',
+                                                            maxHeight: '300px',
+                                                            overflowY: 'auto',
+                                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                        }}
+                                                    >
+                                                        {[{ id: '', name: 'Pen Type' }, ...penTypes].map((option, idx) => (
+                                                            <React.Fragment key={option.id || 'placeholder'}>
+                                                                {idx > 0 && (
+                                                                    <div 
+                                                                        className="h-px mx-2"
+                                                                        style={{ backgroundColor: theme.border }}
+                                                                    />
+                                                                )}
+                                                                <button
+                                                                    key={option.id || 'placeholder'}
+                                                                    type="button"
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onTouchStart={(e) => e.preventDefault()}
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        handleChange('penType', option.id);
+                                                                        setIsPenTypeDropdownOpen(false);
+                                                                    }}
+                                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                                    style={{
+                                                                        color: item.penType === option.id ? theme.primary : theme.text,
+                                                                        backgroundColor: 'transparent',
+                                                                        WebkitTapHighlightColor: 'transparent'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                        e.currentTarget.style.color = theme.primary;
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                                        e.currentTarget.style.color = item.penType === option.id ? theme.primary : theme.text;
+                                                                    }}
+                                                                >
+                                                                    {option.name}
+                                                                </button>
+                                                            </React.Fragment>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

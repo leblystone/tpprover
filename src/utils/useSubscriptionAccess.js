@@ -18,6 +18,7 @@ export function useSubscriptionAccess() {
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
+    isSubscriptionEnded: false,
     isReadOnly: false,
     showUpgradePrompt: false,
     daysRemaining: null,
@@ -64,6 +65,7 @@ export function useSubscriptionAccess() {
             setAccessInfo({
               hasAccess: true,
               isTrialExpired: false,
+              isSubscriptionEnded: false,
               isReadOnly: false,
               showUpgradePrompt: false,
               daysRemaining: Infinity,
@@ -82,6 +84,7 @@ export function useSubscriptionAccess() {
             setAccessInfo({
               hasAccess: true,
               isTrialExpired: false,
+              isSubscriptionEnded: false,
               isReadOnly: false,
               showUpgradePrompt: false,
               daysRemaining: daysLeftDisplay,
@@ -99,6 +102,7 @@ export function useSubscriptionAccess() {
               setAccessInfo({
                 hasAccess: true,
                 isTrialExpired: false,
+                isSubscriptionEnded: false,
                 isReadOnly: false,
                 showUpgradePrompt: daysLeftDisplay <= 2,
                 daysRemaining: daysLeftDisplay,
@@ -216,6 +220,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
+            isSubscriptionEnded: false,
             isReadOnly: true,
             showUpgradePrompt: true,
             daysRemaining: 0,
@@ -268,6 +273,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: false,
             daysRemaining: Infinity,
@@ -298,6 +304,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: false,
             daysRemaining: daysLeftDisplay,
@@ -314,6 +321,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: true, // Show upgrade prompt for past_due
             daysRemaining: daysLeftDisplay,
@@ -330,6 +338,7 @@ export function useSubscriptionAccess() {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
+            isSubscriptionEnded: false,
             isReadOnly: false,
             showUpgradePrompt: daysLeftDisplay <= 2, // Show prompt in last 2 days
             daysRemaining: daysLeftDisplay,
@@ -340,10 +349,20 @@ export function useSubscriptionAccess() {
         }
 
         // Trial expired or canceled subscription (past period end)
-        console.log('❌ Trial EXPIRED or canceled - READ-ONLY MODE');
+        // Distinguish between trial expired vs paid subscription ended
+        const hadPaidSubscription = effectiveSubscription.interval === 'monthly' || 
+                                     effectiveSubscription.interval === 'annual' ||
+                                     effectiveSubscription.status === 'active' ||
+                                     effectiveSubscription.status === 'canceled';
+        
+        const isSubscriptionEnded = hadPaidSubscription && timeLeft <= 0;
+        const isTrialExpired = !hadPaidSubscription || effectiveSubscription.status === 'trialing';
+        
+        console.log(`❌ ${isSubscriptionEnded ? 'Subscription ENDED' : 'Trial EXPIRED'} - READ-ONLY MODE`);
         setAccessInfo({
           hasAccess: false,
-          isTrialExpired: true,
+          isTrialExpired: isTrialExpired && !isSubscriptionEnded,
+          isSubscriptionEnded: isSubscriptionEnded,
           isReadOnly: true,
           showUpgradePrompt: true,
           daysRemaining: 0,
@@ -357,6 +376,7 @@ export function useSubscriptionAccess() {
         setAccessInfo({
           hasAccess: false,
           isTrialExpired: true,
+          isSubscriptionEnded: false,
           isReadOnly: true,
           showUpgradePrompt: true,
           daysRemaining: 0,

@@ -203,7 +203,7 @@ export default function BottomSheet({
 
   const content = (
     <div 
-      className="fixed inset-0 z-[10002] flex items-end md:items-center md:justify-center overflow-hidden"
+      className="fixed inset-0 z-[10002] flex items-end md:justify-center overflow-hidden"
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',
@@ -229,7 +229,8 @@ export default function BottomSheet({
         `}
         style={{ 
           backgroundColor: theme?.cardBackground || '#FFFFFF',
-          maxHeight: isMobile ? maxHeight : '90vh',
+          height: maxHeight,
+          maxHeight: maxHeight,
           boxShadow: theme?.isDark 
             ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1)' 
             : '0 -10px 40px rgba(0,0,0,0.2)',

@@ -1163,14 +1163,14 @@ export default function Login() {
             throw new Error('Failed to activate annual access. Please contact support.');
           }
         } else {
-          // Create 10-day research trial subscription and save to BOTH cloud AND localStorage
+          // Create 30-day research trial subscription and save to BOTH cloud AND localStorage
           try {
             const now = new Date();
             const end = new Date(now);
-            end.setDate(end.getDate() + 10);
+            end.setDate(end.getDate() + 30);
             const trial = {
               id: String(Date.now()),
-              plan: '10-Day Research Trial',
+              plan: '30-Day Research Trial',
               price: 0,
               interval: 'trial',
               currency: 'USD',
@@ -1204,9 +1204,9 @@ export default function Login() {
             // This is critical - we should still create a minimal trial
             const minimalTrial = {
               id: String(Date.now()),
-              plan: '10-Day Research Trial',
+              plan: '30-Day Research Trial',
               status: 'trialing',
-              currentPeriodEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             };
             try {
               localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
@@ -1508,7 +1508,7 @@ export default function Login() {
                             </h2>
                             <p className="text-sm mt-2" style={{ color: theme.textLight }}>
                                 {mode === 'login' && 'Sign in to your account'}
-                                {mode === 'signup' && 'Try everything free for 10 days'}
+                                {mode === 'signup' && 'Organize your research for 30 days (free)'}
                             </p>
                         </div>
 

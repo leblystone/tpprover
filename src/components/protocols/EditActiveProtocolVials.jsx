@@ -11,6 +11,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
     const [action, setAction] = useState(null); // 'select', 'add', null
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState(false);
+    const [penTypeDropdownUp, setPenTypeDropdownUp] = useState(false);
     const penTypeDropdownRef = useRef(null);
 
     const vialOptions = useMemo(() => {
@@ -56,6 +57,19 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                 document.removeEventListener('mousedown', handleClickOutside);
                 document.removeEventListener('touchstart', handleClickOutside);
             };
+        }
+    }, [penTypeDropdownOpen]);
+
+    // Check if dropdown should open upward
+    useEffect(() => {
+        if (penTypeDropdownOpen && penTypeDropdownRef.current) {
+            const rect = penTypeDropdownRef.current.getBoundingClientRect();
+            const dropdownHeight = 300; // Approximate dropdown height
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            // If not enough space below but enough above, open upward
+            setPenTypeDropdownUp(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
         }
     }, [penTypeDropdownOpen]);
 
@@ -324,10 +338,12 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         </button>
                                         {penTypeDropdownOpen && (
                                             <div 
-                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                className={`absolute z-50 w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
+                                                    maxHeight: '300px',
+                                                    overflowY: 'auto',
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                                 }}
                                             >
@@ -599,10 +615,12 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         </button>
                                         {penTypeDropdownOpen && (
                                             <div 
-                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                className={`absolute z-50 w-full rounded-lg shadow-lg border overflow-hidden ${penTypeDropdownUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
                                                 style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                                     borderColor: theme.border,
+                                                    maxHeight: '300px',
+                                                    overflowY: 'auto',
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                                 }}
                                             >
@@ -818,8 +836,8 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
 
     return (
         <div className="space-y-3">
-            <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>
-                Manage vials and delivery methods for each peptide in your active protocol.
+            <p className="text-xs text-center mt-1" style={{ color: theme.textLight }}>
+                Link vials from your stockpile and manage delivery methods.
             </p>
             {protocol.peptides.map((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;

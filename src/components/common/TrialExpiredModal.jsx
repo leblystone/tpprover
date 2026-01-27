@@ -13,7 +13,7 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Your 10-Day Trial Has Ended"
+      title="Your 30 day planner access has ended"
       theme={theme}
       maxWidth="max-w-lg"
       footer={(

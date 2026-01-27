@@ -701,7 +701,9 @@ function formatFrequency(frequency) {
       return `Weekly (${days})`;
     }
     if (type === 'cycle') {
-      return `Cycle: ${frequency.onDays || '-'} on / ${frequency.offDays || '-'} off`;
+      const cycleStr = `Cycle: ${frequency.onDays || '-'} on / ${frequency.offDays || '-'} off`;
+      const timeStr = frequency.time && Array.isArray(frequency.time) && frequency.time.length > 0 ? ` ${frequency.time.join('/')}` : '';
+      return cycleStr + timeStr;
     }
     if (type === 'custom') {
       return frequency.customDays ? `Every ${frequency.customDays} days` : 'Custom';

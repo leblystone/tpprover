@@ -6,8 +6,9 @@ import BottomSheet from '../components/common/BottomSheet'
 import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
+import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -49,6 +50,8 @@ export default function Protocols() {
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
+  const [openQuickStart, setOpenQuickStart] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
@@ -58,6 +61,10 @@ export default function Protocols() {
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
   const [manageTab, setManageTab] = useState('manage'); // 'manage' | 'edit' | 'notes' | 'share' | 'history'
+  const [expandedManageSections, setExpandedManageSections] = useState({
+    settings: true, // Protocol Settings expanded by default
+    vials: false // Vials & Delivery Methods collapsed (optional)
+  });
   const [editFromManage, setEditFromManage] = useState(null); // Track if editing from manage modal
   const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -1016,12 +1023,13 @@ export default function Protocols() {
     }
   }
 
+  // Handle "Add Protocol" button click - show dropdown menu
   const handleAddClick = useCallback(() => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
       return;
     }
-    setOpenAdd(true);
+    setShowAddMenu(true);
   }, [isReadOnly]);
 
   const handleEditClick = useCallback((protocol) => {
@@ -1030,6 +1038,10 @@ export default function Protocols() {
       return;
     }
     setEditing(protocol);
+    // Close any other open modals
+    setStartConfirm(null);
+    setManageConfirm(null);
+    setOpenAdd(false);
   }, [isReadOnly]);
 
   const handleStartClick = useCallback((protocol, opts) => {
@@ -1039,9 +1051,16 @@ export default function Protocols() {
     }
     if (opts?.manage) {
       setManageConfirm(protocol);
+      // Close any other open modals
+      setStartConfirm(null);
+      setEditing(null);
     } else {
       setStartConfirm(protocol);
       setStartDate(protocol.startDate || getLocalDateString());
+      // Close any other open modals
+      setManageConfirm(null);
+      setEditing(null);
+      setOpenAdd(false);
     }
   }, [isReadOnly]);
 
@@ -1467,14 +1486,28 @@ export default function Protocols() {
                     Protocols help maintain consistency and track adherence to research plans.
                   </p>
                   {!isReadOnly && (
-                    <button
-                      onClick={handleAddClick}
-                      className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    >
-                      <PlusCircle size={18} />
-                      Create Your First Protocol
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                      <button
+                        onClick={() => setOpenQuickStart(true)}
+                        className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                      >
+                        <Zap size={18} fill="currentColor" />
+                        Quick Start (30 sec)
+                      </button>
+                      <button
+                        onClick={() => setOpenAdd(true)}
+                        className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+                        style={{ 
+                          backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, 
+                          color: theme.text,
+                          border: `1px solid ${theme.border}`
+                        }}
+                      >
+                        <Settings size={16} />
+                        Full Setup
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : null
@@ -2155,9 +2188,75 @@ export default function Protocols() {
         </div>
       </Modal>
 
+      {/* Add Protocol Dropdown Menu */}
+      {showAddMenu && (
+        <>
+          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
+          <div 
+            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
+            style={{ 
+              backgroundColor: theme.cardBackground,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setOpenQuickStart(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+              style={{ 
+                color: theme.text,
+                borderColor: theme.border
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+              <div className="flex-1">
+                <div className="font-semibold">Quick Start</div>
+                <div className="text-xs opacity-60">30 seconds, add details later</div>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setOpenAdd(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+              style={{ 
+                color: theme.text
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Settings size={18} style={{ color: theme.textLight }} />
+              <div className="flex-1">
+                <div className="font-semibold">Full Setup</div>
+                <div className="text-xs opacity-60">Complete configuration</div>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
+
       <ProtocolEditorModal
         open={openAdd}
-        onClose={() => setOpenAdd(false)}
+        onClose={() => {
+          setOpenAdd(false);
+          // Ensure other modals don't interfere
+          setEditing(null);
+          setStartConfirm(null);
+        }}
         theme={theme}
         onSave={(data) => {
           setOpenAdd(false)
@@ -2172,6 +2271,47 @@ export default function Protocols() {
             updatedAt: now
           }
           addProtocol(cleaned);
+        }}
+      />
+
+      <QuickStartProtocolModal
+        open={openQuickStart}
+        onClose={() => setOpenQuickStart(false)}
+        theme={theme}
+        onSave={async (protocolData) => {
+          // Protocol is already created with active: true and startDate set
+          // Just add it to the protocols list
+          const now = new Date().toISOString();
+          const finalProtocol = {
+            ...protocolData,
+            createdAt: now,
+            updatedAt: now
+          };
+          
+          addProtocol(finalProtocol);
+          
+          // Create a history entry immediately since it's started
+          const historyEntry = {
+            id: generateId(),
+            protocolId: finalProtocol.id,
+            startDate: finalProtocol.startDate,
+            endDate: null,
+            status: 'active',
+            notes: [],
+            createdAt: now
+          };
+          
+          saveProtocolHistoryEntry(historyEntry);
+          
+          // Toast success
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { 
+              message: `${finalProtocol.protocolName} started successfully! 🚀`, 
+              type: 'success' 
+            } 
+          }));
+          
+          setOpenQuickStart(false);
         }}
       />
 
@@ -2612,50 +2752,96 @@ export default function Protocols() {
             {/* Tab Content */}
             {manageTab === 'manage' && (
               <>
-                {/* PROTOCOL SETTINGS Section Header */}
-                <div className="flex items-center gap-4 mb-3">
-                  <Settings size={32} style={{ color: theme.primary }} />
-                  <div className="flex flex-col gap-0.5">
-                    <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Protocol Settings</h4>
-                    <div className="flex items-center gap-2 ml-1">
-                      <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                        Schedule Configuration
-                      </span>
+                {/* PROTOCOL SETTINGS - Accordion */}
+                <div className="rounded-lg border mb-4" style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: theme.cardBackground 
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedManageSections(prev => ({ ...prev, settings: !prev.settings }))}
+                    className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings size={20} style={{ color: theme.primary }} />
+                      <div className="flex flex-col gap-0.5 text-left">
+                        <h4 className="text-base font-semibold" style={{ color: theme.text }}>Protocol Settings</h4>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                          Schedule Configuration
+                        </span>
+                      </div>
+                    </div>
+                    {expandedManageSections.settings ? (
+                      <ChevronDown size={18} style={{ color: theme.textLight }} />
+                    ) : (
+                      <ChevronRight size={18} style={{ color: theme.textLight }} />
+                    )}
+                  </button>
+                  
+                  <div 
+                    className="overflow-hidden transition-all duration-300"
+                    style={{
+                      maxHeight: expandedManageSections.settings ? '500px' : '0',
+                      opacity: expandedManageSections.settings ? 1 : 0
+                    }}
+                  >
+                    <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
+                      {/* Compact Start Date - Inline */}
+                      <div className="flex items-center gap-3 py-1">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Calendar size={16} style={{ color: theme.primary }} />
+                          <span className="text-sm font-semibold" style={{ color: theme.text }}>{manageConfirm?.active ? 'Started' : 'Start'}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <GlassmorphismDatePicker
+                            value={manageConfirm?.startDate || ''}
+                            onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
+                            theme={theme}
+                            placeholder="Select start date"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-center mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all reseach for this protocol.</p>
                     </div>
                   </div>
                 </div>
 
-                <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>
-                        Start Date
-                    </label>
-                    <GlassmorphismDatePicker
-                        value={manageConfirm?.startDate || ''}
-                        onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
-                        theme={theme}
-                        placeholder="Select start date"
-                    />
-                    <p className="text-xs mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all calendar events for this protocol.</p>
-                </div>
-
-                {/* Edit Vials and Delivery Methods Section */}
+                {/* Vials & Delivery Methods - Accordion */}
                 {manageConfirm?.active && manageConfirm?.linkedItems && (
-                    <>
-                        <div className="flex items-center gap-4 mb-3 pt-1">
-                          <TestTubes size={32} style={{ color: theme.primary }} />
-                          <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Active Inventory
-                              </span>
-                            </div>
+                    <div className="rounded-lg border mb-4" style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.cardBackground 
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedManageSections(prev => ({ ...prev, vials: !prev.vials }))}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                      >
+                        <div className="flex items-center gap-3">
+                          <TestTubes size={20} style={{ color: theme.primary }} />
+                          <div className="flex flex-col gap-0.5 text-left">
+                            <h4 className="text-base font-semibold" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                              Active Inventory
+                            </span>
                           </div>
                         </div>
-
-                        <EditActiveProtocolVials
+                        {expandedManageSections.vials ? (
+                          <ChevronDown size={18} style={{ color: theme.textLight }} />
+                        ) : (
+                          <ChevronRight size={18} style={{ color: theme.textLight }} />
+                        )}
+                      </button>
+                      
+                      <div 
+                        className="overflow-hidden transition-all duration-300"
+                        style={{
+                          maxHeight: expandedManageSections.vials ? '3000px' : '0',
+                          opacity: expandedManageSections.vials ? 1 : 0
+                        }}
+                      >
+                        <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                          <EditActiveProtocolVials
                             protocol={manageConfirm}
                             stockpile={stockpile}
                             setStockpile={setStockpile}
@@ -2693,8 +2879,10 @@ export default function Protocols() {
                                     return updated;
                                 });
                             }}
-                        />
-                    </>
+                          />
+                        </div>
+                      </div>
+                    </div>
                 )}
 
                 {/* Page Break */}
@@ -2704,7 +2892,7 @@ export default function Protocols() {
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
                             <div className="text-sm font-semibold mb-0.5" style={{ color: '#dc2626' }}>End protocol early?</div>
-                            <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period if applicable.</div>
+                            <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period.</div>
                         </div>
                         <button
                             className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
@@ -3334,7 +3522,7 @@ export default function Protocols() {
       <StartProtocolWizard 
         open={!!startConfirm}
         onClose={() => setStartConfirm(null)}
-        protocol={startConfirm}
+        protocol={startConfirm ? (protocols.find(p => p.id === startConfirm.id) || startConfirm) : null}
         stockpile={stockpile}
         setStockpile={setStockpile}
         theme={theme}

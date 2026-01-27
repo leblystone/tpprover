@@ -35,7 +35,9 @@ export default function SharedProtocolCard({ item: p, theme }) {
             return `Weekly: ${freq.days.join(', ')}`;
         }
         if (freq.type === 'cycle') {
-            return `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+            const cycleStr = `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+            const timeStr = freq.time && Array.isArray(freq.time) && freq.time.length > 0 ? ` ${freq.time.join('/')}` : '';
+            return cycleStr + timeStr;
         }
         if (freq.type === 'custom') {
             return freq.customDays ? `Every ${freq.customDays} days` : 'Custom';

@@ -36,9 +36,9 @@ const INTRO_SCREENS = [
   },
   {
     id: 4,
-    title: '10 Days to Explore',
+    title: '30 Days to Explore',
     subtitle: 'No strings attached',
-    description: 'Take 10 full days to explore every feature. No initial payment, just see if it works for you.',
+    description: 'Take 30 full days to explore every feature. No initial payment, just see if it works for you.',
     gradient: ['#2a2a2a', '#1a1a1a'], // Charcoal to black
     accentColor: '#7F9E95', // Sage accent
     icon: TrendingUp,

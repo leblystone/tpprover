@@ -10,7 +10,11 @@ import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
     if (freq.type === 'weekly' && freq.days?.length > 0) return `Weekly: ${freq.days.join(', ')}`;
-    if (freq.type === 'cycle') return `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+    if (freq.type === 'cycle') {
+        const cycleStr = `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+        const timeStr = freq.time && Array.isArray(freq.time) && freq.time.length > 0 ? ` ${freq.time.join('/')}` : '';
+        return cycleStr + timeStr;
+    }
     if (freq.type === 'custom') {
         const customDays = freq.customDays || '';
         return customDays ? `Every ${customDays} days` : 'Every X days';
@@ -198,23 +202,29 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     {!isPublicView && (
                         <div className="mt-3 flex items-center justify-center gap-1.5">
                             <button
-                                className="p-2 rounded-md action-button-hover"
+                                className="px-4 py-1.5 rounded-lg action-button-hover flex items-center justify-center min-w-[60px] transition-all"
                                 aria-label={hasDraftStart ? 'Resume Protocol' : 'Start Protocol'}
-                                style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                                style={{ 
+                                    backgroundColor: theme.primary, 
+                                    color: '#ffffff',
+                                    boxShadow: `0 2px 8px ${theme.primary}30`
+                                }}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent card's onClick from firing
                                     onStartClick(p, { manage: false });
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'translateY(-1px)';
-                                    e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primaryDark}40`;
+                                    e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}50`;
+                                    e.currentTarget.style.opacity = '0.95';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.boxShadow = `0 2px 8px ${theme.primary}30`;
+                                    e.currentTarget.style.opacity = '1';
                                 }}
                             >
-                                <Play className="h-4 w-4" />
+                                <span className="text-xs font-semibold uppercase tracking-wider whitespace-nowrap">{hasDraftStart ? 'RESUME' : 'START'}</span>
                             </button>
                             <button 
                                 onClick={(e) => {
@@ -620,7 +630,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                         onStartClick(p, { manage: isActive });
                                     }}
                                 >
-                                    <span>View Details</span>
+                                    <span>Manage</span>
                                     <TrendingUp size={12} className="rotate-90" />
                                 </div>
                                 <div className="absolute right-0 flex items-center">
