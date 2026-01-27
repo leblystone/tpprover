@@ -914,6 +914,10 @@ export default function EmailTemplateManager({ theme }) {
       }
     } catch (error) {
       console.error('❌ Error sending test email:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', error.details);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
       
       let errorMessage = 'Failed to send test email';
       if (error.code === 'functions/not-found') {
