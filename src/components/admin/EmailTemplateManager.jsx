@@ -881,6 +881,8 @@ export default function EmailTemplateManager({ theme }) {
         templateData: currentTemplate // Send the actual custom template
       });
 
+      console.log('📧 Test email result:', result.data);
+      
       if (result.data && result.data.success) {
         setTestResult({ 
           success: true, 
@@ -891,8 +893,13 @@ export default function EmailTemplateManager({ theme }) {
         const testDetails = result.data?.results?.tests?.[selectedTemplate];
         const detailedError = testDetails?.error || testDetails?.message || errorMsg;
         const errorCode = result.data?.errorCode;
+        const errorStack = result.data?.errorStack;
         
         console.error('❌ Email test failed:', detailedError);
+        console.error('❌ Full error data:', result.data);
+        if (errorStack) {
+          console.error('❌ Error stack:', errorStack);
+        }
         
         // Show more detailed error message
         let displayError = detailedError || errorMsg;

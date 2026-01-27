@@ -100,10 +100,21 @@ exports.testEmailSystem = onCall(
         logger.info('🔍 Welcome template data fields:', Object.keys(templateData));
         logger.info('🔍 Welcome template heading:', templateData.heading);
         logger.info('🔍 Welcome template greeting:', templateData.greeting);
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail 
-        });
+        try {
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail 
+          });
+          logger.info('✅ HTML generated successfully, length:', htmlContent ? htmlContent.length : 0);
+          if (!htmlContent || htmlContent.length === 0) {
+            throw new Error('Generated HTML is empty');
+          }
+        } catch (htmlError) {
+          logger.error('❌ Failed to generate HTML:', htmlError);
+          logger.error('❌ HTML generation error message:', htmlError.message);
+          logger.error('❌ HTML generation error stack:', htmlError.stack);
+          throw new Error(`Failed to generate email HTML: ${htmlError.message}`);
+        }
         subjectText = templateData.subject || 'Welcome to The Pep Planner! 🎉';
         logger.info('✅ Using custom template from admin panel');
       } else {
