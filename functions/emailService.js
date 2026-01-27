@@ -758,6 +758,7 @@ function generateEmailHTML(template, variables = {}) {
   if (template.html) {
     logger.info('📝 Using custom HTML from template.html field');
     html = template.html;
+    logger.info(`📝 Custom HTML length: ${html ? html.length : 0} characters`);
     // Replace processedTemplate.ctaLink in custom HTML if it exists
     if (processedTemplate.ctaLink && processedTemplate.ctaLink !== '#') {
       // Replace any placeholder or existing href with the actual ctaLink
@@ -774,7 +775,19 @@ function generateEmailHTML(template, variables = {}) {
     }
   } else {
     logger.info('📝 Generating HTML from simple template fields');
-    html = generateDefaultHTML(processedTemplate, colors);
+    try {
+      html = generateDefaultHTML(processedTemplate, colors);
+      logger.info(`📝 Generated HTML length: ${html ? html.length : 0} characters`);
+      if (!html || html.length === 0) {
+        logger.error('❌ Generated HTML is empty!');
+        throw new Error('Generated HTML is empty');
+      }
+    } catch (htmlError) {
+      logger.error('❌ Failed to generate HTML:', htmlError);
+      logger.error('❌ HTML generation error message:', htmlError.message);
+      logger.error('❌ HTML generation error stack:', htmlError.stack);
+      throw htmlError;
+    }
   }
   
   // Also replace variables in custom HTML if provided
