@@ -40,10 +40,18 @@ async function sendEmailViaResend(to, subject, html) {
         'X-Entity-Ref-ID': `tpp-test-${Date.now()}`,
         'List-Unsubscribe': '<https://thepepplanner.app/app/account>',
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        // Mark as transactional to avoid Promotions tab
+        'X-Priority': '1',
+        'X-Mailer': 'The Pep Planner',
+        'Auto-Submitted': 'no',
+        // Important headers for inbox placement (transactional emails)
+        'X-Auto-Response-Suppress': 'All',
+        'X-Transaction-Type': 'transactional',
       },
       tags: [
-        { name: 'category', value: 'test' },
-        { name: 'source', value: 'the-pep-planner' }
+        { name: 'category', value: 'transactional' },
+        { name: 'source', value: 'the-pep-planner' },
+        { name: 'type', value: 'test' }
       ],
     });
     

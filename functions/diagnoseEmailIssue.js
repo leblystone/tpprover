@@ -96,6 +96,18 @@ exports.diagnoseEmailSystem = onCall(
               </div>
             `,
             replyTo: 'contact@thepepplanner.com',
+            headers: {
+              // Mark as transactional to avoid Promotions tab
+              'X-Priority': '1',
+              'X-Mailer': 'The Pep Planner',
+              'Auto-Submitted': 'no',
+              'X-Auto-Response-Suppress': 'All',
+              'X-Transaction-Type': 'transactional',
+            },
+            tags: [
+              { name: 'category', value: 'transactional' },
+              { name: 'type', value: 'diagnostic' }
+            ],
           });
 
           if (result.data && result.data.id) {

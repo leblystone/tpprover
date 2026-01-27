@@ -42,7 +42,17 @@ exports.quickEmailTest = onCall(
         replyTo: 'contact@thepepplanner.com',
         headers: {
           'X-Entity-Ref-ID': `tpp-quick-test-${Date.now()}`,
+          // Mark as transactional to avoid Promotions tab
+          'X-Priority': '1',
+          'X-Mailer': 'The Pep Planner',
+          'Auto-Submitted': 'no',
+          'X-Auto-Response-Suppress': 'All',
+          'X-Transaction-Type': 'transactional',
         },
+        tags: [
+          { name: 'category', value: 'transactional' },
+          { name: 'type', value: 'test' }
+        ],
       });
 
       if (result.data && result.data.id) {
