@@ -2267,7 +2267,7 @@ export default function Protocols() {
               <Settings size={18} style={{ color: theme.textLight }} />
               <div className="flex-1">
                 <div className="font-semibold">Full Setup</div>
-                <div className="text-xs opacity-60">Complete configuration</div>
+                <div className="text-xs opacity-60">Complete details</div>
               </div>
             </button>
           </div>
@@ -2833,7 +2833,15 @@ export default function Protocols() {
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-center mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all reseach for this protocol.</p>
+                      <div 
+                        className="text-xs text-center py-2 px-3 rounded-lg mt-2"
+                        style={{ 
+                          backgroundColor: `${theme.info || theme.primary}10`,
+                          color: theme.textLight
+                        }}
+                      >
+                        Changing this will reschedule all reseach for this protocol.
+                      </div>
                       
                       {/* Schedule Preview */}
                       {manageConfirm && (

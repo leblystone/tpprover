@@ -861,9 +861,15 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
 
     return (
         <div className="space-y-3">
-            <p className="text-xs text-center mt-1" style={{ color: theme.textLight }}>
+            <div 
+                className="text-xs text-center py-2 px-3 rounded-lg"
+                style={{ 
+                    backgroundColor: `${theme.info || theme.primary}10`,
+                    color: theme.textLight
+                }}
+            >
                 Link vials from your stockpile and manage delivery methods.
-            </p>
+            </div>
             {protocol.peptides.map((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;
                 return (

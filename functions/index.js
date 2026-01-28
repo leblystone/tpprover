@@ -680,11 +680,35 @@ exports.scheduledResearchReminders = onSchedule({
       logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${todayPeptides.length} peptides, ${todaySupplements.length} supplements)`);
       logger.info(`📍 User time: ${currentHour}:${currentMinute}, Rounded to: ${Math.floor(currentMinute / 15) * 15}`);
 
+      // Load template from Firestore (researchReminderAM or researchReminderPM)
+      const templateType = notificationType === 'AM' ? 'researchReminderAM' : 'researchReminderPM';
+      let notificationTitle = notificationType === 'AM' ? '☀️ Morning Research Reminder' : '🌙 Evening Research Reminder';
+      let notificationBody = `You have ${todayPeptides.length} peptide(s) and ${todaySupplements.length} supplement(s) scheduled for this ${notificationType === 'AM' ? 'morning' : 'evening'}.`;
+      
+      try {
+        const templateDoc = await admin.firestore().collection('notificationTemplates').doc(templateType).get();
+        if (templateDoc.exists) {
+          const template = templateDoc.data();
+          notificationTitle = template.title || notificationTitle;
+          notificationBody = template.body || notificationBody;
+          
+          // Replace variables in template
+          notificationBody = notificationBody
+            .replace(/{peptideCount}/g, todayPeptides.length.toString())
+            .replace(/{supplementCount}/g, todaySupplements.length.toString());
+          
+          logger.info(`✅ Using custom ${templateType} notification template from Firestore`);
+        } else {
+          logger.info(`ℹ️ No custom template found for ${templateType}, using default`);
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Could not load notification template ${templateType} from Firestore, using default:`, error.message);
+      }
 
       // Send reminder notification with proper AM/PM template
       const notificationData = {
-        title: notificationType === 'AM' ? '☀️ Morning Research Reminder' : '🌙 Evening Research Reminder',
-        body: `You have ${todayPeptides.length} peptide(s) and ${todaySupplements.length} supplement(s) scheduled for this ${notificationType === 'AM' ? 'morning' : 'evening'}.`,
+        title: notificationTitle,
+        body: notificationBody,
         peptides: todayPeptides,
         supplements: todaySupplements,
         peptideCount: todayPeptides.length,
