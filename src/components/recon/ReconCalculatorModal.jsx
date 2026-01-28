@@ -241,6 +241,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       open={open} 
       onClose={handleClose} 
       title="Peptide Calculator"
+      seamlessContent={true}
       titleExtra={
         <AutoSaveIndicator 
           isSaving={isSaving || isSavingToRecon} 

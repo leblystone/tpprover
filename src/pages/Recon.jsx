@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus, Link } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus, Link, Hand } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -1102,6 +1102,16 @@ export default function Recon() {
                                                             <PenTool size={9} strokeWidth={2.5} />
                                                             <span>{item.penColor.startsWith('#') ? 'Custom' : item.penColor} Pen</span>
                                                         </div>
+                                                    ) : item.deliveryMethod === 'nasal' ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                            <Droplet className="w-2.5 h-2.5 opacity-70" />
+                                                            Nasal
+                                                        </span>
+                                                    ) : item.deliveryMethod === 'topical' ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                            <Hand className="w-2.5 h-2.5 opacity-70" />
+                                                            Topical
+                                                        </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
                                                             <Pipette className="w-2.5 h-2.5 opacity-70" />
@@ -1841,6 +1851,33 @@ export default function Recon() {
                             >
                                 <Droplet size={16} /> Nasal
                             </button>
+                            <button 
+                                onClick={() => {
+                                    const updates = { deliveryMethod: 'topical' };
+                                    if (editingItem?.doseUnit === 'sprays') {
+                                        updates.doseUnit = 'mcg';
+                                    }
+                                    updateEditingItem(updates);
+                                }}
+                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                    editingItem?.deliveryMethod === 'topical' 
+                                        ? 'text-white shadow-sm' 
+                                        : ''
+                                }`}
+                                style={editingItem?.deliveryMethod === 'topical' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                onMouseEnter={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'topical') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'topical') {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
+                            >
+                                <Hand size={16} /> Topical
+                            </button>
                         </div>
                         {(editingItem?.deliveryMethod === 'pipette' || !editingItem?.deliveryMethod) && (
                             <div className="mt-3">
@@ -2107,7 +2144,7 @@ export default function Recon() {
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Dose</div><div className="font-medium">{viewItem.dose ? `${viewItem.dose} ${viewItem.doseUnit || 'mcg'}` : '—'}</div></div>
-                                <div className="col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
+                                <div className="col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{viewItem.deliveryMethod === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : viewItem.deliveryMethod === 'nasal' ? 'Nasal' : viewItem.deliveryMethod === 'topical' ? 'Topical' : 'Syringe'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
                                 <div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>
@@ -2180,6 +2217,7 @@ export default function Recon() {
 				title="Peptide Calculator" 
 				theme={theme} 
 				maxHeight="90vh"
+				seamlessContent={true}
 				footer={
 					<div className="w-full">
 						<button
@@ -2254,7 +2292,9 @@ export default function Recon() {
 					prefill={prefill} 
 					isReadOnly={isReadOnly} 
 					onUpgrade={() => setShowUpgradeModal(true)} 
-					onSave={null} // Don't show save button in panel - it's in footer
+					onSave={null}
+					noCard={true}
+					compact={true}
 					hideSaveButton={true}
 					formData={calculatorFormData}
 					setFormData={(newForm) => {

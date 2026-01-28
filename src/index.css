@@ -50,6 +50,27 @@ html, body, #root {
 
 .animate-slide-in { animation: slideIn 0.2s ease-out; }
 
+/* Bottom sheet seamless content - minimal scrollbar, no track so no vertical "line" on the right */
+.bottom-sheet-seamless-content {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+}
+.bottom-sheet-seamless-content::-webkit-scrollbar {
+  width: 5px;
+}
+.bottom-sheet-seamless-content::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.bottom-sheet-seamless-content::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 10px;
+}
+.bottom-sheet-seamless-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
 /* Simple cards */
 .content-card { border-radius: 14px; }
 .card-shadow { box-shadow: 0 10px 18px rgba(0,0,0,0.08); }

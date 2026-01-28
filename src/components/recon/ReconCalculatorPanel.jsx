@@ -6,7 +6,7 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark } from 'lucide-react'
+import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false }) {
@@ -457,20 +457,20 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   }, [isPriceUnitDropdownOpen]);
 
   const content = (
-    <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
+    <div className={`relative ${compact ? 'px-4 sm:px-5' : ''} ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
       {!hideHeader && (
         <>
           <div className="flex items-center gap-4 mb-2">
             <TestTube size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+              <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
                 Vial Details
               </h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Research Parameters
+                  Dosage Setup
                 </span>
               </div>
             </div>
@@ -971,7 +971,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       color: theme.isDark ? theme.text : '#181A18',
                       border: 'none',
                       paddingLeft: '12px',
-                      paddingRight: '4px'
+                      paddingRight: '4px',
+                      textAlign: 'left'
                     }}
                   />
                   <div className="flex items-center pr-2 pointer-events-none">
@@ -1091,15 +1092,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </div>
                   <label 
                     htmlFor="recon-cost-input"
-                    className="absolute pointer-events-none transition-all"
+                    className="absolute pointer-events-none transition-all text-left"
                     style={{
                       fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
                       top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
-                      left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '40px' : '44px',
+                      left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
                       padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
                       background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
                       color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
-                      fontWeight: 500
+                      fontWeight: 500,
+                      textAlign: 'left'
                     }}
                   >
                   Cost ($)
@@ -1148,138 +1150,134 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </div>
               </div>
             )}
-            <div className="relative flex flex-col items-center justify-center" style={{ minWidth: 0, maxWidth: '280px', width: '100%' }}>
-              {/* Multiple Peptides Alert Chip - Above vial visual */}
-              {safeForm.peptides && safeForm.peptides.length >= 2 && (
-                <div 
-                  className="absolute px-2.5 py-1 rounded-full flex items-center gap-1.5"
-                  style={{ 
-                    backgroundColor: theme.primary + '20',
-                    border: `1px solid ${theme.primary}40`,
-                    top: '10px',
-                    zIndex: 5
-                  }}
-                  title={`${safeForm.peptides.length} peptides configured`}
-                >
-                  <div className="relative flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center" style={{ minWidth: 0, maxWidth: '280px', width: '100%' }}>
+              {/* Vial row: left chevron | vial image | right chevron (when multiple peptides) */}
+              <div className={`flex items-center justify-center w-full ${safeForm.peptides && safeForm.peptides.length > 1 ? 'gap-2' : ''}`}>
+                {safeForm.peptides && safeForm.peptides.length > 1 && (
+                  <button
+                    onClick={() => {
+                      const peptides = safeForm.peptides || [];
+                      if (peptides.length > 1) {
+                        setCurrentPeptideIndex((prev) => (prev - 1 + peptides.length) % peptides.length);
+                      }
+                    }}
+                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-110 touch-manipulation"
+                    style={{
+                      backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                      color: theme.primary,
+                      border: `1px solid ${theme.border}`
+                    }}
+                    aria-label="Previous peptide"
+                    title="Previous peptide"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                )}
+                <div className="relative flex flex-col items-center justify-center" style={{ minWidth: 0, flex: '1 1 0' }}>
+                  {/* Multiple Peptides Alert Chip - Above vial visual */}
+                  {safeForm.peptides && safeForm.peptides.length >= 2 && (
                     <div 
-                      className="absolute w-1.5 h-1.5 rounded-full animate-ping"
-                      style={{ backgroundColor: theme.primary, opacity: 0.75 }}
-                    />
-                    <div 
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold" style={{ color: theme.primary }}>
-                    Multiple Peptides
-                  </span>
-                </div>
-              )}
-              <VialLabelPreview 
-                form={safeForm}
-                deliveryMethod={deliveryMethod}
-                administrationRoute={administrationRoute}
-                penType={form.penType}
-                penColor={penColor}
-                theme={theme}
-                currentPeptideIndex={currentPeptideIndex}
-                compact={true}
-              />
-              
-              {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide and allowed) */}
-              {allowRemovePeptide && safeForm.peptides && safeForm.peptides.length > 1 && (
-                <button
-                  onClick={() => {
-                    const peptideId = safeForm.peptides[currentPeptideIndex]?.id;
-                    removePeptide(peptideId);
-                    // Move to previous peptide if we deleted the last one
-                    if (currentPeptideIndex >= safeForm.peptides.length - 1) {
-                      setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
-                    }
-                  }}
-                  className="absolute right-0 w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                  style={{
-                    top: '10px',
-                    zIndex: 5,
-                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                  }}
-                  title="Remove this peptide"
-                >
-                  <X size={12} />
-                </button>
-              )}
-              
-              {/* Pagination Dots - Overlay on bottom of vial */}
-              {safeForm.peptides && safeForm.peptides.length > 1 && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1" style={{ marginBottom: '8px', zIndex: 10 }}>
-                  <p className="text-xs italic lg:hidden" style={{ color: theme.textLight, opacity: 0.6 }}>
-                    Swipe to change peptides
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    {/* Left Arrow - Desktop only */}
-                    <button
-                      onClick={() => {
-                        const peptides = safeForm.peptides || [];
-                        if (peptides.length > 1) {
-                          setCurrentPeptideIndex((prev) => (prev - 1 + peptides.length) % peptides.length);
-                        }
+                      className="absolute px-2.5 py-1 rounded-full flex items-center gap-1.5"
+                      style={{ 
+                        backgroundColor: theme.primary + '20',
+                        border: `1px solid ${theme.primary}40`,
+                        top: '10px',
+                        zIndex: 5
                       }}
-                      className="hidden lg:flex items-center justify-center w-6 h-6 rounded-full transition-all hover:scale-110"
-                      style={{
-                        backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                        color: theme.primary,
-                        border: `1px solid ${theme.border}`
-                      }}
-                      aria-label="Previous peptide"
+                      title={`${safeForm.peptides.length} peptides configured`}
                     >
-                      <ChevronLeft size={14} />
-                    </button>
-                    
-                    {/* Pagination Dots */}
-                    <div className="flex justify-center gap-2.5 h-3">
-                      {safeForm.peptides.map((peptide, idx) => (
-                        <button
-                          key={peptide.id}
-                          onClick={() => setCurrentPeptideIndex(idx)}
-                          className="w-3 h-3 rounded-full transition-all hover:scale-125 cursor-pointer"
-                          style={{
-                            backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                            opacity: idx === currentPeptideIndex ? 1 : 0.4
-                          }}
-                          aria-label={`Peptide ${idx + 1}`}
+                      <div className="relative flex items-center justify-center">
+                        <div 
+                          className="absolute w-1.5 h-1.5 rounded-full animate-ping"
+                          style={{ backgroundColor: theme.primary, opacity: 0.75 }}
                         />
-                      ))}
+                        <div 
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: theme.primary }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: theme.primary }}>
+                        Multiple Peptides
+                      </span>
                     </div>
-                    
-                    {/* Right Arrow - Desktop only */}
+                  )}
+                  <VialLabelPreview 
+                    form={safeForm}
+                    deliveryMethod={deliveryMethod}
+                    administrationRoute={administrationRoute}
+                    penType={form.penType}
+                    penColor={penColor}
+                    theme={theme}
+                    currentPeptideIndex={currentPeptideIndex}
+                    compact={true}
+                  />
+                  {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide and allowed) */}
+                  {allowRemovePeptide && safeForm.peptides && safeForm.peptides.length > 1 && (
                     <button
                       onClick={() => {
-                        const peptides = safeForm.peptides || [];
-                        if (peptides.length > 1) {
-                          setCurrentPeptideIndex((prev) => (prev + 1) % peptides.length);
+                        const peptideId = safeForm.peptides[currentPeptideIndex]?.id;
+                        removePeptide(peptideId);
+                        if (currentPeptideIndex >= safeForm.peptides.length - 1) {
+                          setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
                         }
                       }}
-                      className="hidden lg:flex items-center justify-center w-6 h-6 rounded-full transition-all hover:scale-110"
+                      className="absolute right-0 w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-110"
                       style={{
-                        backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                        color: theme.primary,
-                        border: `1px solid ${theme.border}`
+                        top: '10px',
+                        zIndex: 5,
+                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
                       }}
-                      aria-label="Next peptide"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                      }}
+                      title="Remove this peptide"
                     >
-                      <ChevronRight size={14} />
+                      <X size={12} />
                     </button>
-                  </div>
+                  )}
+                </div>
+                {safeForm.peptides && safeForm.peptides.length > 1 && (
+                  <button
+                    onClick={() => {
+                      const peptides = safeForm.peptides || [];
+                      if (peptides.length > 1) {
+                        setCurrentPeptideIndex((prev) => (prev + 1) % peptides.length);
+                      }
+                    }}
+                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-110 touch-manipulation"
+                    style={{
+                      backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                      color: theme.primary,
+                      border: `1px solid ${theme.border}`
+                    }}
+                    aria-label="Next peptide"
+                    title="Next peptide"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+              </div>
+              {/* Pagination dots only - below vial */}
+              {safeForm.peptides && safeForm.peptides.length > 1 && (
+                <div className="flex justify-center gap-2.5 h-3 items-center mt-0.5 mb-3">
+                  {safeForm.peptides.map((peptide, idx) => (
+                    <button
+                      key={peptide.id}
+                      onClick={() => setCurrentPeptideIndex(idx)}
+                      className="w-3 h-3 rounded-full transition-all hover:scale-125 cursor-pointer touch-manipulation"
+                      style={{
+                        backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                        opacity: idx === currentPeptideIndex ? 1 : 0.4
+                      }}
+                      aria-label={`Peptide ${idx + 1}`}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -1323,19 +1321,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           <div className="flex items-center gap-4 mb-2">
             <Droplets size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>
+              <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
                 Delivery Method
               </h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Administration Mode
+                  Administration
                 </span>
               </div>
             </div>
           </div>
           <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
@@ -1352,16 +1350,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
+                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
                     style={{
                         backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'pipette' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
-                        transform: deliveryMethod === 'pipette' ? 'translateY(-2px)' : 'none'
+                        boxShadow: deliveryMethod === 'pipette' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
+                        transform: deliveryMethod === 'pipette' ? 'translateY(-1px)' : 'none'
                     }}
                 >
-                    <Pipette size={18} /> Syringe
+                    <Pipette size={16} /> Syringe
                 </button>
                 <button 
                     onClick={() => {
@@ -1379,16 +1377,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
+                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
                     style={{
                         backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'pen' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
-                        transform: deliveryMethod === 'pen' ? 'translateY(-2px)' : 'none'
+                        boxShadow: deliveryMethod === 'pen' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
+                        transform: deliveryMethod === 'pen' ? 'translateY(-1px)' : 'none'
                     }}
                 >
-                    <Pen size={18} /> Pen
+                    <Pen size={16} /> Pen
                 </button>
                 <button 
                     onClick={() => {
@@ -1403,16 +1401,43 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-sm`}
+                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
                     style={{
                         backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
                         color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'nasal' ? `0 8px 20px -6px ${theme.primary}60` : 'none',
-                        transform: deliveryMethod === 'nasal' ? 'translateY(-2px)' : 'none'
+                        boxShadow: deliveryMethod === 'nasal' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
+                        transform: deliveryMethod === 'nasal' ? 'translateY(-1px)' : 'none'
                     }}
                 >
-                    <Wind size={18} /> Nasal
+                    <Wind size={16} /> Nasal
+                </button>
+                <button 
+                    onClick={() => {
+                        setDeliveryMethod('topical');
+                        // Revert sprays to mcg when switching away from nasal
+                        setForm(prev => {
+                            const safePrev = prev || defaultFormStructure;
+                            return {
+                                ...safePrev,
+                                deliveryMethod: 'topical',
+                                peptides: (safePrev.peptides || []).map(p => ({ 
+                                    ...p, 
+                                    doseUnit: p.doseUnit === 'sprays' ? 'mcg' : (p.doseUnit || 'mcg')
+                                }))
+                            };
+                        });
+                    }}
+                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
+                    style={{
+                        backgroundColor: deliveryMethod === 'topical' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
+                        color: deliveryMethod === 'topical' ? theme.textOnPrimary : theme.text,
+                        borderColor: deliveryMethod === 'topical' ? theme.primary : theme.border,
+                        boxShadow: deliveryMethod === 'topical' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
+                        transform: deliveryMethod === 'topical' ? 'translateY(-1px)' : 'none'
+                    }}
+                >
+                    <Hand size={16} /> Topical
                 </button>
             </div>
             
@@ -1964,10 +1989,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         <div>
           <div className="my-3 border-t opacity-50" style={{ borderColor: theme.border }} />
           <div 
-            className="rounded-2xl p-4 relative overflow-hidden group transition-all duration-300 hover:shadow-xl" 
+            className={`rounded-2xl p-4 relative overflow-hidden group transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
             style={{ 
-              backgroundColor: theme.isDark ? theme.background : theme.primary + '05', 
-              border: `1px solid ${theme.primary}15`
+              backgroundColor: theme.isDark ? theme.background : theme.primary + '05',
+              ...(compact ? { border: 'none', boxShadow: 'none' } : { border: `1px solid ${theme.primary}15` })
             }}
           >
             {/* Subtle background decoration */}
@@ -2000,7 +2025,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             <div className="flex items-center justify-center gap-2 mt-2 opacity-50">
               <div className="h-px w-8 bg-current"></div>
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-                  {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
+                  {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : deliveryMethod === 'nasal' ? 'Nasal spray' : 'Topical application'}
               </p>
               <div className="h-px w-8 bg-current"></div>
             </div>

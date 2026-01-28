@@ -18,6 +18,7 @@ import { hapticsLight, hapticsMedium } from '../../utils/haptics';
  * - footer: ReactNode (optional) - footer content
  * - maxHeight: string (optional) - max height (default: '90vh')
  * - fitContent: boolean (optional) - when true, sheet height fits content (no extra vertical space)
+ * - seamlessContent: boolean (optional) - when true, no borders between header/content/footer so content doesn't look like a nested card
  * - snapPoints: array (optional) - snap positions for dragging [0.5, 0.9]
  */
 export default function BottomSheet({ 
@@ -31,6 +32,7 @@ export default function BottomSheet({
   footer, 
   maxHeight = '90vh',
   fitContent = false,
+  seamlessContent = false,
   snapPoints = [0.9], // Default to single snap point at 90% height
   centerTitle = false
 }) {
@@ -262,13 +264,13 @@ export default function BottomSheet({
           </div>
         )}
 
-        {/* Header */}
+        {/* Header - match content horizontal padding when seamless so no inner "frame" */}
         <div 
-          className={`flex items-center px-6 py-3 flex-shrink-0 border-b ${centerTitle ? 'justify-center relative' : 'justify-between'}`}
+          className={`flex items-center py-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-b'} ${centerTitle ? 'justify-center relative' : 'justify-between'}`}
           style={{ 
             backgroundColor: headerBackground,
             color: headerTextColor,
-            borderColor: theme?.border || 'rgba(0,0,0,0.1)'
+            ...(seamlessContent ? {} : { borderColor: theme?.border || 'rgba(0,0,0,0.1)' })
           }}
         >
           {centerTitle ? (
@@ -384,21 +386,36 @@ export default function BottomSheet({
           )}
         </div>
 
-        {/* Content */}
+        {/* Content - use minimal padding when seamlessContent so content doesn't look like a nested card */}
         <div 
-          className={`overflow-x-hidden ${fitContent ? 'flex-none p-3 sm:p-4 overflow-y-visible' : 'flex-1 p-4 sm:p-6 overflow-y-auto'}`}
-          style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}
+          data-seamless={seamlessContent ? 'true' : undefined}
+          className={`overflow-x-hidden ${
+            fitContent ? 'flex-none p-3 sm:p-4 overflow-y-visible' 
+              : seamlessContent ? 'flex-1 overflow-y-auto bottom-sheet-seamless-content' 
+              : 'flex-1 p-4 sm:p-6 overflow-y-auto'
+          }`}
+          style={{ 
+            backgroundColor: theme?.cardBackground || '#FFFFFF',
+            ...(seamlessContent ? { 
+              boxShadow: 'none', 
+              border: 'none',
+              paddingLeft: 0,
+              paddingRight: 0,
+              paddingTop: '0.5rem',
+              paddingBottom: '0.75rem'
+            } : {})
+          }}
         >
           {children}
         </div>
 
-        {/* Footer */}
+        {/* Footer - match content horizontal padding when seamless so no inner "frame" */}
         {footer && (
           <div 
-            className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" 
+            className={`py-3 flex items-center justify-end gap-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-t'}`}
             style={{ 
-              backgroundColor: theme?.cardBackground || '#FFFFFF', 
-              borderColor: theme?.border || 'rgba(0,0,0,0.1)',
+              backgroundColor: theme?.cardBackground || '#FFFFFF',
+              ...(seamlessContent ? {} : { borderColor: theme?.border || 'rgba(0,0,0,0.1)' }),
               // Add bottom padding for Android navigation bar on mobile devices
               // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
               // Devices without overlap (e.g., Pixel) will just get normal 0.75rem padding
