@@ -2,6 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { X, FileText, Package, FlaskConical, ShoppingCart, Users, Download, Eye, Target, Calendar, BarChart3, Clock, BookOpen } from 'lucide-react';
 import Modal from './Modal';
+import BottomSheet from './BottomSheet';
 import { exportUserDataToCSV, exportUserDataToPDF } from '../../utils/export';
 
 export default function DataViewModal({ open, onClose, theme, userData }) {
@@ -962,22 +963,22 @@ function VendorDetailModal({ open, onClose, vendor, theme }) {
   );
 }
 
-// Supplement Detail Modal
+// Supplement Detail Modal (bottom sheet style)
 function SupplementDetailModal({ open, onClose, supplement, theme }) {
   return (
-    <Modal open={open} onClose={onClose} onBack={onClose} title="Supplement Details" theme={theme} maxWidth="max-w-xl">
+    <BottomSheet open={open} onClose={onClose} onBack={onClose} title="Supplement Details" theme={theme} maxHeight="90vh">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{supplement.name}</h3>
+        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{supplement?.name}</h3>
         <div className="grid grid-cols-2 gap-3">
-          {supplement.type && <DetailField label="Type" value={supplement.type} theme={theme} />}
-          {supplement.brand && <DetailField label="Brand" value={supplement.brand} theme={theme} />}
-          {supplement.dosage && <DetailField label="Dosage" value={supplement.dosage} theme={theme} />}
-          {supplement.frequency && <DetailField label="Frequency" value={supplement.frequency} theme={theme} />}
-          {supplement.purpose && <DetailField label="Purpose" value={supplement.purpose} theme={theme} />}
+          {supplement?.type && <DetailField label="Type" value={supplement.type} theme={theme} />}
+          {supplement?.brand && <DetailField label="Brand" value={supplement.brand} theme={theme} />}
+          {supplement?.dosage && <DetailField label="Dosage" value={supplement.dosage} theme={theme} />}
+          {supplement?.frequency && <DetailField label="Frequency" value={supplement.frequency} theme={theme} />}
+          {supplement?.purpose && <DetailField label="Purpose" value={supplement.purpose} theme={theme} />}
         </div>
-        {supplement.notes && <DetailNotes notes={supplement.notes} theme={theme} />}
+        {supplement?.notes && <DetailNotes notes={supplement.notes} theme={theme} />}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }
 

@@ -17,6 +17,7 @@ import { hapticsLight, hapticsMedium } from '../../utils/haptics';
  * - children: ReactNode - modal content
  * - footer: ReactNode (optional) - footer content
  * - maxHeight: string (optional) - max height (default: '90vh')
+ * - fitContent: boolean (optional) - when true, sheet height fits content (no extra vertical space)
  * - snapPoints: array (optional) - snap positions for dragging [0.5, 0.9]
  */
 export default function BottomSheet({ 
@@ -29,6 +30,7 @@ export default function BottomSheet({
   children, 
   footer, 
   maxHeight = '90vh',
+  fitContent = false,
   snapPoints = [0.9], // Default to single snap point at 90% height
   centerTitle = false
 }) {
@@ -229,7 +231,7 @@ export default function BottomSheet({
         `}
         style={{ 
           backgroundColor: theme?.cardBackground || '#FFFFFF',
-          height: maxHeight,
+          height: fitContent ? 'auto' : maxHeight,
           maxHeight: maxHeight,
           boxShadow: theme?.isDark 
             ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1)' 
@@ -384,7 +386,7 @@ export default function BottomSheet({
 
         {/* Content */}
         <div 
-          className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" 
+          className={`overflow-x-hidden ${fitContent ? 'flex-none p-3 sm:p-4 overflow-y-visible' : 'flex-1 p-4 sm:p-6 overflow-y-auto'}`}
           style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}
         >
           {children}
