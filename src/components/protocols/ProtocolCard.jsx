@@ -770,18 +770,9 @@ function renderDateRange(p, isActive) {
     }
     // Guard: never earlier than start (normalized comparison)
     if (end && normalizeToMidnight(end) < startNormalized) end = new Date(startNormalized)
-    // Apply washout if enabled
-    let washEnd = null
-    if (end && p.washout?.enabled && p.washout?.count > 0 && p.washout?.unit) {
-        const wStart = normalizeToMidnight(new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1))
-        washEnd = new Date(wStart)
-        const wUnit = String(p.washout.unit).toLowerCase()
-        const wCount = Number(p.washout.count) || 0
-        if (wUnit.includes('day')) washEnd.setDate(washEnd.getDate() + wCount - 1)
-        else if (wUnit.includes('week')) washEnd.setDate(washEnd.getDate() + (wCount * 7) - 1)
-        else if (wUnit.includes('month')) { washEnd.setMonth(washEnd.getMonth() + wCount); washEnd.setDate(washEnd.getDate() - 1) }
-    }
-    const displayEnd = washEnd || end
+    // Note: Washout is calculated for reference/reminders but NOT included in protocol date range
+    // Washout should be separate from the protocol duration
+    const displayEnd = end
     const startStr = formatMMDDYYYY(startNormalized)
     
     // If active and no end date (ongoing): return empty - only "Active since" will show

@@ -62,8 +62,8 @@ export default function Protocols() {
   const [manageConfirm, setManageConfirm] = useState(null);
   const [manageTab, setManageTab] = useState('manage'); // 'manage' | 'edit' | 'notes' | 'share' | 'history'
   const [expandedManageSections, setExpandedManageSections] = useState({
-    settings: true, // Protocol Settings expanded by default
-    vials: false // Vials & Delivery Methods collapsed (optional)
+    settings: false, // Protocol Settings collapsed by default
+    vials: false // Vials & Delivery Methods collapsed by default
   });
   const [editFromManage, setEditFromManage] = useState(null); // Track if editing from manage modal
   const [historyFromManage, setHistoryFromManage] = useState(false);
@@ -846,9 +846,33 @@ export default function Protocols() {
         console.log('📅 Calculated standard endDate:', newEndDate);
       }
       
-      // Update if endDate changed
-      if (newEndDate && newEndDate !== p.endDate) {
-        console.log('✅ Updating protocol:', p.name, 'from', p.endDate, 'to', newEndDate);
+      // Check if current endDate might include washout (if washout is enabled)
+      let needsFix = false;
+      if (p.endDate && p.washout?.enabled && p.washout?.count > 0 && p.washout?.unit && newEndDate) {
+        // Calculate what endDate would be WITH washout included
+        const washoutDays = (() => {
+          const count = Number(p.washout.count);
+          const unit = String(p.washout.unit).toLowerCase();
+          if (unit.includes('day')) return count;
+          if (unit.includes('week')) return count * 7;
+          if (unit.includes('month')) return count * 30;
+          return 0;
+        })();
+        
+        const endWithWashout = new Date(parseDateString(newEndDate));
+        endWithWashout.setDate(endWithWashout.getDate() + washoutDays);
+        const endWithWashoutStr = getLocalDateString(endWithWashout);
+        
+        // If current endDate matches "correct endDate + washout", it's wrong
+        if (p.endDate === endWithWashoutStr) {
+          console.log('⚠️ Detected washout incorrectly included in endDate for:', p.name);
+          needsFix = true;
+        }
+      }
+      
+      // Update if endDate changed OR if washout was incorrectly included
+      if (newEndDate && (newEndDate !== p.endDate || needsFix)) {
+        console.log('✅ Updating protocol:', p.name || p.protocolName, 'from', p.endDate, 'to', newEndDate, needsFix ? '(fixing washout issue)' : '');
         updateProtocol({ ...p, endDate: newEndDate });
         migratedCount++;
       } else {
@@ -2384,8 +2408,15 @@ export default function Protocols() {
               } catch { return p.endDate || null; }
           };
 
+          // Always recalculate endDate when editing - this ensures washout is never included
+          // and fixes any existing protocols with incorrect endDate
           const newEndDate = computeEndDate(updatedProtocol);
           const finalProtocol = { ...updatedProtocol, endDate: newEndDate };
+          
+          // Log if we're fixing an active protocol (helps with user communication)
+          if (updatedProtocol.active && updatedProtocol.endDate && updatedProtocol.endDate !== newEndDate) {
+            console.log('🔄 Recalculated endDate for active protocol:', updatedProtocol.name || updatedProtocol.protocolName, 'from', updatedProtocol.endDate, 'to', newEndDate);
+          }
 
           // Update protocol
           updateProtocol(finalProtocol);
@@ -3525,11 +3556,83 @@ export default function Protocols() {
       <StartProtocolWizard 
         open={!!startConfirm}
         onClose={() => setStartConfirm(null)}
-        protocol={startConfirm ? (protocols.find(p => p.id === startConfirm.id) || startConfirm) : null}
+        protocol={startConfirm ? (() => {
+            // Always look up fresh protocol from array to ensure we have complete data
+            const foundProtocol = protocols.find(p => p.id === startConfirm.id);
+            if (!foundProtocol) {
+                console.error('❌ Protocol not found in protocols array:', startConfirm.id, 'Available IDs:', protocols.map(p => p.id));
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Protocol not found. Please refresh and try again.', type: 'error' } 
+                }));
+                return null;
+            }
+            // Validate found protocol has required fields
+            if (!foundProtocol.protocolName && !foundProtocol.name) {
+                console.error('❌ Found protocol missing name:', foundProtocol);
+            }
+            if (!foundProtocol.peptides || foundProtocol.peptides.length === 0) {
+                console.error('❌ Found protocol missing peptides:', foundProtocol);
+            }
+            return foundProtocol;
+        })() : null}
         stockpile={stockpile}
         setStockpile={setStockpile}
         theme={theme}
         onStart={(finalizedProtocol) => {
+            // Validate protocol has required fields before saving
+            if (!finalizedProtocol) {
+                console.error('❌ Cannot start: protocol is null or undefined');
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: missing data', type: 'error' } 
+                }));
+                return;
+            }
+            
+            if (!finalizedProtocol.id) {
+                console.error('❌ Cannot start: protocol missing id');
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: missing protocol ID', type: 'error' } 
+                }));
+                return;
+            }
+            
+            if (!finalizedProtocol.protocolName && !finalizedProtocol.name) {
+                console.error('❌ Cannot start: protocol missing name', finalizedProtocol);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: protocol must have a name', type: 'error' } 
+                }));
+                return;
+            }
+            
+            if (!finalizedProtocol.peptides || finalizedProtocol.peptides.length === 0) {
+                console.error('❌ Cannot start: protocol missing peptides', finalizedProtocol);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: protocol must have at least one peptide', type: 'error' } 
+                }));
+                return;
+            }
+            
+            // Find the original protocol to ensure we preserve all data
+            const originalProtocol = protocols.find(p => p.id === finalizedProtocol.id);
+            if (!originalProtocol) {
+                console.error('❌ Cannot start: original protocol not found', finalizedProtocol.id);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: original protocol not found', type: 'error' } 
+                }));
+                return;
+            }
+            
+            // Merge with original to preserve any missing fields
+            const mergedProtocol = {
+                ...originalProtocol, // Start with original to preserve all data
+                ...finalizedProtocol, // Override with wizard data
+                // Ensure critical fields are preserved
+                protocolName: finalizedProtocol.protocolName || originalProtocol.protocolName || originalProtocol.name,
+                peptides: finalizedProtocol.peptides || originalProtocol.peptides,
+                purpose: finalizedProtocol.purpose || originalProtocol.purpose,
+                duration: finalizedProtocol.duration || originalProtocol.duration
+            };
+            
             // Compute and persist explicit endDate based on duration/cycle for reliable calendar sync
             const computeEndDate = (p) => {
                 try {
@@ -3596,11 +3699,28 @@ export default function Protocols() {
                 })
             });
 
-            const withTimes = ensureTimes(finalizedProtocol);
+            const withTimes = ensureTimes(mergedProtocol);
             const explicitEnd = computeEndDate(withTimes);
             const toSave = explicitEnd 
                 ? { ...withTimes, endDate: explicitEnd, active: true } 
                 : { ...withTimes, active: true };
+
+            // Final validation before saving
+            if (!toSave.protocolName && !toSave.name) {
+                console.error('❌ Cannot save: protocol still missing name after merge', toSave);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: name is required', type: 'error' } 
+                }));
+                return;
+            }
+            
+            if (!toSave.peptides || toSave.peptides.length === 0) {
+                console.error('❌ Cannot save: protocol still missing peptides after merge', toSave);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Cannot start protocol: at least one peptide is required', type: 'error' } 
+                }));
+                return;
+            }
 
             updateProtocol(toSave);
 

@@ -12,13 +12,29 @@ export function loadSettings() {
       return settingsCache;
     }
     
-    const settings = JSON.parse(localStorage.getItem('tpprover_settings') || 'null')
+    let settings = JSON.parse(localStorage.getItem('tpprover_settings') || 'null')
+    
+    // Auto-detect and set timezone if missing or invalid
+    if (!settings || !settings.region || !settings.region.timeZone) {
+      const detectedTimezone = getLocalTimezone();
+      if (!settings) {
+        settings = getDefaultSettings();
+      } else {
+        if (!settings.region) {
+          settings.region = {};
+        }
+        // Only set if truly missing - don't override user's manual selection
+        if (!settings.region.timeZone) {
+          settings.region.timeZone = detectedTimezone;
+          // Auto-save the detected timezone
+          saveSettings(settings);
+        }
+      }
+    }
     
     // Update cache
     settingsCache = settings;
     settingsCacheTimestamp = now;
-    
-    // Settings loaded from cache
     
     return settings
   } catch (error) {
@@ -46,13 +62,15 @@ export function saveSettings(obj) {
 }
 
 /**
- * Get the device's local timezone
+ * Get the device's local timezone automatically
  * Works in web, iOS (WKWebView), and Android (Chrome WebView)
  * No permissions required - reads from system settings
+ * Automatically detects timezone from browser/system
  */
 export function getLocalTimezone() {
   try {
     // Primary method: Intl.DateTimeFormat (works in modern browsers and Capacitor WebViews)
+    // This is the most accurate method and works automatically without user input
     if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
       const options = Intl.DateTimeFormat().resolvedOptions();
       if (options && options.timeZone) {
@@ -61,6 +79,8 @@ export function getLocalTimezone() {
     }
     
     // Fallback: Calculate from timezone offset (works everywhere but less precise)
+    // This calculates timezone from the current offset, which works but is less precise
+    // than named timezones (e.g., "America/New_York")
     const offset = -new Date().getTimezoneOffset(); // Negative because getTimezoneOffset returns opposite
     const hours = Math.floor(Math.abs(offset) / 60);
     const minutes = Math.abs(offset) % 60;
@@ -71,6 +91,34 @@ export function getLocalTimezone() {
   } catch (error) {
     console.warn('⚠️ Could not detect timezone, defaulting to UTC:', error);
     return 'UTC';
+  }
+}
+
+/**
+ * Automatically detect and update timezone in settings if missing
+ * This ensures all users have their timezone set automatically
+ */
+export function ensureTimezoneSet() {
+  try {
+    const settings = loadSettings();
+    if (!settings) return;
+    
+    // Check if timezone is missing or invalid
+    if (!settings.region || !settings.region.timeZone) {
+      const detectedTimezone = getLocalTimezone();
+      if (!settings.region) {
+        settings.region = {};
+      }
+      settings.region.timeZone = detectedTimezone;
+      saveSettings(settings);
+      console.log('✅ Auto-detected and set timezone:', detectedTimezone);
+      return detectedTimezone;
+    }
+    
+    return settings.region.timeZone;
+  } catch (error) {
+    console.warn('⚠️ Failed to ensure timezone is set:', error);
+    return null;
   }
 }
 
