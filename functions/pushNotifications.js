@@ -32,7 +32,8 @@ async function sendPushNotification(userId, title, body, data = {}) {
       data: {
         ...data,
         timestamp: Date.now().toString(),
-        click_action: data.clickAction || 'FLUTTER_NOTIFICATION_CLICK'
+        click_action: data.clickAction || data.path || 'FLUTTER_NOTIFICATION_CLICK',
+        path: data.path || data.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
       },
       webpush: {
         notification: {
@@ -44,11 +45,12 @@ async function sendPushNotification(userId, title, body, data = {}) {
           requireInteraction: false,
           data: {
             ...data,
-            url: data.clickAction || 'https://thepepplanner.com/app/dashboard'
+            url: data.clickAction || data.path || 'https://thepepplanner.com/app/dashboard',
+            path: data.path || data.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
           }
         },
         fcm_options: {
-          link: data.clickAction || 'https://thepepplanner.com/app/dashboard'
+          link: data.clickAction || data.path || 'https://thepepplanner.com/app/dashboard'
         }
       },
       android: {

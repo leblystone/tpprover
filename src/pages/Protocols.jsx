@@ -25,6 +25,7 @@ import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolV
 import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
 import ShareModal from '../components/common/ShareModal';
 import ProtocolNotesModal from '../components/protocols/ProtocolNotesModal';
+import VisualSchedulePreview from '../components/protocols/VisualSchedulePreview';
 import { useAppContext } from '../context/AppContext';
 import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -2833,6 +2834,17 @@ export default function Protocols() {
                         </div>
                       </div>
                       <p className="text-xs text-center mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all reseach for this protocol.</p>
+                      
+                      {/* Schedule Preview */}
+                      {manageConfirm && (
+                        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                          <VisualSchedulePreview 
+                            protocol={manageConfirm}
+                            startDate={manageConfirm?.startDate || getLocalDateString()}
+                            theme={theme}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3454,18 +3466,27 @@ export default function Protocols() {
                       </div>
                     );
                   } else {
+                    // Check if protocol is currently active
+                    const isActive = manageConfirm?.active === true || (manageConfirm?.id && findActiveProtocolHistoryEntry(manageConfirm.id));
                     return (
                       <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
                         <div
-                          className="px-4 py-2 rounded-full mb-3"
+                          className="px-4 py-2 rounded-full mb-3 max-w-md"
                           style={{
                             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             border: `1px solid ${theme.border}`,
                             display: 'inline-block'
                           }}
                         >
-                          <span className="text-sm font-medium" style={{ color: theme.text }}>
-                            You haven't researched this one yet!
+                          <span className="text-sm font-medium text-center" style={{ color: theme.text }}>
+                            {isActive 
+                              ? (
+                                  <>
+                                    You're currently researching!<br />
+                                    History will be added once you complete the protocol.
+                                  </>
+                                )
+                              : "You haven't researched this one yet!"}
                           </span>
                         </div>
                       </div>

@@ -223,6 +223,7 @@ function ItemStrip({
   const showActionMenu = openMenuId === item.id;
   const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor';
   const useByStatus = item.useByDate ? getUseByStatus(item.useByDate) : null;
+  const needsReview = item.notes?.includes('Added during protocol start') || item.notes?.includes('Added during protocol edit');
 
   return (
     <div 
@@ -259,6 +260,21 @@ function ItemStrip({
           <div className="flex-shrink-0 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
           </div>
+          
+          {/* Needs Review Badge */}
+          {needsReview && (
+            <div 
+              className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.15)',
+                color: theme.isDark ? '#fbbf24' : '#ca8a04',
+                fontFamily: 'Poppins, sans-serif'
+              }}
+              title="Added during protocol start - review details"
+            >
+              Review
+            </div>
+          )}
           
           <div className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {vendorName}
@@ -348,10 +364,20 @@ function ItemStrip({
           <DataPoint icon={Hash} label="Batch #" value={item.batchNumber || 'N/A'} theme={theme} />
           <DataPoint icon={Calendar} label="Use By" value={item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'} theme={theme} />
           {item.notes && (
-            <div className="col-span-2 mt-1 pt-2 border-t border-black/5 dark:border-white/5">
-              <div className="flex items-start gap-2 text-xs" style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}>
-                <Info size={12} className="mt-0.5" />
-                <span className="italic font-normal">{item.notes}</span>
+            <div className={`col-span-2 mt-1 pt-2 border-t ${needsReview ? 'border-yellow-500/30' : 'border-black/5 dark:border-white/5'}`}>
+              <div 
+                className={`flex items-start gap-2 text-xs p-2 rounded-lg ${needsReview ? 'bg-yellow-500/10 border border-yellow-500/20' : ''}`}
+                style={{ color: needsReview ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.textLight, fontFamily: 'Poppins, sans-serif' }}
+              >
+                <Info size={12} className="mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  {needsReview && (
+                    <div className="font-semibold mb-1" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
+                      Needs Review
+                    </div>
+                  )}
+                  <span className={needsReview ? 'font-normal' : 'italic font-normal'}>{item.notes}</span>
+                </div>
               </div>
             </div>
           )}

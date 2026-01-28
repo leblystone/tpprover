@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRouteError } from 'react-router-dom';
+import { useRouteError, useNavigate } from 'react-router-dom';
 import AppErrorFallback from './AppErrorFallback';
 
 /**
@@ -8,10 +8,16 @@ import AppErrorFallback from './AppErrorFallback';
  */
 export default function AppRouteError() {
   const error = useRouteError();
+  const navigate = useNavigate();
 
   if (import.meta.env?.DEV) {
     console.error('AppRouteError caught:', error);
   }
 
-  return <AppErrorFallback />;
+  const handleReplenish = () => {
+    // Navigate to dashboard instead of reloading the broken page
+    navigate('/app/dashboard', { replace: true });
+  };
+
+  return <AppErrorFallback onReload={handleReplenish} />;
 }

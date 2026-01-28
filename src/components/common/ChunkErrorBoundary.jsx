@@ -2,7 +2,6 @@ import React from 'react';
 import { themes } from '../../theme/themes';
 import SupportModal from './SupportModal';
 import AppErrorFallback from './AppErrorFallback';
-import { safeReload } from '../../utils/safeReload';
 
 /**
  * Error Boundary for Chunk Loading Failures
@@ -45,33 +44,9 @@ class ChunkErrorBoundary extends React.Component {
     });
   }
 
-  getUserId = () => {
-    try {
-      const savedUser = localStorage.getItem('tpprover_user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        return user.uid || user.id;
-      }
-    } catch (error) {
-      console.warn('Could not get user ID for safe reload:', error);
-    }
-    return null;
-  };
-
-  handleReload = async () => {
-    // Clear the force refresh flag
-    window.sessionStorage.removeItem('page_has_been_force_refreshed');
-    
-    // Get user ID for safe reload
-    const userId = this.getUserId();
-    
-    if (userId) {
-      // Use safe reload to sync data first
-      await safeReload(userId, 'chunk-error-boundary-refresh', false);
-    } else {
-      // No user logged in, safe to reload immediately
-      window.location.reload();
-    }
+  handleReload = () => {
+    // Navigate to dashboard instead of reloading
+    window.location.href = '/app/dashboard';
   };
 
   handleOpenSupport = () => {
@@ -80,47 +55,6 @@ class ChunkErrorBoundary extends React.Component {
 
   handleCloseSupport = () => {
     this.setState({ showSupportModal: false });
-  };
-
-  handleClearCacheAndReload = async () => {
-    try {
-      // Get user ID for safe reload
-      const userId = this.getUserId();
-      
-      // Use safe reload with cache clearing
-      if (userId) {
-        await safeReload(userId, 'chunk-error-boundary-cache-clear', true);
-      } else {
-        // No user, clear caches manually and reload
-        
-        // Clear all cache storage
-        if ('caches' in window) {
-          const cacheNames = await caches.keys();
-          await Promise.all(
-            cacheNames.map(cacheName => {
-              return caches.delete(cacheName);
-            })
-          );
-        }
-
-        // Unregister service workers
-        if ('serviceWorker' in navigator) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          for (const registration of registrations) {
-            await registration.unregister();
-          }
-        }
-
-        // Clear session storage flag
-        window.sessionStorage.removeItem('page_has_been_force_refreshed');
-
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('❌ Error clearing cache:', error);
-      // Fallback to simple reload
-      window.location.reload();
-    }
   };
 
   render() {

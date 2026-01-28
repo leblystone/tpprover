@@ -41,16 +41,29 @@ export default function VendorSuggestInput({ label = 'Vendor', value, onChange, 
       />
       {open && list.length > 0 && (
         <div 
-          className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" 
+          className="absolute z-10 mt-1 w-full rounded-md border shadow" 
           data-dropdown-container
-          style={{ borderColor: theme?.border }}
+          style={{ 
+            borderColor: theme?.border,
+            backgroundColor: theme?.isDark ? '#1f2937' : '#ffffff'
+          }}
         >
           {list.map(v => (
             <button 
               key={v} 
               type="button" 
-              className="w-full text-left px-3 py-2 hover:bg-gray-50 touch-manipulation" 
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className="w-full text-left px-3 py-2 touch-manipulation transition-colors" 
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                color: theme?.isDark ? theme?.text : '#181A18',
+                backgroundColor: 'transparent'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme?.isDark ? '#374151' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               onMouseDown={(e) => {
                 // Prevent input blur on mobile
                 e.preventDefault();

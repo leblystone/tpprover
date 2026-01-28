@@ -10,13 +10,13 @@ export const adminPrimaryTabs = [
   {
     id: 'overview',
     label: 'Overview',
-    path: `${ADMIN_BASE}/analytics`,
+    path: `${ADMIN_BASE}/overview/dashboard`,
     icon: 'LayoutDashboard',
     children: [
-      { id: 'feedback', label: 'Daily Work', path: `${ADMIN_BASE}/feedback` },
-      { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/analytics` },
-      { id: 'ghost-worker', label: 'Ghost Worker', path: `${ADMIN_BASE}/ghost-worker` },
-      { id: 'work-queue', label: '📋 Work Queue', path: `${ADMIN_BASE}/work-queue` },
+      { id: 'dashboard', label: 'Dashboard', path: `${ADMIN_BASE}/overview/dashboard` },
+      { id: 'support', label: 'Support', path: `${ADMIN_BASE}/overview/support` },
+      { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
+      { id: 'automation', label: 'Automation', path: `${ADMIN_BASE}/overview/automation` },
     ],
   },
   {
@@ -38,7 +38,6 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/content`,
     icon: 'Layers',
     children: [
-      { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/contact` },
       { id: 'content', label: 'Manage', path: `${ADMIN_BASE}/content` },
       { id: 'improvements', label: 'Ideas', path: `${ADMIN_BASE}/improvements` },
     ],
@@ -46,13 +45,11 @@ export const adminPrimaryTabs = [
   {
     id: 'comms',
     label: 'Comms',
-    path: `${ADMIN_BASE}/comms/push`,
+    path: `${ADMIN_BASE}/comms/emails`,
     icon: 'MailOpen',
     children: [
-      { id: 'push', label: 'Push', path: `${ADMIN_BASE}/comms/push` },
-      { id: 'in-app', label: 'In‑App', path: `${ADMIN_BASE}/comms/in-app` },
       { id: 'emails', label: 'Emails', path: `${ADMIN_BASE}/comms/emails` },
-      { id: 'triggers', label: 'Triggers', path: `${ADMIN_BASE}/comms/triggers` },
+      { id: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/comms/notifications` },
     ],
   },
   {
@@ -70,26 +67,38 @@ export const adminPrimaryTabs = [
 ];
 
 /** Default redirect when visiting /admin */
-export const adminDefaultPath = `${ADMIN_BASE}/analytics`;
+export const adminDefaultPath = `${ADMIN_BASE}/overview/dashboard`;
 
 /** All leaf paths (for redirects, etc.) */
 export const adminPaths = {
-  analytics: `${ADMIN_BASE}/analytics`,
-  ghostWorker: `${ADMIN_BASE}/ghost-worker`,
-  workQueue: `${ADMIN_BASE}/work-queue`,
+  // Overview paths
+  overviewDashboard: `${ADMIN_BASE}/overview/dashboard`,
+  overviewSupport: `${ADMIN_BASE}/overview/support`,
+  overviewAnalytics: `${ADMIN_BASE}/overview/analytics`,
+  overviewAutomation: `${ADMIN_BASE}/overview/automation`,
+  // Legacy paths for backward compatibility
+  analytics: `${ADMIN_BASE}/overview/analytics`,
+  ghostWorker: `${ADMIN_BASE}/overview/automation`,
+  workQueue: `${ADMIN_BASE}/overview/support`,
+  feedback: `${ADMIN_BASE}/overview/support`,
+  contact: `${ADMIN_BASE}/overview/support`,
+  // Users paths
   usersSubscriptions: `${ADMIN_BASE}/users/subscriptions`,
   usersLifetime: `${ADMIN_BASE}/users/lifetime`,
   usersAnnual: `${ADMIN_BASE}/users/annual`,
   usersGifts: `${ADMIN_BASE}/users/gifts`,
   usersExpiredTrials: `${ADMIN_BASE}/users/expired-trials`,
-  contact: `${ADMIN_BASE}/contact`,
+  // Content paths
   content: `${ADMIN_BASE}/content`,
-  feedback: `${ADMIN_BASE}/feedback`,
   improvements: `${ADMIN_BASE}/improvements`,
-  commsPush: `${ADMIN_BASE}/comms/push`,
-  commsInApp: `${ADMIN_BASE}/comms/in-app`,
+  // Comms paths
   commsEmails: `${ADMIN_BASE}/comms/emails`,
-  commsTriggers: `${ADMIN_BASE}/comms/triggers`,
+  commsNotifications: `${ADMIN_BASE}/comms/notifications`,
+  commsTriggers: `${ADMIN_BASE}/overview/automation`,
+  // Legacy comms paths
+  commsPush: `${ADMIN_BASE}/comms/notifications`,
+  commsInApp: `${ADMIN_BASE}/comms/notifications`,
+  // Settings paths
   settingsSecurity: `${ADMIN_BASE}/settings/security`,
   settingsDeletions: `${ADMIN_BASE}/settings/deletions`,
   settingsVersion: `${ADMIN_BASE}/settings/version`,

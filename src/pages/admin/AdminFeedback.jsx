@@ -482,7 +482,7 @@ export default function AdminFeedback() {
             onBack={handleBackToTickets}
             onUpdateStatus={handleStatusChange}
             onSendReply={handleSubmitTicketReply}
-            onTestWithGhosty={(ticketId) => navigate(`/admin/ghost-worker?ticketId=${ticketId}`)}
+            onTestWithGhosty={(ticketId) => navigate(`/admin/overview/automation?ticketId=${ticketId}`)}
           />
         ) : (
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -570,7 +570,7 @@ export default function AdminFeedback() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/admin/ghost-worker?ticketId=${t.id}`);
+                              navigate(`/admin/overview/automation?ticketId=${t.id}`);
                             }}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity"
                             style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
@@ -742,7 +742,7 @@ export default function AdminFeedback() {
             onBack={handleBackToTickets}
             onUpdateStatus={handleStatusChange}
             onSendReply={handleSubmitTicketReply}
-            onTestWithGhosty={(ticketId) => navigate(`/admin/ghost-worker?ticketId=${ticketId}`)}
+            onTestWithGhosty={(ticketId) => navigate(`/admin/overview/automation?ticketId=${ticketId}`)}
           />
         ) : (
           <div className="rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>

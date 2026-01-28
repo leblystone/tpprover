@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ClipboardList, Building2, ClipboardCheck, ChevronRight } from 'lucide-react';
+import { ClipboardList, Building2, ClipboardCheck, ChevronRight, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -10,11 +10,13 @@ import { getProtocolHistory } from '../../../utils/protocolHistory';
  * Shows pending tasks that need user attention:
  * - Incomplete vendor profiles (auto-created stubs)
  * - Protocols that ended without follow-up assessments
+ * - Incomplete stockpile entries (added during protocol start/edit)
  */
 const DontForgetWidget = ({ 
   widget, 
   theme, 
   vendors = [], 
+  stockpile = [],
   onCompleteVendor,
   onViewAllVendors,
   isReadOnly,
@@ -54,6 +56,20 @@ const DontForgetWidget = ({
     }
   }, []);
 
+  // Get incomplete stockpile entries (added during protocol start/edit)
+  const incompleteStockpileItems = useMemo(() => {
+    return stockpile.filter(item => {
+      const notes = item.notes || '';
+      return notes.includes('Added during protocol start') || notes.includes('Added during protocol edit');
+    }).map(item => ({
+      id: item.id,
+      name: item.name || 'Unnamed Peptide',
+      vendor: item.vendor || 'Unknown Vendor',
+      mg: item.mg || '',
+      quantity: item.quantity || ''
+    }));
+  }, [stockpile]);
+
   // Group tasks by type
   const groupedTasks = useMemo(() => {
     const groups = [];
@@ -71,6 +87,23 @@ const DontForgetWidget = ({
           subtitle: 'Add follow-up assessment',
           icon: ClipboardCheck,
           data: protocol
+        }))
+      });
+    }
+    
+    // Add incomplete stockpile items group
+    if (incompleteStockpileItems.length > 0) {
+      groups.push({
+        type: 'stockpile',
+        title: 'Stockpile Entries',
+        icon: Package,
+        items: incompleteStockpileItems.map(item => ({
+          id: `stockpile-${item.id}`,
+          type: 'stockpile',
+          title: item.name,
+          subtitle: `Review details - ${item.vendor}`,
+          icon: Package,
+          data: item
         }))
       });
     }
@@ -93,7 +126,7 @@ const DontForgetWidget = ({
     }
     
     return groups;
-  }, [pendingVendors, protocolsNeedingFollowUp]);
+  }, [pendingVendors, protocolsNeedingFollowUp, incompleteStockpileItems]);
 
   const handleTaskClick = (task) => {
     if (isReadOnly) {
@@ -112,6 +145,9 @@ const DontForgetWidget = ({
           historyId: task.data.id 
         } 
       });
+    } else if (task.type === 'stockpile') {
+      // Navigate to stockpile page
+      navigate('/app/stockpile');
     }
   };
 

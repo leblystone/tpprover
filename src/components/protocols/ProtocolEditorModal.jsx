@@ -1148,30 +1148,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* Research Insights Footer - Minimal & Clean */}
-                <div className="flex items-center justify-center gap-6 py-2 border-t border-dashed" style={{ borderColor: theme.border }}>
-                    {[
-                        { label: 'Dashboard Integration', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z' },
-                        { label: 'Calendar Schedule', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-                        { label: 'Progress Tracking', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }
-                    ].map(info => (
-                        <div key={info.label} className="flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-opacity cursor-default">
-                            <svg className="w-3.5 h-3.5" style={{ color: theme.primary }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={info.icon} />
-                            </svg>
-                            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: theme.text }}>{info.label}</span>
-                        </div>
-                    ))}
-                </div>
-
                 {/* Delete Section - Only show for existing protocols */}
                 {form?.id && onDelete && (
                     <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
                         <div className="p-5 rounded-lg space-y-4" style={{ backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.1)' : 'rgba(200, 122, 92, 0.05)' }}>
                             <div>
-                                <h4 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Delete Protocol</h4>
+                                <h4 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Delete Entire Protocol</h4>
                                 <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                    This action cannot be undone. All protocol data will be permanently deleted.
+                                    This action cannot be undone.
                                 </p>
                             </div>
                             <button
@@ -1192,7 +1176,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     e.currentTarget.style.transform = 'translateY(0)';
                                 }}
                             >
-                                Delete Protocol
+                                Delete Entire Protocol
                             </button>
                         </div>
                     </div>

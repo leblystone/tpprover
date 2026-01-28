@@ -209,8 +209,20 @@ export default function Orders() {
 			}
 		}
 		
-		// Check for ?new=true query parameter to open new order modal
+		// Check for ?orderId=xxx query parameter (from notifications)
 		const params = new URLSearchParams(location.search);
+		const orderIdFromQuery = params.get('orderId');
+		if (orderIdFromQuery) {
+			const orderToOpen = orders.find(o => o.id === orderIdFromQuery);
+			if (orderToOpen) {
+				setEditingOrder(orderToOpen);
+				setShowAddModal(true);
+				// Clear the query parameter
+				window.history.replaceState({}, document.title, location.pathname);
+			}
+		}
+		
+		// Check for ?new=true query parameter to open new order modal
 		if (params.get('new') === 'true') {
 			if (isReadOnly) {
 				setShowUpgradeModal(true);
@@ -768,15 +780,18 @@ export default function Orders() {
 							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 								<Package size={32} style={{ color: theme.primary }} />
 							</div>
-							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-								{activeTab === 'domestic' ? 'No Domestic Orders Yet' : 'No International Orders Yet'}
+							<h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>
+								📦 {activeTab === 'domestic' ? 'No Domestic Orders Yet' : 'No International Orders Yet'}
 							</h3>
-							<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-								{activeTab === 'domestic' 
-									? 'Track domestic orders to monitor shipping status, delivery dates, and manage research supply chain. Stay organized and never miss a delivery.'
-									: 'Track international orders with extended shipping times, customs clearance, and delivery updates.'
-								}
+							<p className="text-base mb-4 max-w-md" style={{ color: theme.textLight }}>
+								Track your orders to:
 							</p>
+							<ul className="text-sm mb-6 space-y-1 text-left max-w-md" style={{ color: theme.textLight }}>
+								<li>• Monitor shipping status and delivery dates</li>
+								<li>• Automatically add items to stockpile when delivered</li>
+								<li>• Track costs and vendor information</li>
+								<li>• Attach receipts and documentation</li>
+							</ul>
 							{!isReadOnly && (
 								<button
 									onClick={() => setShowAddModal(true)}
@@ -787,6 +802,9 @@ export default function Orders() {
 									{activeTab === 'domestic' ? 'Add First Domestic Order' : 'Add First International Order'}
 								</button>
 							)}
+							<p className="text-xs mt-4" style={{ color: theme.textLight }}>
+								💡 Tip: Delivered orders automatically move to your Stockpile!
+							</p>
 						</div>
 					)
 				)}

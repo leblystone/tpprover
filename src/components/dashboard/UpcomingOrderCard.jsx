@@ -44,10 +44,18 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
     setCurrentIndex(prev => Math.min(ordersList.length - 1, prev + 1))
   }
   
-  // Fetch tracking information when order has tracking number
+  // Fetch tracking information when order has tracking number AND is not delivered
   useEffect(() => {
     async function fetchTracking() {
       if (!currentOrder?.tracking) return
+      
+      // Only show tracking for orders without delivery status
+      const status = (currentOrder?.status || '').toLowerCase();
+      const isDelivered = status.includes('delivered') || currentOrder?.deliveryDate;
+      if (isDelivered) {
+        // Order is delivered, don't fetch tracking
+        return;
+      }
       
       setIsLoadingTracking(true)
       setTrackingError(null)
@@ -221,45 +229,52 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
               </h3>
               <Truck size={18} style={{ color: theme.primary }} />
             </div>
-            {currentOrder?.tracking ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent widget click
-                  // Force refresh tracking data
-                  if (currentOrder.tracking) {
-                    setTrackingInfo(null)
-                    // Re-trigger the useEffect by updating a dependency
-                    const event = new CustomEvent('refreshTracking', { detail: currentOrder.tracking })
-                    window.dispatchEvent(event)
-                  }
-                }}
-                disabled={isLoadingTracking}
-                className="p-1.5 rounded-md transition-all flex-shrink-0 relative z-20 flex items-center justify-center min-w-[32px] min-h-[32px]"
-                style={{ 
-                  color: theme.primary,
-                  cursor: isLoadingTracking ? 'not-allowed' : 'pointer',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  outline: 'none'
-                }}
-                title={isLoadingTracking ? 'Updating...' : 'Refresh Tracking'}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent'
-                }}
-              >
-                <RefreshCw 
-                  size={18} 
-                  className={isLoadingTracking ? 'animate-spin' : ''}
+            {currentOrder?.tracking && (() => {
+              // Only show refresh button for orders without delivery status
+              const status = (currentOrder?.status || '').toLowerCase();
+              const isDelivered = status.includes('delivered') || currentOrder?.deliveryDate;
+              if (isDelivered) return null;
+              
+              return (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation() // Prevent widget click
+                    // Force refresh tracking data
+                    if (currentOrder.tracking) {
+                      setTrackingInfo(null)
+                      // Re-trigger the useEffect by updating a dependency
+                      const event = new CustomEvent('refreshTracking', { detail: currentOrder.tracking })
+                      window.dispatchEvent(event)
+                    }
+                  }}
+                  disabled={isLoadingTracking}
+                  className="p-1.5 rounded-md transition-all flex-shrink-0 relative z-20 flex items-center justify-center min-w-[32px] min-h-[32px]"
                   style={{ 
                     color: theme.primary,
-                    display: 'block'
+                    cursor: isLoadingTracking ? 'not-allowed' : 'pointer',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    outline: 'none'
                   }}
-                />
-              </button>
-            ) : null}
+                  title={isLoadingTracking ? 'Updating...' : 'Refresh Tracking'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
+                >
+                  <RefreshCw 
+                    size={18} 
+                    className={isLoadingTracking ? 'animate-spin' : ''}
+                    style={{ 
+                      color: theme.primary,
+                      display: 'block'
+                    }}
+                  />
+                </button>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -269,22 +284,35 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
           <span style={{ fontWeight: 500, color: theme.text }}>Vendor:</span> {currentOrder?.vendor || 'Unknown'}
         </div>
         
-        {/* Only show location for REAL tracking data, not mock */}
-        {isRealTrackingData && trackingInfo.location && (
-          <div className="mb-2 text-center">
-            <div className="text-xs flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
-              <MapPin size={10} />
-              {[
-                trackingInfo.location.city,
-                trackingInfo.location.state,
-                trackingInfo.location.country
-              ].filter(Boolean).join(', ')}
+        {/* Only show location for REAL tracking data, not mock, and only for non-delivered orders */}
+        {isRealTrackingData && trackingInfo.location && (() => {
+          // Only show tracking location for orders without delivery status
+          const status = (currentOrder?.status || '').toLowerCase();
+          const isDelivered = status.includes('delivered') || currentOrder?.deliveryDate;
+          if (isDelivered) return null;
+          
+          return (
+            <div className="mb-2 text-center">
+              <div className="text-xs flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
+                <MapPin size={10} />
+                {[
+                  trackingInfo.location.city,
+                  trackingInfo.location.state,
+                  trackingInfo.location.country
+                ].filter(Boolean).join(', ')}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         
-        {/* Tracking number display */}
+        {/* Tracking number display - only show for orders without delivery status */}
         {currentOrder?.tracking && (() => {
+          // Only show tracking for orders that are not delivered
+          const status = (currentOrder?.status || '').toLowerCase();
+          const isDelivered = status.includes('delivered') || currentOrder?.deliveryDate;
+          if (isDelivered) {
+            return null; // Don't show tracking for delivered orders
+          }
           // Prioritize carrier from API response (most accurate), then fall back to detection
           const detectedCarrier = detectCarrier(currentOrder.tracking)
           // Get carrier from trackingInfo - check both direct property and ensure it's a valid string

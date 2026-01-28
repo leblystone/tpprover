@@ -231,15 +231,12 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                 </div>
 
                 {/* Info Box */}
-                <div className="p-3 rounded-lg text-xs" style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : (theme.info + '10'),
-                    borderLeft: `3px solid ${theme.info}`
+                <div className="text-xs text-center py-2 px-3 rounded-lg" style={{ 
+                    backgroundColor: `${theme.info || theme.primary}10`,
+                    color: theme.textLight
                 }}>
-                    <p style={{ color: theme.textLight }}>
-                        <strong style={{ color: theme.text }}>What happens next:</strong><br/>
-                        • Protocol will appear on your Dashboard immediately<br/>
-                        • You can add vials/details anytime from the protocol card<br/>
-                        • Start tracking doses right away
+                    <p className="leading-relaxed">
+                        Tasks will appear on your Dashboard & Calendar
                     </p>
                 </div>
 

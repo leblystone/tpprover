@@ -52,6 +52,15 @@ export default function TextInput({
         .themed-textarea-uppercase::placeholder {
           text-transform: none !important;
         }
+        /* Force text color for autofilled inputs */
+        .outlined-input:-webkit-autofill,
+        .outlined-input:-webkit-autofill:hover,
+        .outlined-input:-webkit-autofill:focus,
+        .outlined-input:-webkit-autofill:active {
+          -webkit-text-fill-color: ${customTextColor || (theme.isDark ? theme.text : '#181A18')} !important;
+          -webkit-box-shadow: 0 0 0px 1000px ${theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff')} inset !important;
+          box-shadow: 0 0 0px 1000px ${theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff')} inset !important;
+        }
         /* Outlined input styles */
         .outlined-input-wrapper {
           position: relative;
@@ -109,7 +118,7 @@ export default function TextInput({
               style={{ 
                 border: `1px solid ${isFocused ? theme.primary : (theme.isDark ? (theme.border || '#71809650') : '#f0eee7')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'), 
-                color: customTextColor && !theme.isDark ? customTextColor : theme.text,
+                color: customTextColor ? customTextColor : (theme.isDark ? theme.text : '#181A18'),
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
@@ -139,7 +148,7 @@ export default function TextInput({
               style={{ 
                 border: `1px solid ${isFocused ? theme.primary : (theme.isDark ? (theme.border || '#71809650') : '#f0eee7')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#0f172a') : (theme.inputBackground || '#fff'), 
-                color: customTextColor && !theme.isDark ? customTextColor : theme.text,
+                color: customTextColor ? customTextColor : (theme.isDark ? theme.text : '#181A18'),
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
                 textTransform: uppercase ? 'uppercase' : 'none'
               }}

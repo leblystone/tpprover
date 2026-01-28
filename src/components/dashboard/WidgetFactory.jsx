@@ -84,6 +84,7 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           widget={widget} 
           theme={theme} 
           vendors={props.vendors}
+          stockpile={props.stockpile}
           onCompleteVendor={props.onCompleteVendor}
           onViewAllVendors={props.onViewAllVendors}
           isReadOnly={isReadOnly}

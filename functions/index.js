@@ -724,12 +724,15 @@ exports.onOrderStatusChange = onDocumentUpdated('userdata/{userId}/orders/{order
   if (before.status !== after.status) {
     logger.info(`📦 Order status changed for user ${userId}: ${before.status} -> ${after.status}`);
     
+    const orderId = event.params.orderId;
     const notificationData = {
       title: 'Order Status Update',
-      body: `Your order #${after.id || event.params.orderId} status changed to: ${after.status}`,
-      orderId: event.params.orderId,
+      body: `Your order #${after.id || orderId} status changed to: ${after.status}`,
+      orderId: orderId,
       status: after.status,
-      appUrl: 'https://thepepplanner.com/app/orders'
+      path: `/app/orders?orderId=${orderId}`, // Path for service worker navigation
+      clickAction: `https://thepepplanner.com/app/orders?orderId=${orderId}`, // Full URL for webpush
+      appUrl: `https://thepepplanner.com/app/orders?orderId=${orderId}` // Keep for backward compatibility
     };
 
     return pushNotifications.sendPushNotificationByType(userId, 'orderStatusUpdates', notificationData);

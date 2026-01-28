@@ -3,7 +3,7 @@ import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
 import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target, Play, FileText, CheckCircle2, XCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { getProtocolHistoryEntries } from '../../utils/protocolHistory';
+import { getProtocolHistoryEntries, findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 
@@ -29,6 +29,16 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
             return bTimestamp.getTime() - aTimestamp.getTime();
         });
     }, [protocol?.id]);
+
+    // Check if protocol is currently active (has active history entry or protocol.active is true)
+    const isActiveProtocol = useMemo(() => {
+        if (!protocol?.id) return false;
+        // Check if protocol has active property
+        if (protocol.active === true) return true;
+        // Also check if there's an active history entry (no endDate)
+        const activeEntry = findActiveProtocolHistoryEntry(protocol.id);
+        return !!activeEntry;
+    }, [protocol?.id, protocol?.active]);
 
     // Group history entries by month/year (using endDate for finished, startDate for ongoing)
     const timelineEntries = useMemo(() => {
@@ -365,15 +375,22 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                         <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
                             {/* Chip/Badge */}
                             <div
-                                className="px-4 py-2 rounded-full mb-3"
+                                className="px-4 py-2 rounded-full mb-3 max-w-md"
                                 style={{
                                     backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                     border: `1px solid ${theme.border}`,
                                     display: 'inline-block'
                                 }}
                             >
-                                <span className="text-sm font-medium" style={{ color: theme.text }}>
-                                    You haven't researched this one yet!
+                                <span className="text-sm font-medium text-center" style={{ color: theme.text }}>
+                                    {isActiveProtocol 
+                                        ? (
+                                            <>
+                                                You're currently researching!<br />
+                                                History will be added once you complete the protocol.
+                                            </>
+                                        )
+                                        : "You haven't researched this one yet!"}
                                 </span>
                             </div>
                             

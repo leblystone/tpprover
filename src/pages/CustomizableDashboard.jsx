@@ -879,6 +879,7 @@ export default function CustomizableDashboard() {
                       })()}
                       pendingVendors={pendingVendors}
                       vendors={vendors}
+                      stockpile={stockpile}
                       goals={goals}
                       metrics={metrics}
                       supplements={supplements}
@@ -1004,6 +1005,7 @@ export default function CustomizableDashboard() {
                         upcomingBuys={scheduledBuys}
                         pendingVendors={pendingVendors}
                         vendors={vendors}
+                        stockpile={stockpile}
                         goals={goals}
                         metrics={metrics}
                         supplements={supplements}

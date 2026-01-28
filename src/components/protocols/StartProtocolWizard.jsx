@@ -17,9 +17,9 @@ import SchedulingPreview from './SchedulingPreview';
 import VisualSchedulePreview from './VisualSchedulePreview';
 
 
-const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
-    const [action, setAction] = useState(null); // 'select', 'add'
-    const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
+const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, onEditVial, theme, isSinglePeptide = false }) => {
+    const [action, setAction] = useState(null); // 'select', 'add', 'edit'
+    const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '', vendor: '' });
 
     const vialOptions = useMemo(() => {
         const peptideName = (peptide.name || '').toLowerCase();
@@ -49,8 +49,68 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
     const isSkipped = linkedVialId === 'skipped';
 
+    // Check for action states first (add/edit/select) - these take priority
+    if (action === 'add' || action === 'edit') {
+        const isEdit = action === 'edit';
+        const selectedVial = stockpile.find(item => item.id === linkedVialId);
+        
+        const handleSave = () => {
+            if (isEdit && selectedVial && onEditVial) {
+                onEditVial(peptideId, selectedVial.id, { ...quickAddForm, name: peptide.name });
+            } else {
+                onSaveNew(peptideId, { ...quickAddForm, name: peptide.name });
+            }
+            setAction(null);
+        };
+        
+         return (
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
+                <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>
+                    {isEdit ? `Edit ${peptide.name} in Stockpile` : `Add ${peptide.name} to Stockpile`}
+                </p>
+                <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <TextInput label="mg (per vial)" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="e.g., 10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow />
+                        <TextInput label="Quantity (vials)" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="e.g., 1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow />
+                    </div>
+                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
+                </div>
+                <div className="mt-3 flex items-center justify-end gap-2">
+                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
+                     <button onClick={handleSave} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>{isEdit ? 'Save Changes' : 'Save & Link'}</button>
+                </div>
+            </div>
+        );
+    }
+
+    if (action === 'select') {
+        return (
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
+                <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
+                <SearchableDropdown
+                    options={vialOptions}
+                    onChange={(vialId) => onSelectVial(peptideId, vialId)}
+                    theme={theme}
+                    placeholder="Type to search your stockpile..."
+                    idleMessage="Start typing to search your stockpile."
+                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
+                />
+                <button onClick={() => setAction(null)} className="text-xs text-gray-500 mt-2 hover:underline">Cancel</button>
+            </div>
+        );
+    }
+
+    // Show linked vial view (only if not in edit mode)
     if (linkedVialId && !isSkipped) {
         const selectedVial = stockpile.find(item => item.id === linkedVialId);
+        const isNewlyAdded = selectedVial?.notes?.includes('Added during protocol start');
+        
         return (
             <div className="p-3 rounded-md" style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
@@ -65,6 +125,18 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     </div>
                     <div className="flex items-center gap-2">
                         <CheckCircle className="h-5 w-5" style={{ color: theme.primary }} />
+                        {isNewlyAdded && onEditVial && (
+                            <button onClick={() => {
+                                if (selectedVial) {
+                                    setQuickAddForm({
+                                        mg: selectedVial.mg || '',
+                                        quantity: selectedVial.quantity || '',
+                                        vendor: selectedVial.vendor || ''
+                                    });
+                                    setAction('edit');
+                                }
+                            }} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Edit</button>
+                        )}
                         <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
                     </div>
                 </div>
@@ -92,50 +164,6 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
             </div>
         );
     }
-
-    if (action === 'select') {
-        return (
-            <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-            }}>
-                <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
-                <SearchableDropdown
-                    options={vialOptions}
-                    onChange={(vialId) => onSelectVial(peptideId, vialId)}
-                    theme={theme}
-                    placeholder="Type to search your stockpile..."
-                    idleMessage="Start typing to search your stockpile."
-                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
-                />
-                <button onClick={() => setAction(null)} className="text-xs text-gray-500 mt-2 hover:underline">Cancel</button>
-            </div>
-        );
-    }
-    
-    if (action === 'add') {
-        const handleSaveNew = () => {
-            onSaveNew(peptideId, { ...quickAddForm, name: peptide.name });
-            setAction(null);
-        };
-         return (
-            <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-            }}>
-                <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>Add {peptide.name} to Stockpile</p>
-                <div className="space-y-2">
-                    <TextInput label="mg (per vial)" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="e.g., 10" />
-                    <TextInput label="Quantity (vials)" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="e.g., 1" />
-                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                </div>
-                <div className="mt-3 flex items-center justify-end gap-2">
-                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
-                     <button onClick={handleSaveNew} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
-                </div>
-            </div>
-        );
-    }
     
     // Default view with choices
     return (
@@ -145,9 +173,11 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
         }}>
             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
             <div className="flex items-center gap-2">
-                <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                {!isSinglePeptide && (
+                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                )}
                 <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial</button>
+                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial from Stockpile</button>
             </div>
         </div>
     );
@@ -429,6 +459,29 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
     };
 
+    const handleEditVial = (peptideId, vialId, updatedData) => {
+        const updatedStockpile = stockpile.map(item => {
+            if (item.id === vialId) {
+                return {
+                    ...item,
+                    ...updatedData,
+                    notes: "Added during protocol start. Review details."
+                };
+            }
+            return item;
+        });
+        setStockpile(updatedStockpile);
+        
+        // Update linkedData to ensure it still references the vial
+        setLinkedData(prev => {
+            const updated = { ...prev };
+            if (updated[peptideId] && updated[peptideId].status === 'linked') {
+                updated[peptideId] = { ...updated[peptideId], vialId: vialId };
+            }
+            return updated;
+        });
+    };
+
     const handleSkipAllVials = () => {
         // Skip all peptides
         const updated = {};
@@ -496,7 +549,19 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
     }, [skippedPeptides, skippedPeptideDeliveryMethods]);
 
-    const canStart = linkingComplete && deliveryComplete;
+    // Validate protocol has required fields
+    const protocolValid = useMemo(() => {
+        if (!protocol) return false;
+        // Must have a name
+        if (!protocol.protocolName && !protocol.name) return false;
+        // Must have peptides
+        if (!protocol.peptides || protocol.peptides.length === 0) return false;
+        // All peptides must have names
+        if (!protocol.peptides.every(p => p.name)) return false;
+        return true;
+    }, [protocol]);
+
+    const canStart = linkingComplete && deliveryComplete && protocolValid;
 
     if (!protocol) return null;
 
@@ -533,6 +598,26 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         </button>
                         <button 
                             onClick={() => {
+                                // Final validation before starting
+                                if (!protocol || !protocol.protocolName && !protocol.name) {
+                                    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                        detail: { message: 'Protocol must have a name', type: 'error' } 
+                                    }));
+                                    return;
+                                }
+                                if (!protocol.peptides || protocol.peptides.length === 0) {
+                                    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                        detail: { message: 'Protocol must have at least one peptide', type: 'error' } 
+                                    }));
+                                    return;
+                                }
+                                if (!startDate) {
+                                    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                        detail: { message: 'Please select a start date', type: 'error' } 
+                                    }));
+                                    return;
+                                }
+                                
                                 markAsSubmitted();
                                 const enrichedLinkedData = { ...linkedData };
                                 Object.keys(skippedPeptideDeliveryMethods).forEach(peptideId => {
@@ -543,7 +628,16 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         };
                                     }
                                 });
-                                onStart({ ...protocol, startDate, active: true, linkedItems: enrichedLinkedData });
+                                
+                                // Ensure we preserve all protocol data
+                                const protocolToStart = {
+                                    ...protocol, // Preserve all original protocol data
+                                    startDate,
+                                    active: true,
+                                    linkedItems: enrichedLinkedData
+                                };
+                                
+                                onStart(protocolToStart);
                                 onClose();
                             }}
                             disabled={!canStart}
@@ -590,7 +684,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     >
                         <div className="flex items-center gap-2">
                             <Calendar size={18} style={{ color: theme.primary }} />
-                            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>
+                            <h4 className="text-sm font-medium" style={{ color: theme.text }}>
                                 Schedule Preview
                             </h4>
                         </div>
@@ -672,9 +766,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         }}
                     >
                         <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
-                            <p className="text-sm text-center italic mb-2" style={{ color: theme.textLight }}>
-                                For each peptide, select a vial from stockpile, add new, or skip.
-                            </p>
+                            <div 
+                                className="text-xs text-center py-2 px-3 rounded-lg"
+                                style={{ 
+                                    backgroundColor: `${theme.info || theme.primary}10`,
+                                    color: theme.textLight
+                                }}
+                            >
+                                Select a vial from your stockpile, add new, or skip this section.
+                            </div>
                             
                             {/* Quick Skip All Button */}
                             {!linkingComplete && (
@@ -688,7 +788,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     }}
                                 >
                                     <X size={14} className="inline mr-1" />
-                                    Skip All - Track Manually
+                                    {protocol.peptides.length === 1 ? 'Skip Linking' : 'Skip All - Track Manually'}
                                 </button>
                             )}
                             
@@ -704,9 +804,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                             linkedVialId={linkedData[peptideId]?.status === 'linked' ? linkedData[peptideId].vialId : (linkedData[peptideId]?.status === 'skipped' ? 'skipped' : null)}
                                             onSelectVial={handleSelectVial}
                                             onSaveNew={handleSaveNewAndLink}
+                                            onEditVial={handleEditVial}
                                             onSkip={handleSkipPeptide}
                                             onUnlink={handleUnlinkPeptide}
                                             theme={theme}
+                                            isSinglePeptide={protocol.peptides.length === 1}
                                         />
                                     );
                                 })}
@@ -915,17 +1017,26 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 )}
 
-                {/* SECTION 3: Delivery Method for Skipped Peptides (Accordion) */}
-                {skippedPeptides.length > 0 && (
-                    <div className="rounded-lg border" style={{ 
-                        borderColor: deliveryComplete ? `${theme.primary}60` : theme.border,
-                        backgroundColor: theme.cardBackground 
-                    }}>
-                        <button
-                            type="button"
-                            onClick={() => toggleSection('delivery')}
-                            className="w-full p-4 flex items-center justify-between hover:opacity-80 transition-opacity"
-                        >
+                {/* SECTION 3: Delivery Method for Skipped Peptides (Accordion) - Always visible */}
+                <div className="rounded-lg border" style={{ 
+                    borderColor: deliveryComplete ? `${theme.primary}60` : theme.border,
+                    backgroundColor: theme.cardBackground,
+                    opacity: linkingComplete ? 1 : 0.5
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (linkingComplete) {
+                                toggleSection('delivery');
+                            }
+                        }}
+                        disabled={!linkingComplete}
+                        className="w-full p-4 flex items-center justify-between transition-opacity"
+                        style={{
+                            cursor: linkingComplete ? 'pointer' : 'not-allowed',
+                            opacity: linkingComplete ? 1 : 0.5
+                        }}
+                    >
                             <div className="flex items-center gap-3 flex-1">
                                 {deliveryComplete ? (
                                     <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
@@ -946,9 +1057,13 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     </div>
                                     {!expandedSections.delivery && (
                                         <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
-                                            {deliveryComplete 
-                                                ? `${skippedPeptides.length} peptide(s) configured`
-                                                : `${skippedPeptides.length} skipped peptide(s) need delivery method`
+                                            {!linkingComplete 
+                                                ? 'Complete vial linking first'
+                                                : skippedPeptides.length === 0
+                                                    ? 'All peptides linked - no delivery method needed'
+                                                    : deliveryComplete 
+                                                        ? `${skippedPeptides.length} peptide(s) configured`
+                                                        : `${skippedPeptides.length} skipped peptide(s) need delivery method`
                                             }
                                         </span>
                                     )}
@@ -965,12 +1080,27 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         <div 
                             className="overflow-hidden transition-all duration-300 ease-in-out"
                             style={{
-                                maxHeight: expandedSections.delivery ? '3000px' : '0',
-                                opacity: expandedSections.delivery ? 1 : 0
+                                maxHeight: expandedSections.delivery && linkingComplete ? '3000px' : '0',
+                                opacity: expandedSections.delivery && linkingComplete ? 1 : 0
                             }}
                         >
                             <div className="px-4 pb-4 pt-2 border-t space-y-4" style={{ borderColor: theme.border }}>
-                                {skippedPeptides.map((p) => {
+                                {!linkingComplete ? (
+                                    <p className="text-sm text-center italic mb-2" style={{ color: theme.textLight }}>
+                                        Complete vial linking or skip all peptides to configure delivery methods
+                                    </p>
+                                ) : skippedPeptides.length === 0 ? (
+                                    <div 
+                                        className="text-xs text-center py-2 px-3 rounded-lg"
+                                        style={{ 
+                                            backgroundColor: `${theme.info || theme.primary}10`,
+                                            color: theme.textLight
+                                        }}
+                                    >
+                                        All peptides are linked to vials. No delivery method configuration needed.
+                                    </div>
+                                ) : (
+                                    skippedPeptides.map((p) => {
                                     const peptideId = p.peptideId;
                                     const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
                                         deliveryMethod: 'pipette',
@@ -1198,11 +1328,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                             )}
                                         </div>
                                     );
-                                })}
+                                    })
+                                )}
                             </div>
                         </div>
                     </div>
-                )}
             </div>
         </BottomSheet>
     );

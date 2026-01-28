@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus, Link } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -26,6 +26,7 @@ import UpgradeModal from '../components/common/UpgradeModal'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import { recordDeletion } from '../utils/deletionTracking'
+import { getProtocolHistory } from '../utils/protocolHistory'
 
 function DataPoint({ icon: Icon, label, value, theme }) {
 	return (
@@ -262,6 +263,48 @@ export default function Recon() {
 			}
 		}
 	}, [reconItems, setReconItems, firebaseUser, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
+
+	// Helper function to find which protocol uses a recon item
+	const getProtocolForReconItem = useCallback((reconItem) => {
+		if (!reconItem) return null;
+		
+		// First check if recon item has protocolId directly
+		if (reconItem.protocolId) {
+			const protocol = protocols.find(p => p.id === reconItem.protocolId);
+			if (protocol) {
+				return {
+					id: protocol.id,
+					name: protocol.protocolName || protocol.name
+				};
+			}
+		}
+		
+		// If not, search through protocol history entries
+		const allHistory = getProtocolHistory();
+		for (const historyEntry of allHistory) {
+			if (historyEntry.reconstitutionData) {
+				// Check if this recon item is in the reconstitutionData
+				const reconData = historyEntry.reconstitutionData;
+				if (reconData.id === reconItem.id || 
+				    (Array.isArray(reconData.peptides) && reconData.peptides.some(p => p.stockpileId === reconItem.stockpileId))) {
+					const protocol = protocols.find(p => p.id === historyEntry.protocolId);
+					if (protocol) {
+						return {
+							id: protocol.id,
+							name: protocol.protocolName || protocol.name
+						};
+					}
+					// Fallback to protocol name from history entry
+					return {
+						id: historyEntry.protocolId,
+						name: historyEntry.protocolName || 'Unknown Protocol'
+					};
+				}
+			}
+		}
+		
+		return null;
+	}, [protocols]);
 
 	const handleDelete = async (id) => {
 		// Find the item being deleted for logging
@@ -928,6 +971,44 @@ export default function Recon() {
                                                         {item.vendorId ? (vendorMap && vendorMap[item.vendorId]) : item.vendor || 'Unknown Source'}
                                                     </span>
                                                 </div>
+                                                {/* Protocol "In Use" Badge */}
+                                                {!item.isDraft && (() => {
+                                                    const linkedProtocol = getProtocolForReconItem(item);
+                                                    if (linkedProtocol) {
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate('/app/protocols', { 
+                                                                        state: { highlightProtocolId: linkedProtocol.id } 
+                                                                    });
+                                                                }}
+                                                                className="mt-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 border"
+                                                                style={{ 
+                                                                    backgroundColor: theme.primary + '15', 
+                                                                    borderColor: theme.primary + '40',
+                                                                    color: theme.primary,
+                                                                    cursor: 'pointer',
+                                                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = theme.primary + '25';
+                                                                    e.currentTarget.style.borderColor = theme.primary + '60';
+                                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = theme.primary + '15';
+                                                                    e.currentTarget.style.borderColor = theme.primary + '40';
+                                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                                }}
+                                                            >
+                                                                <Link size={12} />
+                                                                <span>Used in: <strong>{linkedProtocol.name}</strong></span>
+                                                            </button>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
                                             
                                             <div className="flex flex-col items-end gap-2 flex-shrink-0">

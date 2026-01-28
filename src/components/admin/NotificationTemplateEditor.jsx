@@ -210,6 +210,14 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       researchReminder: {
         peptideName: 'BPC-157',
         taskCount: 3
+      },
+      researchReminderAM: {
+        peptideCount: 2,
+        supplementCount: 3
+      },
+      researchReminderPM: {
+        peptideCount: 1,
+        supplementCount: 2
       }
     };
     
@@ -225,6 +233,8 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       case 'cycleReminder': return <Bell size={16} />;
       case 'cycleEndReminder': return <Bell size={16} />;
       case 'researchReminder': return <Bell size={16} />;
+      case 'researchReminderAM': return <Bell size={16} />;
+      case 'researchReminderPM': return <Bell size={16} />;
       case 'trialEnding': return <AlertTriangle size={16} />;
       default: return <MessageSquare size={16} />;
     }

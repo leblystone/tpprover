@@ -79,12 +79,14 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
       preferredTime: '10:00'
     }
   },
+  // DEPRECATED: Use researchReminderAM and researchReminderPM templates instead
+  // This generic reminder is kept for backward compatibility but should not be used
   researchReminders: {
     id: 'researchReminders',
-    name: 'Research Reminders',
+    name: 'Research Reminders (Deprecated)',
     title: '⏰ Research Reminder',
     body: 'Time for your {peptideName} dose! You have {count} research tasks scheduled for today.',
-    enabled: true,
+    enabled: false, // Disabled by default - use AM/PM templates instead
     triggers: {
       type: 'time_based',
       condition: 'daily_reminder',
@@ -99,7 +101,7 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
       ]
     },
     scheduling: {
-      active: true,
+      active: false,
       timezone: 'user_local',
       preferredTime: '09:00'
     }
@@ -174,20 +176,20 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
   },
   cycleReminders: {
     id: 'cycleReminders',
-    name: 'Cycle Reminders',
-    title: '🔄 Cycle Starting Soon',
-    body: 'Your {cycleName} cycle starts in {days} days. Prepare your research materials.',
+    name: 'Protocol Start Reminder',
+    title: '🔄 Protocol Starting Soon',
+    body: 'Your {protocolName} protocol starts in {days} days. Prepare your research materials.',
     enabled: true,
     triggers: {
       type: 'time_based',
-      condition: 'cycle_start_reminder',
+      condition: 'protocol_start_reminder',
       delay: 1, // 1 day before
       unit: 'days'
     },
     targeting: {
       audience: 'all_users',
       conditions: [
-        { field: 'has_scheduled_cycle', operator: 'equals', value: true }
+        { field: 'has_scheduled_protocol', operator: 'equals', value: true }
       ]
     },
     scheduling: {
