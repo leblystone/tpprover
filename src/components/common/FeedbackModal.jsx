@@ -81,7 +81,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
                             name="message"
                             rows="6"
                             className="w-full p-2 border rounded-md"
-                            style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                            style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             required

@@ -209,7 +209,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               value={formData.overallExperience}
               onChange={(e) => handleInputChange('overallExperience', e.target.value)}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             >
               <option value="">Select rating...</option>
               <option value="excellent">Excellent - Exceeded expectations</option>
@@ -229,7 +229,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               value={formData.mostUsefulFeature}
               onChange={(e) => handleInputChange('mostUsefulFeature', e.target.value)}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             >
               <option value="">Select feature...</option>
               <option value="protocol-builder">Protocol Builder</option>
@@ -251,7 +251,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               value={formData.leastUsefulFeature}
               onChange={(e) => handleInputChange('leastUsefulFeature', e.target.value)}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             >
               <option value="">Select feature...</option>
               <option value="protocol-builder">Protocol Builder</option>
@@ -278,7 +278,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               placeholder="Tell us what features, improvements, or changes would make The Pep Planner even better for you..."
               rows={4}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             />
           </div>
 
@@ -292,7 +292,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               value={formData.recommendToOthers}
               onChange={(e) => handleInputChange('recommendToOthers', e.target.value)}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             >
               <option value="">Select likelihood...</option>
               <option value="very-likely">Very likely - I'd actively recommend it</option>
@@ -314,7 +314,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               placeholder="Share any other thoughts, ideas, or feedback..."
               rows={3}
               className="w-full p-3 border rounded-md"
-              style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+              style={{ borderColor: theme.border, backgroundColor: '#ffffff', color: '#1e293b' }}
             />
           </div>
 
