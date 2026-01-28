@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -7,7 +7,7 @@ import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, Info, Calendar, Search, AlertTriangle } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -32,6 +32,7 @@ import { recordDeletion } from '../utils/deletionTracking'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import { syncOrderDocumentationToStockpile } from '../utils/documentationSync'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
+import BulkImportModal from '../components/stockpile/BulkImportModal'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -46,6 +47,8 @@ export default function Stockpile() {
   const [stockpileSearchQuery, setStockpileSearchQuery] = useState('')
   const [isClosingSearch, setIsClosingSearch] = useState(false)
   const [openAdd, setOpenAdd] = useState(false)
+  const [showBulkImport, setShowBulkImport] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
   const [showOrderModal, setShowOrderModal] = useState(false)
@@ -63,6 +66,7 @@ export default function Stockpile() {
   const [isPriceUnitDropdownOpen, setIsPriceUnitDropdownOpen] = useState(false)
   const [manageRowDropdowns, setManageRowDropdowns] = useState({}) // { [rowId]: { amountUnit: false, unit: false } }
   const [expandedManageRows, setExpandedManageRows] = useState({}) // { [rowId]: boolean }
+  const [showAdvanced, setShowAdvanced] = useState(false) // Advanced fields toggle
   
   // Handle direct navigation to specific stockpile item (from search)
   useEffect(() => {
@@ -85,6 +89,8 @@ export default function Stockpile() {
           documentation: itemToOpen.documentation || []
         });
         setOpenAdd(true);
+        // Auto-show advanced fields when editing existing item
+        setShowAdvanced(true);
         // Clear state after use
         window.history.replaceState({}, document.title);
       }
@@ -851,13 +857,6 @@ export default function Stockpile() {
       { value: 'outofstock', label: 'Out of Stock' }
     ];
     
-    const handleAddClick = () => {
-      if (isReadOnly) {
-        setShowUpgradeModal(true);
-        return;
-      }
-      setOpenAdd(true);
-    };
     
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
       detail: { 
@@ -1025,6 +1024,7 @@ export default function Stockpile() {
 
   // Prevent modal from closing if there's unsaved data
   const handleCloseStockpileModal = () => {
+    setShowAdvanced(false); // Reset advanced toggle when modal closes
     // Check if there's meaningful data that hasn't been saved
     const hasData = form && (
       form.name || 
@@ -1046,11 +1046,84 @@ export default function Stockpile() {
     setOpenAdd(false);
     clearSavedData();
     setShowCloseConfirmation(false);
+    setShowAdvanced(false); // Reset advanced toggle
   };
+
+  // Handle "Add to Stockpile" button click - show dropdown menu
+  const handleAddClick = useCallback(() => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowAddMenu(true);
+  }, [isReadOnly]);
 
   return (
     <section className="space-y-4">
       <StockpileTipsBanner theme={theme} />
+      
+      {/* Add to Stockpile Dropdown Menu */}
+      {showAddMenu && (
+        <>
+          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
+          <div 
+            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
+            style={{ 
+              backgroundColor: theme.cardBackground,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              transform: 'translateY(0)'
+            }}
+          >
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setOpenAdd(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+              style={{ 
+                color: theme.text,
+                borderColor: theme.border
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <PlusCircle size={18} style={{ color: theme.primary }} />
+              <div className="flex-1">
+                <div className="font-semibold">Add to Stockpile</div>
+                <div className="text-xs opacity-60">Single entry</div>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setShowBulkImport(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+              style={{ 
+                color: theme.text
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Upload size={18} style={{ color: theme.textLight }} />
+              <div className="flex-1">
+                <div className="font-semibold">Bulk Import</div>
+                <div className="text-xs opacity-60">Multiple entries</div>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
+      
       <div className="space-y-6">
         {/* On Hand Tab */}
         {activeTab === 'onhand' && (
@@ -1058,23 +1131,33 @@ export default function Stockpile() {
             {groups.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-                  <Package size={32} style={{ color: theme.primary }} />
+                  <TestTube size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Inventory On Hand</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Add peptides to your stockpile to track quantities, vendors, batches, and documentation. 
-                  Delivered orders automatically sync here, or add items manually to maintain your inventory.
+                <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>
+                  📦 Ready to track your inventory?
+                </h3>
+                <p className="text-base mb-4 max-w-md" style={{ color: theme.textLight }}>
+                  Your stockpile helps you:
                 </p>
+                <ul className="text-sm mb-6 space-y-1 text-left max-w-md" style={{ color: theme.textLight }}>
+                  <li>• Track peptide quantities and costs</li>
+                  <li>• Monitor inventory levels automatically</li>
+                  <li>• Link vials to active protocols</li>
+                  <li>• Calculate reconstitution ratios</li>
+                </ul>
                 {!isReadOnly && (
                   <button
                     onClick={() => setOpenAdd(true)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold transition-all hover:opacity-90 hover:scale-105"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   >
-                    <PlusCircle size={18} />
+                    <PlusCircle size={20} />
                     Add Your First Peptide
                   </button>
                 )}
+                <p className="text-xs mt-4" style={{ color: theme.textLight }}>
+                  💡 Tip: Orders marked as "Delivered" automatically appear here!
+                </p>
               </div>
             ) : (
               <div>
@@ -1599,6 +1682,9 @@ export default function Stockpile() {
                 // Reset form first
                 setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
                 
+                // Reset advanced toggle for next entry
+                setShowAdvanced(false);
+                
                 // Show success notification
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
                   detail: { 
@@ -1979,8 +2065,6 @@ export default function Stockpile() {
             </div>
           </div>
           
-          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Black Crimp/Black Cap" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-          
           <div className="relative">
             <div 
               className="flex items-stretch rounded-lg"
@@ -2148,47 +2232,271 @@ export default function Stockpile() {
           
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
           
-          {/* Purity & Batch Number in two columns */}
-          <div className="grid grid-cols-2 gap-2">
-            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+          {/* Cost per - Moved under Order Details */}
+          <div className="relative">
+            <div 
+              className="flex items-stretch rounded-lg"
+              style={{ 
+                border: `1px solid #f0eee7`,
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+              }}
+            >
+              <input 
+                type="text"
+                id="price-input"
+                value={form.cost || ''} 
+                onChange={e => updateFormData({ cost: e.target.value })} 
+                onFocus={() => setIsPriceFocused(true)}
+                onBlur={(e) => {
+                  setTimeout(() => {
+                    const relatedTarget = e.relatedTarget || document.activeElement
+                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                    if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
+                      setIsPriceFocused(false)
+                    }
+                  }, 150)
+                }}
+                placeholder=" "
+                className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: theme.isDark ? theme.text : '#181A18',
+                  border: 'none',
+                  paddingLeft: '12px',
+                  paddingRight: '8px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                data-dropdown-container
+                style={{ 
+                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                  color: theme.isDark ? theme.text : '#181A18',
+                  minWidth: '100px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                }}
+              >
+                <span className="text-sm font-semibold">
+                  {(() => {
+                    const unit = (form.priceUnit || 'vial').toLowerCase();
+                    if (unit === 'vial') return 'Vial';
+                    if (unit === 'mg') return 'mg';
+                    if (unit === 'g') return 'g';
+                    if (unit === 'iu') return 'IU';
+                    if (unit === 'tablet') return 'Tablet';
+                    return unit.charAt(0).toUpperCase() + unit.slice(1);
+                  })()}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div 
+                className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                data-dropdown-container
+                style={{
+                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
+                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
+                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
+                }}
+              >
+                <div 
+                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                  style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    minWidth: '120px',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {[
+                    { value: 'vial', label: 'Vial' },
+                    { value: 'mg', label: 'mg' },
+                    { value: 'g', label: 'g' },
+                    { value: 'iu', label: 'IU' },
+                    { value: 'tablet', label: 'Tablet' }
+                  ].map((option, optIdx) => (
+                    <React.Fragment key={option.value}>
+                      {optIdx > 0 && (
+                        <div 
+                          className="h-px mx-2"
+                          style={{ backgroundColor: theme.border }}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          updateFormData({ priceUnit: option.value });
+                          setIsPriceUnitDropdownOpen(false);
+                        }}
+                          className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                          style={{
+                            color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                            backgroundColor: 'transparent',
+                            WebkitTapHighlightColor: 'transparent'
+                          }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                          e.currentTarget.style.color = theme.primary;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+            <label 
+              htmlFor="price-input"
+              className="absolute pointer-events-none transition-all"
+              style={{
+                fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
+                padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                fontWeight: 500
+              }}
+            >
+              Cost per ($)
+            </label>
+          </div>
           </div>
           
-          {/* Date Acquired */}
-          <GlassmorphismDatePicker
-            value={form.date}
-            onChange={(dateString) => updateFormData({ date: dateString })}
-            theme={theme}
-            placeholder="Date Acquired"
-          />
-          
-          {/* EXTRA DETAILS Section Header */}
-          <div className="flex items-center gap-2 mb-1">
-            <ImageUp size={28} style={{ color: theme.primary }} />
-            <div className="flex flex-col gap-0.5">
-              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
-              <div className="flex items-center gap-2 ml-1">
-                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Documentation
-                </span>
+          {/* Advanced Options Accordion - At the end, matching protocol modal style */}
+          <div className="rounded-lg border transition-all" style={{ 
+            borderColor: showAdvanced ? theme.primary + '40' : theme.border,
+            backgroundColor: showAdvanced ? theme.cardBackground : (theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)')
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                {showAdvanced ? (
+                  <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                ) : (
+                  <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm" style={{ color: theme.text }}>
+                    Advanced Options
+                  </div>
+                  {!showAdvanced && (
+                    <div className="text-xs mt-0.5 flex items-center gap-2 flex-wrap" style={{ color: theme.textLight }}>
+                      <span>Purity, Cap Color, Batch #, Date, Documentation</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Advanced Content - Collapsible */}
+            <div 
+              className="overflow-hidden transition-all duration-300 ease-in-out"
+              style={{
+                maxHeight: showAdvanced ? '1000px' : '0',
+                opacity: showAdvanced ? 1 : 0
+              }}
+            >
+              <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
+                <TextInput 
+                  label="Crimp / Cap Color" 
+                  value={form.capColor} 
+                  onChange={v => updateFormData({ capColor: v })} 
+                  placeholder="Black Crimp/Black Cap" 
+                  theme={theme} 
+                  uppercase={true} 
+                  outlined={true} 
+                  customTextColor={theme.isDark ? null : "#181A18"} 
+                  customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                />
+                
+                {/* Purity & Batch Number in two columns */}
+                <div className="grid grid-cols-2 gap-2">
+                  <TextInput 
+                    label="Purity %" 
+                    value={form.purity} 
+                    onChange={v => updateFormData({ purity: v })} 
+                    placeholder="e.g., 98 (default: 99%)" 
+                    theme={theme} 
+                    outlined={true} 
+                    customTextColor={theme.isDark ? null : "#181A18"} 
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  />
+                  <TextInput 
+                    label="Batch #" 
+                    value={form.batchNumber} 
+                    onChange={v => updateFormData({ batchNumber: v })} 
+                    placeholder="# XXX" 
+                    theme={theme} 
+                    uppercase={true} 
+                    outlined={true} 
+                    customTextColor={theme.isDark ? null : "#181A18"} 
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  />
+                </div>
+                
+                {/* Date Acquired */}
+                <GlassmorphismDatePicker
+                  value={form.date}
+                  onChange={(dateString) => updateFormData({ date: dateString })}
+                  theme={theme}
+                  placeholder="Date Acquired"
+                />
+                
+                {/* EXTRA DETAILS Section Header */}
+                <div className="flex items-center gap-2 mb-1">
+                  <ImageUp size={28} style={{ color: theme.primary }} />
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                    <div className="flex items-center gap-2 ml-1">
+                      <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        Documentation
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Documentation Upload */}
+                <div className="mt-3">
+                  <DocumentationUpload
+                    documentation={form.documentation}
+                    onChange={(documentation) => updateFormData({ documentation })}
+                    theme={theme}
+                    title=""
+                    description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
+                    placeholder="Add photos, screenshots, or files that correlate with this peptide."
+                    allowImages={true}
+                    allowLinks={true}
+                  />
+                </div>
               </div>
             </div>
           </div>
-          
-          {/* Documentation Upload */}
-          <div className="mt-3">
-          <DocumentationUpload
-            documentation={form.documentation}
-            onChange={(documentation) => updateFormData({ documentation })}
-            theme={theme}
-            title=""
-            description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
-            placeholder="Add photos, screenshots, or files that correlate with this peptide."
-            allowImages={true}
-            allowLinks={true}
-          />
-        </div>
       </div>
       </BottomSheet>
 
@@ -3018,10 +3326,23 @@ export default function Stockpile() {
                           </div>
 
                           {item.notes && (
-                            <div className="mt-3 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <div 
+                              className={`mt-3 p-3 rounded-lg border ${
+                                item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')
+                                  ? 'bg-yellow-500/10 border-yellow-500/30'
+                                  : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5'
+                              }`}
+                            >
                               <div className="flex items-start gap-2">
-                                <Info size={14} className="mt-0.5 opacity-50" style={{ color: theme.text }} />
-                                <p className="text-sm leading-relaxed italic opacity-70 font-normal" style={{ color: theme.text }}>{item.notes}</p>
+                                <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: (item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.text }} />
+                                <div className="flex-1">
+                                  {(item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) && (
+                                    <div className="font-semibold mb-1 text-sm" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
+                                      ⚠️ Needs Review
+                                    </div>
+                                  )}
+                                  <p className={`text-sm leading-relaxed ${(item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? 'font-normal' : 'italic opacity-70 font-normal'}`} style={{ color: (item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.text }}>{item.notes}</p>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -3251,6 +3572,76 @@ export default function Stockpile() {
           animation: slideOut 0.3s ease-in;
         }
       `}</style>
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        open={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        theme={theme}
+        onSave={async (itemsToAdd) => {
+          try {
+            // Auto-create vendors
+            itemsToAdd.forEach(item => {
+              if (item.vendor && !vendors.some(v => v.name.toLowerCase() === item.vendor.toLowerCase())) {
+                addVendor({ name: item.vendor, isStub: true });
+              }
+            });
+
+            // Get vendor IDs
+            const itemsWithVendorIds = itemsToAdd.map(item => {
+              const vendor = vendors.find(v => v.name === item.vendor);
+              return {
+                ...item,
+                vendorId: vendor ? vendor.id : null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            });
+
+            // Add to stockpile
+            setItems(prev => [...itemsWithVendorIds, ...prev]);
+
+            // Show success toast
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { 
+                message: `✅ ${itemsToAdd.length} vial${itemsToAdd.length !== 1 ? 's' : ''} added to stockpile!`, 
+                type: 'success' 
+              } 
+            }));
+
+            // Sync to cloud
+            if (firebaseUser) {
+              try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                  protocols: protocols || [],
+                  reconItems: reconItems || [],
+                  reconHistory: reconHistory || [],
+                  supplements: supplements || [],
+                  orders: orders || [],
+                  metrics: metrics || [],
+                  vendors: vendors || [],
+                  calendarNotes: calendarNotes || {},
+                  stockpile: [...itemsWithVendorIds, ...items],
+                  scheduledBuys: scheduledBuys || []
+                };
+                await saveAppData(userId, appData, { skipMerge: true });
+              } catch (e) {
+                console.error('Failed to sync bulk import to cloud:', e);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to save bulk imported items:', error);
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { 
+                message: 'Failed to add items. Please try again.', 
+                type: 'error' 
+              } 
+            }));
+          }
+        }}
+      />
+
     </section>
   )
 }

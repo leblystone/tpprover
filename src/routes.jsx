@@ -2,6 +2,7 @@ import React from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import App from './App.jsx'
 import NotFound from './pages/NotFound.jsx'
+import AppRouteError from './components/common/AppRouteError.jsx'
 import Rover from './pages/Rover.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import { lazyWithRetry } from './utils/lazyWithRetry.jsx'
@@ -39,22 +40,32 @@ const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
+// Overview components
+const AdminOverviewDashboard = lazyWithRetry(() => import('./pages/admin/AdminOverviewDashboard.jsx'), 'AdminOverviewDashboard')
+const AdminSupport = lazyWithRetry(() => import('./pages/admin/AdminSupport.jsx'), 'AdminSupport')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
+const AdminAutomation = lazyWithRetry(() => import('./pages/admin/AdminAutomation.jsx'), 'AdminAutomation')
+// Legacy components (still used within new structure)
 const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
 const AdminWorkQueue = lazyWithRetry(() => import('./pages/admin/AdminWorkQueue.jsx'), 'AdminWorkQueue')
 const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
+const AdminFeedback = lazyWithRetry(() => import('./pages/admin/AdminFeedback.jsx'), 'AdminFeedback')
+// Users components
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
 const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
 const AdminUsersGifts = lazyWithRetry(() => import('./pages/admin/AdminUsersGifts.jsx'), 'AdminUsersGifts')
 const AdminUsersExpiredTrials = lazyWithRetry(() => import('./pages/admin/AdminUsersExpiredTrials.jsx'), 'AdminUsersExpiredTrials')
+// Content components
 const AdminContent = lazyWithRetry(() => import('./pages/admin/AdminContent.jsx'), 'AdminContent')
-const AdminFeedback = lazyWithRetry(() => import('./pages/admin/AdminFeedback.jsx'), 'AdminFeedback')
 const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprovements.jsx'), 'AdminImprovements')
+// Comms components
 const AdminCommsPush = lazyWithRetry(() => import('./pages/admin/AdminCommsPush.jsx'), 'AdminCommsPush')
 const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInApp.jsx'), 'AdminCommsInApp')
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
+const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
 const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
+// Settings components
 const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSettingsSecurity.jsx'), 'AdminSettingsSecurity')
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
 const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
@@ -105,25 +116,44 @@ export const router = createBrowserRouter([
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <AdminLayout />,
     errorElement: <NotFound />,
     children: [
-      { index: true, element: <Navigate to="/admin/analytics" replace /> },
-      { path: 'analytics', element: <AdminAnalytics /> },
-      { path: 'ghost-worker', element: <AdminGhostWorker /> },
-      { path: 'work-queue', element: <AdminWorkQueue /> },
-      { path: 'contact', element: <AdminContact /> },
+      // Default redirect to new Overview Dashboard
+      { index: true, element: <Navigate to="/admin/overview/dashboard" replace /> },
+      
+      // Overview section (new structure)
+      { path: 'overview/dashboard', element: <AdminOverviewDashboard /> },
+      { path: 'overview/support', element: <AdminSupport /> },
+      { path: 'overview/analytics', element: <AdminAnalytics /> },
+      { path: 'overview/automation', element: <AdminAutomation /> },
+      
+      // Legacy routes - redirect to new structure for backward compatibility
+      { path: 'analytics', element: <Navigate to="/admin/overview/analytics" replace /> },
+      { path: 'ghost-worker', element: <Navigate to="/admin/overview/automation" replace /> },
+      { path: 'work-queue', element: <Navigate to="/admin/overview/support" replace /> },
+      { path: 'feedback', element: <Navigate to="/admin/overview/support" replace /> },
+      { path: 'contact', element: <Navigate to="/admin/overview/support" replace /> },
+      
+      // Users section
       { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },
       { path: 'users/lifetime', element: <AdminUsersLifetime /> },
       { path: 'users/annual', element: <AdminUsersAnnual /> },
       { path: 'users/gifts', element: <AdminUsersGifts /> },
       { path: 'users/expired-trials', element: <AdminUsersExpiredTrials /> },
       { path: 'users', element: <Navigate to="/admin/users/subscriptions" replace /> },
+      
+      // Content section
       { path: 'content', element: <AdminContent /> },
-      { path: 'feedback', element: <AdminFeedback /> },
       { path: 'improvements', element: <AdminImprovements /> },
-      { path: 'comms/push', element: <AdminCommsPush /> },
-      { path: 'comms/in-app', element: <AdminCommsInApp /> },
+      
+      // Comms section
       { path: 'comms/emails', element: <AdminCommsEmails /> },
-      { path: 'comms/triggers', element: <AdminCommsTriggers /> },
-      { path: 'comms', element: <Navigate to="/admin/comms/push" replace /> },
+      { path: 'comms/notifications', element: <AdminCommsNotifications /> },
+      { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
+      // Legacy comms routes - redirect to new structure
+      { path: 'comms/push', element: <Navigate to="/admin/comms/notifications" replace /> },
+      { path: 'comms/in-app', element: <Navigate to="/admin/comms/notifications" replace /> },
+      { path: 'comms/triggers', element: <Navigate to="/admin/overview/automation" replace /> },
+      
+      // Settings section
       { path: 'settings/security', element: <AdminSettingsSecurity /> },
       { path: 'settings/deletions', element: <AdminSettingsDeletions /> },
       { path: 'settings/version', element: <AdminSettingsVersion /> },
@@ -254,7 +284,7 @@ export const router = createBrowserRouter([
   {
     path: '/app',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <ProtectedRoute />,
-    // No errorElement - let ChunkErrorBoundary catch errors
+    errorElement: <AppRouteError />,
     children: [
       {
         path: '',
