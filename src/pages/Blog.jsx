@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Calendar, User, ArrowRight, Search, Filter, BookOpen, FileText, Video, Download } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Blog() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');

@@ -2,8 +2,10 @@ import React from 'react';
 import { FileText, Scale, Shield, AlertTriangle, Users, Globe } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Terms() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
 
   const keyPoints = [

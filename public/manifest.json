@@ -1,7 +1,7 @@
 {
   "short_name": "The Pep Planner",
   "name": "The Pep Planner",
-  "description": "Professional Research Management Tool with Advanced Analytics and Security",
+  "description": "Peptide and GLP-1 tracking app: semaglutide, tirzepatide, weight loss tracking. Protocols, stockpile, dosing, reconstitution. Web, iOS, Android.",
   "icons": [
     {
       "src": "../icons/icon-48.webp",

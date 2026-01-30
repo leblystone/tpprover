@@ -3,8 +3,10 @@ import { Check, Star, Zap, Shield, Users } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
 import { formatCurrency } from '../utils/currencyUtils';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Pricing() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
   const [billingCycle, setBillingCycle] = useState('monthly');
 

@@ -8,8 +8,13 @@ import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import ConfirmationModal from '../ui/ConfirmationModal'
 import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
+import { prepareItemForSave } from '../../utils/userDataSave'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
+
+const SCHEDULED_BUYS_KEY = 'tpprover_scheduled_buys'
+const SCHEDULED_BUYS_UPDATE_KEY = 'tpprover_scheduledBuys_lastUpdate'
+const isDev = () => process.env.NODE_ENV === 'development'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -38,6 +43,18 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     return justDeletedIdsRef.current.has(idStr) || isDeleted('scheduledBuys', idStr);
   }, []);
   
+  // Read full list from localStorage (includes past buys) so save/delete don't wipe them
+  const getFullListFromStorage = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(SCHEDULED_BUYS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
   // Helper function to deduplicate array by ID (keep last occurrence)
   // Memoized to prevent recreation on every render
   const deduplicateById = useCallback((items) => {
@@ -127,129 +144,56 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   }
 
   const handleSave = (itemId) => {
-    // Save changes to localStorage
     try {
-      console.log('💾 Starting save for itemId:', itemId);
-      console.log('📋 Current list before save:', list.map(b => ({ id: b.id })));
-      
-      // CRITICAL: Use current list (from props) instead of reading from localStorage
-      // Filter out any deleted items that might have been restored using persistent tracking
-      let scheduledBuys = list.filter(item => {
-        const shouldKeep = !isItemDeleted(item.id);
-        if (!shouldKeep) {
-          console.log('🚫 Filtering out deleted item during save:', item.id);
-        }
-        return shouldKeep;
-      });
-      
       const editedData = editingItems[itemId];
       if (!editedData) {
-        console.error('No edited data found for item:', itemId);
+        if (isDev()) console.error('No edited data found for item:', itemId);
         return;
       }
-      
-      // Find item by ID - handle both string and number IDs
-      const itemIndex = scheduledBuys.findIndex(item => {
-        return String(item.id) === String(itemId) || item.id === itemId;
-      });
-      
-      if (itemIndex !== -1) {
-        // Update existing item - spread editedData to override old values
-        // Note: updatedAt will be set by Firestore serverTimestamp during sync
-        const oldItem = scheduledBuys[itemIndex];
-        
-        // Build updated item: old item base + all editedData fields + metadata
-        const updatedItem = {
-          ...oldItem,           // Start with old item
-          ...editedData,        // Override with ALL edited fields
-          id: itemId,           // Ensure ID preserved
-          // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp
-          // Backward compatibility fields (update these too)
-          name: editedData.item || oldItem.name || oldItem.item,
-          peptideName: editedData.item || oldItem.peptideName || oldItem.item,
-          date: editedData.openDate || oldItem.date || oldItem.openDate,
-          description: editedData.notes || oldItem.description || oldItem.notes
-        };
-        
-        // Assign the complete updated item
-        scheduledBuys[itemIndex] = updatedItem;
-        
-        console.log('🔍 Updated item structure:', updatedItem);
-        console.log('📝 Fields that should be there:', {
-          location: updatedItem.location,
-          participants: updatedItem.participants,
-          price: updatedItem.price,
-          vendor: updatedItem.vendor
-        });
+
+      // Read FULL list from localStorage so we don't wipe past buys
+      let fullList = getFullListFromStorage();
+      fullList = fullList.filter(item => !isItemDeleted(item.id));
+      fullList = deduplicateById(fullList);
+
+      const itemIndex = fullList.findIndex(item =>
+        String(item.id) === String(itemId) || item.id === itemId
+      );
+
+      const oldItem = itemIndex >= 0 ? fullList[itemIndex] : null;
+      const updatedItem = prepareItemForSave({
+        ...(oldItem || {}),
+        ...editedData,
+        id: itemId,
+        name: editedData.item || oldItem?.name || oldItem?.item,
+        peptideName: editedData.item || oldItem?.peptideName || oldItem?.item,
+        date: editedData.openDate || oldItem?.date || oldItem?.openDate,
+        description: editedData.notes || oldItem?.description || oldItem?.notes
+      }, { isNew: !oldItem });
+
+      if (itemIndex >= 0) {
+        fullList[itemIndex] = updatedItem;
       } else {
-        // Item not found - this shouldn't happen but handle it
-        console.warn('Item not found in scheduledBuys, adding new item:', itemId);
-        scheduledBuys.push({
-          ...editedData,
-          id: itemId,
-          // Keep backward compatibility
-          name: editedData.item,
-          peptideName: editedData.item,
-          date: editedData.openDate,
-          description: editedData.notes
-        });
+        fullList.push(updatedItem);
       }
-      
-      // Deduplicate before saving
-      const deduplicated = deduplicateById(scheduledBuys);
-      
-      // Verify no deleted items are in the list using persistent tracking
-      const hasDeletedItems = deduplicated.some(item => isItemDeleted(item.id));
-      if (hasDeletedItems) {
-        console.warn('⚠️ Deleted items found in save list, filtering them out');
-        const filtered = deduplicated.filter(item => !isItemDeleted(item.id));
-        scheduledBuys = filtered;
-      } else {
-        scheduledBuys = deduplicated;
-      }
-      
-      console.log('💾 Saving item with data:', {
-        item: editedData.item,
-        vendor: editedData.vendor,
-        location: editedData.location,
-        participants: editedData.participants,
-        price: editedData.price,
-        notes: editedData.notes,
-        openDate: editedData.openDate,
-        closeDate: editedData.closeDate
-      });
-      
-      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
-      // Also set protection timestamp to prevent Firebase overwrite
-      localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-      
-      // CRITICAL: Dispatch event to update parent component's state (AppContext)
-      // This will trigger a prop update which will re-render this component
+
+      const scheduledBuys = deduplicateById(fullList);
+
+      localStorage.setItem(SCHEDULED_BUYS_KEY, JSON.stringify(scheduledBuys));
+      localStorage.setItem(SCHEDULED_BUYS_UPDATE_KEY, String(Date.now()));
+
       window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
         detail: { scheduledBuys }
       }));
-      
-      // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
-      
-      console.log('✅ Saved group buy:', itemId, editedData);
-      console.log('📋 Updated list after save:', scheduledBuys.map(b => ({ id: b.id })));
-      
-      // Force exit edit mode immediately
+
       setEditingItems({});
-      
-      // Increment render key to force complete re-render
       setRenderKey(prev => prev + 1);
-      
-      // Re-select the item from the scheduledBuys (which has fresh data)
+
       setTimeout(() => {
-        const savedItem = scheduledBuys.find(buy => buy.id === itemId);
-        if (savedItem) {
-          console.log('🔄 Re-selecting item with fresh data:', savedItem);
-          setSelectedItem({ ...savedItem }); // Create new reference
-        }
+        const savedItem = scheduledBuys.find(buy => String(buy.id) === String(itemId));
+        if (savedItem) setSelectedItem({ ...savedItem });
       }, 50);
-      
     } catch (error) {
       console.error('Error saving group buy changes:', error);
     }
@@ -261,139 +205,48 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
 
   const confirmDelete = (itemId) => {
     try {
-      console.log('🗑️ Starting delete for itemId:', itemId);
-      console.log('📋 Current list before delete:', list.map(b => ({ id: b.id })));
-      
-      // CRITICAL: Start with current list (from props)
-      // Filter out the deleted item first
-      let buysToSave = list.filter(item => {
-        const itemIdStr = String(item.id);
-        const deleteIdStr = String(itemId);
-        const shouldKeep = itemIdStr !== deleteIdStr;
-        if (!shouldKeep) {
-          console.log('❌ Filtering out deleted item:', item.id);
-        }
-        return shouldKeep;
-      });
-      
-      // Apply any unsaved edits from editingItems (but not for the deleted item)
-      buysToSave = buysToSave.map(item => {
-        const itemIdStr = String(item.id);
-        if (editingItems[itemIdStr] && itemIdStr !== String(itemId)) {
-          const editedData = editingItems[itemIdStr];
-          return {
-            ...item,
-            ...editedData,
-            id: item.id,
-            // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp
-            name: editedData.item || item.name || item.item,
-            peptideName: editedData.item || item.peptideName || item.item,
-            date: editedData.openDate || item.date || item.openDate,
-            description: editedData.notes || item.description || item.notes
-          };
-        }
-        return item;
-      });
-      
-      // Deduplicate before saving
-      const updatedBuys = deduplicateById(buysToSave);
-      
-      // Verify the deleted item is NOT in the list
-      const deletedItemStillExists = updatedBuys.some(b => String(b.id) === String(itemId));
-      if (deletedItemStillExists) {
-        console.error('❌ ERROR: Deleted item still exists in updatedBuys!');
-        // Force remove it one more time
-        const finalBuys = updatedBuys.filter(b => String(b.id) !== String(itemId));
-        console.log('🔧 Force filtered, final count:', finalBuys.length);
-        // Save the force-filtered version
-        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(finalBuys));
-        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
-          detail: { scheduledBuys: finalBuys }
-        }));
-      } else {
-        // Save to localStorage
-        console.log('💾 Saving to localStorage, count:', updatedBuys.length);
-        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
-        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        
-        // CRITICAL: Dispatch event to update parent component's state (AppContext)
-        window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
-          detail: { scheduledBuys: updatedBuys }
-        }));
-      }
-      
-      // Verify localStorage was saved correctly
-      const verifySaved = JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]');
-      const verifyDeleted = verifySaved.some(b => String(b.id) === String(itemId));
-      if (verifyDeleted) {
-        console.error('❌ ERROR: Deleted item found in localStorage after save!');
-        // Force remove from localStorage one more time
-        const corrected = verifySaved.filter(b => String(b.id) !== String(itemId));
-        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(corrected));
-        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
-          detail: { scheduledBuys: corrected }
-        }));
-      }
-      
-      // Trigger calendar sync
-      window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
-      
-      // Clear ALL editing state after save (edits have been saved)
-      setEditingItems({});
-      
-      // Close modal if item was selected
-      if (selectedItem?.id === itemId) {
-        // If there are other items, select the first one, otherwise close
-        const finalList = verifyDeleted ? JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]') : updatedBuys;
-        if (finalList.length > 0) {
-          setSelectedItem({ ...finalList[0] });
-        } else {
-          setShowModal(false);
-          setSelectedItem(null);
-        }
-      } else if (selectedItem) {
-        // Update selectedItem to match updated data if it exists
-        const finalList = verifyDeleted ? JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]') : updatedBuys;
-        const updatedSelected = finalList.find(b => String(b.id) === String(selectedItem.id));
-        if (updatedSelected) {
-          setSelectedItem({ ...updatedSelected });
-        }
-      }
-      
-      // Dispatch a custom event to notify parent components of the change
-      // BUT: Don't trigger a reload that would overwrite our state
-      window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', { 
-        detail: { 
-          itemId,
-          skipReload: true // Flag to prevent other listeners from reloading
-        } 
-      }));
-      
-      // Close delete confirmation
-      setDeleteConfirmId(null);
-      
-      // CRITICAL: Permanently track deleted items to prevent props from restoring them
-      // We never clear this - deleted items should stay deleted
-      justDeletedIdsRef.current.add(String(itemId));
-      
-      // CRITICAL: Record deletion in persistent tracking to prevent restoration across refreshes/syncs
-      // Find the item before deletion to save snapshot (use original upcomingBuys before filter)
-      const itemToDelete = upcomingBuys.find(b => String(b.id) === String(itemId));
+      // Read FULL list from localStorage so we don't wipe past buys
+      let fullList = getFullListFromStorage();
+      fullList = fullList.filter(item => !isItemDeleted(item.id));
+      fullList = deduplicateById(fullList);
+
+      // Item to delete snapshot for Recently Deleted (use list, not upcomingBuys)
+      const itemToDelete = list.find(b => String(b.id) === String(itemId));
       if (itemToDelete) {
         recordDeletion('scheduledBuys', String(itemId), itemToDelete);
       } else {
         recordDeletion('scheduledBuys', String(itemId));
       }
-      console.log('📝 Recorded deletion in persistent tracking for scheduledBuys:', itemId);
-      
-      const finalVerify = JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]');
-      console.log('✅ Deleted group buy:', itemId);
-      console.log('📋 Final list after delete:', finalVerify.map(b => ({ id: b.id })));
-      console.log('🔒 Permanently tracking deleted item to prevent restore');
-      console.log('📝 Tracked deleted IDs:', Array.from(justDeletedIdsRef.current));
-      
+
+      const updatedBuys = fullList.filter(b => String(b.id) !== String(itemId));
+      const scheduledBuys = deduplicateById(updatedBuys);
+
+      localStorage.setItem(SCHEDULED_BUYS_KEY, JSON.stringify(scheduledBuys));
+      localStorage.setItem(SCHEDULED_BUYS_UPDATE_KEY, String(Date.now()));
+
+      window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+        detail: { scheduledBuys }
+      }));
+      window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
+      window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', {
+        detail: { itemId, skipReload: true }
+      }));
+
+      setEditingItems({});
+      setDeleteConfirmId(null);
+      justDeletedIdsRef.current.add(String(itemId));
+
+      if (selectedItem && String(selectedItem.id) === String(itemId)) {
+        if (scheduledBuys.length > 0) {
+          setSelectedItem({ ...scheduledBuys[0] });
+        } else {
+          setShowModal(false);
+          setSelectedItem(null);
+        }
+      } else if (selectedItem) {
+        const updatedSelected = scheduledBuys.find(b => String(b.id) === String(selectedItem.id));
+        if (updatedSelected) setSelectedItem({ ...updatedSelected });
+      }
     } catch (error) {
       console.error('Error deleting group buy:', error);
     }
@@ -885,7 +738,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => confirmDelete(deleteConfirmId)}
         title="Confirm Deletion"
-        message=""
+        message={deleteConfirmId ? (() => {
+          const item = list.find(b => String(b.id) === String(deleteConfirmId));
+          const name = item?.item || item?.name || item?.peptideName || 'this group buy';
+          return `Remove "${name}"? You can restore it later from Settings > Recently Deleted.`;
+        })() : ''}
         confirmText="Delete"
         cancelText="Cancel"
         type="delete"

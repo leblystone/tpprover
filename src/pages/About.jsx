@@ -3,8 +3,10 @@ import { FlaskConical, Users, Shield, Zap, Target, BookOpen } from 'lucide-react
 import { themes, defaultThemeName } from '../theme/themes';
 import PublicNavigation from '../components/layout/PublicNavigation';
 import PublicFooter from '../components/layout/PublicFooter';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function About() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
 
   const features = [

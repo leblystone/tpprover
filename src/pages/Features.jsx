@@ -17,8 +17,10 @@ import {
 } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Features() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
 
   const mainFeatures = [

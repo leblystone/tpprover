@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Lock, Plus } from 'lucide-react';
+import { Lock, Plus, ShoppingCart } from 'lucide-react';
 import UpcomingBuys from '../UpcomingBuys';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -19,7 +19,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Upcoming Buys
-              <Calendar size={18} style={{ color: theme.primary }} />
+              <ShoppingCart size={18} style={{ color: theme.primary }} />
             </h3>
             <div className="flex items-center gap-2">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_buys} theme={theme} />

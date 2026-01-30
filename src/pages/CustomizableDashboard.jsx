@@ -1005,7 +1005,19 @@ export default function CustomizableDashboard() {
                         theme={theme}
                         tasks={todaysTasks}
                         incomingOrder={incomingOrder}
-                        upcomingBuys={scheduledBuys}
+                        upcomingBuys={(() => {
+                          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                          if (!sampleDataCleared) return scheduledBuys;
+                          return scheduledBuys.filter(buy => {
+                            if (buy.isMock) return false;
+                            const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
+                            if (mockVendors.includes(buy.vendor)) return false;
+                            if (buy.id === 201 || buy.id === 202 || buy.id === 203) return false;
+                            const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
+                            if (mockItems.includes(buy.item || buy.name)) return false;
+                            return true;
+                          });
+                        })()}
                         pendingVendors={pendingVendors}
                         vendors={vendors}
                         stockpile={stockpile}

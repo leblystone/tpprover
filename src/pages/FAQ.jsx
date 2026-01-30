@@ -5,8 +5,10 @@ import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function FAQ() {
+  usePageSEO();
   const navigate = useNavigate();
   const [openIndex, setOpenIndex] = useState(null);
   const [showTerms, setShowTerms] = useState(false);

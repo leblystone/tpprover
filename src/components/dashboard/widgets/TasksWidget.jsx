@@ -9,6 +9,7 @@ import { getInjectionHistory } from '../../../utils/injectionTracking';
 import { debugLog } from '../../../utils/debugMode';
 import { isInjectionSiteTrackingEnabled } from '../../../utils/injectionSiteSettings';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import ModernTooltip from '../../ui/ModernTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
 const DeliveryIcon = ({ task, theme }) => {
@@ -112,6 +113,27 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             </h3>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
+              {hasInjectionTasks && (
+                <ModernTooltip text="Site History" position="top">
+                  <button
+                    onClick={() => setShowInjectionHistory(true)}
+                    className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                    style={{ 
+                      color: '#ffffff',
+                      backgroundColor: theme.primary,
+                      width: '28px',
+                      height: '28px',
+                      padding: 0,
+                      border: 'none',
+                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                  </button>
+                </ModernTooltip>
+              )}
             </div>
           </div>
         </div>
@@ -121,6 +143,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             No research scheduled for today
           </p>
         </div>
+        
+        <InjectionHistoryModal
+          isOpen={showInjectionHistory}
+          onClose={() => setShowInjectionHistory(false)}
+          theme={theme}
+        />
       </div>
     );
   }
@@ -136,6 +164,27 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </h3>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
+            {hasInjectionTasks && (
+              <ModernTooltip text="Site History" position="top">
+                <button
+                  onClick={() => setShowInjectionHistory(true)}
+                  className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                  style={{ 
+                    color: '#ffffff',
+                    backgroundColor: theme.primary,
+                    width: '28px',
+                    height: '28px',
+                    padding: 0,
+                    border: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                </button>
+              </ModernTooltip>
+            )}
             <CheckSquare size={16} className="sm:w-5 sm:h-5" style={{ color: theme.primary }} />
           </div>
         </div>
@@ -246,24 +295,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             ))}
           </div>
           
-          {/* Research Site History Button */}
-          {hasInjectionTasks && (
-            <div className="mt-2 sm:mt-3 flex justify-end">
-              <button
-                onClick={() => setShowInjectionHistory(true)}
-                className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-md transition-colors hover:opacity-80"
-                style={{ 
-                  backgroundColor: theme.secondary,
-                  color: theme.textLight
-                }}
-                title="View site history"
-              >
-                <History size={10} className="sm:w-3 sm:h-3" />
-                <span className="hidden xs:inline">View History</span>
-                <span className="xs:hidden">History</span>
-              </button>
-            </div>
-          )}
         </div>
         
         <InjectionSiteSelector
@@ -307,6 +338,27 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </h3>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
+            {hasInjectionTasks && (
+              <ModernTooltip text="Site History" position="top">
+                <button
+                  onClick={() => setShowInjectionHistory(true)}
+                  className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                  style={{ 
+                    color: '#ffffff',
+                    backgroundColor: theme.primary,
+                    width: '28px',
+                    height: '28px',
+                    padding: 0,
+                    border: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                </button>
+              </ModernTooltip>
+            )}
           </div>
         </div>
       </div>
@@ -321,25 +373,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             setInjectionTask={setInjectionTask}
           />
         </div>
-        
-        {/* Research Site History Button */}
-        {hasInjectionTasks && (
-          <div className="mt-2 sm:mt-3 flex justify-end">
-            <button
-              onClick={() => setShowInjectionHistory(true)}
-              className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-md action-button-hover"
-              style={{ 
-                backgroundColor: theme.secondary,
-                color: theme.textLight
-              }}
-              title="View site history"
-            >
-              <History size={10} className="sm:w-3 sm:h-3 icon-hover" />
-              <span className="hidden xs:inline text-hover">View History</span>
-              <span className="xs:hidden text-hover">History</span>
-            </button>
-          </div>
-        )}
         
         <InjectionSiteSelector
           taskName={injectionTask?.name}

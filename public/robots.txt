@@ -18,7 +18,3 @@ Allow: /contact
 
 # Sitemap location
 Sitemap: https://thepepplanner.app/sitemap.xml
-
-# Crawl-delay (optional, helps prevent server overload)
-Crawl-delay: 1
-

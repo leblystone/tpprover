@@ -3,8 +3,10 @@ import { XCircle, Calendar, DollarSign, Database, RefreshCw, Mail, AlertCircle }
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
 import { CancellationPolicyContent } from '../components/legal/CancellationPolicyContent';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function CancellationPolicy() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
 
   const keyPoints = [

@@ -33,8 +33,10 @@ import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import { isNative, isPWAInstalled } from '../utils/platform';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Landing() {
+  usePageSEO();
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);

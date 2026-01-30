@@ -3,8 +3,10 @@ import { Shield, Lock, Eye, Database, UserCheck, Globe } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
 import { PrivacyPolicyContent } from '../components/legal/PrivacyPolicyContent';
+import { usePageSEO } from '../utils/pageSEO';
 
 export default function Privacy() {
+  usePageSEO();
   const theme = themes[defaultThemeName];
 
   const privacyPrinciples = [
