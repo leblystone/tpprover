@@ -5,7 +5,7 @@ import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, onUpgrade }) => {
+const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, isReadOnly = false, onUpgrade }) => {
   // Show all wishlist items (no limit)
   const displayItems = wishlist || [];
 
@@ -13,11 +13,11 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
   if (!displayItems || displayItems.length === 0) {
     return (
       <div className="h-full">
-        <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+        <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
           <h3 className="text-base font-bold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
             <span className="flex items-center gap-2">
               Wishlist
-              <BookHeart size={18} style={{ color: theme.primary }} />
+              <BookHeart size={20} style={{ color: theme.primary }} />
             </span>
             <div className="flex items-center gap-2">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
@@ -86,6 +86,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, isReadOnly = false, on
         wishlist={displayItems} 
         theme={theme} 
         onAdd={onAdd}
+        onEdit={onEdit}
       />
       
       {/* Lockout Overlay */}

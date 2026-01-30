@@ -94,6 +94,21 @@ function generateInjectionId() {
 }
 
 /**
+ * Ensure every injection history record has an id (for cloud sync / merge).
+ * Mutates in place; returns the same array.
+ */
+export function ensureInjectionHistoryIds(history) {
+  if (!Array.isArray(history)) return history;
+  history.forEach((record) => {
+    if (!record || typeof record !== 'object') return;
+    if (!record.id || String(record.id).trim() === '') {
+      record.id = generateInjectionId();
+    }
+  });
+  return history;
+}
+
+/**
  * Get injection history for a specific task
  * @param {string} taskName - Name of the task
  * @param {number} limit - Maximum number of records to return

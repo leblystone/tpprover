@@ -111,14 +111,38 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             title="Add to Wishlist"
             theme={theme}
             maxHeight="90vh"
+            fitContent
+            footer={
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving || !form.name.trim()}
+                    className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                    style={{ 
+                        backgroundColor: theme.primary,
+                        color: theme.textOnPrimary || '#ffffff',
+                        border: 'none',
+                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!isSaving && form.name.trim()) {
+                            e.currentTarget.style.opacity = '0.9';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                    }}
+                >
+                    {isSaving ? 'Saving...' : (item ? 'Update' : 'Add to Wishlist')}
+                </button>
+            }
         >
             <div className="space-y-3 -my-3 sm:-my-4">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-4 mb-4">
                     <BookHeart size={32} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-0.5 flex-1">
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Wishlist Item</h4>
                         <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                             <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                 Product Details
                             </span>
@@ -342,30 +366,6 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     multiline={true}
                     rows={3}
                 />
-                
-                <div className="flex items-center justify-end gap-3 pt-3 border-t mt-2" style={{ borderColor: theme.border }}>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving || !form.name.trim()}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ 
-                            backgroundColor: theme.primary,
-                            color: theme.textOnPrimary || '#ffffff',
-                            border: 'none',
-                            boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!isSaving && form.name.trim()) {
-                                e.currentTarget.style.opacity = '0.9';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.opacity = '1';
-                        }}
-                    >
-                        {isSaving ? 'Saving...' : (item ? 'Update' : 'Add to Wishlist')}
-                    </button>
-                </div>
             </div>
         </BottomSheet>
     );

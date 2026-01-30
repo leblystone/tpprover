@@ -83,16 +83,16 @@ export default function InjectionSiteSelector({
 
   return (
     <div 
-      className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center"
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
       onClick={handleCancel}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl p-4 max-w-sm w-full mx-4"
+        className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 flex flex-col max-h-[85vh] overflow-hidden"
         style={{ backgroundColor: theme.cardBackground }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between flex-shrink-0 p-4 pb-2 border-b" style={{ borderColor: theme.border }}>
           <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
             Injection site for {taskName}?
           </h4>
@@ -105,7 +105,7 @@ export default function InjectionSiteSelector({
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 pt-2 space-y-3">
           {/* Site Selection */}
           <div>
             <div className="flex gap-2 flex-wrap">
@@ -220,31 +220,32 @@ export default function InjectionSiteSelector({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
-            <button
-              onClick={handleSkip}
-              className="flex-1 px-3 py-2 rounded text-xs font-medium border transition-all hover:opacity-80"
-              style={{ 
-                borderColor: theme.border, 
-                color: theme.textLight 
-              }}
-              title="Complete task without recording injection site"
-            >
-              Skip & Complete
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={!isFormValid()}
-              className="flex-1 px-3 py-2 rounded text-xs font-medium transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ 
-                backgroundColor: theme.primary, 
-                color: theme.textOnPrimary 
-              }}
-            >
-              Confirm
-            </button>
-          </div>
+        </div>
+
+        {/* Sticky footer: action buttons always visible */}
+        <div className="flex-shrink-0 flex gap-2 p-4 pt-2 border-t" style={{ borderColor: theme.border }}>
+          <button
+            onClick={handleSkip}
+            className="flex-1 px-3 py-2 rounded text-xs font-medium border transition-all hover:opacity-80"
+            style={{ 
+              borderColor: theme.border, 
+              color: theme.textLight 
+            }}
+            title="Complete task without recording injection site"
+          >
+            Skip & Complete
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!isFormValid()}
+            className="flex-1 px-3 py-2 rounded text-xs font-medium transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ 
+              backgroundColor: theme.primary, 
+              color: theme.textOnPrimary 
+            }}
+          >
+            Confirm
+          </button>
         </div>
       </div>
     </div>

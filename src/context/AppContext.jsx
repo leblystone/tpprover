@@ -7,7 +7,8 @@ import {
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
-  subscribeToUserState, subscribeToAppData, mergeWithTimestamps
+  subscribeToUserState, subscribeToAppData, mergeWithTimestamps,
+  mergeInjectionHistory, mergeInjectionStats
 } from '../services/cloudStorage';
 import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
 import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
@@ -49,6 +50,8 @@ export function AppProvider({ children }) {
     const [subscription, setSubscription] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    // Bump when wishlist is updated (localStorage-only) so sync effect runs
+    const [wishlistSyncTrigger, setWishlistSyncTrigger] = useState(0);
     
     // Native app bypass - disable loading state immediately
     useEffect(() => {
@@ -485,6 +488,7 @@ export function AppProvider({ children }) {
                     (!cloudAppData.supplements || cloudAppData.supplements.length === 0) &&
                     (!cloudAppData.metrics || cloudAppData.metrics.length === 0) &&
                     (!cloudAppData.scheduledBuys || cloudAppData.scheduledBuys.length === 0) &&
+                    (!cloudAppData.wishlist || cloudAppData.wishlist.length === 0) &&
                     (!cloudAppData.calendarNotes || Object.keys(cloudAppData.calendarNotes).length === 0)
                 );
                 
@@ -629,6 +633,20 @@ export function AppProvider({ children }) {
                             localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
                         }
                         
+                        // Wishlist - merge with timestamps (synced cross-device)
+                        const localWishlist = localStorage.getItem('tpprover_wishlist');
+                        if (localWishlist) {
+                            const mergedWishlist = mergeWithTimestamps(
+                                JSON.parse(localWishlist),
+                                cloudAppData.wishlist || [],
+                                'wishlist',
+                                mergedDeletionTracking.wishlist
+                            );
+                            localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
+                        } else if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
+                            localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
+                        }
+                        
                         // Calendar notes - merge objects
                         const localNotes = localStorage.getItem('tpprover_calendar_notes');
                         if (localNotes) {
@@ -689,6 +707,10 @@ export function AppProvider({ children }) {
                         // Restore protocol history from cloud
                         if (cloudAppData.protocolHistory) {
                             localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
+                        }
+                        // Restore wishlist from cloud
+                        if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
+                            localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
                         }
                         
                         // Restore task completion data from cloud
@@ -1119,6 +1141,16 @@ export function AppProvider({ children }) {
                                         localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
                                         localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
                                         
+                                        // Merge injection history/stats from cloud and persist (pin history)
+                                        if (firebaseData.injectionHistory || firebaseData.injectionStats) {
+                                            const localHist = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+                                            const localStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
+                                            const mergedHist = mergeInjectionHistory(localHist, firebaseData.injectionHistory || []);
+                                            const mergedStats = mergeInjectionStats(localStats, firebaseData.injectionStats || {});
+                                            localStorage.setItem('tpprover_injection_history', JSON.stringify(mergedHist));
+                                            localStorage.setItem('tpprover_injection_stats', JSON.stringify(mergedStats));
+                                        }
+                                        
                                         // Only backup scheduledBuys if not in protection window
                                         const timeSinceScheduledBuysUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
                                         if (timeSinceScheduledBuysUpdate >= 15000) {
@@ -1294,6 +1326,13 @@ export function AppProvider({ children }) {
         };
     }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
+    // When wishlist is updated (localStorage-only), trigger sync
+    useEffect(() => {
+        const onWishlistUpdated = () => setWishlistSyncTrigger((n) => n + 1);
+        window.addEventListener('tpp:wishlist-updated', onWishlistUpdated);
+        return () => window.removeEventListener('tpp:wishlist-updated', onWishlistUpdated);
+    }, []);
+
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
         // Don't sync during initial load, remote updates, or if user isn't authenticated
@@ -1312,6 +1351,12 @@ export function AppProvider({ children }) {
         
         // Get protocol history from localStorage to include in sync
         const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
+        // Get wishlist from localStorage to include in sync (cross-device)
+        const wishlist = JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
+        
+        // Get injection history and stats for cloud sync (pin history)
+        const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+        const injectionStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
         
         const userData = {
             protocols,
@@ -1327,7 +1372,10 @@ export function AppProvider({ children }) {
             taskCompletion,
             calendarDone,
             deletionTracking,
-            protocolHistory
+            protocolHistory,
+            wishlist,
+            injectionHistory,
+            injectionStats
         };
         
         // DEBUG: Log scheduledBuys being synced (only in development, and only once per session)
@@ -1463,12 +1511,14 @@ export function AppProvider({ children }) {
             };
             saveAppData(userId, emptyData);
         }
-    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, firebaseUser, hasPassword]); // FIXED: Only include data dependencies, remove functions
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, wishlistSyncTrigger, firebaseUser, hasPassword]); // wishlistSyncTrigger: bump when wishlist (localStorage) changes
 
     const logout = async () => {
         try {
             // CRITICAL: Force immediate sync before logout to prevent data loss
             if (firebaseUser && hasPassword) {
+                const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+                const injectionStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
                 const userData = {
                     protocols,
                     reconItems,
@@ -1479,7 +1529,9 @@ export function AppProvider({ children }) {
                     vendors,
                     calendarNotes,
                     stockpile,
-                    scheduledBuys
+                    scheduledBuys,
+                    injectionHistory,
+                    injectionStats
                 };
                 
                 // Use syncToFirebase directly (not debounced) for immediate sync
@@ -2311,6 +2363,15 @@ export function AppProvider({ children }) {
                                     const merged = { ...freshData.calendarDone, ...localCalendarDone };
                                     localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                                 }
+                                // Merge injection history/stats from cloud (pin history)
+                                if (freshData.injectionHistory || freshData.injectionStats) {
+                                    const localHist = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+                                    const localStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
+                                    const mergedHist = mergeInjectionHistory(localHist, freshData.injectionHistory || []);
+                                    const mergedStats = mergeInjectionStats(localStats, freshData.injectionStats || {});
+                                    localStorage.setItem('tpprover_injection_history', JSON.stringify(mergedHist));
+                                    localStorage.setItem('tpprover_injection_stats', JSON.stringify(mergedStats));
+                                }
                                 if (freshData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(freshData.calendarNotes));
                                 if (freshData.stockpile) {
                                     const filtered = freshData.stockpile.filter(s => !s.isMock);
@@ -2556,6 +2617,15 @@ export function AppProvider({ children }) {
                                 // Merge calendar done data (local takes precedence)
                                 const merged = { ...freshData.calendarDone, ...localCalendarDone };
                                 localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
+                            }
+                            // Merge injection history/stats from cloud (pin history)
+                            if (freshData.injectionHistory || freshData.injectionStats) {
+                                const localHist = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+                                const localStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
+                                const mergedHist = mergeInjectionHistory(localHist, freshData.injectionHistory || []);
+                                const mergedStats = mergeInjectionStats(localStats, freshData.injectionStats || {});
+                                localStorage.setItem('tpprover_injection_history', JSON.stringify(mergedHist));
+                                localStorage.setItem('tpprover_injection_stats', JSON.stringify(mergedStats));
                             }
             }
             

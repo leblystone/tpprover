@@ -47,6 +47,7 @@ import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
 import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
+import { prepareItemForSave } from '../utils/userDataSave';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -114,6 +115,7 @@ export default function CustomizableDashboard() {
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
+  const [editingWishlistItem, setEditingWishlistItem] = useState(null);
   const [wishlist, setWishlist] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
@@ -889,7 +891,8 @@ export default function CustomizableDashboard() {
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
                       wishlist={wishlist}
-                      onAddWishlistItem={() => setShowAddWishlistModal(true)}
+                      onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
+                      onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
                       protocols={protocols}
                       onAddProtocolNote={(protocolId) => {
                         // Refresh protocol notes if needed
@@ -1030,6 +1033,9 @@ export default function CustomizableDashboard() {
                           setEditingMetric(metric);
                           setShowMetrics(true);
                         }}
+                        wishlist={wishlist}
+                        onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
+                        onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
                         onAddSupplement={() => setShowAddSupplement(true)}
                         onEditSupplement={(supplement) => {
                           setEditingSupplement(supplement);
@@ -1369,26 +1375,25 @@ export default function CustomizableDashboard() {
 
       <AddWishlistItemModal
         open={showAddWishlistModal}
-        onClose={() => setShowAddWishlistModal(false)}
+        onClose={() => { setShowAddWishlistModal(false); setEditingWishlistItem(null); }}
         theme={theme}
-        item={null}
+        item={editingWishlistItem ?? null}
         onSave={(item) => {
           if (isReadOnly) {
             setShowUpgradeModal(true);
             return;
           }
           
-          const newItem = { 
-            ...item, 
-            id: item.id || generateId(),
-            createdAt: item.createdAt || new Date().toISOString()
-          };
+          const newItem = prepareItemForSave(
+            { ...item, createdAt: item.createdAt || new Date().toISOString() },
+            { isNew: !item.id }
+          );
           
           setWishlist(prev => {
             const isEdit = item.id && prev.some(i => i.id === item.id);
             let updated;
             if (isEdit) {
-              updated = prev.map(i => i.id === item.id ? { ...i, ...newItem } : i);
+              updated = prev.map(i => i.id === item.id ? prepareItemForSave({ ...i, ...newItem }) : i);
             } else {
               updated = [...prev, newItem];
             }

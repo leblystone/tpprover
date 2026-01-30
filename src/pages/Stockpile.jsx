@@ -390,6 +390,7 @@ export default function Stockpile() {
 
   const [manageName, setManageName] = useState(null)
   const [manageRows, setManageRows] = useState([])
+  const [isSavingManage, setIsSavingManage] = useState(false)
   const [outOfStockModalName, setOutOfStockModalName] = useState(null)
   
   // Auto-save functionality for manage modal
@@ -956,11 +957,17 @@ export default function Stockpile() {
     
     const updatedItems = [...cleanedWithTimestamps, ...others]
     setItems(updatedItems)
+    try {
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems));
+    } catch (e) {
+      console.error('Failed to save stockpile to localStorage:', e);
+    }
     
-    // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletions persist
-    // This prevents server data from restoring deleted items
-    if (firebaseUser && deletedItems.length > 0) {
-      try {
+    setIsSavingManage(true)
+    try {
+      // Sync to cloud when logged in. Use normal path (no skipMerge) so timestamp-based merge
+      // applies and we don't overwrite other data; our updatedItems have updatedAt: now so they win.
+      if (firebaseUser) {
         const userId = firebaseUser.uid;
         const appData = {
           protocols: protocols || [],
@@ -971,26 +978,26 @@ export default function Stockpile() {
           metrics: metrics || [],
           vendors: vendors || [],
           calendarNotes: calendarNotes || {},
-          stockpile: updatedItems, // Use updated items with deletions
+          stockpile: updatedItems,
           scheduledBuys: scheduledBuys || []
         };
-        
-        // Force immediate sync with skipMerge to overwrite server data
-        const syncResult = await saveAppData(userId, appData, { skipMerge: true });
-        if (syncResult) {
-          console.log('✅ Deleted items synced to cloud immediately');
-        } else {
-          console.error('❌ Failed to sync deleted items to cloud');
+        const syncOk = await saveAppData(userId, appData);
+        if (!syncOk) {
+          console.warn('Stockpile save: cloud sync did not confirm; local data is saved, auto-sync will retry.');
         }
-      } catch (error) {
-        console.error('❌ Error syncing deleted items to cloud:', error);
-        // Don't throw - the auto-sync will handle it
       }
+      markManageSubmitted();
+      setManageName(null);
+      setManageRows([]);
+    } catch (error) {
+      console.error('❌ Error syncing stockpile to cloud:', error);
+      // Don't show "could not save" — data is saved locally; sync failure is on our side, auto-sync will retry.
+      markManageSubmitted();
+      setManageName(null);
+      setManageRows([]);
+    } finally {
+      setIsSavingManage(false);
     }
-    
-    markManageSubmitted(); // Clear auto-save data
-    setManageName(null)
-    setManageRows([])
   }
 
   const importCSV = async (file) => {
@@ -2551,15 +2558,17 @@ export default function Stockpile() {
                 setShowUpgradeModal(true);
                 return;
               }
+              if (isSavingManage) return;
               saveManage();
             }} 
-            className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95" 
+            disabled={isSavingManage || isReadOnly}
+            className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed" 
             style={{ 
               background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
               color: theme?.textOnPrimary || '#ffffff'
             }}
           >
-            Save Changes
+            {isSavingManage ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       )}>

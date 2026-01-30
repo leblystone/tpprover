@@ -248,6 +248,7 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           wishlist={props.wishlist}
           onAdd={props.onAddWishlistItem}
+          onEdit={props.onEditWishlistItem}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}
         />

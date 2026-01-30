@@ -1,6 +1,7 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
+import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -107,9 +108,19 @@ export async function loadUserData(userId, collection = COLLECTIONS.USER_DATA) {
  * Helper: Add updatedAt timestamp to items if missing
  * Uses serverTimestamp() for new items to ensure accurate cross-device sync
  * Existing timestamps are preserved (already synced from server)
+ * In development, logs a warning if items lack updatedAt (enforcement for USER_DATA_SAVE_PATTERN).
  */
 function ensureTimestamps(items) {
   if (!Array.isArray(items)) return items;
+  if (process.env.NODE_ENV === 'development') {
+    const missing = items.filter((item) => item != null && (item.updatedAt == null || item.updatedAt === ''));
+    if (missing.length > 0) {
+      console.warn(
+        '[userDataSave] Some array items are missing updatedAt — merge may be incorrect. Use prepareItemForSave() when creating/updating. See USER_DATA_SAVE_PATTERN.md.',
+        { count: missing.length, sampleIds: missing.slice(0, 3).map((i) => i?.id) }
+      );
+    }
+  }
   return items.map(item => ({
     ...item,
     // Keep existing timestamp if present (already synced from server)
@@ -259,6 +270,40 @@ function mergeTaskCompletion(localData, serverData) {
 }
 
 /**
+ * Helper: Merge injection history arrays
+ * Dedupe by id; keep record with higher timestamp. Sort by timestamp desc.
+ */
+export function mergeInjectionHistory(localArr, serverArr) {
+  const local = Array.isArray(localArr) ? localArr : [];
+  const server = Array.isArray(serverArr) ? serverArr : [];
+  const byId = new Map();
+  const ts = (r) => (r && (r.timestamp != null)) ? Number(r.timestamp) : (r && r.date ? new Date(r.date).getTime() : 0);
+  [...server, ...local].forEach((r) => {
+    if (!r || typeof r !== 'object') return;
+    const id = r.id || `legacy_${ts(r)}_${Math.random().toString(36).slice(2)}`;
+    const existing = byId.get(id);
+    if (!existing || ts(r) > ts(existing)) byId.set(id, { ...r, id });
+  });
+  const merged = Array.from(byId.values()).sort((a, b) => ts(b) - ts(a));
+  ensureInjectionHistoryIds(merged);
+  return merged.slice(0, 1000);
+}
+
+/**
+ * Helper: Merge injection stats objects (local overwrites like taskCompletion)
+ */
+export function mergeInjectionStats(localData, serverData) {
+  const def = { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} };
+  const local = localData && typeof localData === 'object' ? localData : def;
+  const server = serverData && typeof serverData === 'object' ? serverData : def;
+  const merged = {
+    global: { ...(server.global || def.global), ...(local.global || def.global) },
+    tasks: { ...(server.tasks || {}), ...(local.tasks || {}) }
+  };
+  return merged;
+}
+
+/**
  * Save user's main application data (protocols, vendors, etc.)
  * Now with timestamp-based conflict resolution
  */
@@ -291,9 +336,12 @@ export async function saveAppData(userId, appData, options = {}) {
       stockpile: ensureTimestamps(appData.stockpile || []),
       scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
       protocolHistory: ensureTimestamps(appData.protocolHistory || []),
+      wishlist: ensureTimestamps(appData.wishlist || []),
       calendarNotes: appData.calendarNotes || {},
       taskCompletion: appData.taskCompletion || {},
       calendarDone: appData.calendarDone || {},
+      injectionHistory: ensureInjectionHistoryIds(appData.injectionHistory || []),
+      injectionStats: appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} },
       deletionTracking: appData.deletionTracking || deletionTracking || {}
     };
     
@@ -317,10 +365,13 @@ export async function saveAppData(userId, appData, options = {}) {
         stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile, 'stockpile', mergedDeletionTracking.stockpile),
         scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys, 'scheduledBuys', mergedDeletionTracking.scheduledBuys),
         protocolHistory: mergeWithTimestamps(timestampedData.protocolHistory, serverData.protocolHistory || [], 'protocolHistory', mergedDeletionTracking.protocolHistory),
+        wishlist: mergeWithTimestamps(timestampedData.wishlist, serverData.wishlist || [], 'wishlist', mergedDeletionTracking.wishlist),
         calendarNotes: timestampedData.calendarNotes, // TODO: Add timestamp merging for calendar notes
         // Merge task completion data - prefer local data (more recent completions)
         taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
         calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {}),
+        injectionHistory: mergeInjectionHistory(timestampedData.injectionHistory, serverData.injectionHistory || []),
+        injectionStats: mergeInjectionStats(timestampedData.injectionStats, serverData.injectionStats || {}),
         deletionTracking: mergedDeletionTracking
       };
     }
@@ -349,8 +400,11 @@ export async function saveAppData(userId, appData, options = {}) {
     stockpile: appData.stockpile || [],
     scheduledBuys: appData.scheduledBuys || [],
     protocolHistory: appData.protocolHistory || [],
+    wishlist: appData.wishlist || [],
     taskCompletion: appData.taskCompletion || {},
     calendarDone: appData.calendarDone || {},
+    injectionHistory: appData.injectionHistory || [],
+    injectionStats: appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} },
     deletionTracking: appData.deletionTracking || deletionTracking
     }, COLLECTIONS.USER_DATA);
   }
@@ -537,7 +591,9 @@ export async function migrateLocalStorageToCloud(userId) {
       calendar_notes: 'calendarNotes',
       scheduled_buys: 'scheduledBuys',
       task_completion: 'taskCompletion',
-      calendar_done: 'calendarDone'
+      calendar_done: 'calendarDone',
+      injection_history: 'injectionHistory',
+      injection_stats: 'injectionStats'
     };
     
     localStorageKeys.forEach(key => {
@@ -551,7 +607,8 @@ export async function migrateLocalStorageToCloud(userId) {
         if (['tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history', 
              'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-             'tpprover_scheduled_buys', 'tpprover_task_completion', 'tpprover_calendar_done'].includes(key)) {
+             'tpprover_scheduled_buys', 'tpprover_wishlist', 'tpprover_task_completion', 'tpprover_calendar_done',
+             'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
           const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
           

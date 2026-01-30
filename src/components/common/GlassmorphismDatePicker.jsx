@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
+// Conservative heights for positioning (actual dropdown is taller than old 140/160)
+const DROPDOWN_HEIGHT_COMPACT = 260;
+const DROPDOWN_HEIGHT_FULL = 320;
+
 export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
@@ -20,6 +24,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     });
     const dropdownRef = useRef(null);
     const buttonRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const justScrolledRef = useRef(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
     // Parse value to Date object - parse YYYY-MM-DD string directly to avoid timezone issues
@@ -33,12 +39,27 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         return new Date(value);
     })() : null;
 
+    // Find scrollable ancestor (e.g. BottomSheet content) for bounds + scroll listener
+    const getScrollContainer = () => {
+        if (!buttonRef.current) return null;
+        let el = buttonRef.current.parentElement;
+        while (el && el !== document.body) {
+            const style = window.getComputedStyle(el);
+            const oy = style.overflowY;
+            if (oy === 'auto' || oy === 'scroll' || el.classList.contains('overflow-y-auto')) {
+                return el;
+            }
+            el = el.parentElement;
+        }
+        return null;
+    };
+
     // Calculate dropdown position when opening and on scroll/resize
     const updatePosition = () => {
         if (buttonRef.current) {
             const buttonRect = buttonRef.current.getBoundingClientRect();
             const calendarWidth = compact ? 240 : 320;
-            const calendarHeight = compact ? 140 : 160;
+            const calendarHeight = compact ? DROPDOWN_HEIGHT_COMPACT : DROPDOWN_HEIGHT_FULL;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             const isDesktop = viewportWidth >= 1024; // lg breakpoint
@@ -53,7 +74,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 // Strategy 1: Check for fixed positioned element with high z-index
                 const isFixed = window.getComputedStyle(parent).position === 'fixed';
                 const zIndex = window.getComputedStyle(parent).zIndex;
-                const hasHighZIndex = zIndex && (parseInt(zIndex) >= 9999 || parent.classList.contains('z-[9999]'));
+                const zNum = parseInt(zIndex, 10);
+                const hasHighZIndex = (!isNaN(zNum) && zNum >= 9999) || (parent.classList && (parent.classList.contains('z-[9999]') || parent.classList.contains('z-[10002]')));
                 
                 if (isFixed && hasHighZIndex) {
                     // Check if it contains a modal structure (has backdrop and modal content)
@@ -78,8 +100,11 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 parent = parent.parentElement;
             }
             
-            // If we found a modal, get its bounds
-            if (modalContainer) {
+            // Prefer scrollable ancestor (BottomSheet content) as container when inside modal
+            const scrollEl = getScrollContainer();
+            if (scrollEl && modalContainer && modalContainer.contains(scrollEl)) {
+                modalRect = scrollEl.getBoundingClientRect();
+            } else if (modalContainer) {
                 modalRect = modalContainer.getBoundingClientRect();
             }
             
@@ -191,23 +216,40 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     };
 
     useEffect(() => {
-        if (isOpen) {
+        if (!isOpen) return;
+        updatePosition();
+        const scrollEl = getScrollContainer();
+        scrollContainerRef.current = scrollEl;
+
+        const onScroll = () => {
             updatePosition();
-            
-            // Update position on scroll and resize
-            window.addEventListener('scroll', updatePosition, true);
-            window.addEventListener('resize', updatePosition);
-            
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true);
-                window.removeEventListener('resize', updatePosition);
-            };
-        }
+            justScrolledRef.current = true;
+            clearTimeout(window._datePickerScrollTimeout);
+            window._datePickerScrollTimeout = setTimeout(() => {
+                justScrolledRef.current = false;
+            }, 150);
+        };
+
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        if (scrollEl) scrollEl.addEventListener('scroll', onScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+            if (scrollEl) scrollEl.removeEventListener('scroll', onScroll);
+            if (window._datePickerScrollTimeout) clearTimeout(window._datePickerScrollTimeout);
+            scrollContainerRef.current = null;
+        };
     }, [isOpen]);
 
-    // Close dropdown when clicking outside (supports both mouse and touch)
+    // Close dropdown on click outside (use 'click' not mousedown/touchstart so scroll-drag doesn't close)
     useEffect(() => {
         const handleClickOutside = (event) => {
+            if (justScrolledRef.current) {
+                justScrolledRef.current = false;
+                return;
+            }
             if (buttonRef.current && !buttonRef.current.contains(event.target) &&
                 dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsOpen(false);
@@ -215,13 +257,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         };
 
         if (isOpen) {
-            // Support both mouse and touch events for mobile compatibility
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleClickOutside);
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-                document.removeEventListener('touchstart', handleClickOutside);
-            };
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
         }
     }, [isOpen]);
 
