@@ -155,22 +155,18 @@ const SpendingWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 flex flex-col justify-center">
+      <div className="flex-1 p-4 pb-5 flex flex-col justify-center">
         {/* Primary Metric - Last Month */}
         <div className="text-center mb-4">
-          <div className="flex items-center justify-center mb-2">
-            <DollarSign size={24} style={{ color: theme.primary }} />
-          </div>
-          
           <div className="text-xl lg:text-lg font-bold mb-1" style={{ color: theme.text }}>
             ${spendingData.lastMonthSpend.toFixed(2)}
           </div>
           
-          <div className="text-sm" style={{ color: theme.textLight }}>
+          <div className="text-sm mt-0.5" style={{ color: theme.textLight }}>
             Last Month
           </div>
         </div>
-        
+
         {/* Secondary Metrics */}
         <div className="space-y-3">
           <div className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: theme.secondary }}>
@@ -189,7 +185,7 @@ const SpendingWidget = ({ widget, theme }) => {
           <button
             type="button"
             onClick={() => setShowBreakdownModal(true)}
-            className="text-xs mt-2 py-1.5 rounded hover:underline text-left w-full"
+            className="text-xs mt-2 py-1 rounded hover:underline text-center w-full"
             style={{ color: theme.primary }}
           >
             View breakdown · By vendor & peptide
