@@ -1411,13 +1411,13 @@ export default function Recon() {
                     <div className="flex items-center gap-4 mb-2">
                         <TestTube size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-base font-black tracking-wide" style={{ color: theme.text }}>
+                            <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
                                 Vial Details
                             </h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Research Parameters
+                                    Dosage Setup
                                 </span>
                             </div>
                         </div>
@@ -1755,11 +1755,11 @@ export default function Recon() {
                     <div className="flex items-center gap-4 mb-3 pt-1">
                         <Droplets size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
+                            <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Administration Mode
+                                    Administration
                                 </span>
                             </div>
                         </div>
@@ -1776,7 +1776,7 @@ export default function Recon() {
                                     }
                                     updateEditingItem(updates);
                                 }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                     (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
                                         ? 'text-white shadow-sm' 
                                         : ''
@@ -1804,7 +1804,7 @@ export default function Recon() {
                                     }
                                     updateEditingItem(updates);
                                 }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'pen' 
                                         ? 'text-white shadow-sm' 
                                         : ''
@@ -1832,7 +1832,7 @@ export default function Recon() {
                                     }
                                     updateEditingItem(updates);
                                 }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'nasal' 
                                         ? 'text-white shadow-sm' 
                                         : ''
@@ -1859,7 +1859,7 @@ export default function Recon() {
                                     }
                                     updateEditingItem(updates);
                                 }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'topical' 
                                         ? 'text-white shadow-sm' 
                                         : ''
@@ -1890,7 +1890,7 @@ export default function Recon() {
                                 >
                                     <button 
                                         onClick={() => updateEditingItem({ administrationRoute: 'SubQ' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                             (editingItem?.administrationRoute || 'SubQ') === 'SubQ' 
                                                 ? 'text-white shadow-sm' 
                                                 : ''
@@ -1911,7 +1911,7 @@ export default function Recon() {
                                     </button>
                                     <button 
                                         onClick={() => updateEditingItem({ administrationRoute: 'IM' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IM' 
                                                 ? 'text-white shadow-sm' 
                                                 : ''
@@ -1932,7 +1932,7 @@ export default function Recon() {
                                     </button>
                                     <button 
                                         onClick={() => updateEditingItem({ administrationRoute: 'IV' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IV' 
                                                 ? 'text-white shadow-sm' 
                                                 : ''

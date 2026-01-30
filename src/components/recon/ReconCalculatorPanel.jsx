@@ -9,7 +9,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate }) {
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ 
     vendor: '', 
@@ -329,6 +329,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     return '';
   }, [form.cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg, prefill?.mgUnit])
 
+  // Notify parent (e.g. modal) when calc or costPerDose changes so footer can show fixed results
+  useEffect(() => {
+    if (typeof onCalcUpdate === 'function') {
+      onCalcUpdate(calc, costPerDose);
+    }
+  }, [calc, costPerDose, onCalcUpdate]);
+
   const addPeptide = () => {
     const peptides = safeForm.peptides || [];
     const newId = Math.max(0, ...peptides.map(p => p.id || 0)) + 1;
@@ -458,29 +465,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
   const content = (
     <div className={`relative ${compact ? 'px-4 sm:px-5' : ''} ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
-      {/* Section Banner - Vial Details */}
+      {/* Section: Vial Details (matches supplement / New Order modal style) */}
       {!hideHeader && (
-        <>
-          <div className="flex items-center gap-4 mb-2">
-            <TestTube size={32} style={{ color: theme.primary }} />
-            <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
-                Vial Details
-              </h4>
-              <div className="flex items-center gap-2 ml-1">
-                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Dosage Setup
-                </span>
-              </div>
+        <div className="flex items-center gap-4 mb-4">
+          <TestTube size={32} style={{ color: theme.primary }} />
+          <div className="flex flex-col gap-0.5 flex-1">
+            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+            <div className="flex items-center gap-2 ml-1">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                Dosage Setup
+              </span>
             </div>
           </div>
-          <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
-        </>
+        </div>
       )}
 
       {/* Two Column Layout: Left Content + Visual Preview */}
-      <div className="grid grid-cols-1 gap-4 mb-3">
+      <div className="grid grid-cols-1 gap-4 mb-2">
         {/* Left Column: Equal Split for Vial Details and Visual Preview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-end" style={{ minWidth: 0 }}>
           {/* Vial Details - Takes 1/2 width */}
@@ -1315,29 +1317,25 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
 
-        {/* Right Column: Delivery Method (moved from left) */}
-        <div>
-          {/* Section Banner - Delivery Method */}
-          <div className="flex items-center gap-4 mb-2">
+        {/* Right Column: Delivery Method (matches supplement / New Order modal style) */}
+        <div className="pt-0">
+          <div className="flex items-center gap-4 mb-4">
             <Droplets size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
-                Delivery Method
-              </h4>
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
               <div className="flex items-center gap-2 ml-1">
-                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Administration
                 </span>
               </div>
             </div>
           </div>
-          <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
-          <div className="grid grid-cols-4 gap-2">
+          {/* 2x2 grid on mobile so all 4 fit; single row on sm+ */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 rounded-lg p-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
-                        // Revert sprays to mcg when switching away from nasal
                         setForm(prev => {
                             const safePrev = prev || defaultFormStructure;
                             return {
@@ -1350,21 +1348,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
-                    style={{
-                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
-                        color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'pipette' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
-                        transform: deliveryMethod === 'pipette' ? 'translateY(-1px)' : 'none'
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pipette' ? 'text-white shadow-sm' : ''}`}
+                    style={deliveryMethod === 'pipette' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'pipette') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'pipette') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                        }
                     }}
                 >
-                    <Pipette size={16} /> Syringe
+                    <Pipette size={14} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
                 </button>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pen');
-                        // Revert sprays to mcg when switching away from nasal
                         setForm(prev => {
                             const safePrev = prev || defaultFormStructure;
                             return {
@@ -1377,21 +1378,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
-                    style={{
-                        backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
-                        color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'pen' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
-                        transform: deliveryMethod === 'pen' ? 'translateY(-1px)' : 'none'
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pen' ? 'text-white shadow-sm' : ''}`}
+                    style={deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'pen') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'pen') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                        }
                     }}
                 >
-                    <Pen size={16} /> Pen
+                    <Pen size={14} className="flex-shrink-0" /> <span className="truncate">Pen</span>
                 </button>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('nasal');
-                        // Auto-set all peptides to use sprays unit when nasal is selected
                         setForm(prev => {
                             const safePrev = prev || defaultFormStructure;
                             return {
@@ -1401,21 +1405,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
-                    style={{
-                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
-                        color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'nasal' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
-                        transform: deliveryMethod === 'nasal' ? 'translateY(-1px)' : 'none'
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'nasal' ? 'text-white shadow-sm' : ''}`}
+                    style={deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'nasal') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'nasal') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                        }
                     }}
                 >
-                    <Wind size={16} /> Nasal
+                    <Wind size={14} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
                 </button>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('topical');
-                        // Revert sprays to mcg when switching away from nasal
                         setForm(prev => {
                             const safePrev = prev || defaultFormStructure;
                             return {
@@ -1428,16 +1435,20 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 shadow-sm`}
-                    style={{
-                        backgroundColor: deliveryMethod === 'topical' ? theme.primary : (theme.isDark ? theme.background : '#FFFFFF'),
-                        color: deliveryMethod === 'topical' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'topical' ? theme.primary : theme.border,
-                        boxShadow: deliveryMethod === 'topical' ? `0 4px 12px -4px ${theme.primary}50` : 'none',
-                        transform: deliveryMethod === 'topical' ? 'translateY(-1px)' : 'none'
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'topical' ? 'text-white shadow-sm' : ''}`}
+                    style={deliveryMethod === 'topical' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'topical') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'topical') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                        }
                     }}
                 >
-                    <Hand size={16} /> Topical
+                    <Hand size={14} className="flex-shrink-0" /> <span className="truncate">Topical</span>
                 </button>
             </div>
             
@@ -1985,7 +1996,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
 
-        {/* Step 3: Results */}
+        {/* Step 3: Results - hidden when in modal (hideSaveButton); shown in modal footer instead */}
+        {!hideSaveButton && (
         <div>
           <div className="my-3 border-t opacity-50" style={{ borderColor: theme.border }} />
           <div 
@@ -2031,6 +2043,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             </div>
           </div>
         </div>
+        )}
         
         {!hideSaveButton && onSave && (
         <div className="mt-3 sticky bottom-0 z-10" style={{ 

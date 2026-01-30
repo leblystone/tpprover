@@ -37,6 +37,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   // State for save operations
   const [isSavingToRecon, setIsSavingToRecon] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  // Calculated results for fixed footer (units/dose, doses/vial, cost/dose)
+  const [calcSummary, setCalcSummary] = useState({ unitsPerDose: 0, dosesPerVial: 0, costPerDose: '' });
   
   // Only initialize form data when modal opens if no autosaved data was loaded
   useEffect(() => {
@@ -255,20 +257,43 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       theme={theme}
       maxHeight="90vh"
       footer={
-        <div className="w-full">
+        <div className="w-full space-y-3">
+          {/* Fixed calculated results row */}
+          <div 
+            className="grid grid-cols-3 gap-2 text-center rounded-xl py-2.5 px-2"
+            style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '08', border: `1px solid ${theme.primary}15` }}
+          >
+            <div className="space-y-0.5">
+              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Units/Dose</div>
+              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+                {typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
+              </div>
+            </div>
+            <div className="space-y-0.5 border-x" style={{ borderColor: theme.primary + '20' }}>
+              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
+              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+                {typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Cost/Dose</div>
+              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+                {calcSummary.costPerDose || '-'}
+              </div>
+            </div>
+          </div>
           {/* Error Display */}
           {saveError && (
-            <div className="mb-3 p-3 rounded-lg border" style={{ 
+            <div className="p-2.5 rounded-lg border" style={{ 
               backgroundColor: theme.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
               borderColor: theme.error || '#ef4444'
             }}>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.error || '#ef4444' }}></div>
-                <span className="text-sm font-medium" style={{ color: theme.error || '#ef4444' }}>{saveError}</span>
+                <span className="text-xs font-medium" style={{ color: theme.error || '#ef4444' }}>{saveError}</span>
               </div>
             </div>
           )}
-          
           <button
             type="button"
             onClick={handleSaveClick}
@@ -298,23 +323,29 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         </div>
       }
     >
-      {/* Use the calculator panel without its card wrapper and without save button */}
+      {/* Use the calculator panel without its card wrapper; results + Save are in fixed footer */}
       <ReconCalculatorPanel 
         theme={theme} 
         prefill={prefill}
         isReadOnly={isReadOnly}
-        onSave={null} // Don't show save button in panel - it's in footer
+        onSave={null}
         noCard={true}
         compact={true}
         formData={form}
         setFormData={(newForm) => {
           setForm(newForm);
-          // Sync delivery method and pen color for save button
           if (newForm?.deliveryMethod) setDeliveryMethod(newForm.deliveryMethod);
           if (newForm?.penColor) setPenColor(newForm.penColor);
         }}
         reconStrategy={null}
         hideSaveButton={true}
+        onCalcUpdate={(calc, costPerDose) => {
+          setCalcSummary({
+            unitsPerDose: calc?.unitsPerDose ?? 0,
+            dosesPerVial: calc?.dosesPerVial ?? 0,
+            costPerDose: costPerDose ?? ''
+          });
+        }}
       />
     </BottomSheet>
   )
