@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { DollarSign, Eye } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
+import SpendingDetailModal from '../SpendingDetailModal';
 
 function useLocal(key, fallback) {
   try {
@@ -13,6 +14,7 @@ function useLocal(key, fallback) {
 }
 
 const SpendingWidget = ({ widget, theme }) => {
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false);
   const orders = useLocal('tpprover_orders', []);
   const stockpile = useLocal('tpprover_stockpile', []);
 
@@ -120,12 +122,6 @@ const SpendingWidget = ({ widget, theme }) => {
     };
   }, [orders, stockpile]);
 
-  const getTrendColor = (trend) => {
-    if (trend > 10) return theme.error;
-    if (trend > 0) return theme.warning;
-    return theme.success;
-  };
-
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
@@ -136,6 +132,25 @@ const SpendingWidget = ({ widget, theme }) => {
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.spending} theme={theme} />
+            <button
+              type="button"
+              onClick={() => setShowBreakdownModal(true)}
+              className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+              style={{
+                color: '#ffffff',
+                backgroundColor: theme.primary,
+                width: '28px',
+                height: '28px',
+                padding: 0,
+                border: 'none',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              aria-label="View spending breakdown by vendor and peptide"
+            >
+              <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+            </button>
           </div>
         </div>
       </div>
@@ -171,8 +186,22 @@ const SpendingWidget = ({ widget, theme }) => {
               ${spendingData.totalSpend.toFixed(2)}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowBreakdownModal(true)}
+            className="text-xs mt-2 py-1.5 rounded hover:underline text-left w-full"
+            style={{ color: theme.primary }}
+          >
+            View breakdown · By vendor & peptide
+          </button>
         </div>
       </div>
+
+      <SpendingDetailModal
+        open={showBreakdownModal}
+        onClose={() => setShowBreakdownModal(false)}
+        theme={theme}
+      />
     </div>
   );
 };

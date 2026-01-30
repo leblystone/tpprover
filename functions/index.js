@@ -1895,6 +1895,52 @@ exports.testGhostWorkerOnTicket = ghostWorker.testGhostWorkerOnTicket;
 exports.sendDailyDigest = telegramBot.sendDailyDigest;
 exports.handleTelegramCallback = telegramBot.handleTelegramCallback;
 
+// Test Telegram connectivity
+exports.testTelegramConnection = onCall(
+  {
+    cors: true,
+    secrets: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']
+  },
+  async (request) => {
+    try {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+      
+      if (!botToken || !chatId) {
+        return {
+          success: false,
+          error: 'Telegram credentials not configured',
+          details: {
+            botToken: botToken ? 'SET' : 'MISSING',
+            chatId: chatId ? 'SET' : 'MISSING'
+          },
+          fix: 'Run: firebase functions:secrets:set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID'
+        };
+      }
+      
+      // Try to send a test message
+      const testMessage = `🧪 *Telegram Test*\n\n✅ Connection successful!\n\nTimestamp: ${new Date().toISOString()}`;
+      
+      await telegramBot.sendTelegramMessage(botToken, chatId, testMessage);
+      
+      return {
+        success: true,
+        message: 'Test message sent successfully to Telegram',
+        botToken: `${botToken.substring(0, 10)}...${botToken.substring(botToken.length - 4)}`,
+        chatId: chatId
+      };
+      
+    } catch (error) {
+      logger.error('Telegram test failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack
+      };
+    }
+  }
+);
+
 // Emergency controls
 exports.pauseGhostWorker = onCall(
   {

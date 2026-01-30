@@ -62,7 +62,12 @@ async function sendTelegramMessage(botToken, chatId, message, options = {}) {
  * Send message with inline keyboard buttons
  */
 async function sendApprovalRequest(botToken, chatId, ticketData, response, routingDecision) {
-  const message = `
+  // Extract customer response and admin notes
+  const customerResponse = extractCustomerResponse(response.content);
+  const adminNotes = extractAdminNotes(response.content);
+  
+  // Build the main message with ticket info
+  let message = `
 🎫 *New Ticket: ${ticketData.ticketNumber}*
 
 👤 *From:* ${ticketData.userName || 'Unknown'}
@@ -75,14 +80,24 @@ async function sendApprovalRequest(botToken, chatId, ticketData, response, routi
 • *Confidence:* ${routingDecision.confidence}%
 • *Reasoning:* ${routingDecision.reasoning}
 
-📄 *Suggested Response:*
-${response.content.substring(0, 500)}${response.content.length > 500 ? '...' : ''}
-
-💰 *Estimated Cost:* $${(response.tokensUsed * 0.000003).toFixed(5)}
-
-_What should I do?_
+📄 *Customer Response Preview:*
+${customerResponse.substring(0, 300)}${customerResponse.length > 300 ? '...' : ''}
 `;
 
+  // Add admin notes if available
+  if (adminNotes) {
+    message += `\n\n---\n\n📋 *ADMIN NOTES (Problem & Solution):*\n\n${adminNotes}`;
+  } else {
+    // Fallback: show more of the response if admin notes not found
+    message += `\n\n📋 *Full Response:*\n${response.content.substring(0, 2000)}${response.content.length > 2000 ? '...' : ''}`;
+  }
+
+  message += `\n\n💰 *Estimated Cost:* $${(response.tokensUsed * 0.000003).toFixed(5)}\n\n_What should I do?_`;
+
+  // Split message if too long (Telegram limit is 4096 chars)
+  const messageChunks = splitMessage(message, 4096);
+  
+  // Send first chunk with buttons
   const keyboard = {
     inline_keyboard: [
       [
@@ -96,9 +111,20 @@ _What should I do?_
     ]
   };
 
-  return await sendTelegramMessage(botToken, chatId, message, {
+  // Send first message with buttons
+  const firstMessage = messageChunks[0];
+  const result = await sendTelegramMessage(botToken, chatId, firstMessage, {
     reply_markup: JSON.stringify(keyboard)
   });
+
+  // Send remaining chunks as follow-up messages (without buttons)
+  for (let i = 1; i < messageChunks.length; i++) {
+    await sendTelegramMessage(botToken, chatId, messageChunks[i], {
+      parseMode: 'Markdown'
+    });
+  }
+
+  return result;
 }
 
 // ==================== BUDGET ALERTS ====================
@@ -267,9 +293,17 @@ exports.sendApprovalRequest = async (ticketData, response, routingDecision) => {
     const chatId = process.env.TELEGRAM_CHAT_ID;
     
     if (!botToken || !chatId) {
-      logger.warn('Telegram credentials not configured - skipping approval request');
-      return null;
+      logger.error('❌ TELEGRAM CREDENTIALS MISSING:');
+      logger.error(`   TELEGRAM_BOT_TOKEN: ${botToken ? 'SET' : 'MISSING'}`);
+      logger.error(`   TELEGRAM_CHAT_ID: ${chatId ? 'SET' : 'MISSING'}`);
+      logger.error('   Configure secrets via: firebase functions:secrets:set TELEGRAM_BOT_TOKEN');
+      logger.error('   Configure secrets via: firebase functions:secrets:set TELEGRAM_CHAT_ID');
+      throw new Error('Telegram credentials not configured. Check Firebase secrets.');
     }
+    
+    logger.info(`📱 Attempting to send Telegram approval request for ticket ${ticketData.ticketNumber}...`);
+    logger.info(`   Bot token: ${botToken.substring(0, 10)}...${botToken.substring(botToken.length - 4)}`);
+    logger.info(`   Chat ID: ${chatId}`);
     
     const result = await sendApprovalRequest(botToken, chatId, ticketData, response, routingDecision);
     logger.info(`✅ Sent approval request to Telegram for ticket ${ticketData.ticketNumber}`);
@@ -277,8 +311,11 @@ exports.sendApprovalRequest = async (ticketData, response, routingDecision) => {
     return result;
     
   } catch (error) {
-    logger.error('Failed to send approval request:', error);
-    return null;
+    logger.error('❌ FAILED to send approval request to Telegram:', error);
+    logger.error('   Error message:', error.message);
+    logger.error('   Error stack:', error.stack);
+    // Re-throw so the caller knows it failed (but won't break the whole process)
+    throw error;
   }
 };
 
@@ -357,9 +394,59 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
           
         case 'view':
           // Send full response in new message
-          const ticketDoc = await db.collection('supportTickets').doc(ticketId).get();
-          // TODO: Fetch and send full Ghost Worker response
-          await sendTelegramMessage(botToken, chatId, `👁️ *Full response sent in next message*`);
+          try {
+            // Fetch full response from ai_worker_logs
+            const logsRef = db.collection('ai_worker_logs');
+            const logQuery = logsRef
+              .where('ticketId', '==', ticketId)
+              .orderBy('timestamp', 'desc')
+              .limit(1);
+            const logSnapshot = await logQuery.get();
+            
+            if (logSnapshot.empty) {
+              await sendTelegramMessage(botToken, chatId, `❌ *No response found*\n\nNo Ghosty response found for ticket ${ticketId}`, {
+                message_id: messageId
+              });
+              break;
+            }
+            
+            const logData = logSnapshot.docs[0].data();
+            const fullResponse = logData.responseContent || 'No response content available';
+            
+            // Extract sections
+            const customerResponse = extractCustomerResponse(fullResponse);
+            const adminNotes = extractAdminNotes(fullResponse);
+            
+            // Build full report message
+            let fullMessage = `👁️ *Full Response for Ticket ${ticketId}*\n\n`;
+            fullMessage += `📄 *Customer Response:*\n${customerResponse}\n\n`;
+            
+            if (adminNotes) {
+              fullMessage += `---\n\n📋 *ADMIN NOTES:*\n\n${adminNotes}`;
+            } else {
+              fullMessage += `---\n\n📋 *Full Response (Admin Notes Not Parsed):*\n\n${fullResponse}`;
+            }
+            
+            // Split and send if too long
+            const chunks = splitMessage(fullMessage, 4096);
+            
+            // Send first chunk
+            await sendTelegramMessage(botToken, chatId, chunks[0], {
+              message_id: messageId
+            });
+            
+            // Send remaining chunks
+            for (let i = 1; i < chunks.length; i++) {
+              await sendTelegramMessage(botToken, chatId, chunks[i]);
+            }
+            
+            logger.info(`✅ Sent full response to Telegram for ticket ${ticketId}`);
+          } catch (viewError) {
+            logger.error(`Error sending full response for ticket ${ticketId}:`, viewError);
+            await sendTelegramMessage(botToken, chatId, `❌ *Error*\n\nFailed to fetch full response: ${viewError.message}`, {
+              message_id: messageId
+            });
+          }
           
           break;
       }
@@ -403,6 +490,89 @@ function extractCustomerResponse(fullResponse) {
     logger.error('Error extracting customer response:', error);
     return fullResponse; // Fallback to full response on error
   }
+}
+
+/**
+ * Extract ADMIN NOTES section from full Ghosty response
+ * Returns the admin notes with problem analysis, solution, cursor prompt, etc.
+ */
+function extractAdminNotes(fullResponse) {
+  try {
+    // Try multiple patterns to find admin notes section
+    const patterns = [
+      /---\s*##\s*ADMIN NOTES[:\s]*(.*)/is,
+      /##\s*ADMIN NOTES[:\s]*(.*)/is,
+      /ADMIN NOTES[:\s]*(.*)/is
+    ];
+    
+    for (const pattern of patterns) {
+      const match = fullResponse.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    // If no admin notes found, check if response contains admin-style sections
+    if (fullResponse.includes('📍 WHERE TO LOOK') || 
+        fullResponse.includes('🔍 WHAT\'S BROKEN') ||
+        fullResponse.includes('💡 CURSOR PROMPT')) {
+      // Return everything after the separator
+      const parts = fullResponse.split(/---/);
+      if (parts.length > 1) {
+        return parts.slice(1).join('---').trim();
+      }
+    }
+    
+    return null; // No admin notes found
+  } catch (error) {
+    logger.error('Error extracting admin notes:', error);
+    return null;
+  }
+}
+
+/**
+ * Split long message into chunks that fit Telegram's 4096 character limit
+ */
+function splitMessage(message, maxLength = 4096) {
+  if (message.length <= maxLength) {
+    return [message];
+  }
+  
+  const chunks = [];
+  let currentChunk = '';
+  
+  // Split by lines to avoid breaking in the middle of a line
+  const lines = message.split('\n');
+  
+  for (const line of lines) {
+    // If adding this line would exceed limit, save current chunk and start new one
+    if (currentChunk.length + line.length + 1 > maxLength) {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+      }
+      
+      // If a single line is too long, split it
+      if (line.length > maxLength) {
+        let remainingLine = line;
+        while (remainingLine.length > maxLength) {
+          chunks.push(remainingLine.substring(0, maxLength));
+          remainingLine = remainingLine.substring(maxLength);
+        }
+        currentChunk = remainingLine;
+      } else {
+        currentChunk = line;
+      }
+    } else {
+      currentChunk += (currentChunk ? '\n' : '') + line;
+    }
+  }
+  
+  if (currentChunk) {
+    chunks.push(currentChunk.trim());
+  }
+  
+  return chunks;
 }
 
 /**

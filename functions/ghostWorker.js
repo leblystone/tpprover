@@ -41,9 +41,11 @@ const telegramBot = require('./telegramBot');
 
 const CONFIG = {
   // AI Model Configuration
+  // Google AI (Studio) API: gemini-1.5-flash and gemini-2.0-flash-exp return 404.
+  // Use current model IDs from ai.google.dev: gemini-2.5-flash or gemini-3-flash-preview.
   models: {
-    triage: 'gemini-2.0-flash-exp',      // Fast, cheap routing
-    geminiPro: 'gemini-2.0-flash-exp',   // Using Flash for now (Pro not available with this API key)
+    triage: 'gemini-2.5-flash',           // Fast routing (Google AI Studio)
+    geminiPro: 'gemini-2.5-flash',        // UI/UX specialist
     claudeSonnet: 'claude-sonnet-4-20250514'  // Correct Claude model name
   },
   
@@ -56,7 +58,8 @@ const CONFIG = {
   
   // Cost Tracking (per 1M tokens)
   costs: {
-    'gemini-2.0-flash-exp': 0.075,
+    'gemini-2.5-flash': 0.075,
+    'gemini-3-flash-preview': 0.10,
     'gemini-1.5-pro': 1.25,
     'claude-sonnet-4-20250514': 3.00
   },
@@ -422,11 +425,13 @@ exports.ghostWorkerTriage = onDocumentCreated(
     try {
       const configDoc = await db.collection('_config').doc('ghostWorker').get();
       if (configDoc.exists && configDoc.data().enabled === false) {
-        logger.info(`⏸️ Ghost Worker is paused - skipping ticket ${ticketId}`);
+        logger.warn(`⏸️ Ghost Worker is PAUSED - skipping ticket ${ticketId}`);
+        logger.warn(`   To resume: Update _config/ghostWorker.enabled = true in Firestore`);
         return;
       }
+      logger.info(`✅ Ghost Worker is ENABLED - processing ticket ${ticketId}`);
     } catch (error) {
-      logger.warn('Could not check Ghost Worker status, proceeding:', error);
+      logger.warn('⚠️ Could not check Ghost Worker status, proceeding:', error);
     }
     
     logger.info(`🤖 Ghost Worker activated for ticket: ${ticketId} (${ticketData.ticketNumber})`);
@@ -498,11 +503,16 @@ exports.ghostWorkerTriage = onDocumentCreated(
             subject: ticketDoc.data().subject
           };
           
+          logger.info(`📱 Attempting to send Telegram notification for ticket ${ticketId}...`);
           await telegramBot.sendApprovalRequest(ticketData, response, routingDecision);
-          logger.info(`📱 Sent Telegram approval request for ticket ${ticketId}`);
+          logger.info(`✅ Successfully sent Telegram approval request for ticket ${ticketId}`);
         } catch (telegramError) {
-          logger.warn(`Failed to send Telegram notification: ${telegramError.message}`);
-          // Don't fail the whole process if Telegram fails
+          logger.error(`❌ FAILED to send Telegram notification for ticket ${ticketId}:`);
+          logger.error(`   Error: ${telegramError.message}`);
+          logger.error(`   Stack: ${telegramError.stack}`);
+          logger.error(`   This is a CRITICAL issue - Telegram messages are not being sent!`);
+          logger.error(`   Check Firebase secrets: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID`);
+          // Don't fail the whole process if Telegram fails, but log it prominently
         }
       }
       

@@ -15,15 +15,23 @@ export default function InjectionSiteSelector({
   const [selectedSide, setSelectedSide] = useState('');
   const [customSite, setCustomSite] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [hasCheckedTracking, setHasCheckedTracking] = useState(false);
 
-  // Check if injection site tracking is enabled
+  // Check if injection site tracking is enabled (only once when modal opens)
   useEffect(() => {
-    if (isVisible && !isInjectionSiteTrackingEnabled()) {
+    if (isVisible && !hasCheckedTracking && !isInjectionSiteTrackingEnabled()) {
       // If tracking is disabled, automatically complete the task without site selection
+      setHasCheckedTracking(true);
       onConfirm(''); // Pass empty string to indicate no site was recorded
       return;
     }
-  }, [isVisible, onConfirm]);
+    if (isVisible && !hasCheckedTracking) {
+      setHasCheckedTracking(true);
+    }
+    if (!isVisible) {
+      setHasCheckedTracking(false);
+    }
+  }, [isVisible, hasCheckedTracking]);
 
   // Load suggestions when component becomes visible (only if tracking is enabled)
   useEffect(() => {

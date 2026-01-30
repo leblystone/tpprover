@@ -141,12 +141,12 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         // Otherwise, ignore prop changes during background state transitions
     }, [open]);
 
-    // Auto-fill email from logged in user
+    // Keep email in sync with logged-in user (read-only; always use account email)
     useEffect(() => {
-        if (user?.email && !formData.email) {
+        if (user?.email) {
             setFormData(prev => ({ ...prev, email: user.email }));
         }
-    }, [user, open]);
+    }, [user?.email, open]);
 
     // Load user's previous tickets when modal opens
     useEffect(() => {
@@ -236,7 +236,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         
         try {
             console.log('📤 Creating support ticket...', {
-                userEmail: formData.email || user?.email,
+                userEmail: user?.email,
                 userId: user?.uid,
                 message: formData.message.trim(),
                 imageCount: selectedImages.length
@@ -269,7 +269,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 await submitFeedback({
                     type: 'suggestion',
                     message: formData.message.trim(),
-                    userEmail: formData.email || user?.email || 'anonymous',
+                    userEmail: user?.email || 'anonymous',
                     userId: user?.uid || null,
                     userAgent: navigator.userAgent,
                     url: window.location.href,
@@ -281,7 +281,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 // Create a support ticket (support or bug - goes to full Ghosty handling)
                 const ticketId = await createSupportTicket({
                     userId: user?.uid || null,
-                    userEmail: formData.email || user?.email,
+                    userEmail: user?.email,
                     userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
                     type: ticketType, // 'support' or 'bug'
                     subject: ticketType === 'bug' ? 'Bug Report' : 'Support Request',
@@ -291,7 +291,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                     metadata: {
                         userAgent: navigator.userAgent,
                         url: window.location.href,
-                        userEmail: formData.email || user?.email,
+                        userEmail: user?.email,
                         userId: user?.uid || null
                     }
                 });
@@ -340,20 +340,23 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: theme.border }}>
                     <div className="flex items-center gap-3">
-                        {showBackButton && onBack && (
+                        {/* Back: to Beta when showBackButton, or to type selection when on form step */}
+                        {(showBackButton && onBack) || ticketType ? (
                             <button
-                                onClick={onBack}
+                                onClick={ticketType ? () => setTicketType(null) : onBack}
                                 className="p-2 rounded-full transition-colors hover:opacity-70"
                                 style={{ backgroundColor: theme.background }}
-                                title="Back to Beta Info"
+                                title={ticketType ? 'Back to support options' : 'Back to Beta Info'}
                             >
                                 <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
                             </button>
-                        )}
+                        ) : null}
                         <div className="p-2 rounded-full" style={{ backgroundColor: theme.background }}>
                             <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
                         </div>
-                        <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>Support</h2>
+                        <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>
+                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : 'Support'}
+                        </h2>
                     </div>
                     <button
                         onClick={handleClose}
@@ -485,45 +488,32 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         </div>
                     ) : (
                         <div>
-                            {/* Back button and title */}
-                            <div className="flex items-center gap-3 mb-4">
-                                <button
-                                    onClick={() => setTicketType(null)}
-                                    className="p-2 rounded-lg hover:opacity-80 transition-opacity"
-                                    style={{ backgroundColor: theme.background }}
-                                    type="button"
-                                >
-                                    <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
-                                </button>
-                                <div>
-                                    <h3 className="font-semibold" style={{ color: theme.text }}>
-                                        {ticketType === 'bug' ? '🐛 Report a Bug' : ticketType === 'suggestion' ? '💡 Share Your Idea' : '💬 Support Request'}
-                                    </h3>
-                                    <p className="text-xs" style={{ color: theme.textLight }}>
-                                        {ticketType === 'bug' ? 'Help us fix technical issues' : ticketType === 'suggestion' ? 'Tell us what would make the app better' : 'We\'re here to help'}
-                                    </p>
-                                </div>
-                            </div>
+                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                                {ticketType === 'bug' ? 'Help us fix technical issues' : ticketType === 'suggestion' ? 'Tell us what would make the app better' : 'We\'re here to help'}
+                            </p>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                        Email *
+                                        Email
                                     </label>
                                     <input
                                         type="email"
                                         name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all"
+                                        value={user?.email ?? ''}
+                                        readOnly
+                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none cursor-default"
                                         style={{
                                             borderColor: theme.border,
-                                            backgroundColor: '#ffffff',
-                                            color: '#1e293b'
+                                            backgroundColor: theme.background || '#f1f5f9',
+                                            color: theme.text
                                         }}
-                                        placeholder="your@email.com"
+                                        placeholder="Sign in to use your account email"
+                                        title="Uses your logged-in account email"
                                     />
+                                    <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                                        Uses your account email (cannot be changed)
+                                    </p>
                                 </div>
 
                                 <div>
@@ -607,9 +597,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                     </div>
                                 )}
 
+                                {!user?.email && (
+                                    <p className="text-sm" style={{ color: theme.textLight }}>
+                                        Sign in to submit a support request, bug report, or suggestion.
+                                    </p>
+                                )}
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !user?.email}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{
                                         background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
