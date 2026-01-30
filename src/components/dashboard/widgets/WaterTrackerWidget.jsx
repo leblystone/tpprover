@@ -40,6 +40,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
   useEffect(() => {
     try {
       localStorage.setItem('tpprover_water_tracker', JSON.stringify(waterData));
+      window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData } }));
     } catch (error) {
       console.warn('Failed to save water data:', error);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Edit3, Trash2, X, Save } from 'lucide-react';
 import Modal from '../common/Modal';
 import { generateId } from '../../utils/string';
+import { prepareItemForSave } from '../../utils/userDataSave';
 
 const NotesModal = ({ isOpen, onClose, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
@@ -30,6 +31,7 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
     try {
       localStorage.setItem('tpprover_user_notes', JSON.stringify(notes));
       setUserNotes(notes);
+      window.dispatchEvent(new CustomEvent('tpp:user-notes-updated', { detail: { notes } }));
     } catch (error) {
       console.error('Failed to save notes:', error);
     }
@@ -37,13 +39,14 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
 
   const handleAddNote = () => {
     if (newNote.title.trim() || newNote.content.trim()) {
-      const note = {
-        id: generateId(),
-        title: newNote.title.trim() || 'Untitled',
-        content: newNote.content.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      const note = prepareItemForSave(
+        {
+          title: newNote.title.trim() || 'Untitled',
+          content: newNote.content.trim(),
+          createdAt: new Date().toISOString()
+        },
+        { isNew: true }
+      );
 
       const updatedNotes = [note, ...userNotes];
       saveNotes(updatedNotes);
@@ -60,7 +63,7 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
     if (editingNote.title.trim() || editingNote.content.trim()) {
       const updatedNotes = userNotes.map(note =>
         note.id === editingNote.id
-          ? { ...editingNote, updatedAt: new Date().toISOString() }
+          ? prepareItemForSave({ ...editingNote })
           : note
       );
       saveNotes(updatedNotes);

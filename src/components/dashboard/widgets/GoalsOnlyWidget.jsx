@@ -4,6 +4,7 @@ import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit } from 'luci
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
+import { prepareItemForSave } from '../../../utils/userDataSave';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -60,6 +61,7 @@ const GoalsOnlyWidget = ({
       
       localStorage.setItem('tpprover_user_goals', JSON.stringify(combinedGoals));
       setGoals(updatedGoals);
+      window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: combinedGoals } }));
     } catch (error) {
       console.error('Failed to save goals:', error);
     }
@@ -71,13 +73,15 @@ const GoalsOnlyWidget = ({
   const handleAddGoal = () => {
     if (!newGoal.title.trim()) return;
     
-    const goal = {
-      id: generateId(),
-      title: newGoal.title.trim(),
-      targetDate: newGoal.targetDate || null,
-      completed: false,
-      createdAt: new Date().toISOString()
-    };
+    const goal = prepareItemForSave(
+      {
+        title: newGoal.title.trim(),
+        targetDate: newGoal.targetDate || null,
+        completed: false,
+        createdAt: new Date().toISOString()
+      },
+      { isNew: true }
+    );
     
     const updatedGoals = [goal, ...goals];
     saveGoals(updatedGoals);
@@ -86,15 +90,15 @@ const GoalsOnlyWidget = ({
   };
 
   const handleToggleGoal = (goalId) => {
-    const updatedGoals = goals.map(goal => 
-      goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
+    const updatedGoals = goals.map(goal =>
+      goal.id === goalId ? prepareItemForSave({ ...goal, completed: !goal.completed }) : goal
     );
     saveGoals(updatedGoals);
   };
 
   const handleArchiveGoal = (goalId) => {
-    const updatedGoals = goals.map(goal => 
-      goal.id === goalId ? { ...goal, archived: true, archivedAt: new Date().toISOString() } : goal
+    const updatedGoals = goals.map(goal =>
+      goal.id === goalId ? prepareItemForSave({ ...goal, archived: true, archivedAt: new Date().toISOString() }) : goal
     );
     saveGoals(updatedGoals);
     loadGoals(); // Reload to update archived list
@@ -118,6 +122,7 @@ const GoalsOnlyWidget = ({
       
       const filteredGoals = allGoals.filter(goal => goal.id !== goalId);
       localStorage.setItem('tpprover_user_goals', JSON.stringify(filteredGoals));
+      window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: filteredGoals } }));
       
       // Update active goals display
       const activeGoals = goals.filter(goal => goal.id !== goalId);

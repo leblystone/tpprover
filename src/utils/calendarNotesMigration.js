@@ -1,4 +1,5 @@
 import { generateId } from './string';
+import { prepareItemForSave } from './userDataSave';
 
 /**
  * Migrates calendar notes from old string format to new ID-based array format
@@ -59,13 +60,10 @@ export function addCalendarNote(calendarNotes, dateKey, text) {
         return calendarNotes;
     }
     
-    const now = new Date().toISOString();
-    const newNote = {
-        id: generateId(12),
-        text: text.trim(),
-        createdAt: now,
-        updatedAt: now
-    };
+    const newNote = prepareItemForSave(
+        { text: text.trim(), createdAt: new Date().toISOString() },
+        { isNew: true }
+    );
     
     const dayData = calendarNotes[dateKey] || { notes: [] };
     
@@ -89,11 +87,7 @@ export function updateCalendarNote(calendarNotes, dateKey, noteId, newText) {
     
     const updatedNotes = dayData.notes.map(note => {
         if (note.id === noteId) {
-            return {
-                ...note,
-                text: newText.trim(),
-                updatedAt: new Date().toISOString()
-            };
+            return prepareItemForSave({ ...note, text: newText.trim() });
         }
         return note;
     });

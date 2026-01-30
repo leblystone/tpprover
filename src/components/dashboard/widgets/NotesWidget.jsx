@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
 import { generateId } from '../../../utils/string';
+import { prepareItemForSave } from '../../../utils/userDataSave';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -30,6 +31,7 @@ const NotesWidget = ({ widget, theme }) => {
     try {
       localStorage.setItem('tpprover_user_notes', JSON.stringify(notes));
       setUserNotes(notes);
+      window.dispatchEvent(new CustomEvent('tpp:user-notes-updated', { detail: { notes } }));
     } catch (error) {
       console.error('Failed to save notes:', error);
     }
@@ -38,13 +40,14 @@ const NotesWidget = ({ widget, theme }) => {
   const handleAddNote = () => {
     if (!newNote.content.trim()) return;
 
-    const note = {
-      id: generateId(),
-      title: newNote.title.trim() || 'Quick Note',
-      content: newNote.content.trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const note = prepareItemForSave(
+      {
+        title: newNote.title.trim() || 'Quick Note',
+        content: newNote.content.trim(),
+        createdAt: new Date().toISOString()
+      },
+      { isNew: true }
+    );
 
     const updatedNotes = [note, ...userNotes];
     saveNotes(updatedNotes);

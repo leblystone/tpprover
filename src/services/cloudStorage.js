@@ -304,6 +304,68 @@ export function mergeInjectionStats(localData, serverData) {
 }
 
 /**
+ * Helper: Get timestamp from a note/item (updatedAt or createdAt)
+ */
+function getNoteTimestamp(note) {
+  if (!note) return 0;
+  const t = note.updatedAt ?? note.createdAt;
+  if (!t) return 0;
+  if (typeof t === 'number') return t;
+  if (t.toMillis) return t.toMillis();
+  return new Date(t).getTime();
+}
+
+/**
+ * Helper: Merge calendar notes (date -> { notes: [] }) by merging notes arrays per date with timestamp (newer wins per id)
+ */
+function mergeCalendarNotes(localNotes, serverNotes) {
+  if (!localNotes || typeof localNotes !== 'object') localNotes = {};
+  if (!serverNotes || typeof serverNotes !== 'object') serverNotes = {};
+  const allDates = new Set([...Object.keys(localNotes), ...Object.keys(serverNotes)]);
+  const merged = {};
+  allDates.forEach((dateKey) => {
+    const localDay = localNotes[dateKey];
+    const serverDay = serverNotes[dateKey];
+    const localArr = (localDay && Array.isArray(localDay.notes)) ? localDay.notes : [];
+    const serverArr = (serverDay && Array.isArray(serverDay.notes)) ? serverDay.notes : [];
+    const byId = new Map();
+    [...serverArr, ...localArr].forEach((note) => {
+      if (!note || typeof note !== 'object') return;
+      const id = note.id || `legacy_${getNoteTimestamp(note)}_${Math.random().toString(36).slice(2)}`;
+      const existing = byId.get(id);
+      if (!existing || getNoteTimestamp(note) > getNoteTimestamp(existing)) {
+        byId.set(id, { ...note, id, updatedAt: note.updatedAt || note.createdAt || new Date().toISOString() });
+      }
+    });
+    const notes = Array.from(byId.values()).sort((a, b) => getNoteTimestamp(b) - getNoteTimestamp(a));
+    merged[dateKey] = { notes };
+  });
+  return merged;
+}
+
+/**
+ * Helper: Merge water tracker (date -> { glasses, goal, unit, lastUpdated }) by date; newer lastUpdated wins per date
+ */
+export function mergeWaterTracker(localData, serverData) {
+  if (!localData || typeof localData !== 'object') localData = {};
+  if (!serverData || typeof serverData !== 'object') serverData = {};
+  const allDates = new Set([...Object.keys(localData), ...Object.keys(serverData)]);
+  const merged = {};
+  allDates.forEach((dateKey) => {
+    const localDay = localData[dateKey];
+    const serverDay = serverData[dateKey];
+    const localTs = localDay?.lastUpdated ? new Date(localDay.lastUpdated).getTime() : 0;
+    const serverTs = serverDay?.lastUpdated ? new Date(serverDay.lastUpdated).getTime() : 0;
+    if (localTs >= serverTs && localDay) {
+      merged[dateKey] = { ...localDay };
+    } else if (serverDay) {
+      merged[dateKey] = { ...serverDay };
+    }
+  });
+  return merged;
+}
+
+/**
  * Save user's main application data (protocols, vendors, etc.)
  * Now with timestamp-based conflict resolution
  */
@@ -338,6 +400,9 @@ export async function saveAppData(userId, appData, options = {}) {
       protocolHistory: ensureTimestamps(appData.protocolHistory || []),
       wishlist: ensureTimestamps(appData.wishlist || []),
       calendarNotes: appData.calendarNotes || {},
+      userNotes: ensureTimestamps(appData.userNotes || []),
+      userGoals: ensureTimestamps(appData.userGoals || []),
+      waterTracker: appData.waterTracker || {},
       taskCompletion: appData.taskCompletion || {},
       calendarDone: appData.calendarDone || {},
       injectionHistory: ensureInjectionHistoryIds(appData.injectionHistory || []),
@@ -366,7 +431,10 @@ export async function saveAppData(userId, appData, options = {}) {
         scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys, 'scheduledBuys', mergedDeletionTracking.scheduledBuys),
         protocolHistory: mergeWithTimestamps(timestampedData.protocolHistory, serverData.protocolHistory || [], 'protocolHistory', mergedDeletionTracking.protocolHistory),
         wishlist: mergeWithTimestamps(timestampedData.wishlist, serverData.wishlist || [], 'wishlist', mergedDeletionTracking.wishlist),
-        calendarNotes: timestampedData.calendarNotes, // TODO: Add timestamp merging for calendar notes
+        calendarNotes: mergeCalendarNotes(timestampedData.calendarNotes, serverData.calendarNotes || {}),
+        userNotes: mergeWithTimestamps(timestampedData.userNotes, serverData.userNotes || [], 'userNotes', mergedDeletionTracking.userNotes),
+        userGoals: mergeWithTimestamps(timestampedData.userGoals, serverData.userGoals || [], 'goals', mergedDeletionTracking.goals),
+        waterTracker: mergeWaterTracker(timestampedData.waterTracker, serverData.waterTracker || {}),
         // Merge task completion data - prefer local data (more recent completions)
         taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
         calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {}),
@@ -397,6 +465,9 @@ export async function saveAppData(userId, appData, options = {}) {
     metrics: appData.metrics || [],
     vendors: appData.vendors || [],
     calendarNotes: appData.calendarNotes || {},
+    userNotes: appData.userNotes || [],
+    userGoals: appData.userGoals || [],
+    waterTracker: appData.waterTracker || {},
     stockpile: appData.stockpile || [],
     scheduledBuys: appData.scheduledBuys || [],
     protocolHistory: appData.protocolHistory || [],
@@ -590,6 +661,9 @@ export async function migrateLocalStorageToCloud(userId) {
       recon_history: 'reconHistory',
       calendar_notes: 'calendarNotes',
       scheduled_buys: 'scheduledBuys',
+      user_notes: 'userNotes',
+      user_goals: 'userGoals',
+      water_tracker: 'waterTracker',
       task_completion: 'taskCompletion',
       calendar_done: 'calendarDone',
       injection_history: 'injectionHistory',
@@ -607,8 +681,8 @@ export async function migrateLocalStorageToCloud(userId) {
         if (['tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history', 
              'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-             'tpprover_scheduled_buys', 'tpprover_wishlist', 'tpprover_task_completion', 'tpprover_calendar_done',
-             'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
+             'tpprover_scheduled_buys', 'tpprover_wishlist', 'tpprover_user_notes', 'tpprover_user_goals', 'tpprover_water_tracker',
+             'tpprover_task_completion', 'tpprover_calendar_done', 'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
           const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
           

@@ -8,7 +8,7 @@ import {
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps,
-  mergeInjectionHistory, mergeInjectionStats
+  mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker
 } from '../services/cloudStorage';
 import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
 import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
@@ -16,6 +16,7 @@ import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
+import { prepareItemForSave } from '../utils/userDataSave';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { registerAppDataGetter } from '../utils/safeReload';
 import { 
@@ -489,6 +490,9 @@ export function AppProvider({ children }) {
                     (!cloudAppData.metrics || cloudAppData.metrics.length === 0) &&
                     (!cloudAppData.scheduledBuys || cloudAppData.scheduledBuys.length === 0) &&
                     (!cloudAppData.wishlist || cloudAppData.wishlist.length === 0) &&
+                    (!cloudAppData.userNotes || cloudAppData.userNotes.length === 0) &&
+                    (!cloudAppData.userGoals || cloudAppData.userGoals.length === 0) &&
+                    (!cloudAppData.waterTracker || Object.keys(cloudAppData.waterTracker).length === 0) &&
                     (!cloudAppData.calendarNotes || Object.keys(cloudAppData.calendarNotes).length === 0)
                 );
                 
@@ -647,6 +651,52 @@ export function AppProvider({ children }) {
                             localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
                         }
                         
+                        // User notes - merge with timestamps
+                        const localUserNotes = localStorage.getItem('tpprover_user_notes');
+                        if (localUserNotes) {
+                            const mergedUserNotes = mergeWithTimestamps(
+                                JSON.parse(localUserNotes),
+                                cloudAppData.userNotes || [],
+                                'userNotes',
+                                mergedDeletionTracking.userNotes
+                            );
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(mergedUserNotes));
+                        } else if (cloudAppData.userNotes && cloudAppData.userNotes.length > 0) {
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(cloudAppData.userNotes));
+                        }
+                        
+                        // User goals - merge with timestamps
+                        const localUserGoals = localStorage.getItem('tpprover_user_goals');
+                        if (localUserGoals) {
+                            const mergedUserGoals = mergeWithTimestamps(
+                                JSON.parse(localUserGoals),
+                                cloudAppData.userGoals || [],
+                                'goals',
+                                mergedDeletionTracking.goals
+                            );
+                            localStorage.setItem('tpprover_user_goals', JSON.stringify(mergedUserGoals));
+                        } else if (cloudAppData.userGoals && cloudAppData.userGoals.length > 0) {
+                            localStorage.setItem('tpprover_user_goals', JSON.stringify(cloudAppData.userGoals));
+                        }
+                        
+                        // Water tracker - merge by date (newer lastUpdated wins)
+                        const localWaterTracker = localStorage.getItem('tpprover_water_tracker');
+                        if (localWaterTracker) {
+                            try {
+                                const mergedWater = mergeWaterTracker(
+                                    JSON.parse(localWaterTracker),
+                                    cloudAppData.waterTracker || {}
+                                );
+                                localStorage.setItem('tpprover_water_tracker', JSON.stringify(mergedWater));
+                            } catch (e) {
+                                if (cloudAppData.waterTracker && Object.keys(cloudAppData.waterTracker).length > 0) {
+                                    localStorage.setItem('tpprover_water_tracker', JSON.stringify(cloudAppData.waterTracker));
+                                }
+                            }
+                        } else if (cloudAppData.waterTracker && Object.keys(cloudAppData.waterTracker).length > 0) {
+                            localStorage.setItem('tpprover_water_tracker', JSON.stringify(cloudAppData.waterTracker));
+                        }
+                        
                         // Calendar notes - merge objects
                         const localNotes = localStorage.getItem('tpprover_calendar_notes');
                         if (localNotes) {
@@ -711,6 +761,16 @@ export function AppProvider({ children }) {
                         // Restore wishlist from cloud
                         if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
                             localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
+                        }
+                        // Restore user notes, goals, water tracker from cloud
+                        if (cloudAppData.userNotes && cloudAppData.userNotes.length > 0) {
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(cloudAppData.userNotes));
+                        }
+                        if (cloudAppData.userGoals && cloudAppData.userGoals.length > 0) {
+                            localStorage.setItem('tpprover_user_goals', JSON.stringify(cloudAppData.userGoals));
+                        }
+                        if (cloudAppData.waterTracker && Object.keys(cloudAppData.waterTracker).length > 0) {
+                            localStorage.setItem('tpprover_water_tracker', JSON.stringify(cloudAppData.waterTracker));
                         }
                         
                         // Restore task completion data from cloud
@@ -1326,11 +1386,19 @@ export function AppProvider({ children }) {
         };
     }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
-    // When wishlist is updated (localStorage-only), trigger sync
+    // When wishlist, user notes, goals, or water tracker are updated (localStorage-only), trigger sync
     useEffect(() => {
-        const onWishlistUpdated = () => setWishlistSyncTrigger((n) => n + 1);
-        window.addEventListener('tpp:wishlist-updated', onWishlistUpdated);
-        return () => window.removeEventListener('tpp:wishlist-updated', onWishlistUpdated);
+        const bumpSync = () => setWishlistSyncTrigger((n) => n + 1);
+        window.addEventListener('tpp:wishlist-updated', bumpSync);
+        window.addEventListener('tpp:user-notes-updated', bumpSync);
+        window.addEventListener('tpp:user-goals-updated', bumpSync);
+        window.addEventListener('tpp:water-tracker-updated', bumpSync);
+        return () => {
+            window.removeEventListener('tpp:wishlist-updated', bumpSync);
+            window.removeEventListener('tpp:user-notes-updated', bumpSync);
+            window.removeEventListener('tpp:user-goals-updated', bumpSync);
+            window.removeEventListener('tpp:water-tracker-updated', bumpSync);
+        };
     }, []);
 
     // Auto-sync data to cloud storage when it changes
@@ -1351,8 +1419,11 @@ export function AppProvider({ children }) {
         
         // Get protocol history from localStorage to include in sync
         const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
-        // Get wishlist from localStorage to include in sync (cross-device)
+        // Get wishlist, user notes, goals, water tracker from localStorage to include in sync (cross-device)
         const wishlist = JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
+        const userNotes = JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]');
+        const userGoals = JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]');
+        const waterTracker = JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}');
         
         // Get injection history and stats for cloud sync (pin history)
         const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
@@ -1374,6 +1445,9 @@ export function AppProvider({ children }) {
             deletionTracking,
             protocolHistory,
             wishlist,
+            userNotes,
+            userGoals,
+            waterTracker,
             injectionHistory,
             injectionStats
         };
@@ -1683,21 +1757,17 @@ export function AppProvider({ children }) {
         const index = protocols.findIndex(p => p.id === updatedProtocol.id);
         if (index > -1) {
             const newProtocols = [...protocols];
-            newProtocols[index] = {
-                ...updatedProtocol,
-                updatedAt: new Date().toISOString()
-            };
+            newProtocols[index] = prepareItemForSave(updatedProtocol);
             setProtocols(newProtocols);
         }
     };
     
     const addProtocol = (newProtocol) => {
-        const now = new Date().toISOString();
-        setProtocols(prev => [{
-            ...newProtocol,
-            createdAt: newProtocol.createdAt || now,
-            updatedAt: now
-        }, ...prev]);
+        const withTimestamp = prepareItemForSave(
+            { ...newProtocol, createdAt: newProtocol.createdAt || new Date().toISOString() },
+            { isNew: true }
+        );
+        setProtocols(prev => [withTimestamp, ...prev]);
     }
 
     const deleteProtocol = async (protocolId) => {
@@ -1790,14 +1860,12 @@ export function AppProvider({ children }) {
 
             if (existingIndex !== -1) {
                 const existingVendor = list[existingIndex] || {};
-                const mergedVendor = {
+                const mergedVendor = prepareItemForSave({
                     ...existingVendor,
                     ...newVendor,
                     id: existingVendor.id != null ? existingVendor.id : targetId,
-                    updatedAt: now,
                     createdAt: existingVendor.createdAt || now
-                };
-
+                });
                 if (newVendor.isStub === undefined) {
                     mergedVendor.isStub = !hasMeaningfulDetails(mergedVendor);
                 }
@@ -1816,12 +1884,10 @@ export function AppProvider({ children }) {
                 return list.map((vendor, index) => index === existingIndex ? mergedVendor : vendor);
             }
 
-            const createdVendor = { 
-                ...newVendor, 
-                id: targetId,
-                createdAt: now,
-                updatedAt: now
-            };
+            const createdVendor = prepareItemForSave(
+                { ...newVendor, id: targetId, createdAt: now },
+                { isNew: true }
+            );
             if (createdVendor.isStub === undefined) {
                 createdVendor.isStub = !hasMeaningfulDetails(createdVendor);
             }
@@ -1842,11 +1908,7 @@ export function AppProvider({ children }) {
     };
 
     const updateVendor = (updatedVendor) => {
-        // CRITICAL: Update timestamp and protection window when vendor is updated
-        const vendorWithTimestamp = {
-            ...updatedVendor,
-            updatedAt: new Date().toISOString()
-        };
+        const vendorWithTimestamp = prepareItemForSave(updatedVendor);
         
         // Update protection window timestamp to prevent real-time listener from overwriting
         lastLocalVendorsUpdateRef.current = Date.now();
@@ -2022,12 +2084,7 @@ export function AppProvider({ children }) {
     };
 
     const addSupplement = (newSupplement) => {
-        // Only generate ID if not already provided
-        const supplementToAdd = {
-            ...newSupplement,
-            id: newSupplement.id || generateId()
-        };
-        
+        const supplementToAdd = prepareItemForSave(newSupplement, { isNew: !newSupplement.id });
         setSupplements(prev => [supplementToAdd, ...prev]);
     };
 
@@ -2041,11 +2098,8 @@ export function AppProvider({ children }) {
         // Remove _delete flag if it exists and update normally
         const { _delete, ...cleanSupplement } = updatedSupplement;
         
-        // Ensure the updated supplement has a fresh timestamp
-        const supplementWithTimestamp = {
-            ...cleanSupplement,
-            updatedAt: new Date().toISOString()
-        };
+        // Ensure the updated supplement has id and updatedAt for sync
+        const supplementWithTimestamp = prepareItemForSave(cleanSupplement);
         
         // Update local state
         const updatedSupplements = supplements.map(s => s.id === supplementWithTimestamp.id ? supplementWithTimestamp : s);
