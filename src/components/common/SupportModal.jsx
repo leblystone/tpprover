@@ -338,7 +338,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             <div className="relative rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col"
                 style={{ backgroundColor: theme.cardBackground }}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: theme.border }}>
+                <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
                     <div className="flex items-center gap-3">
                         {/* Back: to Beta when showBackButton, or to type selection when on form step */}
                         {(showBackButton && onBack) || ticketType ? (
@@ -368,22 +368,13 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 </div>
                 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4">
                     {!ticketType ? (
                         /* Ticket Type Selection */
-                        <div className="space-y-4">
-                            <div className="text-center mb-6">
-                                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                                    How can we help?
-                                </h3>
-                                <p className="text-sm" style={{ color: theme.textLight }}>
-                                    Choose the type of support you need
-                                </p>
-                            </div>
-
+                        <div className="space-y-3">
                             <button
                                 onClick={() => setTicketType('support')}
-                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
                                 style={{
                                     borderColor: theme.border,
                                     backgroundColor: theme.background
@@ -406,7 +397,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
 
                             <button
                                 onClick={() => setTicketType('bug')}
-                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
                                 style={{
                                     borderColor: theme.border,
                                     backgroundColor: theme.background
@@ -429,7 +420,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
 
                             <button
                                 onClick={() => setTicketType('suggestion')}
-                                className="w-full p-6 rounded-lg border-2 transition-all hover:shadow-md"
+                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
                                 style={{
                                     borderColor: theme.border,
                                     backgroundColor: theme.background
@@ -488,10 +479,6 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         </div>
                     ) : (
                         <div>
-                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                                {ticketType === 'bug' ? 'Help us fix technical issues' : ticketType === 'suggestion' ? 'Tell us what would make the app better' : 'We\'re here to help'}
-                            </p>
-
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
