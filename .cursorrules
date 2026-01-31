@@ -1,0 +1,23 @@
+# TPP - The Pep Planner - Cursor Rules
+
+## User Data Save/Sync Pattern (CRITICAL)
+
+Before making ANY changes that add or modify user data saving (forms, modals, widgets, protocols, orders, stockpile, wishlist, notes, goals, water tracker, etc.):
+
+1. **READ** `CONTRIBUTING.md` in the project root
+2. **READ** `USER_DATA_SAVE_PATTERN.md` in the project root
+3. **USE** `prepareItemForSave()` from `src/utils/userDataSave.js` for all creates/updates
+4. **ENSURE** every user-editable item has `id` and `updatedAt` timestamps
+5. **FOLLOW** the three-step pattern: update state → update localStorage → cloud sync (automatic)
+
+**Why this matters:**
+- The app syncs across devices (web, Android, iOS)
+- Timestamp-based conflict resolution prevents data overwrites
+- Skipping this pattern causes data loss and sync bugs
+
+**Key files that implement this pattern:**
+- `src/context/AppContext.jsx` - Central sync orchestrator
+- `src/services/cloudStorage.js` - Cloud save/load with merge logic
+- `src/utils/userDataSave.js` - Helper functions (prepareItemForSave, etc.)
+
+If you're unsure whether your change touches user data, assume it does and follow the pattern.

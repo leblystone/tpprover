@@ -8,8 +8,6 @@
 - The user prefers that the assistant summarize what was fixed in commits going forward. (ID: 8247681)
 - The user prefers that the assistant not confirm commit messages with them. (ID: 8247680)
 - When drafting customer responses, use a friendly, human tone with emojis (e.g., "Hey! 👋", "Thanks for catching that", "Give it a try! 🧪"). Avoid overly formal or robotic language.
-
-
-
+- When adding or modifying any user data saving logic (forms, modals, widgets, protocols, orders, stockpile, wishlist, notes, goals, water tracker, calendar notes, etc.), ALWAYS follow the standardized save/sync pattern documented in USER_DATA_SAVE_PATTERN.md. Use prepareItemForSave() from src/utils/userDataSave.js to ensure items have id and updatedAt timestamps. This is critical for cross-device sync and preventing data loss. (ID: 8247771)
 
 

@@ -18,6 +18,24 @@ import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
+
+/**
+ * ⚠️ IMPORTANT: READ BEFORE MODIFYING
+ * 
+ * This file handles user data saving and syncing across devices.
+ * ALL changes that touch user data MUST follow the app's standardized pattern.
+ * 
+ * 📖 READ: USER_DATA_SAVE_PATTERN.md (in project root)
+ * 📖 READ: CONTRIBUTING.md (in project root)
+ * 
+ * Key requirements:
+ * - Use prepareItemForSave() from src/utils/userDataSave.js for all creates/updates
+ * - Ensure every item has id and updatedAt timestamps
+ * - Follow the "three steps" pattern: state → localStorage → cloud sync
+ * - Use timestamp-based merging to prevent data loss on multi-device sync
+ * 
+ * Violating this pattern causes data loss, sync bugs, and cross-device conflicts.
+ */
 import { registerAppDataGetter } from '../utils/safeReload';
 import { 
     migrateCalendarNotesToIdBased, 
