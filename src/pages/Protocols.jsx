@@ -47,7 +47,7 @@ import { useRef, useMemo } from 'react';
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
-  const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol, stockpile, setStockpile } = useAppContext();
+  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
@@ -113,6 +113,18 @@ export default function Protocols() {
     { id: 'observation', label: 'Observation' },
     { id: 'question', label: 'Question' }
   ];
+
+  // Debug: log protocol state when Protocols page is viewing protocols
+  useEffect(() => {
+    const activeCount = (protocols || []).filter(p => p && p.active).length;
+    if ((protocols || []).length > 0) {
+      console.log('📋 [PROTOCOL-SYNC] Protocols page: protocols state', {
+        total: (protocols || []).length,
+        activeCount,
+        path: location.pathname
+      });
+    }
+  }, [protocols, location.pathname]);
 
   // Listen for history updates to refresh the modal
   useEffect(() => {
@@ -3742,9 +3754,7 @@ export default function Protocols() {
                 return;
             }
 
-            updateProtocol(toSave);
-
-            // Save protocol history entry
+            // Save protocol history entry first so it's included in the force sync
             try {
                 // Extract vial information from linkedItems and track skipped reconstitution
                 const vials = [];
@@ -3826,6 +3836,8 @@ export default function Protocols() {
             } catch (error) {
                 console.error('Failed to save protocol history:', error);
             }
+
+            updateProtocolWithForceSync(toSave);
 
             // Trigger dashboard and calendar refresh
             window.dispatchEvent(new CustomEvent('tpp:calendar-sync', { detail: { protocolUpdated: true } }));

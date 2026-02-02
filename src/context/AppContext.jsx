@@ -113,11 +113,13 @@ export function AppProvider({ children }) {
         }
     })());
     // Protection window for protocols (prevents Firebase overwriting just-started protocol)
+    // 60 seconds - protocol start revert reported after ~1 min; force sync addresses root cause
+    const PROTOCOLS_PROTECTION_MS = 60000;
     const lastLocalProtocolsUpdateRef = useRef((() => {
         try {
             const stored = localStorage.getItem('tpprover_protocols_lastUpdate');
             const timestamp = stored ? parseInt(stored, 10) : 0;
-            if (Date.now() - timestamp < 15000) {
+            if (Date.now() - timestamp < PROTOCOLS_PROTECTION_MS) {
                 return timestamp;
             }
             return 0;
@@ -572,10 +574,15 @@ export function AppProvider({ children }) {
                             mergedDeletionTracking.stockpile
                         ) : (cloudAppData.stockpile || []);
                         
-                        if (timeSinceProtocolsUpdateMerge >= 15000) {
+                        if (timeSinceProtocolsUpdateMerge >= PROTOCOLS_PROTECTION_MS) {
+                            const mActive = (mergedProtocols || []).filter(p => p.active).length;
+                            console.log('📋 [PROTOCOL-SYNC] Initial merge load: setting protocols', {
+                                mergedTotal: (mergedProtocols || []).length,
+                                mergedActive: mActive
+                            });
                             setProtocols(mergedProtocols);
                         } else {
-                            console.log('⏸️ Skipping protocols merge from initial load - recent local change');
+                            console.log('📋 [PROTOCOL-SYNC] Initial merge: skipping protocols (protection)');
                         }
                         setOrders(mergedOrders);
                         setStockpile(mergedStockpile);
@@ -781,10 +788,15 @@ export function AppProvider({ children }) {
                 } else {
                         // No local data, just use cloud
                     const timeSinceProtocolsNoLocal = Date.now() - lastLocalProtocolsUpdateRef.current;
-                    if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= 15000) {
+                    if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= PROTOCOLS_PROTECTION_MS) {
+                        const noLocalActive = (cloudAppData.protocols || []).filter(p => p.active).length;
+                        console.log('📋 [PROTOCOL-SYNC] No-local load: setting protocols from cloud', {
+                            total: cloudAppData.protocols.length,
+                            active: noLocalActive
+                        });
                         setProtocols(cloudAppData.protocols);
-                    } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < 15000) {
-                        console.log('⏸️ Skipping Firebase protocols (no local) - recent local change');
+                    } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < PROTOCOLS_PROTECTION_MS) {
+                        console.log('📋 [PROTOCOL-SYNC] No-local: skipping protocols (protection)');
                     }
                     if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
                     if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
@@ -1177,10 +1189,15 @@ export function AppProvider({ children }) {
                                     // Load Firebase data into state (Firebase takes precedence for authenticated users)
                                     // Skip protocols if we recently updated locally (e.g. just started a protocol)
                                     const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                    if (timeSinceProtocolsUpdate >= 15000 && firebaseData.protocols) {
+                                    const fbActive = (firebaseData.protocols || []).filter(p => p.active).length;
+                                    if (timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS && firebaseData.protocols) {
+                                        console.log('📋 [PROTOCOL-SYNC] Initial Firebase load: setting protocols', {
+                                            total: firebaseData.protocols.length,
+                                            active: fbActive
+                                        });
                                         setProtocols(firebaseData.protocols);
-                                    } else if (timeSinceProtocolsUpdate < 15000 && firebaseData.protocols) {
-                                        console.log('⏸️ Skipping Firebase protocols update - recent local change (' + Math.round(timeSinceProtocolsUpdate / 1000) + 's ago)');
+                                    } else if (timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS && firebaseData.protocols) {
+                                        console.log('📋 [PROTOCOL-SYNC] Initial load: skipping protocols (protection,', Math.round(timeSinceProtocolsUpdate / 1000), 's ago)');
                                     }
                                     if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
                                     if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
@@ -1239,7 +1256,7 @@ export function AppProvider({ children }) {
                                     
                                     // CRITICAL: Update localStorage with Firebase data to prevent future data loss
                                     try {
-                                        if (timeSinceProtocolsUpdate >= 15000) {
+                                        if (timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS) {
                                             localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
                                         }
                                         localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
@@ -1613,6 +1630,13 @@ export function AppProvider({ children }) {
             };
             
             // Execute sync
+            const activeProtoCount = (userData.protocols || []).filter(p => p && p.active).length;
+            if ((userData.protocols || []).length > 0) {
+                console.log('📋 [PROTOCOL-SYNC] Auto-sync effect running', {
+                    total: (userData.protocols || []).length,
+                    active: activeProtoCount
+                });
+            }
             syncToCloud();
             
             // Also sync to Firebase for backup (if user has password)
@@ -1815,6 +1839,69 @@ export function AppProvider({ children }) {
                 localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
             } catch (e) {
                 console.warn('⚠️ Failed to save protocols protection timestamp:', e);
+            }
+        }
+    };
+
+    /**
+     * Update protocol AND force immediate cloud sync with skipMerge.
+     * Use when starting a protocol to prevent real-time listener from overwriting with stale data.
+     */
+    const updateProtocolWithForceSync = async (updatedProtocol) => {
+        const index = protocols.findIndex(p => p.id === updatedProtocol.id);
+        if (index === -1) {
+            console.warn('📋 [PROTOCOL-SYNC] updateProtocolWithForceSync: protocol not found', updatedProtocol.id);
+            return;
+        }
+        const newProtocols = [...protocols];
+        newProtocols[index] = prepareItemForSave(updatedProtocol);
+        const activeCount = newProtocols.filter(p => p.active).length;
+        console.log('📋 [PROTOCOL-SYNC] updateProtocolWithForceSync: saving', {
+            total: newProtocols.length,
+            activeCount,
+            updatedId: updatedProtocol.id,
+            updatedActive: updatedProtocol.active
+        });
+        setProtocols(newProtocols);
+        const now = Date.now();
+        lastLocalProtocolsUpdateRef.current = now;
+        lastRemoteUpdateTimeRef.current = now;
+        try {
+            localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+        } catch (e) {
+            console.warn('⚠️ Failed to save protocols protection timestamp:', e);
+        }
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
+                const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+                const deletionTracking = getDeletionTracking();
+                const appData = {
+                    protocols: newProtocols,
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || [],
+                    protocolHistory: protocolHistory || [],
+                    taskCompletion,
+                    calendarDone,
+                    deletionTracking
+                };
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('📋 [PROTOCOL-SYNC] ✅ Force sync complete', { activeCount });
+                } else {
+                    console.error('📋 [PROTOCOL-SYNC] ❌ Force sync FAILED');
+                }
+            } catch (error) {
+                console.error('📋 [PROTOCOL-SYNC] ❌ Force sync error:', error);
             }
         }
     };
@@ -2373,7 +2460,7 @@ export function AppProvider({ children }) {
                                 // CRITICAL: Still merge to protect any unsaved local changes
                                 if (freshData.protocols) {
                                     const timeSinceProtocolsSample = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                    if (timeSinceProtocolsSample >= 15000) {
+                                    if (timeSinceProtocolsSample >= PROTOCOLS_PROTECTION_MS) {
                                         const filtered = freshData.protocols.filter(p => !p.isMock);
                                         const localProtocols = protocols || [];
                                         const mergedProtocols = mergeWithTimestamps(
@@ -2382,9 +2469,14 @@ export function AppProvider({ children }) {
                                             'protocols',
                                             getDeletionTracking().protocols
                                         );
+                                        const mActive = (mergedProtocols || []).filter(p => p.active).length;
+                                        console.log('📋 [PROTOCOL-SYNC] Sample-data listener: setting protocols', {
+                                            mergedTotal: mergedProtocols.length,
+                                            mergedActive: mActive
+                                        });
                                         setProtocols(mergedProtocols);
                                     } else {
-                                        console.log('⏸️ Skipping protocols update from sample clear - recent local change');
+                                        console.log('📋 [PROTOCOL-SYNC] Sample-data: skipping protocols (protection)');
                                     }
                                 }
                                 if (freshData.reconItems) {
@@ -2569,8 +2661,7 @@ export function AppProvider({ children }) {
                         // But allow cross-device updates after a short debounce (1 second)
                         const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
                         if (timeSinceLastUpdate < 1000) {
-                            // Very recent update - might be our own save triggering the listener
-                            // Wait a bit longer to ensure this is a true cross-device update
+                            console.log('📋 [PROTOCOL-SYNC] App data listener: skipping (own save,', Math.round(timeSinceLastUpdate), 'ms ago)');
                             return;
                         }
 
@@ -2586,7 +2677,19 @@ export function AppProvider({ children }) {
                             // CRITICAL: Merge all data types instead of overwriting to prevent data loss
                             if (freshData.protocols) {
                                 const timeSinceProtocolsListener = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                if (timeSinceProtocolsListener >= 15000) {
+                                const willApply = timeSinceProtocolsListener >= PROTOCOLS_PROTECTION_MS;
+                                const freshActive = (freshData.protocols || []).filter(p => p.active).length;
+                                const localActive = (protocols || []).filter(p => p.active).length;
+                                console.log('📋 [PROTOCOL-SYNC] App data listener fired', {
+                                    timeSinceUpdateSec: Math.round(timeSinceProtocolsListener / 1000),
+                                    protectionMs: PROTOCOLS_PROTECTION_MS,
+                                    willApply,
+                                    freshTotal: freshData.protocols.length,
+                                    freshActive,
+                                    localTotal: (protocols || []).length,
+                                    localActive
+                                });
+                                if (willApply) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.protocols.filter(p => !p.isMock)
                                         : freshData.protocols;
@@ -2597,9 +2700,14 @@ export function AppProvider({ children }) {
                                         'protocols',
                                         getDeletionTracking().protocols
                                     );
+                                    const mergedActive = mergedProtocols.filter(p => p.active).length;
+                                    console.log('📋 [PROTOCOL-SYNC] ⚠️ Applying protocols from listener (REPLACING state)', {
+                                        mergedTotal: mergedProtocols.length,
+                                        mergedActive
+                                    });
                                     setProtocols(mergedProtocols);
                                 } else {
-                                    console.log('⏸️ Skipping protocols from app data listener - recent local change');
+                                    console.log('📋 [PROTOCOL-SYNC] ⏸️ Skipping - in protection window');
                                 }
                             }
                             if (freshData.reconItems) {
@@ -2923,10 +3031,10 @@ export function AppProvider({ children }) {
                 console.log('🔥 Firebase data found:', Object.keys(firebaseData));
                 
                 const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
-                if (firebaseData.protocols && timeSinceProtocolsUpdate >= 15000) {
+                if (firebaseData.protocols && timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS) {
                     setProtocols(firebaseData.protocols);
                     console.log(`🔥 Loaded ${firebaseData.protocols.length} protocols from Firebase`);
-                } else if (firebaseData.protocols && timeSinceProtocolsUpdate < 15000) {
+                } else if (firebaseData.protocols && timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS) {
                     console.log('⏸️ Skipping Firebase protocols in force reload - recent local change');
                 }
                 if (firebaseData.reconItems) {
@@ -2985,6 +3093,7 @@ export function AppProvider({ children }) {
         setStockpile,
         setScheduledBuys,
         updateProtocol,
+        updateProtocolWithForceSync,
         addProtocol,
         deleteProtocol,
         addVendor,

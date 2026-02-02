@@ -389,10 +389,23 @@ export function mergeWaterTracker(localData, serverData) {
  */
 export async function saveAppData(userId, appData, options = {}) {
   const { skipMerge = false } = options;
-  
+  const protocolsCount = (appData.protocols || []).length;
+  const activeCount = (appData.protocols || []).filter(p => p && p.active).length;
+
   try {
     // Load existing server data for comparison
     const serverData = skipMerge ? null : await loadAppData(userId);
+    if (skipMerge) {
+      console.log('📋 [PROTOCOL-SYNC] saveAppData skipMerge=true', { protocolsCount, activeCount });
+    } else if (serverData && serverData.protocols) {
+      const serverActive = (serverData.protocols || []).filter(p => p && p.active).length;
+      console.log('📋 [PROTOCOL-SYNC] saveAppData merge', {
+        localProtocols: protocolsCount,
+        localActive: activeCount,
+        serverProtocols: (serverData.protocols || []).length,
+        serverActive
+      });
+    }
     
     // Load deletion tracking for merge operations
     let deletionTracking = null;
@@ -437,8 +450,14 @@ export async function saveAppData(userId, appData, options = {}) {
         serverData.deletionTracking || {}
       );
       
+      const mergedProtocols = mergeWithTimestamps(timestampedData.protocols, serverData.protocols, 'protocols', mergedDeletionTracking.protocols);
+      const mergedActive = (mergedProtocols || []).filter(p => p && p.active).length;
+      console.log('📋 [PROTOCOL-SYNC] saveAppData merge result', {
+        mergedTotal: (mergedProtocols || []).length,
+        mergedActive
+      });
       dataToSave = {
-        protocols: mergeWithTimestamps(timestampedData.protocols, serverData.protocols, 'protocols', mergedDeletionTracking.protocols),
+        protocols: mergedProtocols,
         reconItems: mergeWithTimestamps(timestampedData.reconItems, serverData.reconItems, 'reconItems', mergedDeletionTracking.reconItems),
         reconHistory: mergeWithTimestamps(timestampedData.reconHistory, serverData.reconHistory, 'reconHistory', mergedDeletionTracking.reconHistory),
         supplements: mergeWithTimestamps(timestampedData.supplements, serverData.supplements, 'supplements', mergedDeletionTracking.supplements),
