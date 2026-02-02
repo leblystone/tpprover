@@ -18,6 +18,7 @@ import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
+import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -182,7 +183,7 @@ export function AppProvider({ children }) {
             
             // Safe to load data - no user mismatch detected
             const savedProtocols = localStorage.getItem('tpprover_protocols');
-            if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
+            if (savedProtocols) setProtocols(migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols)));
 
             const savedRecon = localStorage.getItem('tpprover_recon_items');
             if (savedRecon) setReconItems(JSON.parse(savedRecon));
@@ -580,7 +581,7 @@ export function AppProvider({ children }) {
                                 mergedTotal: (mergedProtocols || []).length,
                                 mergedActive: mActive
                             });
-                            setProtocols(mergedProtocols);
+                            setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
                         } else {
                             console.log('📋 [PROTOCOL-SYNC] Initial merge: skipping protocols (protection)');
                         }
@@ -794,7 +795,7 @@ export function AppProvider({ children }) {
                             total: cloudAppData.protocols.length,
                             active: noLocalActive
                         });
-                        setProtocols(cloudAppData.protocols);
+                        setProtocols(migrateBlendedProtocolFrequencies(cloudAppData.protocols));
                     } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < PROTOCOLS_PROTECTION_MS) {
                         console.log('📋 [PROTOCOL-SYNC] No-local: skipping protocols (protection)');
                     }
@@ -842,7 +843,7 @@ export function AppProvider({ children }) {
                     
                     // Load all data from localStorage to preserve user's work
                     if (localProtocols) {
-                        const parsed = JSON.parse(localProtocols);
+                        const parsed = migrateBlendedProtocolFrequencies(JSON.parse(localProtocols));
                         setProtocols(parsed);
                         console.log(`✅ Recovered ${parsed.length} protocols from localStorage`);
                     }
@@ -1195,7 +1196,7 @@ export function AppProvider({ children }) {
                                             total: firebaseData.protocols.length,
                                             active: fbActive
                                         });
-                                        setProtocols(firebaseData.protocols);
+                                        setProtocols(migrateBlendedProtocolFrequencies(firebaseData.protocols));
                                     } else if (timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS && firebaseData.protocols) {
                                         console.log('📋 [PROTOCOL-SYNC] Initial load: skipping protocols (protection,', Math.round(timeSinceProtocolsUpdate / 1000), 's ago)');
                                     }
@@ -2474,7 +2475,7 @@ export function AppProvider({ children }) {
                                             mergedTotal: mergedProtocols.length,
                                             mergedActive: mActive
                                         });
-                                        setProtocols(mergedProtocols);
+                                        setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
                                     } else {
                                         console.log('📋 [PROTOCOL-SYNC] Sample-data: skipping protocols (protection)');
                                     }
@@ -2705,7 +2706,7 @@ export function AppProvider({ children }) {
                                         mergedTotal: mergedProtocols.length,
                                         mergedActive
                                     });
-                                    setProtocols(mergedProtocols);
+                                    setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
                                 } else {
                                     console.log('📋 [PROTOCOL-SYNC] ⏸️ Skipping - in protection window');
                                 }
@@ -2915,7 +2916,7 @@ export function AppProvider({ children }) {
             
             const savedProtocols = localStorage.getItem('tpprover_protocols');
             if (savedProtocols && savedProtocols !== '[]') {
-                const parsed = JSON.parse(savedProtocols);
+                const parsed = migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols));
                 setProtocols(parsed);
                 recoveredCount++;
             }
@@ -3032,7 +3033,7 @@ export function AppProvider({ children }) {
                 
                 const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
                 if (firebaseData.protocols && timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS) {
-                    setProtocols(firebaseData.protocols);
+                    setProtocols(migrateBlendedProtocolFrequencies(firebaseData.protocols));
                     console.log(`🔥 Loaded ${firebaseData.protocols.length} protocols from Firebase`);
                 } else if (firebaseData.protocols && timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS) {
                     console.log('⏸️ Skipping Firebase protocols in force reload - recent local change');

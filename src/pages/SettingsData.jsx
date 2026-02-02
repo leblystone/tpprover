@@ -7,6 +7,7 @@ import { useFirebase } from '../context/FirebaseContext'
 import { useAppContext } from '../context/AppContext'
 import { saveAppData } from '../services/cloudStorage'
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
+import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration'
 import DeleteAccountModal from '../components/common/DeleteAccountModal'
 import RecentlyDeleted from '../components/settings/RecentlyDeleted'
 
@@ -376,8 +377,9 @@ export default function SettingsData() {
 
       // Restore to React state
       if (snapshotData.protocols) {
-        setProtocols(snapshotData.protocols);
-        localStorage.setItem('tpprover_protocols', JSON.stringify(snapshotData.protocols));
+        const migrated = migrateBlendedProtocolFrequencies(snapshotData.protocols);
+        setProtocols(migrated);
+        localStorage.setItem('tpprover_protocols', JSON.stringify(migrated));
       }
       if (snapshotData.orders) {
         const orders = ensurePublicOrderNumbers(snapshotData.orders);

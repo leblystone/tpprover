@@ -138,9 +138,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             initialData.protocolType = 'separate';
         }
 
-        // If it's a blended protocol, sync the frequency from the first peptide to a shared root-level frequency
+        // If it's a blended protocol, ensure sharedFrequency exists and all peptides have it
         if (initialData.blendMode === 'blended' && initialData.peptides.length > 0) {
-            initialData.sharedFrequency = initialData.peptides[0].frequency;
+            const firstFreq = initialData.peptides[0].frequency;
+            const shared = firstFreq && (firstFreq.type || firstFreq.time) 
+                ? firstFreq 
+                : { type: 'daily', time: ['AM'] };
+            initialData.sharedFrequency = shared;
+            initialData.peptides = initialData.peptides.map(p => ({
+                ...p,
+                frequency: shared
+            }));
         }
 
 
@@ -296,6 +304,55 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             // Update auto-save data
             updateFormData(newState);
             
+            return newState;
+        });
+    };
+
+    const handleSharedFrequencyChange = (field, value) => {
+        setForm(prev => {
+            const base = prev.sharedFrequency || { type: 'daily', time: ['AM'] };
+            let newFreq = { ...base, [field]: value };
+            if (field === 'type') {
+                if (value !== 'weekly') newFreq.days = [];
+                if (value !== 'cycle') { newFreq.onDays = ''; newFreq.offDays = ''; }
+                if (!newFreq.time?.length) newFreq.time = ['AM'];
+            }
+            if (field === 'time' && (!Array.isArray(newFreq.time) || newFreq.time.length === 0)) {
+                newFreq.time = ['AM'];
+            }
+            const newState = { ...prev, sharedFrequency: newFreq };
+            newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
+            updateFormData(newState);
+            return newState;
+        });
+    };
+
+    const handleSharedFrequencyTimeToggle = (t) => {
+        setForm(prev => {
+            const base = prev.sharedFrequency || { type: 'daily', time: ['AM'] };
+            const current = Array.isArray(base.time) && base.time.length > 0 ? base.time : ['AM'];
+            const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+            const newTime = next.length === 0 ? (t === 'AM' ? ['PM'] : ['AM']) : next;
+            const newFreq = { ...base, time: newTime };
+            const newState = { ...prev, sharedFrequency: newFreq };
+            newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
+            updateFormData(newState);
+            return newState;
+        });
+    };
+
+    const handleSharedFrequencyToggleDay = (day) => {
+        const dayMap = { 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun' };
+        const norm = (d) => dayMap[d] || d;
+        setForm(prev => {
+            const base = prev.sharedFrequency || { type: 'weekly', time: ['AM'], days: [] };
+            const current = (base.days || []).map(norm);
+            const newDays = current.includes(day) ? current.filter(d => d !== day) : [...current, day];
+            const newFreq = { ...base, type: 'weekly', days: newDays };
+            if (!newFreq.time?.length) newFreq.time = ['AM'];
+            const newState = { ...prev, sharedFrequency: newFreq };
+            newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
+            updateFormData(newState);
             return newState;
         });
     };
@@ -632,17 +689,86 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     )}
 
-                    {/* Shared Settings for Blended Protocols */}
+                    {/* Shared Settings + Frequency & Schedule for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
-                        <div className="p-2.5 rounded-lg border text-xs" 
-                             style={{ borderColor: theme.primary + '20', backgroundColor: theme.primary + '05' }}>
-                            <p className="font-medium" style={{ color: theme.text }}>
-                                <span className="font-bold uppercase mr-1" style={{ color: theme.primary }}>Blended:</span>
-                                All peptides share the same delivery method and schedule.
-                            </p>
+                        <div className="space-y-3">
+                            <div className="p-2.5 rounded-lg border text-xs" 
+                                 style={{ borderColor: theme.primary + '20', backgroundColor: theme.primary + '05' }}>
+                                <p className="font-medium" style={{ color: theme.text }}>
+                                    <span className="font-bold uppercase mr-1" style={{ color: theme.primary }}>Blended:</span>
+                                    All peptides share the same delivery method and schedule.
+                                </p>
+                            </div>
+                            {/* Blend-level Frequency & Schedule - always visible so schedule is set and shown on cards */}
+                            <div className="p-3 rounded-lg border space-y-3" style={{ borderColor: theme.border }}>
+                                <span className="text-xs font-black uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
+                                    Frequency & Schedule
+                                </span>
+                                <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary }}>
+                                    {['daily', 'weekly', 'custom', 'cycle'].map(type => (
+                                        <button key={type} type="button"
+                                            onClick={() => handleSharedFrequencyChange('type', type)}
+                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${((form.sharedFrequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500')}`}
+                                            style={(form.sharedFrequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
+                                        >
+                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
+                                        </button>
+                                    ))}
+                                </div>
+                                {form.sharedFrequency?.type === 'cycle' && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <TextInput label="On" value={form.sharedFrequency.onDays || ''} onChange={v => handleSharedFrequencyChange('onDays', v)} theme={theme} placeholder="5" type="number" outlined={true} compact={true} />
+                                        <TextInput label="Off" value={form.sharedFrequency.offDays || ''} onChange={v => handleSharedFrequencyChange('offDays', v)} theme={theme} placeholder="2" type="number" outlined={true} compact={true} />
+                                    </div>
+                                )}
+                                {form.sharedFrequency?.type === 'weekly' && (
+                                    <div className="flex flex-wrap gap-1">
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                                            const days = form.sharedFrequency?.days || [];
+                                            const dayMap = { 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun' };
+                                            const norm = d => dayMap[d] || d;
+                                            const isSelected = days.some(d => norm(d) === day || d === day);
+                                            return (
+                                                <button key={day} type="button" onClick={() => handleSharedFrequencyToggleDay(day)}
+                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded border transition-all"
+                                                    style={{
+                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
+                                                        borderColor: isSelected ? theme.primary : theme.border,
+                                                        color: isSelected ? '#ffffff' : theme.textLight
+                                                    }}
+                                                >
+                                                    {day[0]}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                {form.sharedFrequency?.type === 'custom' && (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Every</span>
+                                        <div className="w-20">
+                                            <TextInput label="" value={form.sharedFrequency.customDays || ''} onChange={v => handleSharedFrequencyChange('customDays', v)} theme={theme} placeholder="3" type="number" outlined={true} customTextColor={theme.isDark ? null : '#181A18'} customShadow />
+                                        </div>
+                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Days</span>
+                                    </div>
+                                )}
+                                <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                    {['AM', 'PM'].map(t => {
+                                        const active = Array.isArray(form.sharedFrequency?.time) ? form.sharedFrequency.time.includes(t) : (t === 'AM');
+                                        return (
+                                            <button key={t} type="button" onClick={() => handleSharedFrequencyTimeToggle(t)}
+                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                                                style={active ? { backgroundColor: theme.primary } : {}}
+                                            >
+                                                {t}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     )}
-                    
+
                     {/* Peptide List - Accordion Cards */}
                     <div className="space-y-2">
                         {form.peptides?.map((p, index) => {
@@ -653,19 +779,37 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 : p.dosage?.amount 
                                     ? `${p.dosage.amount} ${p.dosage.unit || 'mcg'}`
                                     : 'No dosage set';
-                            const frequencySummary = p.frequency?.type === 'daily' 
-                                ? `Daily ${p.frequency?.time?.join('/') || 'AM'}`
-                                : p.frequency?.type === 'weekly'
-                                    ? `Weekly (${p.frequency?.days?.length || 0} days)`
-                                    : p.frequency?.type === 'cycle'
+                            // For blended protocols, use shared/blend-level frequency (no masking - show real schedule or Not set)
+                            const freq = form.protocolType === 'blended' 
+                                ? (form.sharedFrequency || form.peptides?.[0]?.frequency || p.frequency)
+                                : p.frequency;
+                            const frequencySummary = freq?.type === 'daily' 
+                                ? `Daily ${freq?.time?.join('/') || 'AM'}`
+                                : freq?.type === 'weekly'
+                                    ? (() => {
+                                        const days = freq?.days || [];
+                                        const dayStr = days.length > 0 ? days.join(', ') : '(no days)';
+                                        const timeStr = freq?.time && Array.isArray(freq.time) && freq.time.length > 0 
+                                            ? ` ${freq.time.join('/')}` : '';
+                                        return `Weekly (${dayStr})${timeStr}`;
+                                    })()
+                                    : freq?.type === 'cycle'
                                         ? (() => {
-                                            const cycleStr = `Cycle: ${p.frequency?.onDays || '-'} on / ${p.frequency?.offDays || '-'} off`;
-                                            const timeStr = p.frequency?.time && Array.isArray(p.frequency.time) && p.frequency.time.length > 0 
-                                                ? ` ${p.frequency.time.join('/')}` 
+                                            const cycleStr = `Cycle: ${freq?.onDays || '-'} on / ${freq?.offDays || '-'} off`;
+                                            const timeStr = freq?.time && Array.isArray(freq.time) && freq.time.length > 0 
+                                                ? ` ${freq.time.join('/')}` 
                                                 : '';
                                             return cycleStr + timeStr;
                                         })()
-                                        : p.frequency?.type || 'Not set';
+                                        : freq?.type === 'custom'
+                                            ? (() => {
+                                                const days = freq?.customDays || 'X';
+                                                const timeStr = freq?.time && Array.isArray(freq.time) && freq.time.length > 0 
+                                                    ? ` ${freq.time.join('/')}` 
+                                                    : ' AM';
+                                                return `Every ${days} days${timeStr}`;
+                                            })()
+                                            : freq?.type || 'Not set';
                             
                             return (
                                 <div 
