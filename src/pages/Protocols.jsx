@@ -762,11 +762,6 @@ export default function Protocols() {
   useEffect(() => {
     const migrationKey = 'tpprover_enddate_migration_v2';
     
-    // FORCE RUN FOR DEBUGGING - remove this later
-    if (localStorage.getItem(migrationKey)) {
-      localStorage.removeItem(migrationKey);
-    }
-    
     if (!protocols || protocols.length === 0) {
       return;
     }
@@ -2315,7 +2310,7 @@ export default function Protocols() {
           
           addProtocol(finalProtocol);
           
-          // Create a history entry immediately since it's started
+          // Create a history entry immediately since it's started (with minimal protocolData for history detail view)
           const historyEntry = {
             id: generateId(),
             protocolId: finalProtocol.id,
@@ -2323,7 +2318,12 @@ export default function Protocols() {
             endDate: null,
             status: 'active',
             notes: [],
-            createdAt: now
+            createdAt: now,
+            protocolData: {
+              protocolName: finalProtocol.protocolName,
+              peptides: finalProtocol.peptides || [],
+              linkedItems: finalProtocol.linkedItems || {}
+            }
           };
           
           saveProtocolHistoryEntry(historyEntry);
@@ -2615,6 +2615,22 @@ export default function Protocols() {
                                                   protocolData: updatedProtocolData,
                                                   skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
                                               });
+                                              // Record linked vials in vialsAddedDuring only on Save (keeps protocol and history in sync)
+                                              Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                                  if (item.status === 'linked' && item.vialId) {
+                                                      const vial = stockpile.find(v => v.id === item.vialId);
+                                                      if (vial) {
+                                                          addVialToActiveProtocol(manageConfirm.id, {
+                                                              vialId: vial.id,
+                                                              stockpileId: vial.id,
+                                                              name: vial.name,
+                                                              mg: vial.mg,
+                                                              vendor: vial.vendor,
+                                                              cost: vial.cost || 0
+                                                          });
+                                                      }
+                                                  }
+                                              });
                                           }
                                       } catch (e) {
                                           console.warn('Failed to update protocol history with linkedItems:', e);
@@ -2901,37 +2917,7 @@ export default function Protocols() {
                             setStockpile={setStockpile}
                             theme={theme}
                             onUpdate={(updatedLinkedItems) => {
-                                const previousLinkedItems = manageConfirm?.linkedItems || {};
-                                setManageConfirm(p => {
-                                    const updated = { ...p, linkedItems: updatedLinkedItems };
-                                    
-                                    // Save vials added during active protocol to history
-                                    try {
-                                        // Check if any new vials were added
-                                        Object.entries(updatedLinkedItems).forEach(([peptideId, item]) => {
-                                            const previousItem = previousLinkedItems[peptideId];
-                                            // If a vial was just linked that wasn't linked before
-                                            if (item.status === 'linked' && item.vialId && 
-                                                (!previousItem || previousItem.status !== 'linked' || previousItem.vialId !== item.vialId)) {
-                                                const vial = stockpile.find(v => v.id === item.vialId);
-                                                if (vial) {
-                                                    addVialToActiveProtocol(p.id, {
-                                                        vialId: vial.id,
-                                                        stockpileId: vial.id,
-                                                        name: vial.name,
-                                                        mg: vial.mg,
-                                                        vendor: vial.vendor,
-                                                        cost: vial.cost || 0
-                                                    });
-                                                }
-                                            }
-                                        });
-                                    } catch (e) {
-                                        console.warn('Could not save vial to protocol history:', e);
-                                    }
-                                    
-                                    return updated;
-                                });
+                                setManageConfirm(p => ({ ...p, linkedItems: updatedLinkedItems }));
                             }}
                           />
                         </div>
@@ -3789,8 +3775,9 @@ export default function Protocols() {
                 try {
                     const reconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]');
                     // Find recon items that match this protocol name
+                    const protocolNameForRecon = toSave.protocolName || toSave.name || finalizedProtocol.protocolName || '';
                     const matchingRecon = reconItems
-                        .filter(item => item.name && item.name.includes(finalizedProtocol.protocolName))
+                        .filter(item => item.name && protocolNameForRecon && item.name.includes(protocolNameForRecon))
                         .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
                     
                     if (matchingRecon.length > 0) {
@@ -3815,17 +3802,17 @@ export default function Protocols() {
                     console.warn('Failed to load reconstitution data for history:', e);
                 }
 
-                // Save history entry with all linkedItems data for complete reference
+                // Save history entry with all linkedItems data - use toSave so history matches saved protocol (merge may have restored name)
                 saveProtocolHistoryEntry({
-                    protocolId: finalizedProtocol.id,
-                    protocolName: finalizedProtocol.protocolName || 'Unnamed Protocol',
-                    startDate: finalizedProtocol.startDate,
+                    protocolId: toSave.id,
+                    protocolName: toSave.protocolName || toSave.name || 'Unnamed Protocol',
+                    startDate: toSave.startDate,
                     protocolData: {
-                        protocolName: finalizedProtocol.protocolName,
-                        peptides: finalizedProtocol.peptides,
-                        duration: finalizedProtocol.duration,
-                        purpose: finalizedProtocol.purpose,
-                        linkedItems: finalizedProtocol.linkedItems || {} // Save complete linkedItems for reference
+                        protocolName: toSave.protocolName || toSave.name,
+                        peptides: toSave.peptides,
+                        duration: toSave.duration,
+                        purpose: toSave.purpose,
+                        linkedItems: toSave.linkedItems || {} // Save complete linkedItems for reference
                     },
                     vials: vials,
                     reconstitutionData: reconstitutionData,

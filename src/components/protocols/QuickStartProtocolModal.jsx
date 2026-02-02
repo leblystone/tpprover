@@ -22,11 +22,11 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
     const handleSave = async () => {
         // Validate
         if (!form.name || !form.name.trim()) {
-            alert('Please enter a protocol name');
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Please enter a protocol name', type: 'error' } }));
             return;
         }
         if (!form.dosage || !form.dosage.trim()) {
-            alert('Please enter a dosage');
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Please enter a dosage', type: 'error' } }));
             return;
         }
 
@@ -86,7 +86,7 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
             onClose();
         } catch (error) {
             console.error('Failed to create quick start protocol:', error);
-            alert('Failed to create protocol. Please try again.');
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to create protocol. Please try again.', type: 'error' } }));
         } finally {
             setIsSaving(false);
         }
