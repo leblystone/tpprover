@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2 } from 'lucide-react';
@@ -21,6 +21,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     });
 
     const [form, setForm] = useState(createEmpty);
+    const formRef = useRef(form);
+    formRef.current = form; // Always have latest for embedded save
     const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const [isDurationFocused, setIsDurationFocused] = useState(false);
@@ -48,7 +50,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
     
     // Auto-save functionality with protocol persistence
-    const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
+    // When embedded, use separate key so we never load stale draft (parent owns the data)
+    const storageKey = embedded
+        ? `tpprover_protocol_draft_embedded_${protocol?.id || 'new'}`
+        : `tpprover_protocol_draft_${protocol?.id || 'new'}`;
     const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
         storageKey, 
         form, 
@@ -85,9 +90,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // IMPORTANT: Clear any stale localStorage draft when loading fresh protocol data
         // This prevents old drafts from overwriting updated protocol data
         if (protocol?.id) {
-            const draftKey = `tpprover_protocol_draft_${protocol.id}`;
             try {
-                localStorage.removeItem(draftKey);
+                localStorage.removeItem(`tpprover_protocol_draft_${protocol.id}`);
+                if (embedded) localStorage.removeItem(`tpprover_protocol_draft_embedded_${protocol.id}`);
             } catch (e) {
                 console.warn('Failed to clear stale draft:', e);
             }
@@ -485,7 +490,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 if (s.includes('month')) return 'month';
                 return s || 'week';
             };
-            const finalForm = { ...form };
+            // Use formRef when embedded to avoid stale closure (listener captures initial form)
+            const formToSave = embedded ? formRef.current : form;
+            const finalForm = { ...formToSave };
 
             // Map protocolType to blendMode for consistency with rest of app
             finalForm.blendMode = finalForm.protocolType;
@@ -556,7 +563,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 };
             }
             
-            // Call the save function
+            // When embedded (editing active protocol), ensure protocol id and active-only fields are passed
+            if (embedded && protocol?.id) {
+                finalForm.id = protocol.id;
+                finalForm.active = protocol.active;
+                finalForm.startDate = protocol.startDate ?? finalForm.startDate;
+                finalForm.endDate = protocol.endDate ?? finalForm.endDate;
+                finalForm.linkedItems = finalForm.linkedItems ?? protocol.linkedItems;
+                finalForm.emoji = finalForm.emoji ?? protocol.emoji;
+            }
+            
             await onSave?.(finalForm);
             
             // Only clear auto-save and close modal after successful save
@@ -578,14 +594,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         onClose();
     };
 
-    // Listen for save event when embedded - placed after handleFinalSave is defined
+    // Listen for save event when embedded - handleFinalSave uses formRef.current to avoid stale closure
     useEffect(() => {
         if (!embedded) return;
-        
-        const handleSaveEvent = () => {
-            handleFinalSave();
-        };
-        
+        const handleSaveEvent = () => handleFinalSave();
         window.addEventListener('tpp:save-embedded-editor', handleSaveEvent);
         return () => window.removeEventListener('tpp:save-embedded-editor', handleSaveEvent);
     }, [embedded]);

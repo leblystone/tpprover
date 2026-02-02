@@ -547,15 +547,16 @@ export default function Protocols() {
       const { storageKey, formData } = event.detail;
       
       // Only handle autosave events for existing protocols (not new ones)
-      if (storageKey.includes('protocol_draft_') && formData.id) {
-        // Update the protocol in the main protocols array
-        updateProtocol(formData);
-      }
+      if (!storageKey.includes('protocol_draft_') || !formData?.id) return;
+      // Don't overwrite when user is in embedded Edit tab - manual save handles it
+      if (manageConfirm?.id === formData.id && manageTab === 'edit') return;
+      
+      updateProtocol(formData);
     };
 
     window.addEventListener('tpp:protocol-autosaved', handleProtocolAutosaved);
     return () => window.removeEventListener('tpp:protocol-autosaved', handleProtocolAutosaved);
-  }, [updateProtocol]);
+  }, [updateProtocol, manageConfirm?.id, manageTab]);
 
   // Handle direct navigation to specific protocol (from search)
   useEffect(() => {
@@ -2977,9 +2978,19 @@ export default function Protocols() {
                   protocol={manageConfirm}
                   embedded={true}
                   onSave={(data) => {
-                    const updatedProtocol = { ...manageConfirm, ...data };
-                    updateProtocol(updatedProtocol);
-                    setManageConfirm(updatedProtocol);
+                    // Use editor data as source of truth; overlay active-protocol-only fields from manageConfirm
+                    const updatedProtocol = {
+                      ...data,
+                      id: manageConfirm.id,
+                      active: manageConfirm.active,
+                      startDate: manageConfirm.startDate ?? data.startDate,
+                      endDate: manageConfirm.endDate ?? data.endDate,
+                      linkedItems: manageConfirm.linkedItems ?? data.linkedItems,
+                      emoji: manageConfirm.emoji ?? data.emoji
+                    };
+                    updateProtocolWithForceSync(updatedProtocol);
+                    setManageConfirm(null);
+                    setManageTab('manage');
                     window.dispatchEvent(new CustomEvent('tpp:toast', { 
                       detail: { message: 'Protocol updated successfully!', type: 'success' } 
                     }));
