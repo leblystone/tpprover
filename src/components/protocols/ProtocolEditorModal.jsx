@@ -95,6 +95,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
         let initialData = protocol ? { ...createEmpty(), ...protocol } : createEmpty();
         
+        // Migration: protocol may use legacy 'name' instead of 'protocolName'
+        if (initialData.name && !initialData.protocolName) {
+            initialData.protocolName = initialData.name;
+        }
+        
         // Clean duration data on load to prevent corruption
         if (initialData.duration && initialData.duration.count !== '') {
             // Keep it simple - just ensure it's a string for the input
@@ -188,6 +193,19 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         if (initialData.peptides && Array.isArray(initialData.peptides)) {
             initialData.peptides = initialData.peptides.map(peptide => {
                 const normalized = { ...peptide };
+                // Preserve peptide name (ensure we don't lose it from legacy or alternate structures)
+                if (!normalized.name && peptide.name) normalized.name = peptide.name;
+                // Migrate legacy scalar dosage to { amount, unit } format
+                if (normalized.dosage !== undefined && normalized.dosage !== null) {
+                    if (typeof normalized.dosage === 'number' || typeof normalized.dosage === 'string') {
+                        normalized.dosage = { amount: String(normalized.dosage), unit: 'mcg' };
+                    } else if (normalized.dosage && typeof normalized.dosage === 'object') {
+                        normalized.dosage = {
+                            amount: normalized.dosage.amount !== undefined && normalized.dosage.amount !== null ? String(normalized.dosage.amount) : '',
+                            unit: normalized.dosage.unit || 'mcg'
+                        };
+                    }
+                }
                 // Ensure unitValue is always a string
                 if (normalized.unitValue === undefined || normalized.unitValue === null) {
                     normalized.unitValue = '';
@@ -709,6 +727,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         <div className="px-3 pb-3 pt-4 border-t" style={{ borderColor: theme.border }}>
                                             <PeptideSubForm
                                                 item={p}
+                                                index={index}
                                                 onChange={(updated) => handlePeptideChange(index, updated)}
                                                 onRemove={() => removePeptide(index)}
                                                 protocolType={form.protocolType}

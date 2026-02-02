@@ -208,6 +208,10 @@ export function AdminProvider({ children }) {
       setTickets(data);
     } catch (err) {
       console.error('Error loading tickets:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `Tickets failed to load: ${err.message || 'Check console'}`, type: 'error' }
+      }));
+      setTickets([]);
     } finally {
       setLoading((prev) => ({ ...prev, feedback: false }));
     }

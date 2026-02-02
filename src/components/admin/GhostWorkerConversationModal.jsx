@@ -1,53 +1,78 @@
 /**
  * 👻 Ghosty Conversation Modal
- * 
- * Shows the full conversation between user and Ghosty for a specific ticket
- * Includes routing decisions, responses, and all messages
+ *
+ * Shows the full conversation exactly as the user sees it (same chat bubble UI as SupportChatModal).
+ * Includes Ghosty analysis and routing details for admins.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../../config/firebase';
-import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { User, ShieldCheck, Bot, X } from 'lucide-react';
 
-export default function GhostWorkerConversationModal({ ticketId, onClose }) {
+// Same theme defaults as user-facing SupportChatModal for "as user sees it" look
+const defaultTheme = {
+  primary: '#4a7c59',
+  primaryDark: '#2d5a3a',
+  accent: '#E8F5E9',
+  text: '#1F2937',
+  textLight: '#6B7280',
+  background: '#F9FAFB',
+  cardBackground: '#FFFFFF',
+  border: '#E5E7EB'
+};
+
+export default function GhostWorkerConversationModal({ ticketId, onClose, theme: themeProp }) {
+  const theme = themeProp || defaultTheme;
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [ghostWorkerLog, setGhostWorkerLog] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const messagesEndRef = useRef(null);
+
+  // Load ticket and Ghosty log once
   useEffect(() => {
-    loadConversationData();
+    if (!ticketId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const ticketDoc = await getDoc(doc(db, 'supportTickets', ticketId));
+        if (cancelled) return;
+        if (ticketDoc.exists()) {
+          setTicket({ id: ticketDoc.id, ...ticketDoc.data() });
+        }
+        const logsRef = collection(db, 'ai_worker_logs');
+        const logsQuery = query(logsRef, where('ticketId', '==', ticketId), orderBy('timestamp', 'desc'));
+        const logsSnapshot = await getDocs(logsQuery);
+        if (!cancelled && !logsSnapshot.empty) {
+          setGhostWorkerLog({ id: logsSnapshot.docs[0].id, ...logsSnapshot.docs[0].data() });
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error loading conversation:', error);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [ticketId]);
 
-  const loadConversationData = async () => {
-    try {
-      // Load ticket
-      const ticketDoc = await getDoc(doc(db, 'supportTickets', ticketId));
-      if (ticketDoc.exists()) {
-        setTicket({ id: ticketDoc.id, ...ticketDoc.data() });
-      }
-
-      // Load messages
-      const messagesRef = collection(db, 'supportTickets', ticketId, 'messages');
-      const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
-      const messagesSnapshot = await getDocs(messagesQuery);
-      const msgs = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgs);
-
-      // Load Ghosty log
-      const logsRef = collection(db, 'ai_worker_logs');
-      const logsQuery = query(logsRef, where('ticketId', '==', ticketId), orderBy('timestamp', 'desc'));
-      const logsSnapshot = await getDocs(logsQuery);
-      if (!logsSnapshot.empty) {
-        setGhostWorkerLog({ id: logsSnapshot.docs[0].id, ...logsSnapshot.docs[0].data() });
-      }
-
-    } catch (error) {
-      console.error('Error loading conversation:', error);
-    } finally {
+  // Live subscription to messages (same as user - real-time chat)
+  useEffect(() => {
+    if (!ticketId) return;
+    const messagesRef = collection(db, 'supportTickets', ticketId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
-    }
-  };
+    }, (err) => {
+      console.error('Error loading messages:', err);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [ticketId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -88,25 +113,27 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+        {/* Header — same as user SupportChatModal */}
+        <div
+          className="p-4 border-b flex items-center justify-between flex-shrink-0"
+          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+        >
           <div>
-            <h3 className="text-xl font-bold">Ticket Conversation: {ticket.ticketNumber}</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              {ticket.userName} ({ticket.userEmail}) • {ticket.type}
+            <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+              Conversation (as user sees it)
+            </h3>
+            <p className="text-sm mt-0.5" style={{ color: theme.textLight }}>
+              #{ticket.ticketNumber} • {ticket.userName || ticket.userEmail}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            ×
+          <button onClick={onClose} className="p-2 rounded-lg hover:opacity-70 transition-opacity" style={{ color: theme.textLight }}>
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-y-auto">
           {/* Ticket Overview */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -190,95 +217,83 @@ export default function GhostWorkerConversationModal({ ticketId, onClose }) {
             </div>
           )}
 
-          {/* Conversation Thread */}
+          {/* Conversation Thread — same UI as user sees (SupportChatModal) */}
           <div className="space-y-4">
-            <h4 className="font-bold text-gray-900 mb-4">💬 Conversation Thread</h4>
-            
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                No messages in this ticket
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                <div
-                  key={message.id}
-                  className={`p-4 rounded-lg ${
-                    message.senderType === 'user'
-                      ? 'bg-gray-100 border-l-4 border-gray-400'
-                      : message.senderType === 'ghost-worker'
-                      ? 'bg-blue-50 border-l-4 border-blue-400'
-                      : 'bg-green-50 border-l-4 border-green-400'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <div className="font-semibold text-sm">
-                        {message.senderType === 'user' && '👤 '}
-                        {message.senderType === 'ghost-worker' && '🤖 '}
-                        {message.senderType === 'admin' && '👨‍💼 '}
-                        {message.senderName || 'Unknown'}
-                      </div>
-                      <div className="text-xs text-gray-500">{message.senderEmail}</div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatTimestamp(message.createdAt)}
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm whitespace-pre-wrap">{message.message}</div>
-
-                  {/* Display screenshots with better formatting */}
-                  {message.imageUrls && message.imageUrls.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      <div className="text-xs text-gray-600 font-medium">📸 Attachments:</div>
-                      {message.imageUrls.map((url, idx) => (
-                        <div key={idx} className="relative">
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block hover:opacity-90 transition-opacity"
-                          >
-                            <img
-                              src={url}
-                              alt={`Screenshot ${idx + 1}`}
-                              className="rounded-lg border border-gray-300 max-w-full"
-                              style={{
-                                maxHeight: '400px',
-                                objectFit: 'contain'
-                              }}
-                              loading="lazy"
-                            />
-                          </a>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Screenshot {idx + 1} • Click to view full size
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {message.metadata && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <details className="text-xs">
-                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                          Technical Details
-                        </summary>
-                        <pre className="mt-2 bg-gray-100 p-2 rounded overflow-x-auto text-xs">
-                          {JSON.stringify(message.metadata, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                  )}
+            <h4 className="font-bold text-gray-900 mb-2">💬 Conversation (as user sees it)</h4>
+            <div
+              className="rounded-lg p-4 min-h-[200px] space-y-4"
+              style={{ backgroundColor: theme.background }}
+            >
+              {messages.length === 0 ? (
+                <div className="text-center py-8" style={{ color: theme.textLight }}>
+                  No messages yet.
                 </div>
-              ))
-            )}
+              ) : (
+                messages.map((msg) => {
+                  const isUser = msg.senderType === 'user';
+                  const isGhost = msg.senderType === 'ghost-worker';
+                  const isAdmin = msg.senderType === 'admin' || (msg.senderEmail && (msg.senderEmail.includes('admin') || msg.senderEmail.includes('thepepplanner.com')));
+                  const fromTeam = isAdmin || isGhost;
+                  const label = isUser ? (msg.senderName || 'User') : isGhost ? 'Ghosty' : 'The Pep Planner Team';
+                  const Icon = isUser ? User : isGhost ? Bot : ShieldCheck;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${fromTeam ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div
+                        className={`max-w-[70%] rounded-lg p-3 ${fromTeam ? 'rounded-tl-none' : 'rounded-tr-none'}`}
+                        style={{
+                          backgroundColor: fromTeam ? theme.primary + '15' : theme.accent,
+                          borderLeft: fromTeam ? `3px solid ${theme.primary}` : 'none',
+                          borderRight: !fromTeam ? `3px solid ${theme.primary}` : 'none'
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon size={14} style={{ color: theme.primary }} />
+                          <span className="text-xs font-semibold" style={{ color: theme.primary }}>
+                            {label}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
+                          {msg.message || msg.text}
+                        </p>
+                        {msg.imageUrls && msg.imageUrls.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {msg.imageUrls.map((url, idx) => (
+                              <div key={idx}>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90">
+                                  <img
+                                    src={url}
+                                    alt={`Screenshot ${idx + 1}`}
+                                    className="rounded-lg border max-w-full"
+                                    style={{ maxHeight: '300px', objectFit: 'contain', borderColor: theme.border }}
+                                    loading="lazy"
+                                  />
+                                </a>
+                                <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                                  📸 Screenshot {idx + 1} • Click to open
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 mt-2 text-xs opacity-50" style={{ color: theme.textLight }}>
+                          {msg.createdAt?.toDate?.() ? new Date(msg.createdAt.toDate()).toLocaleString() : (msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '')}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* Ghosty Metadata */}
           {ticket.metadata?.ghostWorker && (
             <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="font-bold text-yellow-900 mb-2">⚠️ Ghosty Metadata👻</div>
+              <div className="font-bold text-yellow-900 mb-2">⚠️ Ghosty Metadata</div>
               <pre className="text-xs bg-white p-3 rounded overflow-x-auto">
                 {JSON.stringify(ticket.metadata.ghostWorker, null, 2)}
               </pre>

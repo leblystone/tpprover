@@ -762,6 +762,11 @@ export default function Protocols() {
   useEffect(() => {
     const migrationKey = 'tpprover_enddate_migration_v2';
     
+    // Skip if already run (prevents re-running on every protocols change and overwriting just-started protocol)
+    if (localStorage.getItem(migrationKey) === 'true') {
+      return;
+    }
+    
     if (!protocols || protocols.length === 0) {
       return;
     }

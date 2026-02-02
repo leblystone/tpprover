@@ -235,14 +235,15 @@ class PWANotificationService {
    */
   async savePushToken(token) {
     try {
-      // Get current user email from localStorage (since we're using email as user ID)
+      // Get current user - use uid first (Firestore users collection is keyed by UID)
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      if (!user?.email) {
-        console.warn('No user email found, cannot save push token');
+      const userId = user?.uid || user?.email?.toLowerCase();
+      if (!userId) {
+        console.warn('No user found, cannot save push token');
         return;
       }
 
-      const userRef = doc(db, 'users', user.email.toLowerCase());
+      const userRef = doc(db, 'users', userId);
       await setDoc(userRef, {
         fcmToken: token, // Change from pushToken to fcmToken for consistency
         pushToken: token, // Keep for backward compatibility
@@ -406,12 +407,10 @@ class PWANotificationService {
   async updateNotificationSettings(enabled) {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      if (!user?.email) {
+      const userId = user?.uid || user?.email?.toLowerCase();
+      if (!userId) return;
 
-        return;
-      }
-
-      const userRef = doc(db, 'users', user.email.toLowerCase());
+      const userRef = doc(db, 'users', userId);
       await setDoc(userRef, {
         notificationSettings: {
           push: enabled, // Firebase Functions check for 'push', not 'pushEnabled'
@@ -442,9 +441,10 @@ class PWANotificationService {
   async removePushToken(token) {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      if (!user?.email) return;
+      const userId = user?.uid || user?.email?.toLowerCase();
+      if (!userId) return;
 
-      const userRef = doc(db, 'users', user.email.toLowerCase());
+      const userRef = doc(db, 'users', userId);
       await setDoc(userRef, {
         pushToken: null,
         notificationSettings: {

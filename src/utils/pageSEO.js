@@ -8,8 +8,8 @@ import { useLocation } from 'react-router-dom';
  */
 export const PAGE_SEO = {
   '/': {
-    title: 'The Pep Planner - Peptide Research Protocol Tracking and Management',
-    description: 'Peptide and GLP-1 tracking app: semaglutide, tirzepatide, and weight loss tracking. Track protocols, stockpile, dosing, and reconstitution. Free trial.'
+    title: 'The Pep Planner - Track Peptide Research & Injection Schedules | Planner App',
+    description: 'Planner to track peptide research and injection schedules: injection logging, smart scheduling, dose calculations, vial tracking, protocol management. Free trial on web and Android.'
   },
   '/about': {
     title: 'About - The Pep Planner',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette, PenTool } from 'lucide-react';
-import Modal from '../common/Modal';
+import { useNavigate } from 'react-router-dom';
+import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette, PenTool, Eye } from 'lucide-react';
+import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
@@ -16,6 +17,7 @@ const NOTE_TAGS = [
 ];
 
 export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote }) {
+    const navigate = useNavigate();
     const [selectedProtocol, setSelectedProtocol] = useState(null);
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [noteContent, setNoteContent] = useState('');
@@ -231,7 +233,28 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                         Active Research
                         <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
                     </span>
-                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
+                    <div className="flex items-center gap-2">
+                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
+                        <button
+                            type="button"
+                            onClick={() => navigate('/app/protocols')}
+                            className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                            style={{
+                                color: '#ffffff',
+                                backgroundColor: theme.primary,
+                                width: '28px',
+                                height: '28px',
+                                padding: 0,
+                                border: 'none',
+                                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                            aria-label="View all protocols"
+                        >
+                            <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+                        </button>
+                    </div>
                 </h3>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-sm lg:text-base text-center" style={{ color: theme.textLight }}>
@@ -252,6 +275,25 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     </span>
                     <div className="flex items-center gap-2">
                         <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
+                        <button
+                            type="button"
+                            onClick={() => navigate('/app/protocols')}
+                            className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                            style={{
+                                color: '#ffffff',
+                                backgroundColor: theme.primary,
+                                width: '28px',
+                                height: '28px',
+                                padding: 0,
+                                border: 'none',
+                                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                            aria-label="View all protocols"
+                        >
+                            <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+                        </button>
                     </div>
                 </h3>
                 
@@ -362,8 +404,8 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                 </div>
             </div>
 
-            {/* Add Note Modal */}
-            <Modal
+            {/* Add Note Bottom Sheet */}
+            <BottomSheet
                 open={showNoteModal}
                 onClose={() => {
                     setShowNoteModal(false);
@@ -372,8 +414,38 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                 }}
                 title={`Add Note: ${selectedProtocol?.name || selectedProtocol?.protocolName || 'Protocol'}`}
                 theme={theme}
-                maxWidth="max-w-2xl"
-                variant="modern"
+                maxHeight="90vh"
+                footer={
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={() => {
+                                setShowNoteModal(false);
+                                setNoteContent('');
+                                setSelectedTags([]);
+                            }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
+                            style={{ 
+                                borderColor: theme.border,
+                                color: theme.text
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSaveNote}
+                            disabled={!noteContent.trim() && selectedTags.length === 0}
+                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ 
+                                backgroundColor: theme.primary,
+                                color: theme.textOnPrimary || '#ffffff',
+                                border: 'none',
+                                boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                            }}
+                        >
+                            Save Note
+                        </button>
+                    </div>
+                }
             >
                 <div className="space-y-4">
                     <TextInput
@@ -415,38 +487,8 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                             ))}
                         </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: theme.border }}>
-                        <button
-                            onClick={() => {
-                                setShowNoteModal(false);
-                                setNoteContent('');
-                                setSelectedTags([]);
-                            }}
-                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
-                            style={{ 
-                                borderColor: theme.border,
-                                color: theme.text
-                            }}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSaveNote}
-                            disabled={!noteContent.trim() && selectedTags.length === 0}
-                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ 
-                                backgroundColor: theme.primary,
-                                color: theme.textOnPrimary || '#ffffff',
-                                border: 'none',
-                                boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                            }}
-                        >
-                            Save Note
-                        </button>
-                    </div>
                 </div>
-            </Modal>
+            </BottomSheet>
         </>
     );
 }

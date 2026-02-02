@@ -1313,74 +1313,63 @@ export function subscribeToTicketMessages(ticketId, callback) {
  * Get all tickets for admin view
  * @returns {Promise<Array>} - Array of tickets
  */
+/**
+ * Restore Firestore Timestamp-like objects from callable response (serialized as plain objects)
+ */
+function restoreTicketTimestamps(ticket) {
+  const ts = (obj) => {
+    if (!obj || (obj.toDate && typeof obj.toDate === 'function')) return obj;
+    const sec = obj.seconds ?? obj._seconds;
+    if (typeof sec === 'number') {
+      const nano = obj.nanoseconds ?? obj._nanoseconds ?? 0;
+      return Timestamp.fromMillis(sec * 1000 + Math.floor(nano / 1e6));
+    }
+    return obj;
+  };
+  ['createdAt', 'updatedAt', 'lastMessageAt', 'closedAt'].forEach((k) => {
+    if (ticket[k]) ticket[k] = ts(ticket[k]);
+  });
+  const uai = ticket.userAccountInfo;
+  if (uai) {
+    ['createdAt', 'lastLoginAt'].forEach((k) => {
+      if (uai[k]) uai[k] = ts(uai[k]);
+    });
+  }
+  return ticket;
+}
+
 export async function getAllTickets() {
   try {
-    const ticketsRef = collection(db, 'supportTickets');
+    const functions = getFunctions();
+    const getAllTicketsAdmin = httpsCallable(functions, 'getAllTicketsAdmin');
+    const result = await getAllTicketsAdmin();
+    const tickets = (result.data?.tickets || []).map(restoreTicketTimestamps);
     
-    // Try to query with orderBy, but fallback to simple query if index doesn't exist
-    let querySnapshot;
-    try {
-      const q = query(ticketsRef, orderBy('lastMessageAt', 'desc'));
-      querySnapshot = await getDocs(q);
-    } catch (orderByError) {
-      // If orderBy fails (likely missing index), try without orderBy
-      console.warn('⚠️ orderBy query failed, trying without orderBy:', orderByError.message);
-      querySnapshot = await getDocs(ticketsRef);
-    }
-    
-    const tickets = [];
-    const ticketsNeedingEnrichment = [];
-    
-    querySnapshot.forEach((doc) => {
-      const ticketData = {
-        id: doc.id,
-        ...doc.data()
-      };
-      tickets.push(ticketData);
-      
-      // Track tickets that don't have user account info
-      if (!ticketData.userAccountInfo && ticketData.userEmail) {
-        ticketsNeedingEnrichment.push(ticketData);
-      }
-    });
+    const ticketsNeedingEnrichment = tickets.filter(
+      (t) => !t.userAccountInfo && t.userEmail
+    );
     
     // Enrich tickets with user account info if missing
-    if (ticketsNeedingEnrichment.length > 0) {
-      for (const ticket of ticketsNeedingEnrichment) {
-        try {
-          const userAccount = await getUserByEmail(ticket.userEmail);
-          
-          if (userAccount) {
-            // Find the ticket in the array and update it
-            const ticketIndex = tickets.findIndex(t => t.id === ticket.id);
-            if (ticketIndex !== -1) {
-              tickets[ticketIndex].userAccountInfo = {
-                userId: userAccount.id,
-                email: userAccount.email,
-                subscriptionStatus: userAccount.subscriptionStatus || 'none',
-                subscriptionType: userAccount.subscriptionType || null,
-                createdAt: userAccount.createdAt,
-                lastLoginAt: userAccount.lastLoginAt || null,
-                displayName: userAccount.displayName || null,
-              };
-            }
+    for (const ticket of ticketsNeedingEnrichment) {
+      try {
+        const userAccount = await getUserByEmail(ticket.userEmail);
+        if (userAccount) {
+          const ticketIndex = tickets.findIndex((t) => t.id === ticket.id);
+          if (ticketIndex !== -1) {
+            tickets[ticketIndex].userAccountInfo = {
+              userId: userAccount.id,
+              email: userAccount.email,
+              subscriptionStatus: userAccount.subscriptionStatus || 'none',
+              subscriptionType: userAccount.subscriptionType || null,
+              createdAt: userAccount.createdAt,
+              lastLoginAt: userAccount.lastLoginAt || null,
+              displayName: userAccount.displayName || null,
+            };
           }
-        } catch (enrichError) {
-          // Silently continue if enrichment fails
-          console.warn(`⚠️ Failed to enrich ticket ${ticket.id}:`, enrichError.message);
         }
+      } catch (enrichError) {
+        console.warn(`⚠️ Failed to enrich ticket ${ticket.id}:`, enrichError.message);
       }
-    }
-    
-    // Sort manually if we couldn't use orderBy
-    if (tickets.length > 0 && !tickets[0].lastMessageAt) {
-      tickets.sort((a, b) => {
-        const aTime = a.lastMessageAt?.toMillis ? a.lastMessageAt.toMillis() : 
-                     a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-        const bTime = b.lastMessageAt?.toMillis ? b.lastMessageAt.toMillis() : 
-                     b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-        return bTime - aTime; // Descending order
-      });
     }
     
     return tickets;

@@ -50,6 +50,8 @@ const CONFIG = {
   },
   
   // Routing Configuration
+  // ⚠️ Ghosty is NOT replying to users yet: enableAutoResponse=false, observationMode=true.
+  // He only logs decisions to ai_worker_logs. Set enableAutoResponse=true (and observationMode=false) to post.
   routing: {
     confidenceThreshold: 50,              // TEMPORARY: Lowered for testing (normally 80)
     enableAutoResponse: false,            // SET TO TRUE AFTER TESTING

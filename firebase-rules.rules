@@ -241,7 +241,9 @@ service cloud.firestore {
     
     match /ai_worker_logs/{logId} {
       allow read: if isAdmin(); // Only admin can read AI worker logs
-      allow write: if false; // Only Cloud Functions can write logs
+      allow create: if false; // Only Cloud Functions create logs
+      allow update: if isAdmin(); // Admin can mark responsePosted from work queue
+      allow delete: if false;
     }
     
     match /ghostWorkerTests/{testId} {

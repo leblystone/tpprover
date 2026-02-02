@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getUserByEmail } from '../../services/firebase';
+import GhostWorkerConversationModal from './GhostWorkerConversationModal';
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
@@ -99,6 +100,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
   const [showNotes, setShowNotes] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendingGhostResponse, setSendingGhostResponse] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   
@@ -109,6 +111,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
     allTime: 0
   });
   const [viewingUserAccount, setViewingUserAccount] = useState(null);
+  const [conversationTicketId, setConversationTicketId] = useState(null);
 
   // Load work queue data
   useEffect(() => {
@@ -149,6 +152,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
           confidence: log.confidence,
           reasoning: log.reasoning || log.routingReasoning || '',
           responseContent: log.responseContent || '',
+          responsePosted: log.responsePosted || false,
           adminNotes: log.adminNotes || '',
           markedFixed: log.markedFixed || false,
           markedFixedAt: log.markedFixedAt,
@@ -269,6 +273,61 @@ export default function GhostWorkerWorkQueue({ theme }) {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
+    }
+  };
+
+  const sendGhostResponseToUser = async () => {
+    if (!selectedTicket?.ticketId) return;
+    const text = extractCustomerResponse(selectedTicket.responseContent);
+    if (!text?.trim()) return;
+    
+    setSendingGhostResponse(true);
+    try {
+      const firestore = getFirestore();
+      const messagesRef = collection(firestore, 'supportTickets', selectedTicket.ticketId, 'messages');
+      await addDoc(messagesRef, {
+        message: text.trim(),
+        text: text.trim(),
+        senderType: 'ghost-worker',
+        senderName: 'Ghosty',
+        senderEmail: 'ghosty@thepepplanner.com',
+        createdAt: serverTimestamp(),
+        read: false,
+        metadata: { sentVia: 'work-queue-manual', logId: selectedTicket.logId }
+      });
+      const ticketRef = doc(firestore, 'supportTickets', selectedTicket.ticketId);
+      await updateDoc(ticketRef, {
+        lastMessageAt: serverTimestamp(),
+        status: 'in-progress',
+        updatedAt: serverTimestamp(),
+        'metadata.ghostWorker.responsePosted': true,
+        'metadata.ghostWorker.postedAt': serverTimestamp(),
+        'metadata.ghostWorker.approvedVia': 'work-queue'
+      });
+      // Best-effort: mark log as posted (admin can update if rules allow)
+      try {
+        const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+        await updateDoc(logRef, {
+          responsePosted: true,
+          responsePostedAt: serverTimestamp()
+        });
+      } catch (logErr) {
+        console.warn('Could not update ai_worker_logs (message was still sent):', logErr?.message);
+      }
+      setWorkQueue(prev => prev.map(t =>
+        t.logId === selectedTicket.logId ? { ...t, responsePosted: true } : t
+      ));
+      setSelectedTicket(prev => prev ? { ...prev, responsePosted: true } : null);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: "Ghosty's response sent to user ✓", type: 'success' }
+      }));
+    } catch (error) {
+      console.error('Failed to send Ghosty response:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to send response', type: 'error' }
+      }));
+    } finally {
+      setSendingGhostResponse(false);
     }
   };
 
@@ -743,10 +802,31 @@ export default function GhostWorkerWorkQueue({ theme }) {
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '16px', fontWeight: '600', color: t.text }}>
                   🎫 #{selectedTicket.ticketNumber}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setConversationTicketId(selectedTicket.ticketId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${t.primary}`,
+                    backgroundColor: t.primary + '15',
+                    color: t.primary,
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                  title="Open the chat exactly as the user sees it"
+                >
+                  <MessageSquare size={14} />
+                  View conversation (as user sees it)
+                </button>
                 <span style={{
                   fontSize: '11px',
                   padding: '3px 8px',
@@ -808,13 +888,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 </div>
               </div>
 
-              {/* Row 2: Customer Response + Cursor Prompt (2 columns) */}
+              {/* Row 2: Ghosty's response (to user) + Cursor Prompt (2 columns) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                {/* Customer Response (what was sent to user) */}
+                {/* Ghosty's response (to user) — may not be sent yet */}
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    💬 Response Sent to User
-                    <Tooltip text="This is what Ghosty sent (or would send) to the customer">
+                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    💬 Ghosty's response (to user)
+                    {selectedTicket.responsePosted ? (
+                      <span style={{ color: '#059669', fontWeight: '600' }}>✓ Sent</span>
+                    ) : (
+                      <span style={{ color: '#B45309', fontWeight: '600' }}>(not sent yet)</span>
+                    )}
+                    <Tooltip text="This is what Ghosty drafted for the customer. In observation mode it isn't sent automatically — use the button below to send it.">
                       <HelpCircle size={12} style={{ color: t.textLight }} />
                     </Tooltip>
                   </div>
@@ -832,6 +917,37 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   }}>
                     {extractCustomerResponse(selectedTicket.responseContent) || 'No response available'}
                   </div>
+                  {extractCustomerResponse(selectedTicket.responseContent)?.trim() && !selectedTicket.responsePosted && (
+                    <button
+                      type="button"
+                      onClick={sendGhostResponseToUser}
+                      disabled={sendingGhostResponse}
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: sendingGhostResponse ? t.border : t.primary,
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: sendingGhostResponse ? 'not-allowed' : 'pointer',
+                        opacity: sendingGhostResponse ? 0.8 : 1
+                      }}
+                    >
+                      {sendingGhostResponse ? (
+                        <>Sending…</>
+                      ) : (
+                        <>
+                          <Send size={14} />
+                          Send this response to user
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Cursor Prompt (for you to copy) */}
@@ -1019,20 +1135,40 @@ export default function GhostWorkerWorkQueue({ theme }) {
               justifyContent: 'space-between',
               gap: '10px'
             }}>
-              <span
-                onClick={() => window.open(`/admin/feedback?ticketId=${selectedTicket.ticketId}`, '_blank')}
-                style={{
-                  fontSize: '12px',
-                  color: t.textLight,
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <ExternalLink size={12} /> view full ticket
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setConversationTicketId(selectedTicket.ticketId)}
+                  style={{
+                    fontSize: '12px',
+                    color: t.primary,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0
+                  }}
+                >
+                  <MessageSquare size={12} /> View conversation as user
+                </button>
+                <span
+                  onClick={() => window.open(`/admin/feedback?ticketId=${selectedTicket.ticketId}`, '_blank')}
+                  style={{
+                    fontSize: '12px',
+                    color: t.textLight,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <ExternalLink size={12} /> view full ticket
+                </span>
+              </div>
 
               <Tooltip text="Mark this ticket as complete and move it to history. Does NOT notify the user.">
                 <button
@@ -1059,6 +1195,15 @@ export default function GhostWorkerWorkQueue({ theme }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Conversation-as-user modal (same UI as user sees) */}
+      {conversationTicketId && (
+        <GhostWorkerConversationModal
+          ticketId={conversationTicketId}
+          onClose={() => setConversationTicketId(null)}
+          theme={t}
+        />
       )}
 
       {/* User Account Modal */}

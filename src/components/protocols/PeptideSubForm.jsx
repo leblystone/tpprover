@@ -9,7 +9,7 @@ import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
 
-export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
+export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
     const { reconItems } = useAppContext();
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
@@ -219,6 +219,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         <div className="grid grid-cols-3 gap-3">
                             <div className="col-span-2">
                                 <CombinedDosageInput
+                                    id={`dose-input-${item.id || index}`}
                                     value={item.dosage || { amount: '', unit: 'mcg' }}
                                     onChange={(newDosage) => {
                                         onChange({ 

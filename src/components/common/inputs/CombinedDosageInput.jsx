@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * Combined Dosage Input - integrates amount and unit into a single component
@@ -13,10 +13,12 @@ export default function CombinedDosageInput({
     units = null, // Optional: override default units
     outlined = false,
     customTextColor = null,
-    customShadow = null
+    customShadow = null,
+    id = 'dose-input'
 }) {
     const [isFocused, setIsFocused] = useState(false);
     const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
+    const inputRef = useRef(null);
     // Determine units to display based on delivery method
     // Match the recon calculator: mcg, mg, mL, iu, and sprays
     // Always include all units to match recon calculator
@@ -27,8 +29,22 @@ export default function CombinedDosageInput({
         setIsUnitDropdownOpen(false);
     }, [deliveryMethod]);
 
-    const handleAmountChange = (newAmount) => {
+    const handleAmountChange = (e) => {
+        const input = e.target;
+        const newAmount = input.value;
+        const { selectionStart, selectionEnd } = input;
+
         onChange({ ...value, amount: newAmount });
+
+        // Restore cursor after React re-render (fixes mobile "insert at start" bug)
+        requestAnimationFrame(() => {
+            if (inputRef.current && document.activeElement === inputRef.current) {
+                const len = newAmount.length;
+                const newStart = Math.min(selectionStart ?? len, len);
+                const newEnd = Math.min(selectionEnd ?? len, len);
+                inputRef.current.setSelectionRange(newStart, newEnd);
+            }
+        });
     };
 
     const handleUnitChange = (newUnit) => {
@@ -50,10 +66,12 @@ export default function CombinedDosageInput({
                 >
                     {/* Amount Input */}
                     <input
+                        ref={inputRef}
                         type="text"
-                        id="dose-input"
+                        id={id}
+                        inputMode="decimal"
                         value={value?.amount || ''}
-                        onChange={(e) => handleAmountChange(e.target.value)}
+                        onInput={handleAmountChange}
                         onFocus={() => setIsFocused(true)}
                         onBlur={(e) => {
                             setTimeout(() => {
@@ -158,7 +176,7 @@ export default function CombinedDosageInput({
                 </div>
                 {/* Adaptive Label */}
                 <label 
-                    htmlFor="dose-input"
+                    htmlFor={id}
                     className="absolute pointer-events-none transition-all"
                     style={{
                         fontSize: (isFocused || (value?.amount && String(value.amount).trim())) ? '0.75rem' : '0.9375rem',
@@ -186,9 +204,12 @@ export default function CombinedDosageInput({
             >
                 {/* Amount Input */}
                 <input
+                    ref={inputRef}
                     type="text"
+                    id={id}
+                    inputMode="decimal"
                     value={value?.amount || ''}
-                    onChange={(e) => handleAmountChange(e.target.value)}
+                    onInput={handleAmountChange}
                     placeholder={placeholder}
                     className="flex-1 px-3 py-2 outline-none min-w-0 border-0 focus:ring-0"
                     style={{ 

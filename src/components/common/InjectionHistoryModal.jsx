@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { X, MapPin, MapPinPlus, Clock, PenTool, Calendar, Pipette, Edit, Trash2, Save, Filter } from 'lucide-react';
-import { getInjectionHistory, updateInjectionRecord, deleteInjectionRecord } from '../../utils/injectionTracking';
+import { MapPin, Clock, PenTool, Pipette, Trash2, Edit, X, Check } from 'lucide-react';
+import BottomSheet from './BottomSheet';
+import ConfirmationModal from '../ui/ConfirmationModal';
+import { getInjectionHistory, deleteInjectionRecord, updateInjectionRecord } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
     const [injectionHistory, setInjectionHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [editingRecord, setEditingRecord] = useState(null);
-    const [editSelectedSite, setEditSelectedSite] = useState('');
-    const [editSelectedSide, setEditSelectedSide] = useState('');
-    const [editCustomSite, setEditCustomSite] = useState('');
-    const [deleteConfirm, setDeleteConfirm] = useState(null);
-    const [dateFilter, setDateFilter] = useState('last3days'); // 'last3days', 'last7days', 'last30days', 'all'
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+    const [dateFilter, setDateFilter] = useState('last7days');
+    
+    // Edit state
+    const [editingId, setEditingId] = useState(null);
+    const [editSite, setEditSite] = useState('');
+    const [editSide, setEditSide] = useState('');
+    const [editCustom, setEditCustom] = useState('');
 
     const loadHistory = () => {
         const history = getInjectionHistory();
@@ -24,6 +27,9 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
             setLoading(true);
             loadHistory();
             setLoading(false);
+        } else {
+            // Reset edit state when modal closes
+            setEditingId(null);
         }
     }, [isOpen]);
 
@@ -63,16 +69,13 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
 
     const parseInjectionSite = (site) => {
         if (!site) return { site: '', side: '', custom: '' };
-        
         const lowerSite = site.toLowerCase().trim();
         
-        // Check if it's a custom site (doesn't match standard patterns)
         if (!lowerSite.includes('left') && !lowerSite.includes('right') && 
             !lowerSite.includes('abdomen') && !lowerSite.includes('arm') && !lowerSite.includes('thigh')) {
             return { site: 'other', side: '', custom: site };
         }
         
-        // Parse left/right + site
         const parts = lowerSite.split(' ');
         if (parts.length >= 2) {
             const side = parts[0];
@@ -84,61 +87,58 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                 if (siteType.includes('abdomen')) matchedSite = 'abdomen';
                 else if (siteType.includes('arm')) matchedSite = 'arm';
                 else if (siteType.includes('thigh')) matchedSite = 'thigh';
-                
                 return { site: matchedSite, side: side, custom: '' };
             }
         }
         
-        // Fallback to custom
         return { site: 'other', side: '', custom: site };
     };
 
     const handleEdit = (record) => {
-        setEditingRecord(record);
         const parsed = parseInjectionSite(record.injectionSite);
-        setEditSelectedSite(parsed.site);
-        setEditSelectedSide(parsed.side);
-        setEditCustomSite(parsed.custom);
+        setEditingId(record.id);
+        setEditSite(parsed.site);
+        setEditSide(parsed.side);
+        setEditCustom(parsed.custom);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditSite('');
+        setEditSide('');
+        setEditCustom('');
     };
 
     const handleSaveEdit = () => {
-        if (!editingRecord) return;
+        if (!editingId) return;
         
         let injectionSite = '';
-        if (editSelectedSite === 'other') {
-            injectionSite = editCustomSite.trim();
-        } else if (editSelectedSite && editSelectedSide) {
-            injectionSite = `${editSelectedSide} ${editSelectedSite}`;
-        } else if (editSelectedSite) {
-            injectionSite = editSelectedSite;
+        if (editSite === 'other') {
+            injectionSite = editCustom.trim();
+        } else if (editSite && editSide) {
+            injectionSite = `${editSide} ${editSite}`;
+        } else if (editSite) {
+            injectionSite = editSite;
         }
         
         if (!injectionSite) return;
         
-        const updates = {
-            injectionSite: injectionSite
-        };
-        
-        if (updateInjectionRecord(editingRecord.id, updates)) {
+        if (updateInjectionRecord(editingId, { injectionSite })) {
             loadHistory();
-            setEditingRecord(null);
-            setEditSelectedSite('');
-            setEditSelectedSide('');
-            setEditCustomSite('');
+            handleCancelEdit();
         }
     };
 
-    const handleCancelEdit = () => {
-        setEditingRecord(null);
-        setEditSelectedSite('');
-        setEditSelectedSide('');
-        setEditCustomSite('');
+    const isEditValid = () => {
+        if (editSite === 'other') return editCustom.trim().length > 0;
+        if (editSite === 'abdomen' || editSite === 'arm' || editSite === 'thigh') return editSide.length > 0;
+        return false;
     };
 
     const handleDelete = (recordId) => {
         if (deleteInjectionRecord(recordId)) {
             loadHistory();
-            setDeleteConfirm(null);
+            setDeleteConfirmId(null);
         }
     };
 
@@ -147,9 +147,16 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
-            year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
+        });
+    };
+
+    const formatDateShort = (dateValue) => {
+        const date = typeof dateValue === 'number' ? new Date(dateValue) : new Date(dateValue);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
         });
     };
 
@@ -161,397 +168,273 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
             .join(' ');
     };
 
-    const getDeliveryIcon = (deliveryMethod, color = '#ffffff') => {
-        const iconStyle = { color };
+    const getDeliveryIcon = (deliveryMethod) => {
         switch (deliveryMethod?.toLowerCase()) {
             case 'pen':
-                return <PenTool size={16} style={iconStyle} />;
+                return <PenTool size={14} style={{ color: theme.textLight }} />;
             case 'syringe':
             case 'injection':
-                return <Pipette size={16} style={iconStyle} />;
             default:
-                return <Pipette size={16} style={iconStyle} />;
+                return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
     };
 
-    if (!isOpen) return null;
+    const filterOptions = [
+        { value: 'last3days', label: '3 Days' },
+        { value: 'last7days', label: '7 Days' },
+        { value: 'last30days', label: '30 Days' },
+        { value: 'all', label: 'All' }
+    ];
 
-    const modalContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <div 
-                className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"
-                onClick={onClose}
-            />
-            
-            {/* Modal */}
-            <div 
-                className="relative w-full max-w-2xl max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden"
-                style={{ backgroundColor: theme.cardBackground }}
-                onClick={(e) => e.stopPropagation()}
+    const siteOptions = [
+        { value: 'abdomen', label: 'Abdomen' },
+        { value: 'arm', label: 'Arm' },
+        { value: 'thigh', label: 'Thigh' },
+        { value: 'other', label: 'Other' }
+    ];
+
+    return (
+        <>
+            <BottomSheet
+                open={isOpen}
+                onClose={onClose}
+                title="Injection Site History"
+                theme={theme}
+                maxHeight="85vh"
             >
-                {/* Header */}
-                <div 
-                    className="px-6 py-4 border-b"
-                    style={{ 
-                        borderColor: theme.border,
-                        background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
-                    }}
-                >
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                            <div 
-                                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                            >
-                                <MapPinPlus size={20} style={{ color: theme.textOnPrimary }} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold" style={{ color: theme.textOnPrimary }}>
-                                    Research Site History
-                                </h3>
-                            </div>
-                        </div>
+                {/* Date Filter Pills */}
+                <div className="flex gap-1.5 mb-4 flex-wrap">
+                    {filterOptions.map((option) => (
                         <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-all"
-                            style={{ color: theme.textOnPrimary }}
+                            key={option.value}
+                            onClick={() => setDateFilter(option.value)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                            style={{
+                                backgroundColor: dateFilter === option.value ? theme.primary : theme.secondary,
+                                color: dateFilter === option.value ? '#ffffff' : theme.textLight,
+                            }}
                         >
-                            <X size={20} />
+                            {option.label}
                         </button>
-                    </div>
-                    
-                    {/* Date Filter */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Filter size={14} style={{ color: theme.textOnPrimary, opacity: 0.8 }} />
-                        <div className="flex gap-1">
-                            {[
-                                { value: 'last3days', label: 'Last 3 Days' },
-                                { value: 'last7days', label: 'Last 7 Days' },
-                                { value: 'last30days', label: 'Last 30 Days' },
-                                { value: 'all', label: 'All' }
-                            ].map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => setDateFilter(option.value)}
-                                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                                        dateFilter === option.value 
-                                            ? 'text-white' 
-                                            : 'bg-white bg-opacity-10 text-white text-opacity-70 hover:bg-opacity-20'
-                                    }`}
-                                    style={{
-                                        backgroundColor: dateFilter === option.value ? 'rgba(255, 255, 255, 0.3)' : undefined,
-                                    }}
-                                >
-                                    {option.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    ))}
                 </div>
 
                 {/* Content */}
-                <div className="p-6 max-h-[60vh] overflow-y-auto">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div className="text-sm" style={{ color: theme.textLight }}>
-                                Loading research site history...
-                            </div>
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-sm" style={{ color: theme.textLight }}>
+                            Loading...
                         </div>
-                    ) : !isInjectionSiteTrackingEnabled() ? (
-                        <div className="text-center py-8">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                                <Pipette size={24} style={{ color: theme.primary }} />
-                            </div>
-                            <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                                Injection Site Tracking Disabled
-                            </h4>
-                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                                Injection site tracking is currently disabled in your settings. 
-                                Enable it in Settings → App Preferences to track injection sites.
-                            </p>
-                            <button
-                                onClick={onClose}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    </div>
+                ) : !isInjectionSiteTrackingEnabled() ? (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15` }}>
+                            <Pipette size={32} style={{ color: theme.primary }} />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Tracking Disabled</h3>
+                        <p className="text-sm" style={{ color: theme.textLight }}>
+                            Enable injection site tracking in Settings → App Preferences.
+                        </p>
+                    </div>
+                ) : filteredHistory.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15` }}>
+                            <MapPin size={32} style={{ color: theme.primary }} />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                            {injectionHistory.length === 0 ? 'No History Yet' : 'No Results'}
+                        </h3>
+                        <p className="text-sm" style={{ color: theme.textLight }}>
+                            {injectionHistory.length === 0 
+                                ? 'Complete injection tasks to see your site history here.'
+                                : 'No records found for the selected time range.'}
+                        </p>
+                    </div>
+                ) : (
+                    <ul className="space-y-2">
+                        {filteredHistory.map((record) => (
+                            <li
+                                key={record.id || record.timestamp}
+                                className="p-3 rounded-lg border transition-colors"
+                                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
                             >
-                                Close
-                            </button>
-                        </div>
-                    ) : filteredHistory.length === 0 ? (
-                        <div className="text-center py-8">
-                            <div 
-                                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                                style={{ backgroundColor: theme.secondary }}
-                            >
-                                <MapPin size={24} style={{ color: theme.textLight }} />
-                            </div>
-                            <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                                {injectionHistory.length === 0 ? 'No Research Site History' : 'No Results'}
-                            </h4>
-                            <p className="text-sm" style={{ color: theme.textLight }}>
-                                {injectionHistory.length === 0 
-                                    ? 'Complete some injection tasks to see your history here.'
-                                    : 'No injection records found for the selected date range.'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredHistory.map((record) => (
-                                <div 
-                                    key={record.id || record.timestamp}
-                                    className="p-4 rounded-lg border"
-                                    style={{ 
-                                        backgroundColor: theme.secondary,
-                                        borderColor: theme.border
-                                    }}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center gap-3 flex-1">
+                                {editingId === record.id ? (
+                                    /* Edit Mode */
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                                                    {record.taskName}
+                                                </span>
+                                                <span className="ml-2 text-xs" style={{ color: theme.textLight }}>
+                                                    {formatDateShort(record.timestamp)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={handleCancelEdit}
+                                                    className="p-1.5 rounded-lg transition-colors"
+                                                    style={{ color: theme.textLight }}
+                                                    title="Cancel"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveEdit}
+                                                    disabled={!isEditValid()}
+                                                    className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                                                    style={{ color: theme.primary }}
+                                                    title="Save"
+                                                >
+                                                    <Check size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Site Selection */}
+                                        <div className="flex gap-1.5 flex-wrap">
+                                            {siteOptions.map((option) => (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => {
+                                                        setEditSite(option.value);
+                                                        if (option.value === 'other') setEditSide('');
+                                                    }}
+                                                    className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                                                    style={{
+                                                        backgroundColor: editSite === option.value ? theme.primary : 'transparent',
+                                                        color: editSite === option.value ? '#ffffff' : theme.text,
+                                                        border: `1px solid ${editSite === option.value ? theme.primary : theme.border}`
+                                                    }}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Side Selection */}
+                                        {(editSite === 'abdomen' || editSite === 'arm' || editSite === 'thigh') && (
+                                            <div className="flex gap-1.5">
+                                                {['left', 'right'].map((side) => (
+                                                    <button
+                                                        key={side}
+                                                        onClick={() => setEditSide(side)}
+                                                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all capitalize"
+                                                        style={{
+                                                            backgroundColor: editSide === side ? theme.primary : 'transparent',
+                                                            color: editSide === side ? '#ffffff' : theme.text,
+                                                            border: `1px solid ${editSide === side ? theme.primary : theme.border}`
+                                                        }}
+                                                    >
+                                                        {side}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Custom Input */}
+                                        {editSite === 'other' && (
+                                            <input
+                                                type="text"
+                                                value={editCustom}
+                                                onChange={(e) => setEditCustom(e.target.value)}
+                                                placeholder="Enter custom site..."
+                                                className="w-full px-3 py-2 rounded-lg border text-sm"
+                                                style={{ 
+                                                    borderColor: theme.border, 
+                                                    backgroundColor: theme.background,
+                                                    color: theme.text 
+                                                }}
+                                                autoFocus
+                                            />
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* View Mode */
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
                                             <div 
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                                style={{ backgroundColor: theme.primary }}
+                                                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                                style={{ backgroundColor: theme.secondary }}
                                             >
                                                 {getDeliveryIcon(record.deliveryMethod)}
                                             </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold" style={{ color: theme.text }}>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
                                                     {record.taskName}
-                                                </h4>
-                                                <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
-                                                    <Clock size={14} />
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs mt-0.5" style={{ color: theme.textLight }}>
+                                                    {record.injectionSite && (
+                                                        <span className="flex items-center gap-1">
+                                                            <MapPin size={10} />
+                                                            {formatInjectionSite(record.injectionSite)}
+                                                        </span>
+                                                    )}
+                                                    {record.dose && (
+                                                        <span>• {record.dose} {record.unit}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs mt-0.5" style={{ color: theme.textLight, opacity: 0.7 }}>
+                                                    <Clock size={10} />
                                                     {formatDate(record.timestamp)}
                                                 </div>
                                             </div>
                                         </div>
-                                        {editingRecord?.id !== record.id && (
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(record)}
-                                                    className="p-1.5 rounded hover:bg-opacity-20 transition-all"
-                                                    style={{ 
-                                                        backgroundColor: theme.primary + '20',
-                                                        color: theme.primary
-                                                    }}
-                                                    title="Edit entry"
-                                                >
-                                                    <Edit size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteConfirm(record.id)}
-                                                    className="p-1.5 rounded hover:bg-opacity-20 transition-all"
-                                                    style={{ 
-                                                        backgroundColor: '#ef4444' + '20',
-                                                        color: '#ef4444'
-                                                    }}
-                                                    title="Delete entry"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleEdit(record); }}
+                                                className="p-2 rounded-lg transition-colors touch-manipulation"
+                                                style={{ color: theme.textLight }}
+                                                title="Edit site"
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                                                    e.currentTarget.style.color = theme.primary;
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                    e.currentTarget.style.color = theme.textLight;
+                                                }}
+                                            >
+                                                <Edit size={16} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(record.id); }}
+                                                className="p-2 rounded-lg transition-colors touch-manipulation"
+                                                style={{ color: theme.textLight }}
+                                                title="Delete record"
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.1)';
+                                                    e.currentTarget.style.color = theme.error || '#DC2626';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                    e.currentTarget.style.color = theme.textLight;
+                                                }}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    
-                                    {editingRecord?.id === record.id ? (
-                                        <div className="space-y-3 mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-                                            <div>
-                                                <label className="block text-xs font-medium mb-2" style={{ color: theme.text }}>
-                                                    Injection Site
-                                                </label>
-                                                <div className="flex gap-2 flex-wrap">
-                                                    {[
-                                                        { value: 'abdomen', label: 'Abdomen' },
-                                                        { value: 'arm', label: 'Arm' },
-                                                        { value: 'thigh', label: 'Thigh' },
-                                                        { value: 'other', label: 'Other' }
-                                                    ].map((option) => (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => {
-                                                                setEditSelectedSite(option.value);
-                                                                if (option.value !== 'other') {
-                                                                    setEditCustomSite('');
-                                                                }
-                                                            }}
-                                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                                                editSelectedSite === option.value 
-                                                                    ? 'text-white' 
-                                                                    : 'border'
-                                                            }`}
-                                                            style={{
-                                                                backgroundColor: editSelectedSite === option.value ? theme.primary : 'transparent',
-                                                                borderColor: editSelectedSite === option.value ? theme.primary : theme.border,
-                                                                color: editSelectedSite === option.value ? theme.textOnPrimary : theme.text
-                                                            }}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </BottomSheet>
 
-                                            {/* Side Selection */}
-                                            {(editSelectedSite === 'abdomen' || editSelectedSite === 'arm' || editSelectedSite === 'thigh') && (
-                                                <div>
-                                                    <div className="flex gap-2">
-                                                        {['left', 'right'].map((side) => (
-                                                            <button
-                                                                key={side}
-                                                                onClick={() => setEditSelectedSide(side)}
-                                                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                                                                    editSelectedSide === side 
-                                                                        ? 'text-white' 
-                                                                        : 'border'
-                                                                }`}
-                                                                style={{
-                                                                    backgroundColor: editSelectedSide === side ? theme.primary : 'transparent',
-                                                                    borderColor: editSelectedSide === side ? theme.primary : theme.border,
-                                                                    color: editSelectedSide === side ? theme.textOnPrimary : theme.text
-                                                                }}
-                                                            >
-                                                                {side}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Custom Input */}
-                                            {editSelectedSite === 'other' && (
-                                                <div>
-                                                    <input
-                                                        type="text"
-                                                        value={editCustomSite}
-                                                        onChange={(e) => setEditCustomSite(e.target.value)}
-                                                        placeholder="Enter site..."
-                                                        className="w-full p-2 rounded border text-xs"
-                                                        style={{ 
-                                                            borderColor: theme.border, 
-                                                            backgroundColor: theme.background,
-                                                            color: theme.text 
-                                                        }}
-                                                        autoFocus
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Action Buttons */}
-                                            <div className="flex gap-2 pt-2">
-                                                <button
-                                                    onClick={handleCancelEdit}
-                                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 border"
-                                                    style={{ 
-                                                        borderColor: theme.border,
-                                                        color: theme.text
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={handleSaveEdit}
-                                                    disabled={!editSelectedSite || (editSelectedSite !== 'other' && !editSelectedSide) || (editSelectedSite === 'other' && !editCustomSite.trim())}
-                                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    style={{ 
-                                                        backgroundColor: theme.primary,
-                                                        color: theme.textOnPrimary
-                                                    }}
-                                                >
-                                                    <Save size={14} />
-                                                    Save
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {(record.injectionSite || record.dose) && (
-                                                <div className="flex items-center gap-4 text-sm flex-wrap">
-                                                    {record.injectionSite && (
-                                                        <div className="flex items-center gap-2">
-                                                            <MapPin size={14} style={{ color: theme.primary }} />
-                                                            <span className="font-medium" style={{ color: theme.text }}>
-                                                                Injection Site:
-                                                            </span>
-                                                            <span style={{ color: theme.textLight }}>
-                                                                {formatInjectionSite(record.injectionSite)}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {record.dose && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-medium" style={{ color: theme.text }}>
-                                                                Dose:
-                                                            </span>
-                                                            <span style={{ color: theme.textLight }}>
-                                                                {record.dose} {record.unit}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Delete Confirmation */}
-            {deleteConfirm && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-                    <div 
-                        className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"
-                        onClick={() => setDeleteConfirm(null)}
-                    />
-                    <div 
-                        className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
-                        style={{ backgroundColor: theme.cardBackground }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-6">
-                            <h3 className="text-lg font-bold mb-2" style={{ color: theme.text }}>
-                                Delete Entry?
-                            </h3>
-                            <p className="text-sm mb-6" style={{ color: theme.textLight }}>
-                                This action cannot be undone. Are you sure you want to delete this injection record?
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setDeleteConfirm(null)}
-                                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
-                                    style={{ 
-                                        borderColor: theme.border,
-                                        color: theme.text
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(deleteConfirm)}
-                                    className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                                    style={{ 
-                                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+            <ConfirmationModal
+                open={!!deleteConfirmId}
+                onClose={() => setDeleteConfirmId(null)}
+                onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+                title="Delete Record?"
+                message="This action cannot be undone. Are you sure you want to delete this injection record?"
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="delete"
+                theme={theme}
+            />
+        </>
     );
-
-    return createPortal(modalContent, document.body);
 }

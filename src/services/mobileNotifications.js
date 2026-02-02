@@ -228,14 +228,15 @@ class MobileNotificationService {
    */
   async saveFCMToken(token) {
     try {
-      // Get current user email from localStorage
+      // Get current user from localStorage - use uid first (Firestore users collection is keyed by UID)
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      if (!user?.email) {
-        console.warn('📱 No user email found, cannot save FCM token');
+      const userId = user?.uid || user?.email?.toLowerCase();
+      if (!userId) {
+        console.warn('📱 No user found, cannot save FCM token');
         return;
       }
 
-      const userRef = doc(db, 'users', user.email.toLowerCase());
+      const userRef = doc(db, 'users', userId);
       await setDoc(userRef, {
         fcmToken: token,
         deviceInfo: {
@@ -250,7 +251,7 @@ class MobileNotificationService {
         }
       }, { merge: true });
 
-      console.log('✅ FCM token saved for user:', user.email);
+      console.log('✅ FCM token saved for user:', userId);
     } catch (error) {
       console.error('❌ Failed to save FCM token:', error);
     }

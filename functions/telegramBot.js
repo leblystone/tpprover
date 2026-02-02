@@ -59,6 +59,35 @@ async function sendTelegramMessage(botToken, chatId, message, options = {}) {
 }
 
 /**
+ * Answer a callback query (stops loading state on the button)
+ * Call this when handling inline keyboard button clicks.
+ */
+async function answerCallbackQuery(botToken, callbackQueryId, options = {}) {
+  try {
+    const url = `${TELEGRAM_CONFIG.apiUrl}/bot${botToken}/answerCallbackQuery`;
+    const payload = {
+      callback_query_id: callbackQueryId,
+      text: options.text || undefined,
+      show_alert: options.showAlert || false
+    };
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: TELEGRAM_CONFIG.timeout
+    });
+    const data = await response.json();
+    if (!data.ok) {
+      logger.warn('Telegram answerCallbackQuery error:', data);
+    }
+    return data.ok;
+  } catch (error) {
+    logger.warn('Failed to answer callback query:', error.message);
+    return false;
+  }
+}
+
+/**
  * Send message with inline keyboard buttons
  */
 async function sendApprovalRequest(botToken, chatId, ticketData, response, routingDecision) {
@@ -340,13 +369,18 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
       const data = callbackQuery.data;
       const messageId = callbackQuery.message.message_id;
       const chatId = callbackQuery.message.chat.id;
-      
+      const callbackQueryId = callbackQuery.id;
+
       // Parse callback data: "action:ticketId"
       const [action, ticketId] = data.split(':');
-      
+
       const db = admin.firestore();
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      
+
+      // Answer callback so Telegram stops the button loading state
+      const answerText = action === 'approve' ? 'Posting...' : action === 'reject' ? 'Rejected' : undefined;
+      await answerCallbackQuery(botToken, callbackQueryId, { text: answerText });
+
       // Handle different actions
       switch (action) {
         case 'approve':

@@ -541,7 +541,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         if (skippedPeptides.length === 0) return true;
         return skippedPeptides.every(p => {
             const deliveryData = skippedPeptideDeliveryMethods[p.peptideId];
-            if (!deliveryData) return false;
+            // No selection = UI default (syringe/subq) which is valid; Start Protocol should be available without toggling
+            if (!deliveryData) return true;
             // Pipette needs route, pen needs type+color, nasal is ok as-is
             if (deliveryData.deliveryMethod === 'pipette') return !!deliveryData.administrationRoute;
             if (deliveryData.deliveryMethod === 'pen') return !!deliveryData.penType && !!deliveryData.penColor;
@@ -620,11 +621,13 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 
                                 markAsSubmitted();
                                 const enrichedLinkedData = { ...linkedData };
-                                Object.keys(skippedPeptideDeliveryMethods).forEach(peptideId => {
+                                const defaultDelivery = { deliveryMethod: 'pipette', administrationRoute: 'subq', penType: '', penColor: '' };
+                                skippedPeptides.forEach(p => {
+                                    const peptideId = p.peptideId;
                                     if (enrichedLinkedData[peptideId]) {
                                         enrichedLinkedData[peptideId] = {
                                             ...enrichedLinkedData[peptideId],
-                                            deliveryMethod: skippedPeptideDeliveryMethods[peptideId]
+                                            deliveryMethod: skippedPeptideDeliveryMethods[peptideId] || defaultDelivery
                                         };
                                     }
                                 });

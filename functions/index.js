@@ -3772,6 +3772,51 @@ exports.submitContactForm = onCall(
 
 // ===== SUPPORT TICKET SYSTEM =====
 
+const ADMIN_EMAILS = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+
+// Get all tickets for admin dashboard (server-side, bypasses Firestore rules)
+exports.getAllTicketsAdmin = onCall(
+  { cors: true },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Must be signed in to view tickets');
+    }
+    const email = (request.auth.token.email || '').toLowerCase();
+    if (!ADMIN_EMAILS.includes(email)) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+    try {
+      const db = admin.firestore();
+      let snapshot;
+      let usedOrderBy = true;
+      try {
+        snapshot = await db.collection('supportTickets')
+          .orderBy('lastMessageAt', 'desc')
+          .get();
+      } catch (orderByError) {
+        logger.warn('⚠️ orderBy failed, falling back to simple query:', orderByError.message);
+        snapshot = await db.collection('supportTickets').get();
+        usedOrderBy = false;
+      }
+      const tickets = [];
+      snapshot.forEach((doc) => {
+        tickets.push({ id: doc.id, ...doc.data() });
+      });
+      if (!usedOrderBy && tickets.length > 0) {
+        tickets.sort((a, b) => {
+          const aTime = a.lastMessageAt?.toMillis?.() ?? a.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.lastMessageAt?.toMillis?.() ?? b.createdAt?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
+      }
+      return { tickets };
+    } catch (error) {
+      logger.error('❌ getAllTicketsAdmin error:', error);
+      throw new HttpsError('internal', error.message || 'Failed to fetch tickets');
+    }
+  }
+);
+
 /**
  * Helper function to delete all images associated with a support ticket
  * @param {string} ticketId - The ticket ID
