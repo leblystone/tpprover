@@ -57,6 +57,13 @@ exports.getTrackingInfo = onCall(
         const errorText = await trackingResponse.text();
         logger.error(`❌ Shippo API error: ${trackingResponse.status} ${trackingResponse.statusText}`, errorText);
         
+        // 401 = key invalid/expired/deleted - give helpful hint
+        if (trackingResponse.status === 401) {
+          const keyPrefix = shippoApiKey.substring(0, 12);
+          logger.error('❌ Shippo 401: Key appears invalid. Verify at https://portal.goshippo.com/api-config/api');
+          logger.error('❌ Key starts with:', keyPrefix + '... (expect shippo_live_ or shippo_test_)');
+        }
+        
         // Return error in a format the client can handle
         return {
           error: 'Failed to fetch tracking information',
