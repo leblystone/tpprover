@@ -173,7 +173,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               dose: typeof peptide === 'object' ? peptide.dose : '',
               unit: typeof peptide === 'object' ? peptide.unit : '',
               type: 'peptide',
-              time: timeSlot
+              time: timeSlot,
+              protocolId: peptide?.protocolId,
+              peptideId: peptide?.peptideId
             };
             const taskId = generateTaskId(task);
             const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
@@ -765,7 +767,9 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
           name: peptide.name,
           dose: peptide.dose || '',
           unit: peptide.unit || '',
-          time: slotKey
+          time: slotKey,
+          protocolId: peptide.protocolId,
+          peptideId: peptide.peptideId
         };
         const taskId = generateTaskId(task);
         if (isTaskCompleted(taskId, dateKey, slotKey)) {
@@ -812,7 +816,9 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
             name: peptide.name,
             dose: peptide.dose || '',
             unit: peptide.unit || '',
-            time: slotKey
+            time: slotKey,
+            protocolId: peptide.protocolId,
+            peptideId: peptide.peptideId
           };
           const taskId = generateTaskId(task);
           if (isTaskCompleted(taskId, dateKey, slotKey)) {

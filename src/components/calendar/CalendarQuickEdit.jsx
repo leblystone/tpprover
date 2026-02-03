@@ -104,7 +104,9 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                         name: peptide.name,
                         dose: peptide.dose || '',
                         unit: peptide.unit || '',
-                        time: slotKey
+                        time: slotKey,
+                        protocolId: peptide.protocolId,
+                        peptideId: peptide.peptideId
                     };
                     const taskId = generateTaskId(task);
                     currentCompletion[timeSlot][taskId] = isTaskCompleted(taskId, date, slotKey);
@@ -150,7 +152,9 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                     name: p.name,
                     dose: p.dose || '',
                     unit: p.unit || '',
-                    time: slotKey
+                    time: slotKey,
+                    protocolId: p.protocolId,
+                    peptideId: p.peptideId
                 };
                 return generateTaskId(task) === taskId;
             });
@@ -218,7 +222,9 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                     name: peptide.name,
                     dose: peptide.dose || '',
                     unit: peptide.unit || '',
-                    time: slotKey
+                    time: slotKey,
+                    protocolId: peptide.protocolId,
+                    peptideId: peptide.peptideId
                 };
                 taskIds.push(generateTaskId(task));
             });
@@ -379,7 +385,9 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                 name: peptide.name,
                 dose: peptide.dose || '',
                 unit: peptide.unit || '',
-                time: slotKey
+                time: slotKey,
+                protocolId: peptide.protocolId,
+                peptideId: peptide.peptideId
             };
             const taskId = generateTaskId(task);
             if (isTaskCompleted(taskId, date, slotKey)) {
@@ -461,6 +469,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             dose: peptide.dose || '',
                             unit: peptide.unit || '',
                             time: slotKey,
+                            protocolId: peptide.protocolId,
+                            peptideId: peptide.peptideId,
                             delivery: peptide.delivery || peptide.deliveryMethod || 'injection',
                             deliveryMethod: peptide.deliveryMethod || peptide.delivery || 'injection',
                             penColor: peptide.penColor,
@@ -553,7 +563,9 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                 name: typeof peptide === 'object' ? peptide.name : peptide,
                 dose: typeof peptide === 'object' ? (peptide.dose || '') : '',
                 unit: typeof peptide === 'object' ? (peptide.unit || '') : '',
-                time: slotKey
+                time: slotKey,
+                protocolId: peptide?.protocolId,
+                peptideId: peptide?.peptideId
             };
             const taskId = generateTaskId(task);
             if (isTaskCompleted(taskId, date, slotKey)) {

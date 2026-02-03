@@ -406,6 +406,8 @@ export default function Dashboard() {
               dose: pep.dose || '',
               unit: pep.unit || '',
               time: timeSlot,
+              protocolId: pep.protocolId,
+              peptideId: pep.peptideId,
               completed: false,
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',
               penColor: pep.penColor,

@@ -76,7 +76,9 @@ const ComplianceWidget = ({ widget, theme }) => {
               name: pep.name || 'Peptide',
               dose: pep.dose || '',
               unit: pep.unit || '',
-              time: timeSlot
+              time: timeSlot,
+              protocolId: pep.protocolId,
+              peptideId: pep.peptideId
             };
             const taskId = generateTaskId(task);
             dayPlanned++;

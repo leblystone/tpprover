@@ -21,3 +21,8 @@ Before making ANY changes that add or modify user data saving (forms, modals, wi
 - `src/utils/userDataSave.js` - Helper functions (prepareItemForSave, etc.)
 
 If you're unsure whether your change touches user data, assume it does and follow the pattern.
+
+## SCHEMA.md (data reference)
+
+- Use **SCHEMA.md** in the project root for the list of data keys and entity shapes.
+- If SCHEMA.md conflicts with code or types: **do not change either until the user confirms.** Tell the user, recommend updating SCHEMA.md to match the code, and ask for approval first. See `.cursor/rules/schema_conflict_resolution.md`.

@@ -90,7 +90,9 @@ function isPeptideCompleted(peptide, date, timeSlot) {
     dose: typeof peptide === 'object' ? peptide.dose : '',
     unit: typeof peptide === 'object' ? peptide.unit : '',
     type: 'peptide',
-    time: timeSlot
+    time: timeSlot,
+    protocolId: peptide?.protocolId,
+    peptideId: peptide?.peptideId
   };
   const taskId = generateTaskId(task);
   const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
@@ -206,7 +208,9 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         dose: typeof peptide === 'object' ? peptide.dose : '',
                                         unit: typeof peptide === 'object' ? peptide.unit : '',
                                         type: 'peptide',
-                                        time: timeSlot
+                                        time: timeSlot,
+                                        protocolId: peptide?.protocolId,
+                                        peptideId: peptide?.peptideId
                                     };
                                     const taskId = generateTaskId(task);
                                     const dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');

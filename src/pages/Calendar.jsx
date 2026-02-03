@@ -1027,7 +1027,9 @@ export default function Calendar() {
           name: peptide.name,
           dose: peptide.dose || '',
           unit: peptide.unit || '',
-          time: slotKey
+          time: slotKey,
+          protocolId: peptide.protocolId,
+          peptideId: peptide.peptideId
         };
         taskIds.push(generateTaskId(task));
       });

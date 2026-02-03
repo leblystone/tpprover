@@ -207,27 +207,26 @@ export function syncToCalendarDone() {
 
 /**
  * Generate a unique task ID from task properties
- * @param {Object} task - Task object with name, dose, unit, type, time
+ * @param {Object} task - Task object with name, dose, unit, type, time; protocolId/peptideId for protocol scoping
  */
 export function generateTaskId(task) {
-  const { name, dose, unit, type, time } = task;
+  const { name, dose, unit, type, time, protocolId, peptideId } = task;
   // Create a stable ID that's unique but consistent across renders
-  // Normalize values to ensure consistency
   const normalizedName = (name || '').trim();
   const normalizedDose = (dose || '').trim();
   const normalizedUnit = (unit || '').trim();
   const normalizedType = (type || '').trim();
   const normalizedTime = (time || '').trim();
-  
-  const taskId = `${normalizedType}-${normalizedName}-${normalizedDose}-${normalizedUnit}-${normalizedTime}`.toLowerCase().replace(/\s+/g, '-');
-  
-  // Debug logging to help track issues (commented out to reduce console spam)
-  // console.log('🆔 Generated Task ID:', {
-  //   original: task,
-  //   generated: taskId
-  // });
-  
-  return taskId;
+
+  let taskId = `${normalizedType}-${normalizedName}-${normalizedDose}-${normalizedUnit}-${normalizedTime}`;
+  // Include protocol scope for peptides so completion doesn't bleed across protocols
+  // (prevents new protocol from showing today as checked due to same peptide in another protocol)
+  const pid = String(protocolId || '').trim();
+  const pepId = String(peptideId || '').trim();
+  if (type === 'peptide' && (pid || pepId)) {
+    taskId += `-${pid.toLowerCase()}-${pepId.toLowerCase()}`;
+  }
+  return taskId.toLowerCase().replace(/\s+/g, '-');
 }
 
 /**

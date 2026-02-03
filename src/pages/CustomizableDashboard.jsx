@@ -459,6 +459,8 @@ export default function CustomizableDashboard() {
               dose: pep.dose || '',
               unit: pep.unit || '',
               time: timeSlot,
+              protocolId: pep.protocolId,
+              peptideId: pep.peptideId,
               completed: false,
               // CRITICAL: Use EXACTLY what Calendar provides - no fallbacks that might override
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',

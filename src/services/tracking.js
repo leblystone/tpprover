@@ -9,6 +9,24 @@ import { getFunctions } from 'firebase/functions';
 // Initialize Firebase Functions
 const functions = getFunctions();
 
+// Only warn once when Shippo token isn't configured (avoids console spam)
+let hasWarnedTokenNotConfigured = false;
+
+/**
+ * Check if error indicates Shippo API key is not configured
+ */
+function isShippoTokenNotConfigured(resultOrError) {
+  if (!resultOrError) return false;
+  const details = typeof resultOrError.details === 'string'
+    ? resultOrError.details
+    : JSON.stringify(resultOrError.details || '');
+  const status = resultOrError.status;
+  return (
+    status === 401 ||
+    details.includes('Token does not exist')
+  );
+}
+
 /**
  * Get tracking information for a shipment
  * Uses Firebase Cloud Function to proxy Shippo API requests (avoids CORS issues)
@@ -41,13 +59,20 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
 
         // Check if the function returned an error
         if (result.data.error) {
-            console.error('❌ Tracking API error:', result.data);
-            // Don't fall back to mock data - return the actual error
-            // The Firebase function has the API key, so if it returns an error, it's a real error
+            // Suppress repetitive logs when Shippo API key isn't configured (401 "Token does not exist")
+            if (isShippoTokenNotConfigured(result.data)) {
+                if (!hasWarnedTokenNotConfigured) {
+                    hasWarnedTokenNotConfigured = true;
+                    console.warn('⚠️ Tracking: Shippo API key not configured. To enable order tracking: set SHIPPO_API_KEY in Firebase Functions secrets.');
+                }
+            } else {
+                console.error('❌ Tracking API error:', result.data);
+            }
             return { 
                 error: result.data.error || 'Failed to fetch tracking information',
                 hasError: true,
-                details: result.data.details || result.data.message
+                details: result.data.details || result.data.message,
+                status: result.data.status
             };
         }
 

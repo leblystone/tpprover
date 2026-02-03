@@ -51,8 +51,13 @@ export async function syncOrderStatusFromTracking(order) {
     // Only proceed if we have valid tracking data (no mock data - use real API only)
     if (!trackingInfo || trackingInfo.hasError) {
       // Check if this is a "service not configured" error - only warn once
-      const isServiceNotConfigured = trackingInfo?.error?.includes('Tracking service not configured') || 
-                                     trackingInfo?.error?.includes('not configured');
+      const details = trackingInfo?.details || '';
+      const detailsStr = typeof details === 'string' ? details : JSON.stringify(details);
+      const isServiceNotConfigured =
+        trackingInfo?.error?.includes('Tracking service not configured') ||
+        trackingInfo?.error?.includes('not configured') ||
+        trackingInfo?.status === 401 ||
+        detailsStr.includes('Token does not exist');
       
       if (isServiceNotConfigured && !hasWarnedAboutTrackingService) {
         console.warn('⚠️ Tracking service not configured. To enable automatic order status updates:');

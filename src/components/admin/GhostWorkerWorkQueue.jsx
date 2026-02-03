@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { getUserByEmail } from '../../services/firebase';
-import GhostWorkerConversationModal from './GhostWorkerConversationModal';
+import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
+import { ADMIN_PASSWORD } from '../../context/AdminContext';
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
   DollarSign, Calendar, TrendingUp, FileText, HelpCircle,
-  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2
+  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck
 } from 'lucide-react';
 
 // Quick response templates
@@ -87,9 +87,15 @@ export default function GhostWorkerWorkQueue({ theme }) {
     background: '#F9FAFB',
     cardBackground: '#FFFFFF',
     border: '#E5E7EB',
-    primary: '#4a7c59'
+    primary: '#4a7c59',
+    primaryDark: '#2d5a3a',
+    btnSend: '#a0522d',
+    btnSuccess: '#0d9668'
   };
   const t = theme || defaultTheme;
+  const btnPrimary = t.primaryDark || '#2d5a3a';
+  const btnSend = t.btnSend || '#a0522d';
+  const btnSuccess = t.btnSuccess || '#0d9668';
 
   // State
   const [workQueue, setWorkQueue] = useState([]);
@@ -111,7 +117,10 @@ export default function GhostWorkerWorkQueue({ theme }) {
     allTime: 0
   });
   const [viewingUserAccount, setViewingUserAccount] = useState(null);
-  const [conversationTicketId, setConversationTicketId] = useState(null);
+  const [ticketMessages, setTicketMessages] = useState([]);
+  const conversationEndRef = useRef(null);
+  const [justClosedTicket, setJustClosedTicket] = useState(null);
+  const [uidCopySuccess, setUidCopySuccess] = useState(false);
 
   // Load work queue data
   useEffect(() => {
@@ -201,13 +210,51 @@ export default function GhostWorkerWorkQueue({ theme }) {
         tickets.push(item);
       }
 
-      setWorkQueue(tickets);
+      // Deduplicate by ticketId — keep the most recent log per ticket (same ticket can have multiple ai_worker_logs)
+      const byTicket = new Map();
+      for (const item of tickets) {
+        const tid = item.ticketId || item.logId;
+        const existing = byTicket.get(tid);
+        const itemTime = item.timestamp?.toDate?.()?.getTime() ?? item.timestamp ?? 0;
+        const existingTime = existing?.timestamp?.toDate?.()?.getTime() ?? existing?.timestamp ?? 0;
+        if (!existing || itemTime >= existingTime) {
+          byTicket.set(tid, item);
+        }
+      }
+      const deduped = Array.from(byTicket.values()).sort((a, b) => {
+        const ta = a.timestamp?.toDate?.()?.getTime() ?? a.timestamp ?? 0;
+        const tb = b.timestamp?.toDate?.()?.getTime() ?? b.timestamp ?? 0;
+        return ta - tb;
+      });
+
+      setWorkQueue(deduped);
       setCosts({ today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost });
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Live messages for selected ticket (same as user sees)
+  useEffect(() => {
+    if (!selectedTicket?.ticketId) {
+      setTicketMessages([]);
+      return;
+    }
+    const messagesRef = collection(db, 'supportTickets', selectedTicket.ticketId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTicketMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Error loading ticket messages:', err);
+      setTicketMessages([]);
+    });
+    return () => unsubscribe();
+  }, [selectedTicket?.ticketId]);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [ticketMessages]);
 
   const pendingTickets = workQueue.filter(t => !t.markedFixed);
   const completedTickets = workQueue.filter(t => t.markedFixed).sort((a, b) => {
@@ -413,17 +460,17 @@ export default function GhostWorkerWorkQueue({ theme }) {
     }
   };
 
-  const markAsComplete = async () => {
+  const closeTicket = async () => {
     if (!selectedTicket) return;
     
     setSending(true);
     try {
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
-      await updateDoc(logRef, {
-        markedFixed: true,
-        markedFixedAt: serverTimestamp(),
-        adminNotes: adminNotes
-      });
+      await closeSupportTicketFromWorkQueue(
+        selectedTicket.ticketId,
+        selectedTicket.logId,
+        adminNotes,
+        ADMIN_PASSWORD
+      );
 
       setWorkQueue(prev => prev.map(t => 
         t.logId === selectedTicket.logId 
@@ -431,16 +478,26 @@ export default function GhostWorkerWorkQueue({ theme }) {
           : t
       ));
 
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: '✅ Marked complete!', type: 'success' }
-      }));
-
+      const closed = { ticketId: selectedTicket.ticketId, ticketNumber: selectedTicket.ticketNumber };
       closeModal();
+      setJustClosedTicket(closed);
     } catch (error) {
-      console.error('Failed to mark as complete:', error);
+      console.error('Failed to close ticket:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: error?.message || 'Failed to close ticket', type: 'error' }
+      }));
     } finally {
       setSending(false);
     }
+  };
+
+  const copyUserId = () => {
+    const uid = selectedTicket?.userAccountInfo?.userId || selectedTicket?.userAccountInfo?.uid || selectedTicket?.userAccountInfo?.id;
+    if (!uid) return;
+    navigator.clipboard.writeText(uid);
+    setUidCopySuccess(true);
+    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'User ID copied!', type: 'success' } }));
+    setTimeout(() => setUidCopySuccess(false), 2000);
   };
 
   const reopenTicket = async (ticket) => {
@@ -785,10 +842,10 @@ export default function GhostWorkerWorkQueue({ theme }) {
         >
           <div style={{
             backgroundColor: t.cardBackground,
-            borderRadius: '12px',
+            borderRadius: '10px',
             width: '100%',
             maxWidth: '800px',
-            maxHeight: '85vh',
+            maxHeight: '90vh',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -796,37 +853,16 @@ export default function GhostWorkerWorkQueue({ theme }) {
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '12px 16px',
+              padding: '8px 12px',
               borderBottom: `1px solid ${t.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: t.text }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: t.text }}>
                   🎫 #{selectedTicket.ticketNumber}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setConversationTicketId(selectedTicket.ticketId)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: `1px solid ${t.primary}`,
-                    backgroundColor: t.primary + '15',
-                    color: t.primary,
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                  title="Open the chat exactly as the user sees it"
-                >
-                  <MessageSquare size={14} />
-                  View conversation (as user sees it)
-                </button>
                 <span style={{
                   fontSize: '11px',
                   padding: '3px 8px',
@@ -844,23 +880,73 @@ export default function GhostWorkerWorkQueue({ theme }) {
             </div>
 
             {/* Modal Body */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+            <div style={{ flex: 1, overflow: 'auto', padding: '10px 12px' }}>
+              {/* User ID — copy in work queue */}
+              <div style={{
+                marginBottom: '8px',
+                padding: '6px 10px',
+                backgroundColor: t.background,
+                borderRadius: '6px',
+                border: `1px solid ${t.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                <span style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, textTransform: 'uppercase' }}>
+                  User ID
+                </span>
+                <code style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  color: t.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {selectedTicket.userAccountInfo?.userId || selectedTicket.userAccountInfo?.uid || selectedTicket.userAccountInfo?.id || '—'}
+                </code>
+                {(selectedTicket.userAccountInfo?.userId || selectedTicket.userAccountInfo?.uid || selectedTicket.userAccountInfo?.id) && (
+                  <button
+                    type="button"
+                    onClick={copyUserId}
+                    style={{
+                      padding: '4px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: uidCopySuccess ? btnSuccess : btnPrimary,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {uidCopySuccess ? <><CheckCircle2 size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                  </button>
+                )}
+              </div>
+
               {/* Row 1: Original Message + Ghosty's Reasoning (2 columns) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                 {/* Original Message */}
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
                     📨 User Message
                   </div>
                   <div style={{
-                    padding: '10px',
+                    padding: '8px',
                     backgroundColor: '#FEF3C7',
                     border: '1px solid #FCD34D',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    lineHeight: '1.4',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    lineHeight: '1.35',
                     color: '#78350F',
-                    maxHeight: '120px',
+                    maxHeight: '90px',
                     overflowY: 'auto'
                   }}>
                     {selectedTicket.originalMessage || 'No message available'}
@@ -869,18 +955,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
 
                 {/* Ghosty's Reasoning */}
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
                     🧠 Ghosty's Reasoning
                   </div>
                   <div style={{
-                    padding: '10px',
+                    padding: '8px',
                     backgroundColor: '#EDE9FE',
                     border: '1px solid #C4B5FD',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    lineHeight: '1.4',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    lineHeight: '1.35',
                     color: '#5B21B6',
-                    maxHeight: '120px',
+                    maxHeight: '90px',
                     overflowY: 'auto'
                   }}>
                     {selectedTicket.reasoning || 'No reasoning available'}
@@ -889,10 +975,10 @@ export default function GhostWorkerWorkQueue({ theme }) {
               </div>
 
               {/* Row 2: Ghosty's response (to user) + Cursor Prompt (2 columns) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                 {/* Ghosty's response (to user) — may not be sent yet */}
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                     💬 Ghosty's response (to user)
                     {selectedTicket.responsePosted ? (
                       <span style={{ color: '#059669', fontWeight: '600' }}>✓ Sent</span>
@@ -900,18 +986,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
                       <span style={{ color: '#B45309', fontWeight: '600' }}>(not sent yet)</span>
                     )}
                     <Tooltip text="This is what Ghosty drafted for the customer. In observation mode it isn't sent automatically — use the button below to send it.">
-                      <HelpCircle size={12} style={{ color: t.textLight }} />
+                      <HelpCircle size={11} style={{ color: t.textLight }} />
                     </Tooltip>
                   </div>
                   <div style={{
-                    padding: '10px',
+                    padding: '8px',
                     backgroundColor: '#ECFDF5',
                     border: '1px solid #A7F3D0',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    lineHeight: '1.4',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    lineHeight: '1.35',
                     color: '#065F46',
-                    maxHeight: '150px',
+                    maxHeight: '100px',
                     overflowY: 'auto',
                     whiteSpace: 'pre-wrap'
                   }}>
@@ -923,16 +1009,16 @@ export default function GhostWorkerWorkQueue({ theme }) {
                       onClick={sendGhostResponseToUser}
                       disabled={sendingGhostResponse}
                       style={{
-                        marginTop: '8px',
-                        padding: '8px 14px',
+                        marginTop: '6px',
+                        padding: '6px 10px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        backgroundColor: sendingGhostResponse ? t.border : t.primary,
+                        gap: '4px',
+                        backgroundColor: sendingGhostResponse ? t.border : btnPrimary,
                         color: '#fff',
                         border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
                         fontWeight: '600',
                         cursor: sendingGhostResponse ? 'not-allowed' : 'pointer',
                         opacity: sendingGhostResponse ? 0.8 : 1
@@ -952,43 +1038,43 @@ export default function GhostWorkerWorkQueue({ theme }) {
 
                 {/* Cursor Prompt (for you to copy) */}
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       🤖 Cursor Prompt
                       <Tooltip text="Copy this and paste into Cursor AI to fix the issue">
-                        <HelpCircle size={12} style={{ color: t.textLight }} />
+                        <HelpCircle size={11} style={{ color: t.textLight }} />
                       </Tooltip>
                     </div>
                     {extractCursorPrompt(selectedTicket.responseContent) && (
                       <button
                         onClick={copyToClipboard}
                         style={{
-                          padding: '4px 10px',
-                          backgroundColor: copySuccess ? '#10B981' : t.primary,
+                          padding: '4px 8px',
+                          backgroundColor: copySuccess ? btnSuccess : btnPrimary,
                           color: '#fff',
                           border: 'none',
                           borderRadius: '4px',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px'
                         }}
                       >
-                        {copySuccess ? <><CheckCircle2 size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+                        {copySuccess ? <><CheckCircle2 size={11} /> Copied!</> : <><Copy size={11} /> Copy</>}
                       </button>
                     )}
                   </div>
                   <div style={{
-                    padding: '10px',
+                    padding: '8px',
                     backgroundColor: t.background,
                     border: `1px solid ${t.border}`,
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     fontFamily: 'monospace',
-                    fontSize: '11px',
-                    lineHeight: '1.4',
+                    fontSize: '10px',
+                    lineHeight: '1.35',
                     color: t.text,
-                    maxHeight: '150px',
+                    maxHeight: '100px',
                     overflowY: 'auto',
                     whiteSpace: 'pre-wrap'
                   }}>
@@ -998,198 +1084,267 @@ export default function GhostWorkerWorkQueue({ theme }) {
               </div>
 
               {/* My Notes Button + Expandable */}
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '8px' }}>
                 <button
                   onClick={() => setShowNotes(!showNotes)}
                   style={{
-                    padding: '8px 14px',
+                    padding: '6px 10px',
                     backgroundColor: showNotes ? t.background : 'transparent',
                     border: `1px solid ${t.border}`,
-                    borderRadius: '6px',
-                    fontSize: '12px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
                     color: t.text,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '4px'
                   }}
                 >
-                  <FileText size={14} />
+                  <FileText size={12} />
                   {showNotes ? 'Hide Notes' : 'Add Notes'}
-                  {adminNotes && !showNotes && <span style={{ color: '#10B981' }}>✓</span>}
-                  {showNotes ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {adminNotes && !showNotes && <span style={{ color: btnSuccess }}>✓</span>}
+                  {showNotes ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
                 
                 {showNotes && (
-                  <div style={{ marginTop: '8px' }}>
+                  <div style={{ marginTop: '6px' }}>
                     <textarea
                       value={adminNotes}
                       onChange={(e) => setAdminNotes(e.target.value)}
                       placeholder="Your notes about this fix... (auto-saves)"
                       style={{
                         width: '100%',
-                        padding: '10px',
+                        padding: '8px',
                         border: `1px solid ${t.border}`,
-                        borderRadius: '6px',
-                        fontSize: '13px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
                         resize: 'vertical',
-                        minHeight: '60px',
+                        minHeight: '48px',
                         fontFamily: 'inherit',
                         color: t.text,
                         backgroundColor: t.cardBackground
                       }}
                     />
-                    <div style={{ fontSize: '10px', color: saving ? t.primary : '#10B981', marginTop: '4px' }}>
+                    <div style={{ fontSize: '10px', color: saving ? t.primary : btnSuccess, marginTop: '2px' }}>
                       {saving ? 'Saving...' : (adminNotes ? '✓ Saved' : '')}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Send Update Section */}
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, marginBottom: '8px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  💬 Send Update to User
-                  <Tooltip text="Send a message to the user about their ticket. Click a quick response to auto-fill, then hit Send.">
-                    <HelpCircle size={12} style={{ color: t.textLight }} />
-                  </Tooltip>
+              {/* Support Conversation at bottom — reply here, same thread as user sees */}
+              <div style={{
+                marginTop: '10px',
+                border: `1px solid ${t.border}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                backgroundColor: t.cardBackground
+              }}>
+                <div style={{
+                  padding: '8px 10px',
+                  borderBottom: `1px solid ${t.border}`,
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  color: t.primary
+                }}>
+                  Support Conversation
                 </div>
-                
-                {/* Quick Response Buttons */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                  {QUICK_RESPONSES.map(response => (
-                    <Tooltip key={response.id} text={`Click to fill: "${response.message.slice(0, 50)}..."`}>
+                <div style={{
+                  padding: '8px',
+                  backgroundColor: t.background,
+                  minHeight: '80px',
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}>
+                  {ticketMessages.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '8px', color: t.textLight, fontSize: '11px' }}>
+                      No messages yet.
+                    </div>
+                  ) : (
+                    ticketMessages.map((msg) => {
+                      const isAdmin = msg.senderType === 'admin' || msg.senderType === 'ghost-worker' ||
+                        (msg.senderEmail && (msg.senderEmail?.includes('admin') || msg.senderEmail?.includes('thepepplanner.com')));
+                      return (
+                        <div
+                          key={msg.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: isAdmin ? 'flex-start' : 'flex-end',
+                            marginBottom: '8px'
+                          }}
+                        >
+                          <div
+                            style={{
+                              maxWidth: '70%',
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              ...(isAdmin ? { borderTopLeftRadius: 0 } : { borderTopRightRadius: 0 }),
+                              backgroundColor: isAdmin ? t.primary + '15' : t.primary === '#4a7c59' ? '#E8F5E9' : t.primary + '20',
+                              borderLeft: isAdmin ? `2px solid ${t.primary}` : 'none',
+                              borderRight: !isAdmin ? `2px solid ${t.primary}` : 'none'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                              {isAdmin ? (
+                                <ShieldCheck size={12} style={{ color: t.primary }} />
+                              ) : (
+                                <User size={12} style={{ color: t.primary }} />
+                              )}
+                              <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>
+                                {isAdmin ? 'The Pep Planner Team' : 'You'}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '12px', margin: 0, whiteSpace: 'pre-wrap', color: t.text }}>
+                              {msg.message || msg.text}
+                            </p>
+                            {msg.imageUrls && msg.imageUrls.length > 0 && (
+                              <div style={{ marginTop: '6px' }}>
+                                {msg.imageUrls.map((url, idx) => (
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '2px' }}>
+                                    <img src={url} alt={`Screenshot ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '100px', borderRadius: '4px', border: `1px solid ${t.border}` }} />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '10px', color: t.textLight, marginTop: '4px', opacity: 0.7 }}>
+                              {msg.createdAt?.toDate?.() ? new Date(msg.createdAt.toDate()).toLocaleDateString() : 'Today'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={conversationEndRef} />
+                </div>
+                {/* Quick responses + reply input — your replies appear in the thread above */}
+                <div style={{
+                  padding: '8px 10px',
+                  borderTop: `1px solid ${t.border}`,
+                  backgroundColor: t.cardBackground
+                }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                    {QUICK_RESPONSES.map(response => (
+                      <Tooltip key={response.id} text={`Click to fill: "${response.message.slice(0, 50)}..."`}>
+                        <button
+                          type="button"
+                          onClick={() => setCustomMessage(response.message)}
+                          style={{
+                            padding: '5px 10px',
+                            backgroundColor: '#374151',
+                            border: '1px solid #1f2937',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            color: '#f3f4f6'
+                          }}
+                        >
+                          {response.label}
+                        </button>
+                      </Tooltip>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
+                    <textarea
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (customMessage.trim() && !sending) sendMessage();
+                        }
+                      }}
+                      placeholder="Type your message... (Press Enter to send)"
+                      rows={2}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        border: `1px solid ${t.border}`,
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        color: t.text,
+                        backgroundColor: t.background,
+                        resize: 'vertical',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                    <Tooltip text="Send to user — appears in conversation above">
                       <button
-                        onClick={() => setCustomMessage(response.message)}
+                        type="button"
+                        onClick={sendMessage}
+                        disabled={!customMessage.trim() || sending}
                         style={{
-                          padding: '6px 12px',
-                          backgroundColor: t.background,
-                          border: `1px solid ${t.border}`,
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          color: t.text
+                          padding: '8px 12px',
+                          backgroundColor: customMessage.trim() ? btnSend : '#4b5563',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: customMessage.trim() && !sending ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          alignSelf: 'flex-end'
                         }}
                       >
-                        {response.label}
+                        <Send size={14} />
                       </button>
                     </Tooltip>
-                  ))}
-                </div>
-                
-                {/* Message Input + Send */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <textarea
-                    value={customMessage}
-                    onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder="Type or click a quick response above..."
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      border: `1px solid ${t.border}`,
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      color: t.text,
-                      backgroundColor: t.cardBackground,
-                      resize: 'vertical',
-                      minHeight: '60px',
-                      fontFamily: 'inherit'
-                    }}
-                  />
-                  <Tooltip text="Send this message to the user right now">
-                    <button
-                      onClick={sendMessage}
-                      disabled={!customMessage.trim() || sending}
-                      style={{
-                        padding: '10px 16px',
-                        backgroundColor: customMessage.trim() ? t.primary : t.background,
-                        color: customMessage.trim() ? '#fff' : t.textLight,
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: customMessage.trim() && !sending ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        alignSelf: 'flex-end'
-                      }}
-                    >
-                      <Send size={16} />
-                    </button>
-                  </Tooltip>
-                </div>
-
-                {selectedTicket.followUpSent && (
-                  <div style={{ marginTop: '8px', fontSize: '11px', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={12} /> Last sent: "{selectedTicket.followUpMessage?.slice(0, 40)}..."
                   </div>
-                )}
+                  <p style={{ fontSize: '10px', color: t.textLight, marginTop: '4px', marginBottom: 0 }}>
+                    💡 Reply here — it appears in the thread above and notifies the user.
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Modal Footer */}
             <div style={{
-              padding: '12px 16px',
+              padding: '8px 12px',
               borderTop: `1px solid ${t.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '10px'
+              gap: '8px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span
+                onClick={() => window.open(`/admin/feedback?ticketId=${selectedTicket.ticketId}`, '_blank')}
+                style={{
+                  fontSize: '11px',
+                  color: t.textLight,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <ExternalLink size={11} /> view full ticket
+              </span>
+
+              <Tooltip text="Close this support ticket. Does not notify the user.">
                 <button
                   type="button"
-                  onClick={() => setConversationTicketId(selectedTicket.ticketId)}
-                  style={{
-                    fontSize: '12px',
-                    color: t.primary,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0
-                  }}
-                >
-                  <MessageSquare size={12} /> View conversation as user
-                </button>
-                <span
-                  onClick={() => window.open(`/admin/feedback?ticketId=${selectedTicket.ticketId}`, '_blank')}
-                  style={{
-                    fontSize: '12px',
-                    color: t.textLight,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <ExternalLink size={12} /> view full ticket
-                </span>
-              </div>
-
-              <Tooltip text="Mark this ticket as complete and move it to history. Does NOT notify the user.">
-                <button
-                  onClick={markAsComplete}
+                  onClick={closeTicket}
                   disabled={sending}
                   style={{
-                    padding: '8px 20px',
-                    backgroundColor: '#10B981',
+                    padding: '6px 14px',
+                    backgroundColor: btnSuccess,
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
                     fontWeight: '600',
                     cursor: sending ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '4px',
                     opacity: sending ? 0.7 : 1
                   }}
                 >
-                  <CheckCircle2 size={16} /> Mark Complete
+                  {sending ? (
+                    <>Closing . . .</>
+                  ) : (
+                    <><CheckCircle2 size={14} /> Close Ticket</>
+                  )}
                 </button>
               </Tooltip>
             </div>
@@ -1197,13 +1352,86 @@ export default function GhostWorkerWorkQueue({ theme }) {
         </div>
       )}
 
-      {/* Conversation-as-user modal (same UI as user sees) */}
-      {conversationTicketId && (
-        <GhostWorkerConversationModal
-          ticketId={conversationTicketId}
-          onClose={() => setConversationTicketId(null)}
-          theme={t}
-        />
+      {/* Closed confirmation modal */}
+      {justClosedTicket && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '16px'
+          }}
+          onClick={() => setJustClosedTicket(null)}
+        >
+          <div
+            style={{
+              backgroundColor: t.cardBackground,
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '360px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              border: `1px solid ${t.border}`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: t.text }}>
+                Ticket closed
+              </h3>
+              <p style={{ margin: '8px 0 0', fontSize: '14px', color: t.textLight }}>
+                #{justClosedTicket.ticketNumber}
+              </p>
+            </div>
+            <a
+              href={`/admin/feedback?ticketId=${justClosedTicket.ticketId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px 16px',
+                marginBottom: '12px',
+                backgroundColor: t.primary + '15',
+                color: t.primary,
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                textDecoration: 'none',
+                border: `1px solid ${t.primary}`
+              }}
+            >
+              <ExternalLink size={16} /> View closed ticket
+            </a>
+            <button
+              type="button"
+              onClick={() => setJustClosedTicket(null)}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                backgroundColor: t.background,
+                color: t.text,
+                border: `1px solid ${t.border}`,
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
       )}
 
       {/* User Account Modal */}

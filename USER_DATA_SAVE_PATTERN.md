@@ -24,6 +24,8 @@ Cloud sync is triggered automatically when state changes (AppContext effect). Fo
 
 ## 3. Synced vs local-only data
 
+For the full list of data keys and entity shapes, see [SCHEMA.md](SCHEMA.md).
+
 **Synced (in `saveAppData` / cloud):**  
 protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, stockpile, scheduledBuys, protocolHistory, calendarNotes, taskCompletion, calendarDone, injectionHistory, injectionStats, deletionTracking, wishlist, **userNotes**, **userGoals**, **waterTracker**.
 

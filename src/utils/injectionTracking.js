@@ -121,23 +121,26 @@ export function getTaskInjectionHistory(taskName, limit = 10) {
 }
 
 /**
- * Get recent injection sites for a task (for quick selection)
+ * Get recent injection sites for a task (for quick selection).
+ * Returns each unique site with its last-used date (most recent write), not count.
  * @param {string} taskName - Name of the task
  */
 export function getRecentInjectionSites(taskName) {
   const history = getInjectionHistory();
   const taskHistory = history.filter(record => record.taskName === taskName);
-  
-  // Count site frequency and return most common ones
-  const siteCount = {};
+  // History is most-recent first; first occurrence per site = last used
+  const siteToLastUsed = {};
   taskHistory.forEach(record => {
-    siteCount[record.injectionSite] = (siteCount[record.injectionSite] || 0) + 1;
+    const site = record.injectionSite;
+    if (site && !siteToLastUsed[site]) {
+      siteToLastUsed[site] = record.date || record.timestamp;
+    }
   });
-  
-  return Object.entries(siteCount)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 5)
-    .map(([site, count]) => ({ site, count }));
+
+  return Object.entries(siteToLastUsed)
+    .map(([site, lastUsed]) => ({ site, lastUsed }))
+    .sort((a, b) => new Date(b.lastUsed) - new Date(a.lastUsed))
+    .slice(0, 5);
 }
 
 /**
@@ -224,29 +227,26 @@ function saveInjectionStats(stats) {
 }
 
 /**
- * Get injection site suggestions for a task
+ * Get injection site suggestions for a task (by last-used date, not count).
  * @param {string} taskName - Name of the task
  */
 export function getInjectionSiteSuggestions(taskName) {
   const recentSites = getRecentInjectionSites(taskName);
   const stats = getInjectionStats();
   const taskStats = stats.tasks[taskName];
-  
-  // Combine recent sites with global popular sites
+
   const suggestions = [...recentSites];
-  
-  if (taskStats) {
-    // Add task-specific popular sites
-    Object.entries(taskStats.sites)
-      .sort(([,a], [,b]) => b - a)
+
+  if (taskStats && taskStats.sites) {
+    Object.keys(taskStats.sites)
       .slice(0, 3)
-      .forEach(([site, count]) => {
-        if (!suggestions.find(s => s.site === site)) {
-          suggestions.push({ site, count });
+      .forEach((site) => {
+        if (!suggestions.find((s) => s.site === site)) {
+          suggestions.push({ site, lastUsed: taskStats.lastInjection || null });
         }
       });
   }
-  
+
   return suggestions.slice(0, 5);
 }
 

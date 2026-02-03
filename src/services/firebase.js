@@ -1412,6 +1412,23 @@ export async function updateTicketStatus(ticketId, status, adminPassword, additi
 }
 
 /**
+ * Close support ticket from work queue (Cloud Function; bypasses Firestore rules)
+ * @param {string} ticketId - Support ticket ID
+ * @param {string} logId - ai_worker_logs document ID
+ * @param {string} adminNotes - Optional admin notes
+ * @param {string} adminPassword - Admin password
+ */
+export async function closeSupportTicketFromWorkQueue(ticketId, logId, adminNotes, adminPassword) {
+  const functions = getFunctions();
+  const closeTicket = httpsCallable(functions, 'closeSupportTicketFromWorkQueue');
+  const result = await closeTicket({ ticketId, logId, adminNotes, adminPassword });
+  if (!result.data?.success) {
+    throw new Error(result.data?.message || 'Failed to close ticket');
+  }
+  return result.data;
+}
+
+/**
  * Mark ticket as read by user
  * @param {string} ticketId - The ticket ID
  * @returns {Promise<void>}

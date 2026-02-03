@@ -3058,6 +3058,14 @@ exports.submitAccountDeletionRequest = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
+      // Only treat as "active subscription" (will be cancelled) for paid plans: monthly, annual, or lifetime.
+      // Trial (interval === 'trial' / status 'trialing') should NOT show "Has Active Subscription".
+      const isPaidActivePlan = subscriptionInfo && (
+        (subscriptionInfo.status === 'active' && subscriptionInfo.interval !== 'trial') ||
+        subscriptionInfo.interval === 'lifetime' ||
+        subscriptionInfo.hasLifetimeAccess
+      );
+
       // Create deletion request
       const deletionRequest = {
         userId: userId,
@@ -3068,7 +3076,7 @@ exports.submitAccountDeletionRequest = onCall(
         source: source || 'settings',
         dataSummary: dataSummary || {},
         subscriptionInfo: subscriptionInfo ? {
-          hasSubscription: true,
+          hasSubscription: !!isPaidActivePlan,
           stripeSubscriptionId: subscriptionInfo.stripeSubscriptionId || null,
           status: subscriptionInfo.status || 'unknown'
         } : {
@@ -3102,7 +3110,7 @@ exports.submitAccountDeletionRequest = onCall(
             email: userEmail,
             displayName: displayName,
             subscriptionStatus: subscriptionInfo?.status || 'none',
-            hasActiveSubscription: subscriptionInfo?.status === 'active' || subscriptionInfo?.status === 'trialing'
+            hasActiveSubscription: !!isPaidActivePlan
           }
         });
         logger.info(`✅ Work queue item created for deletion request`);
@@ -3159,7 +3167,7 @@ exports.submitAccountDeletionRequest = onCall(
 exports.deleteUserAccount = onCall(
   {
     cors: true,
-    secrets: ['RESEND_API_KEY']
+    secrets: ['RESEND_API_KEY', 'STRIPE_SECRET_KEY']
   },
   async (request) => {
     // Verify user is authenticated
@@ -3198,20 +3206,7 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // STEP 3: SEND CONFIRMATION EMAIL FIRST (while we still have their email/data)
-      logger.info(`📧 Sending goodbye email BEFORE deletion to: ${userEmail}`);
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(userEmail, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
-      } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        // CRITICAL: If email fails, we should probably not continue with deletion
-        // But we'll continue anyway since user requested deletion
-        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
-      }
-
-      // STEP 4: Cancel Stripe subscription (if active)
+      // STEP 3: Cancel Stripe subscription FIRST (stop billing before anything else)
       if (subscriptionInfo?.stripeSubscriptionId) {
         try {
           const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -3230,6 +3225,17 @@ exports.deleteUserAccount = onCall(
           logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
           // Continue with deletion even if subscription cancellation fails
         }
+      }
+
+      // STEP 4: Send confirmation email (while we still have their email)
+      logger.info(`📧 Sending goodbye email to: ${userEmail}`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(userEmail, userName);
+        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
       }
 
       // STEP 5: Delete all Firestore collections
@@ -4302,6 +4308,58 @@ exports.updateTicketStatus = onCall(
   }
 );
 
+// Close support ticket from work queue (bypasses Firestore rules; updates ticket + ai_worker_logs)
+exports.closeSupportTicketFromWorkQueue = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { ticketId, logId, adminNotes, adminPassword } = request.data;
+
+    if (!ticketId || !logId) {
+      throw new HttpsError('invalid-argument', 'ticketId and logId are required');
+    }
+
+    const ADMIN_PASSWORD = 'j&jm9102';
+    if (adminPassword !== ADMIN_PASSWORD) {
+      throw new HttpsError('permission-denied', 'Invalid admin password');
+    }
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      const ticketRef = db.collection('supportTickets').doc(ticketId);
+      await ticketRef.update({
+        status: 'closed',
+        closedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        userReadAt: null,
+        customerReopened: false
+      });
+
+      try {
+        await deleteTicketImages(ticketId, db);
+      } catch (imageErr) {
+        logger.warn('deleteTicketImages failed for closed ticket:', imageErr.message);
+      }
+
+      const logRef = db.collection('ai_worker_logs').doc(logId);
+      await logRef.update({
+        markedFixed: true,
+        markedFixedAt: FieldValue.serverTimestamp(),
+        adminNotes: adminNotes || null
+      });
+
+      logger.info(`✅ Closed ticket ${ticketId} from work queue`);
+      return { success: true, message: 'Ticket closed' };
+    } catch (error) {
+      logger.error('closeSupportTicketFromWorkQueue:', error.message);
+      throw new HttpsError('internal', error.message || 'Failed to close ticket');
+    }
+  }
+);
+
 // Reopen a closed ticket (user action)
 exports.reopenTicket = onCall(
   {
@@ -4878,7 +4936,7 @@ exports.blockUser = onCall(
 exports.terminateUser = onCall(
   {
     cors: true,
-    secrets: ['RESEND_API_KEY']
+    secrets: ['RESEND_API_KEY', 'STRIPE_SECRET_KEY']
   },
   async (request) => {
     const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
@@ -4922,20 +4980,7 @@ exports.terminateUser = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // STEP 3: SEND CONFIRMATION EMAIL FIRST (while we still have their email/data)
-      logger.info(`📧 Sending goodbye email BEFORE deletion to: ${email}`);
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(email, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
-      } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        // CRITICAL: If email fails, we should probably not continue with deletion
-        // But we'll continue anyway since user requested deletion
-        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
-      }
-
-      // STEP 4: Cancel Stripe subscription (if active)
+      // STEP 3: Cancel Stripe subscription FIRST (stop billing before anything else)
       if (subscriptionInfo?.stripeSubscriptionId) {
         try {
           const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -4954,6 +4999,17 @@ exports.terminateUser = onCall(
           logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
           // Continue with deletion even if subscription cancellation fails
         }
+      }
+
+      // STEP 4: Send confirmation email (while we still have their email)
+      logger.info(`📧 Sending goodbye email to: ${email}`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(email, userName);
+        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
       }
 
       // STEP 5: Delete all Firestore collections
@@ -5033,6 +5089,9 @@ exports.terminateUser = onCall(
     }
   }
 );
+
+// Alias for admin panel (AccountDeletionRequests calls adminTerminateUser)
+exports.adminTerminateUser = exports.terminateUser;
 
 // Get auto-cleanup settings
 exports.getAutoCleanupSettings = onCall(
