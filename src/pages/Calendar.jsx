@@ -668,7 +668,7 @@ export default function Calendar() {
                     })
                     return obj
                   }
-                  getNormalizedPeptides(p).forEach(pep => {
+                  getNormalizedPeptides(p).forEach((pep, pepIndex) => {
                       const freq = pep.frequency || {};
                       let isScheduledToday = false;
                       
@@ -782,7 +782,7 @@ export default function Calendar() {
                                   penColor: reconItem?.penColor || pep.penColor,
                                   penType: reconItem?.penType || pep.penType,
                                   protocolId: p.id,
-                                  peptideId: pep.id || `${p.id}-${pep.name}`
+                                  peptideId: pep.id || `peptide-${pepIndex}` // Match calendarTasks.js for same task IDs as Today's Research
                               };
                               
                               if (!currentSlot.peptides.some(item => 
