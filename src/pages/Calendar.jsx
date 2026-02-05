@@ -1008,6 +1008,15 @@ export default function Calendar() {
     // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
+    // CRITICAL: Update protection timestamp to prevent listener from overwriting
+    // This prevents the real-time listener from replacing data for 30 seconds
+    try {
+      const now = Date.now();
+      localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+    } catch (e) {
+      console.warn('⚠️ Failed to save task toggle protection timestamp:', e);
+    }
+    
     // Refresh calendar data to reflect changes
     setDone(getCalendarDone());
     setCalendarBump(Date.now());
@@ -1087,6 +1096,14 @@ export default function Calendar() {
       toggleTaskCompletion(taskId, true, dateKey, slotKey);
     });
 
+    // CRITICAL: Update protection timestamp to prevent listener from overwriting
+    try {
+      const now = Date.now();
+      localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+    } catch (e) {
+      console.warn('⚠️ Failed to save task toggle protection timestamp:', e);
+    }
+
     // Refresh calendar data
     setDone(getCalendarDone());
     setCalendarBump(Date.now());
@@ -1103,19 +1120,29 @@ export default function Calendar() {
       const { date, slotKey } = pendingMarkAllContext;
       const dateKey = toKey(date);
       
-      // Build proper task object for taskId generation
+      // Build proper task object for taskId generation (MUST include protocolId/peptideId for correct matching)
       const task = {
         type: injectionTask.type || (injectionTask.deliveryMethod ? 'peptide' : 'supplement'),
         name: injectionTask.name,
         dose: injectionTask.dose || '',
         unit: injectionTask.unit || '',
-        time: slotKey
+        time: slotKey,
+        protocolId: injectionTask.protocolId,
+        peptideId: injectionTask.peptideId
       };
       
       const taskId = generateTaskId(task);
       
       // Mark this injection task as completed
       toggleTaskCompletion(taskId, true, dateKey, slotKey);
+      
+      // CRITICAL: Update protection timestamp
+      try {
+        const now = Date.now();
+        localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+      } catch (e) {
+        console.warn('⚠️ Failed to save task toggle protection timestamp:', e);
+      }
     }
     
     // Move to next injection task or finish
@@ -1137,6 +1164,14 @@ export default function Calendar() {
             toggleTaskCompletion(taskId, true, dateKey, context.slotKey);
           }
         });
+        
+        // CRITICAL: Update protection timestamp
+        try {
+          const now = Date.now();
+          localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+        } catch (e) {
+          console.warn('⚠️ Failed to save task toggle protection timestamp:', e);
+        }
         
         setPendingMarkAllContext(null);
       }

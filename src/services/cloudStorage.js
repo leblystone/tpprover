@@ -245,42 +245,89 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
 }
 
 /**
- * Helper: Merge task completion data objects
- * Prefers local data (more recent completions) but merges with server data
- * Structure: { [date]: { [timeSlot]: { [taskId]: boolean } } }
+ * Helper: Merge task completion data objects WITH TIMESTAMP COMPARISON
+ * Structure (new): { [date]: { [timeSlot]: { [taskId]: { completed: bool, timestamp: number } } } }
+ * Structure (old): { [date]: { [timeSlot]: { [taskId]: boolean } } }
+ * Backwards compatible: handles both old (boolean) and new (object) formats
+ * Exported for last-chance sync when auth is lost (spontaneous logout).
  */
-function mergeTaskCompletion(localData, serverData) {
+export function mergeTaskCompletion(localData, serverData) {
   if (!localData || typeof localData !== 'object') localData = {};
   if (!serverData || typeof serverData !== 'object') serverData = {};
   
-  const merged = { ...serverData };
+  const merged = {};
   
-  // Merge local data into server data (local takes precedence for same keys)
-  Object.keys(localData).forEach(date => {
-    if (!merged[date]) {
-      merged[date] = {};
+  // Helper to get timestamp from task data
+  const getTimestamp = (taskData) => {
+    if (taskData && typeof taskData === 'object' && taskData.timestamp) {
+      return taskData.timestamp; // New format
     }
+    return 0; // Old format (boolean) or missing - treat as oldest
+  };
+  
+  // Helper to check if task is completed
+  const isCompleted = (taskData) => {
+    if (taskData === true) return true; // Old format
+    if (taskData && typeof taskData === 'object') return taskData.completed === true; // New format
+    return false;
+  };
+  
+  // Collect all dates from both local and server
+  const allDates = new Set([...Object.keys(localData), ...Object.keys(serverData)]);
+  
+  allDates.forEach(date => {
+    merged[date] = {};
+    const localDayData = localData[date] || {};
+    const serverDayData = serverData[date] || {};
     
-    const localDayData = localData[date];
-    const serverDayData = merged[date] || {};
+    // Collect all time slots
+    const allSlots = new Set([...Object.keys(localDayData), ...Object.keys(serverDayData)]);
     
-    if (typeof localDayData === 'object' && localDayData !== null) {
-      Object.keys(localDayData).forEach(timeSlot => {
-        if (!merged[date][timeSlot]) {
-          merged[date][timeSlot] = {};
-        }
+    allSlots.forEach(timeSlot => {
+      merged[date][timeSlot] = {};
+      const localSlotData = localDayData[timeSlot] || {};
+      const serverSlotData = serverDayData[timeSlot] || {};
+      
+      // Collect all task IDs
+      const allTaskIds = new Set([...Object.keys(localSlotData), ...Object.keys(serverSlotData)]);
+      
+      allTaskIds.forEach(taskId => {
+        const localTask = localSlotData[taskId];
+        const serverTask = serverSlotData[taskId];
         
-        const localSlotData = localDayData[timeSlot];
-        const serverSlotData = merged[date][timeSlot] || {};
+        // Compare timestamps - newer wins
+        const localTimestamp = getTimestamp(localTask);
+        const serverTimestamp = getTimestamp(serverTask);
         
-        if (typeof localSlotData === 'object' && localSlotData !== null) {
-          // Merge task completions - local takes precedence
-          merged[date][timeSlot] = {
-            ...serverSlotData,
-            ...localSlotData
-          };
+        if (localTimestamp > serverTimestamp) {
+          // Local is newer - use it (only if completed)
+          if (isCompleted(localTask)) {
+            merged[date][timeSlot][taskId] = localTask;
+          }
+        } else if (serverTimestamp > localTimestamp) {
+          // Server is newer - use it (only if completed)
+          if (isCompleted(serverTask)) {
+            merged[date][timeSlot][taskId] = serverTask;
+          }
+        } else {
+          // Same timestamp or both old format - prefer local
+          if (isCompleted(localTask)) {
+            merged[date][timeSlot][taskId] = localTask;
+          } else if (isCompleted(serverTask)) {
+            merged[date][timeSlot][taskId] = serverTask;
+          }
         }
       });
+      
+      // Clean up empty slots
+      if (Object.keys(merged[date][timeSlot]).length === 0) {
+        delete merged[date][timeSlot];
+      }
+    });
+    
+    // Clean up empty dates
+    if (Object.keys(merged[date]).length === 0) {
+      delete merged[date];
     }
   });
   
@@ -308,17 +355,107 @@ export function mergeInjectionHistory(localArr, serverArr) {
 }
 
 /**
- * Helper: Merge injection stats objects (local overwrites like taskCompletion)
+ * Helper: Merge injection stats objects WITH TIMESTAMP COMPARISON
+ * Structure (new): { sites: { siteName: { count: number, lastUpdated: number } } }
+ * Structure (old): { sites: { siteName: number } }
+ * Backwards compatible: handles both old (number) and new (object) formats
  */
 export function mergeInjectionStats(localData, serverData) {
   const def = { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} };
   const local = localData && typeof localData === 'object' ? localData : def;
   const server = serverData && typeof serverData === 'object' ? serverData : def;
-  const merged = {
-    global: { ...(server.global || def.global), ...(local.global || def.global) },
-    tasks: { ...(server.tasks || {}), ...(local.tasks || {}) }
+  
+  // Helper to get count from site data
+  const getSiteCount = (siteData) => {
+    if (typeof siteData === 'number') return siteData; // Old format
+    if (siteData && typeof siteData === 'object') return siteData.count || 0; // New format
+    return 0;
   };
-  return merged;
+  
+  // Helper to get timestamp from site data
+  const getSiteTimestamp = (siteData) => {
+    if (siteData && typeof siteData === 'object' && siteData.lastUpdated) {
+      return siteData.lastUpdated; // New format
+    }
+    return 0; // Old format - treat as oldest
+  };
+  
+  // Helper to merge site objects with timestamp comparison
+  const mergeSites = (localSites, serverSites) => {
+    const merged = {};
+    // Ensure both inputs are objects
+    const safeLo = (localSites && typeof localSites === 'object') ? localSites : {};
+    const safeSer = (serverSites && typeof serverSites === 'object') ? serverSites : {};
+    const allSites = new Set([...Object.keys(safeLo), ...Object.keys(safeSer)]);
+    
+    allSites.forEach(siteName => {
+      const localSite = safeLo[siteName];
+      const serverSite = safeSer[siteName];
+      
+      const localTimestamp = getSiteTimestamp(localSite);
+      const serverTimestamp = getSiteTimestamp(serverSite);
+      
+      if (localTimestamp > serverTimestamp) {
+        // Local is newer
+        merged[siteName] = typeof localSite === 'number' 
+          ? { count: localSite, lastUpdated: Date.now() } // Convert old format
+          : localSite; // Keep new format
+      } else if (serverTimestamp > localTimestamp) {
+        // Server is newer
+        merged[siteName] = typeof serverSite === 'number'
+          ? { count: serverSite, lastUpdated: Date.now() } // Convert old format
+          : serverSite; // Keep new format
+      } else {
+        // Same timestamp or both old - prefer local, higher count
+        const localCount = getSiteCount(localSite);
+        const serverCount = getSiteCount(serverSite);
+        if (localCount >= serverCount) {
+          merged[siteName] = typeof localSite === 'number'
+            ? { count: localSite, lastUpdated: Date.now() }
+            : localSite;
+        } else {
+          merged[siteName] = typeof serverSite === 'number'
+            ? { count: serverSite, lastUpdated: Date.now() }
+            : serverSite;
+        }
+      }
+    });
+    
+    return merged;
+  };
+  
+  // Merge global stats
+  const mergedGlobal = {
+    totalInjections: Math.max(
+      local.global?.totalInjections || 0,
+      server.global?.totalInjections || 0
+    ),
+    sites: mergeSites(local.global?.sites, server.global?.sites),
+    lastInjection: local.global?.lastInjection || server.global?.lastInjection || null
+  };
+  
+  // Merge task-specific stats
+  const mergedTasks = {};
+  const allTasks = new Set([...Object.keys(local.tasks || {}), ...Object.keys(server.tasks || {})]);
+  
+  allTasks.forEach(taskName => {
+    const localTask = local.tasks[taskName];
+    const serverTask = server.tasks[taskName];
+    
+    mergedTasks[taskName] = {
+      totalInjections: Math.max(
+        localTask?.totalInjections || 0,
+        serverTask?.totalInjections || 0
+      ),
+      sites: mergeSites(localTask?.sites, serverTask?.sites),
+      lastInjection: localTask?.lastInjection || serverTask?.lastInjection || null
+    };
+  });
+  
+  return {
+    global: mergedGlobal,
+    tasks: mergedTasks
+  };
 }
 
 /**
@@ -363,6 +500,10 @@ function mergeCalendarNotes(localNotes, serverNotes) {
 
 /**
  * Helper: Merge water tracker (date -> { glasses, goal, unit, lastUpdated }) by date; newer lastUpdated wins per date
+ * Handles both Firestore Timestamps (from server) and ISO strings/numbers (from local state)
+ * NOTE: Local state uses client timestamps, but comparison works correctly because:
+ * - new Date().getTime() converts both ISO strings and Firestore Timestamps to milliseconds
+ * - Firestore Timestamps have .toMillis() method but new Date() also works on them
  */
 export function mergeWaterTracker(localData, serverData) {
   if (!localData || typeof localData !== 'object') localData = {};
@@ -372,6 +513,7 @@ export function mergeWaterTracker(localData, serverData) {
   allDates.forEach((dateKey) => {
     const localDay = localData[dateKey];
     const serverDay = serverData[dateKey];
+    // Convert timestamps to milliseconds for comparison (handles all formats)
     const localTs = localDay?.lastUpdated ? new Date(localDay.lastUpdated).getTime() : 0;
     const serverTs = serverDay?.lastUpdated ? new Date(serverDay.lastUpdated).getTime() : 0;
     if (localTs >= serverTs && localDay) {

@@ -1,6 +1,11 @@
 /**
  * Injection Site Tracking System
  * Stores and manages injection site data for user reference
+ * 
+ * UNIFIED SYNC STRATEGY:
+ * - Injection stats now include timestamps for conflict resolution
+ * - Structure: { sites: { siteName: { count: number, lastUpdated: number } } }
+ * - Backwards compatible: reads old number format, writes new object format
  */
 
 import { isInjectionSiteTrackingEnabled } from './injectionSiteSettings';
@@ -157,12 +162,33 @@ export function getInjectionHistoryByDateRange(startDate, endDate) {
 }
 
 /**
- * Update injection statistics
+ * Helper: Get count from site data (handles old and new format)
+ */
+function getSiteCount(siteData) {
+  if (typeof siteData === 'number') return siteData; // Old format
+  if (siteData && typeof siteData === 'object') return siteData.count || 0; // New format
+  return 0;
+}
+
+/**
+ * Helper: Increment site count with timestamp
+ */
+function incrementSiteCount(sites, siteName, timestamp) {
+  const currentCount = getSiteCount(sites[siteName]);
+  sites[siteName] = {
+    count: currentCount + 1,
+    lastUpdated: timestamp
+  };
+}
+
+/**
+ * Update injection statistics WITH TIMESTAMPS for sync conflict resolution
  * @param {Object} injectionRecord - The injection record
  */
 function updateInjectionStats(injectionRecord) {
   try {
     const stats = getInjectionStats();
+    const timestamp = Date.now();
     
     // Update task-specific stats
     if (!stats.tasks[injectionRecord.taskName]) {
@@ -175,12 +201,12 @@ function updateInjectionStats(injectionRecord) {
     
     const taskStats = stats.tasks[injectionRecord.taskName];
     taskStats.totalInjections++;
-    taskStats.sites[injectionRecord.injectionSite] = (taskStats.sites[injectionRecord.injectionSite] || 0) + 1;
+    incrementSiteCount(taskStats.sites, injectionRecord.injectionSite, timestamp);
     taskStats.lastInjection = injectionRecord.date;
     
     // Update global stats
     stats.global.totalInjections++;
-    stats.global.sites[injectionRecord.injectionSite] = (stats.global.sites[injectionRecord.injectionSite] || 0) + 1;
+    incrementSiteCount(stats.global.sites, injectionRecord.injectionSite, timestamp);
     stats.global.lastInjection = injectionRecord.date;
     
     saveInjectionStats(stats);

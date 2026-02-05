@@ -1,6 +1,11 @@
 /**
  * Unified Task Completion System
  * Syncs task completion between Dashboard and Calendar views
+ * 
+ * UNIFIED SYNC STRATEGY:
+ * - Each completion now includes timestamp for conflict resolution
+ * - Structure: { date: { slot: { taskId: { completed: bool, timestamp: number } } } }
+ * - Backwards compatible: reads old boolean format, writes new object format
  */
 
 import { toKey } from '../components/calendar/MonthGrid';
@@ -73,15 +78,7 @@ export function saveCalendarDone(doneData) {
  * @param {string} timeSlot - Time slot (AM/PM), defaults to AM
  */
 export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), timeSlot = 'AM') {
-  console.log('🔄 Toggle Task Completion:', {
-    taskId,
-    completed,
-    date,
-    timeSlot
-  });
-  
   const completionData = getTaskCompletion();
-  console.log('📋 Current completion data:', completionData);
   
   // Initialize date if not exists
   if (!completionData[date]) {
@@ -93,12 +90,20 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
     completionData[date][timeSlot] = {};
   }
   
-  // Set task completion status
-  completionData[date][timeSlot][taskId] = completed;
+  // Set task completion status WITH TIMESTAMP for sync conflict resolution
+  if (completed) {
+    completionData[date][timeSlot][taskId] = {
+      completed: true,
+      timestamp: Date.now()
+    };
+  } else {
+    // Remove the task entry when uncompleted
+    delete completionData[date][timeSlot][taskId];
+  }
   console.log('✅ Updated completion data:', completionData);
   
-  // Clean up empty objects if task was uncompleted
-  if (!completed && Object.keys(completionData[date][timeSlot]).filter(id => completionData[date][timeSlot][id]).length === 0) {
+  // Clean up empty objects
+  if (Object.keys(completionData[date][timeSlot]).length === 0) {
     delete completionData[date][timeSlot];
   }
   if (Object.keys(completionData[date]).length === 0) {
@@ -126,36 +131,46 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
 
 /**
  * Check if a specific task is completed
+ * Handles both old format (boolean) and new format (object with timestamp)
  * @param {string} taskId - Unique task identifier
  * @param {string} date - Date key (YYYY-MM-DD), defaults to today
  * @param {string} timeSlot - Time slot (AM/PM), defaults to AM
  */
 export function isTaskCompleted(taskId, date = getTodayKey(), timeSlot = 'AM') {
   const completionData = getTaskCompletion();
-  const isCompleted = completionData[date]?.[timeSlot]?.[taskId] || false;
+  const taskData = completionData[date]?.[timeSlot]?.[taskId];
   
-  // console.log('❓ Check Task Completion:', {
-  //   taskId,
-  //   date,
-  //   timeSlot,
-  //   isCompleted,
-  //   availableData: completionData[date]?.[timeSlot] || {}
-  // });
+  // Handle old format (boolean) and new format (object with timestamp)
+  let isCompleted = false;
+  if (taskData === true || taskData === false) {
+    // Old format: boolean value
+    isCompleted = taskData;
+  } else if (taskData && typeof taskData === 'object') {
+    // New format: object with completed and timestamp
+    isCompleted = taskData.completed === true;
+  }
   
   return isCompleted;
 }
 
 /**
  * Get all completed tasks for a specific date and time slot
+ * Handles both old format (boolean) and new format (object with timestamp)
  * @param {string} date - Date key (YYYY-MM-DD), defaults to today
  * @param {string} timeSlot - Time slot (AM/PM), optional
  */
 export function getCompletedTasks(date = getTodayKey(), timeSlot = null) {
   const completionData = getTaskCompletion();
   
+  const isCompleted = (taskData) => {
+    if (taskData === true) return true; // Old format
+    if (taskData && typeof taskData === 'object') return taskData.completed === true; // New format
+    return false;
+  };
+  
   if (timeSlot) {
     return Object.keys(completionData[date]?.[timeSlot] || {}).filter(
-      taskId => completionData[date][timeSlot][taskId]
+      taskId => isCompleted(completionData[date][timeSlot][taskId])
     );
   }
   
@@ -165,7 +180,7 @@ export function getCompletedTasks(date = getTodayKey(), timeSlot = null) {
   
   Object.keys(dayData).forEach(slot => {
     Object.keys(dayData[slot]).forEach(taskId => {
-      if (dayData[slot][taskId]) {
+      if (isCompleted(dayData[slot][taskId])) {
         allCompleted.push({ taskId, timeSlot: slot });
       }
     });
@@ -177,10 +192,17 @@ export function getCompletedTasks(date = getTodayKey(), timeSlot = null) {
 /**
  * Sync task completion data to calendar done system
  * This maintains compatibility with the existing calendar completion tracking
+ * Handles both old format (boolean) and new format (object with timestamp)
  */
 export function syncToCalendarDone() {
   const completionData = getTaskCompletion();
   const calendarDone = {};
+  
+  const isCompleted = (taskData) => {
+    if (taskData === true) return true; // Old format
+    if (taskData && typeof taskData === 'object') return taskData.completed === true; // New format
+    return false;
+  };
   
   // Convert task completion data to calendar done format
   Object.keys(completionData).forEach(date => {
@@ -189,7 +211,7 @@ export function syncToCalendarDone() {
     
     Object.keys(dayData).forEach(timeSlot => {
       const slotTasks = dayData[timeSlot];
-      const completedCount = Object.values(slotTasks).filter(Boolean).length;
+      const completedCount = Object.values(slotTasks).filter(isCompleted).length;
       
       if (completedCount > 0) {
         calendarDone[date][timeSlot] = completedCount;
@@ -243,9 +265,13 @@ export function markSlotTasksCompleted(taskIds, date, timeSlot) {
   if (!completionData[date]) completionData[date] = {};
   if (!completionData[date][timeSlot]) completionData[date][timeSlot] = {};
   
-  // Mark all tasks as completed
+  // Mark all tasks as completed WITH TIMESTAMP
+  const timestamp = Date.now();
   taskIds.forEach(taskId => {
-    completionData[date][timeSlot][taskId] = true;
+    completionData[date][timeSlot][taskId] = {
+      completed: true,
+      timestamp
+    };
   });
   
   saveTaskCompletion(completionData);
@@ -256,12 +282,19 @@ export function markSlotTasksCompleted(taskIds, date, timeSlot) {
 
 /**
  * Get task completion stats for a date
+ * Handles both old format (boolean) and new format (object with timestamp)
  * @param {string} date - Date key (YYYY-MM-DD)
  * @param {Object} scheduledTasks - Scheduled tasks for the date
  */
 export function getCompletionStats(date, scheduledTasks) {
   const completionData = getTaskCompletion();
   const dayData = completionData[date] || {};
+  
+  const isCompleted = (taskData) => {
+    if (taskData === true) return true; // Old format
+    if (taskData && typeof taskData === 'object') return taskData.completed === true; // New format
+    return false;
+  };
   
   const stats = {
     total: 0,
@@ -277,7 +310,7 @@ export function getCompletionStats(date, scheduledTasks) {
       const supplementCount = slotData.supplements?.length || 0;
       const slotTotal = peptideCount + supplementCount;
       
-      const completedInSlot = Object.values(dayData[slot] || {}).filter(Boolean).length;
+      const completedInSlot = Object.values(dayData[slot] || {}).filter(isCompleted).length;
       
       stats.bySlot[slot] = {
         total: slotTotal,

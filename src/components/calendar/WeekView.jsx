@@ -893,6 +893,8 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     const deliveryMethod = typeof item === 'object' ? item.deliveryMethod : delivery;
     const penColor = typeof item === 'object' ? item.penColor : undefined;
     const penType = typeof item === 'object' ? item.penType : undefined;
+    const protocolId = typeof item === 'object' ? item.protocolId : undefined;
+    const peptideId = typeof item === 'object' ? item.peptideId : undefined;
     
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
@@ -905,12 +907,16 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
       deliveryMethod,
       penColor,
       penType,
+      protocolId,
+      peptideId,
       stableTaskId: generateTaskId({
         name,
         dose,
         unit,
         type,
-        time: timeSlot
+        time: timeSlot,
+        protocolId,
+        peptideId
       })
     };
   };

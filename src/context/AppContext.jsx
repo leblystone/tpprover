@@ -8,7 +8,8 @@ import {
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps,
-  mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker
+  mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker,
+  mergeTaskCompletion
 } from '../services/cloudStorage';
 import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
 import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
@@ -17,6 +18,7 @@ import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData'
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
+import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
 
@@ -83,13 +85,13 @@ export function AppProvider({ children }) {
     // Real-time sync control
     const isApplyingRemoteUpdateRef = useRef(false);
     const lastRemoteUpdateTimeRef = useRef(0);
-    // Initialize from localStorage to persist across page refreshes (15 second protection window)
+    // Protection window refs for scheduledBuys (uses unified 30s window)
     const lastLocalScheduledBuysUpdateRef = useRef((() => {
         try {
             const stored = localStorage.getItem('tpprover_scheduledBuys_lastUpdate');
             const timestamp = stored ? parseInt(stored, 10) : 0;
-            // Only respect timestamps within last 15 seconds (protection window for page refresh)
-            if (Date.now() - timestamp < 15000) {
+            // Use unified protection window
+            if (Date.now() - timestamp < PROTECTION_WINDOW_MS) {
                 console.log('🔒 Restoring scheduledBuys protection from localStorage, age:', Date.now() - timestamp, 'ms');
                 return timestamp;
             }
@@ -98,13 +100,14 @@ export function AppProvider({ children }) {
             return 0;
         }
     })());
-    // Protection window for vendors (similar to scheduledBuys)
+    
+    // Protection window for vendors (uses unified 30s window)
     const lastLocalVendorsUpdateRef = useRef((() => {
         try {
             const stored = localStorage.getItem('tpprover_vendors_lastUpdate');
             const timestamp = stored ? parseInt(stored, 10) : 0;
-            // Only respect timestamps within last 15 seconds (protection window for page refresh)
-            if (Date.now() - timestamp < 15000) {
+            // Use unified protection window
+            if (Date.now() - timestamp < PROTECTION_WINDOW_MS) {
                 console.log('🔒 Restoring vendors protection from localStorage, age:', Date.now() - timestamp, 'ms');
                 return timestamp;
             }
@@ -113,14 +116,16 @@ export function AppProvider({ children }) {
             return 0;
         }
     })());
-    // Protection window for protocols (prevents Firebase overwriting just-started protocol)
-    // 60 seconds - protocol start revert reported after ~1 min; force sync addresses root cause
-    const PROTOCOLS_PROTECTION_MS = 60000;
+    // UNIFIED PROTECTION WINDOW: 30 seconds for all data types
+    // Prevents remote updates from overwriting recent local changes
+    // Consistent across protocols, orders, vendors, scheduledBuys, and all other data
+    const PROTECTION_WINDOW_MS = 30000; // 30 seconds standard
+    
     const lastLocalProtocolsUpdateRef = useRef((() => {
         try {
             const stored = localStorage.getItem('tpprover_protocols_lastUpdate');
             const timestamp = stored ? parseInt(stored, 10) : 0;
-            if (Date.now() - timestamp < PROTOCOLS_PROTECTION_MS) {
+            if (Date.now() - timestamp < PROTECTION_WINDOW_MS) {
                 return timestamp;
             }
             return 0;
@@ -131,6 +136,10 @@ export function AppProvider({ children }) {
     
     // Track in-progress deletions to prevent race conditions
     const deletingSupplementsRef = useRef(new Set());
+    
+    // Debounce timer for auto-sync (500ms - balances speed and efficiency)
+    const autoSyncTimerRef = useRef(null);
+    const AUTOSYNC_DEBOUNCE_MS = 500;
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     // SECURITY: Validate user ownership before loading to prevent data bleeding
@@ -467,7 +476,20 @@ export function AppProvider({ children }) {
 
                 // Load app data from cloud
                 const cloudAppData = await loadAppData(userId);
-                
+
+                // Always restore task completion / calendar pins from cloud when available.
+                // Pins are stored in localStorage; after logout we clear it, so they must be
+                // restored from cloud on re-login. Doing this here ensures pins come back even
+                // when other cloud data is "empty" (isCloudEmpty would otherwise skip restore).
+                if (cloudAppData) {
+                    if (cloudAppData.taskCompletion != null) {
+                        localStorage.setItem('tpprover_task_completion', JSON.stringify(cloudAppData.taskCompletion));
+                    }
+                    if (cloudAppData.calendarDone != null) {
+                        localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
+                    }
+                }
+
                 // Check if data has been updated since last login
                 if (cloudAppData && cloudAppData.lastUpdated) {
                     const lastLogin = localStorage.getItem('tpprover_last_login_timestamp');
@@ -575,7 +597,7 @@ export function AppProvider({ children }) {
                             mergedDeletionTracking.stockpile
                         ) : (cloudAppData.stockpile || []);
                         
-                        if (timeSinceProtocolsUpdateMerge >= PROTOCOLS_PROTECTION_MS) {
+                        if (timeSinceProtocolsUpdateMerge >= PROTECTION_WINDOW_MS) {
                             const mActive = (mergedProtocols || []).filter(p => p.active).length;
                             console.log('📋 [PROTOCOL-SYNC] Initial merge load: setting protocols', {
                                 mergedTotal: (mergedProtocols || []).length,
@@ -651,11 +673,11 @@ export function AppProvider({ children }) {
                             setVendors(cloudAppData.vendors);
                         }
                         
-                        // Check protection window before merging scheduledBuys
+                        // Check unified protection window before merging scheduledBuys
                         const timeSinceScheduledBuysUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
-                        if (timeSinceScheduledBuysUpdate < 15000 && localScheduledBuys) {
+                        if (timeSinceScheduledBuysUpdate < PROTECTION_WINDOW_MS && localScheduledBuys) {
                             // In protection window - prefer local data, skip merge
-                            console.log('🔒 Initial load: Using local scheduledBuys (in protection window)');
+                            console.log('🔒 Initial load: Using local scheduledBuys (in unified protection window)');
                             setScheduledBuys(JSON.parse(localScheduledBuys));
                         } else if (localScheduledBuys) {
                             setScheduledBuys(mergeWithTimestamps(
@@ -789,14 +811,14 @@ export function AppProvider({ children }) {
                 } else {
                         // No local data, just use cloud
                     const timeSinceProtocolsNoLocal = Date.now() - lastLocalProtocolsUpdateRef.current;
-                    if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= PROTOCOLS_PROTECTION_MS) {
+                    if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= PROTECTION_WINDOW_MS) {
                         const noLocalActive = (cloudAppData.protocols || []).filter(p => p.active).length;
                         console.log('📋 [PROTOCOL-SYNC] No-local load: setting protocols from cloud', {
                             total: cloudAppData.protocols.length,
                             active: noLocalActive
                         });
                         setProtocols(migrateBlendedProtocolFrequencies(cloudAppData.protocols));
-                    } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < PROTOCOLS_PROTECTION_MS) {
+                    } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < PROTECTION_WINDOW_MS) {
                         console.log('📋 [PROTOCOL-SYNC] No-local: skipping protocols (protection)');
                     }
                     if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
@@ -1191,13 +1213,13 @@ export function AppProvider({ children }) {
                                     // Skip protocols if we recently updated locally (e.g. just started a protocol)
                                     const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
                                     const fbActive = (firebaseData.protocols || []).filter(p => p.active).length;
-                                    if (timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS && firebaseData.protocols) {
+                                    if (timeSinceProtocolsUpdate >= PROTECTION_WINDOW_MS && firebaseData.protocols) {
                                         console.log('📋 [PROTOCOL-SYNC] Initial Firebase load: setting protocols', {
                                             total: firebaseData.protocols.length,
                                             active: fbActive
                                         });
                                         setProtocols(migrateBlendedProtocolFrequencies(firebaseData.protocols));
-                                    } else if (timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS && firebaseData.protocols) {
+                                    } else if (timeSinceProtocolsUpdate < PROTECTION_WINDOW_MS && firebaseData.protocols) {
                                         console.log('📋 [PROTOCOL-SYNC] Initial load: skipping protocols (protection,', Math.round(timeSinceProtocolsUpdate / 1000), 's ago)');
                                     }
                                     if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
@@ -1257,7 +1279,7 @@ export function AppProvider({ children }) {
                                     
                                     // CRITICAL: Update localStorage with Firebase data to prevent future data loss
                                     try {
-                                        if (timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS) {
+                                        if (timeSinceProtocolsUpdate >= PROTECTION_WINDOW_MS) {
                                             localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
                                         }
                                         localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
@@ -1279,9 +1301,9 @@ export function AppProvider({ children }) {
                                             localStorage.setItem('tpprover_injection_stats', JSON.stringify(mergedStats));
                                         }
                                         
-                                        // Only backup scheduledBuys if not in protection window
+                                        // Only backup scheduledBuys if not in unified protection window
                                         const timeSinceScheduledBuysUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
-                                        if (timeSinceScheduledBuysUpdate >= 15000) {
+                                        if (timeSinceScheduledBuysUpdate >= PROTECTION_WINDOW_MS) {
                                             // Filter out mock scheduled buys when saving to localStorage if sample data was cleared
                                             const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                                             const filteredScheduledBuys = sampleDataCleared && firebaseData.scheduledBuys
@@ -1391,12 +1413,45 @@ export function AppProvider({ children }) {
             } else {
                 // User is not authenticated, clear everything
                 setUser(null);
-                
+
+                // Last-chance sync: push pins (taskCompletion/calendarDone) to cloud before clearing.
+                // When the app logs out spontaneously we don't run the intentional logout flow, so
+                // we use the previous userId from localStorage and save any unsynced pins now.
+                try {
+                    const prevUserRaw = localStorage.getItem('tpprover_user');
+                    const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                    const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+                    const hasPins = (localTaskCompletion && Object.keys(localTaskCompletion).length > 0) ||
+                        (localCalendarDone && Object.keys(localCalendarDone).length > 0);
+                    if (prevUserRaw && hasPins) {
+                        const prevUser = JSON.parse(prevUserRaw);
+                        const userId = prevUser?.uid || prevUser?.id;
+                        if (userId) {
+                            const loaded = await Promise.race([
+                                loadAppData(userId),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                            ]).catch(() => null);
+                            const base = loaded || {};
+                            const toSave = {
+                                ...base,
+                                taskCompletion: mergeTaskCompletion(localTaskCompletion, base.taskCompletion || {}),
+                                calendarDone: mergeTaskCompletion(localCalendarDone, base.calendarDone || {})
+                            };
+                            await Promise.race([
+                                saveAppData(userId, toSave, { skipMerge: true }),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
+                            ]).catch((err) => console.warn('Last-chance pin sync failed:', err));
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Last-chance pin sync failed:', e);
+                }
+
                 // CRITICAL: Clear all auth-related data on logout
                 localStorage.removeItem('tpprover_auth_token');
                 localStorage.removeItem('tpprover_user');
                 localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking to prevent data bleeding
-                
+
                 // CRITICAL: Also clear all user data and React state to prevent bleeding
                 clearAllUserData();
                 setProtocols([]);
@@ -1469,197 +1524,163 @@ export function AppProvider({ children }) {
         };
     }, []);
 
-    // Auto-sync data to cloud storage when it changes
+    // Auto-sync data to cloud storage when it changes (DEBOUNCED for efficiency)
     useEffect(() => {
         // Don't sync during initial load, remote updates, or if user isn't authenticated
         if (isInitialLoad || isApplyingRemoteUpdateRef.current || !firebaseUser) {
             return;
         }
 
-        const userId = firebaseUser.uid;
-        
-        // Get task completion data from localStorage
-        const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
-        const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
-        
-        // Get deletion tracking to include in sync
-        const deletionTracking = getDeletionTracking();
-        
-        // Get protocol history from localStorage to include in sync
-        const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
-        // Get wishlist, user notes, goals, water tracker from localStorage to include in sync (cross-device)
-        const wishlist = JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
-        const userNotes = JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]');
-        const userGoals = JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]');
-        const waterTracker = JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}');
-        
-        // Get injection history and stats for cloud sync (pin history)
-        const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
-        const injectionStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
-        
-        const userData = {
-            protocols,
-            reconItems,
-            reconHistory,
-            supplements,
-            orders,
-            metrics,
-            vendors,
-            calendarNotes,
-            stockpile,
-            scheduledBuys,
-            taskCompletion,
-            calendarDone,
-            deletionTracking,
-            protocolHistory,
-            wishlist,
-            userNotes,
-            userGoals,
-            waterTracker,
-            injectionHistory,
-            injectionStats
-        };
-        
-        // DEBUG: Log scheduledBuys being synced (only in development, and only once per session)
-        if (process.env.NODE_ENV === 'development' && scheduledBuys && scheduledBuys.length > 0) {
-            const logKey = 'tpprover_scheduledBuys_sync_logged';
-            if (!sessionStorage.getItem(logKey)) {
-                console.log('🔄 Auto-sync preparing to send scheduledBuys to Firebase:', scheduledBuys.length, 'items');
-                sessionStorage.setItem(logKey, 'true');
-            }
+        // Clear existing timer
+        if (autoSyncTimerRef.current) {
+            clearTimeout(autoSyncTimerRef.current);
         }
-        
-        // Only sync if we have some data to sync
-        const hasData = Object.values(userData).some(data => 
-            Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
-        );
-        
-        if (hasData) {
-            // Save to cloud storage with error handling and retry logic
-            const syncToCloud = async () => {
-                try {
-                    const result = await saveAppData(userId, userData);
-                    if (!result) {
-                        throw new Error('saveAppData returned false');
-                    }
-                    
-                    // Verify data is actually in cloud and update snapshot if exists
-                    setTimeout(async () => {
+
+        // Start new debounce timer (500ms)
+        autoSyncTimerRef.current = setTimeout(() => {
+            const userId = firebaseUser.uid;
+            
+            // Get task completion data from localStorage
+            const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+            const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+            
+            // Get deletion tracking to include in sync
+            const deletionTracking = getDeletionTracking();
+            
+            // Get protocol history from localStorage to include in sync
+            const protocolHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
+            // Get wishlist, user notes, goals, water tracker from localStorage to include in sync (cross-device)
+            const wishlist = JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]');
+            const userNotes = JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]');
+            const userGoals = JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]');
+            const waterTracker = JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}');
+            
+            // Get injection history and stats for cloud sync (pin history)
+            const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
+            const injectionStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
+            
+            const userData = {
+                protocols,
+                reconItems,
+                reconHistory,
+                supplements,
+                orders,
+                metrics,
+                vendors,
+                calendarNotes,
+                stockpile,
+                scheduledBuys,
+                taskCompletion,
+                calendarDone,
+                deletionTracking,
+                protocolHistory,
+                wishlist,
+                userNotes,
+                userGoals,
+                waterTracker,
+                injectionHistory,
+                injectionStats
+            };
+            
+            // Only sync if we have some data to sync
+            const hasData = Object.values(userData).some(data => 
+                Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
+            );
+            
+            if (hasData) {
+                // Queue the sync operation to prevent overlaps
+                addToSyncQueue(
+                    async () => {
                         try {
-                            const verifyCloudData = await loadAppData(userId);
-                            const hasRealCloudData = verifyCloudData && (
-                                (verifyCloudData.protocols?.length > 0) ||
-                                (verifyCloudData.orders?.length > 0) ||
-                                (verifyCloudData.stockpile?.length > 0) ||
-                                (verifyCloudData.vendors?.length > 0)
-                            );
-                            if (hasRealCloudData) {
-                                // If there's a recovery snapshot, mark it as synced
-                                const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
-                                if (snapshot) {
-                                    try {
-                                        const parsed = JSON.parse(snapshot);
-                                        parsed.syncedToCloud = true;
-                                        parsed.syncedAt = new Date().toISOString();
-                                        localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
-                                        console.log('✅ Recovery snapshot marked as synced after successful sync');
-                                    } catch (e) {
-                                        // Ignore snapshot update errors
-                                    }
-                                }
+                            const result = await saveAppData(userId, userData);
+                            if (!result) {
+                                throw new Error('saveAppData returned false');
                             }
-                        } catch (verifyError) {
-                            console.error('Failed to verify sync:', verifyError);
-                        }
-                    }, 3000);
-                } catch (error) {
-                    console.error('❌ Failed to save app data to cloud:', error);
-                    console.error('❌ Error details:', {
-                        userId,
-                        hasData: true,
-                        errorMessage: error.message,
-                        errorCode: error.code,
-                        errorStack: error.stack
-                    });
-                    
-                    // Silent retry - no user notification
-                    setTimeout(async () => {
-                        try {
-                            console.log('🔄 Retrying cloud sync silently...');
-                            const retryResult = await saveAppData(userId, userData);
-                            if (retryResult) {
-                                // Verify data is actually in cloud after retry
-                                setTimeout(async () => {
-                                    try {
-                                        const verifyCloudData = await loadAppData(userId);
-                                        const hasRealCloudData = verifyCloudData && (
-                                            (verifyCloudData.protocols?.length > 0) ||
-                                            (verifyCloudData.orders?.length > 0) ||
-                                            (verifyCloudData.stockpile?.length > 0) ||
-                                            (verifyCloudData.vendors?.length > 0)
-                                        );
-                                        if (hasRealCloudData) {
-                                            console.log('✅ Retry verified - data confirmed in cloud');
-                                            // If there's a recovery snapshot, mark it as synced
-                                            const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
-                                            if (snapshot) {
-                                                try {
-                                                    const parsed = JSON.parse(snapshot);
-                                                    parsed.syncedToCloud = true;
-                                                    parsed.syncedAt = new Date().toISOString();
-                                                    localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
-                                                    console.log('✅ Recovery snapshot marked as synced after retry');
-                                                } catch (e) {
-                                                    // Ignore snapshot update errors
-                                                }
+                            
+                            // Verify data is actually in cloud and update snapshot if exists
+                            setTimeout(async () => {
+                                try {
+                                    const verifyCloudData = await loadAppData(userId);
+                                    const hasRealCloudData = verifyCloudData && (
+                                        (verifyCloudData.protocols?.length > 0) ||
+                                        (verifyCloudData.orders?.length > 0) ||
+                                        (verifyCloudData.stockpile?.length > 0) ||
+                                        (verifyCloudData.vendors?.length > 0)
+                                    );
+                                    if (hasRealCloudData) {
+                                        // If there's a recovery snapshot, mark it as synced
+                                        const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                                        if (snapshot) {
+                                            try {
+                                                const parsed = JSON.parse(snapshot);
+                                                parsed.syncedToCloud = true;
+                                                parsed.syncedAt = new Date().toISOString();
+                                                localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
+                                                console.log('✅ Recovery snapshot marked as synced after successful sync');
+                                            } catch (e) {
+                                                // Ignore snapshot update errors
                                             }
-                                        } else {
-                                            console.warn('⚠️ Retry reported success but cloud data not verified');
                                         }
-                                    } catch (verifyError) {
-                                        console.error('Failed to verify retry sync:', verifyError);
                                     }
-                                }, 3000);
-                            } else {
-                                console.error('❌ Retry failed - saveAppData returned false');
+                                } catch (verifyError) {
+                                    console.error('Failed to verify sync:', verifyError);
+                                }
+                            }, 3000);
+                            
+                            return result;
+                        } catch (error) {
+                            console.error('❌ Failed to save app data to cloud:', error);
+                            // Retry once
+                            try {
+                                console.log('🔄 Retrying cloud sync...');
+                                const retryResult = await saveAppData(userId, userData);
+                                if (retryResult) {
+                                    console.log('✅ Retry successful');
+                                }
+                                return retryResult;
+                            } catch (retryError) {
+                                console.error('❌ Retry also failed:', retryError);
+                                throw retryError;
                             }
-                        } catch (retryError) {
-                            console.error('❌ Retry also failed:', retryError);
                         }
-                    }, 3000);
-                }
-            };
-            
-            // Execute sync
-            const activeProtoCount = (userData.protocols || []).filter(p => p && p.active).length;
-            if ((userData.protocols || []).length > 0) {
-                console.log('📋 [PROTOCOL-SYNC] Auto-sync effect running', {
-                    total: (userData.protocols || []).length,
-                    active: activeProtoCount
+                    },
+                    { type: 'auto-sync', userId, dataTypes: Object.keys(userData) }
+                ).catch(error => {
+                    // Already logged in the queue, just log final failure
+                    console.error('❌ Auto-sync failed after retry:', error.message);
                 });
+                
+                // Also sync to Firebase for backup (if user has password)
+                if (hasPassword) {
+                    debouncedSync(userData);
+                }
+            } else {
+                // If no data, still try to save empty arrays to cloud for new users
+                const emptyData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                addToSyncQueue(
+                    () => saveAppData(userId, emptyData),
+                    { type: 'empty-init', userId }
+                );
             }
-            syncToCloud();
-            
-            // Also sync to Firebase for backup (if user has password)
-            if (hasPassword) {
-                debouncedSync(userData);
+        }, AUTOSYNC_DEBOUNCE_MS);
+
+        // Cleanup timer on unmount
+        return () => {
+            if (autoSyncTimerRef.current) {
+                clearTimeout(autoSyncTimerRef.current);
             }
-        } else {
-            // If no data, still try to save empty arrays to cloud for new users
-            const emptyData = {
-                protocols: protocols || [],
-                reconItems: reconItems || [],
-                reconHistory: reconHistory || [],
-                supplements: supplements || [],
-                orders: orders || [],
-                metrics: metrics || [],
-                vendors: vendors || [],
-                calendarNotes: calendarNotes || {},
-                stockpile: stockpile || [],
-                scheduledBuys: scheduledBuys || []
-            };
-            saveAppData(userId, emptyData);
-        }
+        };
     }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, wishlistSyncTrigger, firebaseUser, hasPassword]); // wishlistSyncTrigger: bump when wishlist (localStorage) changes
 
     const logout = async () => {
@@ -1668,6 +1689,8 @@ export function AppProvider({ children }) {
             if (firebaseUser && hasPassword) {
                 const injectionHistory = JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]');
                 const injectionStats = JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}');
+                const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
                 const userData = {
                     protocols,
                     reconItems,
@@ -1680,15 +1703,20 @@ export function AppProvider({ children }) {
                     stockpile,
                     scheduledBuys,
                     injectionHistory,
-                    injectionStats
+                    injectionStats,
+                    taskCompletion,
+                    calendarDone
                 };
-                
+
                 // Use syncToFirebase directly (not debounced) for immediate sync
                 await syncToFirebase(userData);
             }
             
             // Sign out from Firebase
             await logoutUser();
+            
+            // CRITICAL: Clear sync queue to prevent operations after logout
+            clearSyncQueue();
             
             // CRITICAL: Clear ALL user-specific localStorage data
             clearAllUserData();
@@ -2461,7 +2489,7 @@ export function AppProvider({ children }) {
                                 // CRITICAL: Still merge to protect any unsaved local changes
                                 if (freshData.protocols) {
                                     const timeSinceProtocolsSample = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                    if (timeSinceProtocolsSample >= PROTOCOLS_PROTECTION_MS) {
+                                    if (timeSinceProtocolsSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.protocols.filter(p => !p.isMock);
                                         const localProtocols = protocols || [];
                                         const mergedProtocols = mergeWithTimestamps(
@@ -2540,9 +2568,9 @@ export function AppProvider({ children }) {
                                     setMetrics(mergedMetrics);
                                 }
                                 if (freshData.vendors) {
-                                    // Check protection window before applying vendor updates
+                                    // Check unified protection window before applying vendor updates
                                     const timeSinceUpdate = Date.now() - lastLocalVendorsUpdateRef.current;
-                                    if (timeSinceUpdate >= 15000) {
+                                    if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.vendors.filter(v => !v.isMock);
                                         // Merge with local vendors instead of overwriting
                                         const localVendors = vendors || [];
@@ -2559,25 +2587,32 @@ export function AppProvider({ children }) {
                                 }
                                 // CRITICAL: Merge task completion data from cloud (needed for streak)
                                 // Don't overwrite - merge to preserve any local completions
+                                // APPLY PROTECTION WINDOW to prevent overwriting recent local changes
                                 if (freshData.taskCompletion) {
-                                    const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
-                                    // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
-                                    const merged = { ...freshData.taskCompletion };
-                                    Object.keys(localTaskCompletion).forEach(date => {
-                                        if (!merged[date]) merged[date] = {};
-                                        Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
-                                            if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
-                                            merged[date][timeSlot] = {
-                                                ...(merged[date][timeSlot] || {}),
-                                                ...(localTaskCompletion[date][timeSlot] || {})
-                                            };
+                                    // Check if we're in protection window after local task toggle
+                                    const timeSinceTaskUpdate = Date.now() - (parseInt(localStorage.getItem('tpprover_protocols_lastUpdate'), 10) || 0);
+                                    if (timeSinceTaskUpdate >= PROTECTION_WINDOW_MS) {
+                                        const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                        // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
+                                        const merged = { ...freshData.taskCompletion };
+                                        Object.keys(localTaskCompletion).forEach(date => {
+                                            if (!merged[date]) merged[date] = {};
+                                            Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
+                                                if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                                merged[date][timeSlot] = {
+                                                    ...(merged[date][timeSlot] || {}),
+                                                    ...(localTaskCompletion[date][timeSlot] || {})
+                                                };
+                                            });
                                         });
-                                    });
-                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
-                                    // Dispatch event to notify components
-                                    window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
-                                        detail: { source: 'cloud-sync' }
-                                    }));
+                                        localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
+                                        // Dispatch event to notify components
+                                        window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+                                            detail: { source: 'cloud-sync' }
+                                        }));
+                                    } else {
+                                        console.log('🔒 Skipping taskCompletion update - in protection window');
+                                    }
                                 }
                                 if (freshData.calendarDone) {
                                     const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
@@ -2608,13 +2643,13 @@ export function AppProvider({ children }) {
                                     setStockpile(mergedStockpile);
                                 }
                                 if (freshData.scheduledBuys) {
-                                    // Check protection window before applying
+                                    // Check unified protection window before applying
                                     const timeSinceUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
-                                    if (timeSinceUpdate >= 15000) {
+                                    if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
                                         setScheduledBuys(filtered);
                                     } else {
-                                        console.log('🔒 Skipping scheduledBuys update from sample data clear - in protection window');
+                                        console.log('🔒 Skipping scheduledBuys update from sample data clear - in unified protection window');
                                     }
                                 }
                                 if (freshData.protocolHistory) {
@@ -2650,7 +2685,7 @@ export function AppProvider({ children }) {
                     return;
                 }
 
-                // Debounce updates to prevent rapid-fire state changes
+                // UNIFIED SYNC: Debounce updates to prevent rapid-fire state changes (1 second)
                 if (updateTimeoutId) {
                     clearTimeout(updateTimeoutId);
                 }
@@ -2658,10 +2693,11 @@ export function AppProvider({ children }) {
                 updateTimeoutId = setTimeout(async () => {
                     try {
                         const now = Date.now();
-                        // Prevent update loops - ignore if we just applied a remote update
-                        // But allow cross-device updates after a short debounce (1 second)
+                        // UNIFIED SYNC: Prevent update loops with 3-second skip window
+                        // Ignores updates if we just applied a remote update (prevents write loops)
                         const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
-                        if (timeSinceLastUpdate < 1000) {
+                        const SKIP_WINDOW_MS = 3000; // 3 seconds
+                        if (timeSinceLastUpdate < SKIP_WINDOW_MS) {
                             console.log('📋 [PROTOCOL-SYNC] App data listener: skipping (own save,', Math.round(timeSinceLastUpdate), 'ms ago)');
                             return;
                         }
@@ -2678,12 +2714,12 @@ export function AppProvider({ children }) {
                             // CRITICAL: Merge all data types instead of overwriting to prevent data loss
                             if (freshData.protocols) {
                                 const timeSinceProtocolsListener = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                const willApply = timeSinceProtocolsListener >= PROTOCOLS_PROTECTION_MS;
+                                const willApply = timeSinceProtocolsListener >= PROTECTION_WINDOW_MS;
                                 const freshActive = (freshData.protocols || []).filter(p => p.active).length;
                                 const localActive = (protocols || []).filter(p => p.active).length;
                                 console.log('📋 [PROTOCOL-SYNC] App data listener fired', {
                                     timeSinceUpdateSec: Math.round(timeSinceProtocolsListener / 1000),
-                                    protectionMs: PROTOCOLS_PROTECTION_MS,
+                                    protectionMs: PROTECTION_WINDOW_MS,
                                     willApply,
                                     freshTotal: freshData.protocols.length,
                                     freshActive,
@@ -2779,9 +2815,9 @@ export function AppProvider({ children }) {
                                 setMetrics(mergedMetrics);
                             }
                             if (freshData.vendors) {
-                                // Check protection window before applying vendor updates
+                                // Check unified protection window before applying vendor updates
                                 const timeSinceUpdate = Date.now() - lastLocalVendorsUpdateRef.current;
-                                if (timeSinceUpdate >= 15000) {
+                                if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.vendors.filter(v => !v.isMock)
                                         : freshData.vendors;
@@ -2814,15 +2850,15 @@ export function AppProvider({ children }) {
                                 setStockpile(mergedStockpile);
                             }
                             if (freshData.scheduledBuys) {
-                                // Check protection window before applying
+                                // Check unified protection window before applying
                                 const timeSinceUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
-                                if (timeSinceUpdate >= 15000) {
+                                if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.scheduledBuys.filter(buy => !buy.isMock)
                                         : freshData.scheduledBuys;
                                     setScheduledBuys(filtered);
                                 } else {
-                                    console.log('🔒 Skipping scheduledBuys from remote update - in protection window');
+                                    console.log('🔒 Skipping scheduledBuys from remote update - in unified protection window');
                                 }
                             }
                             if (freshData.protocolHistory) {
@@ -2834,25 +2870,32 @@ export function AppProvider({ children }) {
                             }
                             // CRITICAL: Merge task completion data from cloud (needed for streak)
                             // Don't overwrite - merge to preserve any local completions
+                            // APPLY PROTECTION WINDOW to prevent overwriting recent local changes
                             if (freshData.taskCompletion) {
-                                const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
-                                // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
-                                const merged = { ...freshData.taskCompletion };
-                                Object.keys(localTaskCompletion).forEach(date => {
-                                    if (!merged[date]) merged[date] = {};
-                                    Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
-                                        if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
-                                        merged[date][timeSlot] = {
-                                            ...(merged[date][timeSlot] || {}),
-                                            ...(localTaskCompletion[date][timeSlot] || {})
-                                        };
+                                // Check if we're in protection window after local task toggle
+                                const timeSinceTaskUpdate = Date.now() - (parseInt(localStorage.getItem('tpprover_protocols_lastUpdate'), 10) || 0);
+                                if (timeSinceTaskUpdate >= PROTECTION_WINDOW_MS) {
+                                    const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                    // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
+                                    const merged = { ...freshData.taskCompletion };
+                                    Object.keys(localTaskCompletion).forEach(date => {
+                                        if (!merged[date]) merged[date] = {};
+                                        Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
+                                            if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                            merged[date][timeSlot] = {
+                                                ...(merged[date][timeSlot] || {}),
+                                                ...(localTaskCompletion[date][timeSlot] || {})
+                                            };
+                                        });
                                     });
-                                });
-                                localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
-                                // Dispatch event to notify components
-                                window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
-                                    detail: { source: 'cloud-sync' }
-                                }));
+                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
+                                    // Dispatch event to notify components
+                                    window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+                                        detail: { source: 'cloud-sync' }
+                                    }));
+                                } else {
+                                    console.log('🔒 Skipping taskCompletion update from listener - in protection window');
+                                }
                             }
                             if (freshData.calendarDone) {
                                 const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
@@ -3032,10 +3075,10 @@ export function AppProvider({ children }) {
                 console.log('🔥 Firebase data found:', Object.keys(firebaseData));
                 
                 const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
-                if (firebaseData.protocols && timeSinceProtocolsUpdate >= PROTOCOLS_PROTECTION_MS) {
+                if (firebaseData.protocols && timeSinceProtocolsUpdate >= PROTECTION_WINDOW_MS) {
                     setProtocols(migrateBlendedProtocolFrequencies(firebaseData.protocols));
                     console.log(`🔥 Loaded ${firebaseData.protocols.length} protocols from Firebase`);
-                } else if (firebaseData.protocols && timeSinceProtocolsUpdate < PROTOCOLS_PROTECTION_MS) {
+                } else if (firebaseData.protocols && timeSinceProtocolsUpdate < PROTECTION_WINDOW_MS) {
                     console.log('⏸️ Skipping Firebase protocols in force reload - recent local change');
                 }
                 if (firebaseData.reconItems) {

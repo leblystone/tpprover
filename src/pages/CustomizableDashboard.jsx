@@ -469,8 +469,7 @@ export default function CustomizableDashboard() {
               penColor: pep.penColor,
               penType: pep.penType,
               protocolName: pep.name, // For blended protocols, name is the protocol name
-              administrationRoute: pep.administrationRoute,
-              protocolId: pep.protocolId
+              administrationRoute: pep.administrationRoute
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -657,6 +656,15 @@ export default function CustomizableDashboard() {
 
     // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
+    
+    // CRITICAL: Update protection timestamp to prevent listener from overwriting
+    // This prevents the real-time listener from replacing data for 30 seconds
+    try {
+      const now = Date.now();
+      localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+    } catch (e) {
+      console.warn('⚠️ Failed to save task toggle protection timestamp:', e);
+    }
     
     // Update local state to reflect the change immediately (for visual feedback)
     setTodaysTasks(prev => prev.map(t => {
