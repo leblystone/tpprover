@@ -2432,10 +2432,12 @@ export function AppProvider({ children }) {
     // Real-time cross-browser sync listener
     useEffect(() => {
         if (!firebaseUser) {
+            console.log('🔥 LISTENER SETUP: No firebaseUser, skipping');
             return;
         }
 
         const userId = firebaseUser.uid;
+        console.log('🔥 LISTENER SETUP: Registering listeners for userId:', userId);
 
         // Sample data state listener with debounce
         let sampleDataTimeoutId = null;
@@ -2675,33 +2677,46 @@ export function AppProvider({ children }) {
         });
 
         // App data listener (debounced to prevent rapid updates)
+        console.log('🔥 LISTENER SETUP: About to call subscribeToAppData');
         let updateTimeoutId = null;
         const dataUnsubscribe = subscribeToAppData(userId, (remoteData) => {
+            console.log('🔥 LISTENER FIRED - Raw data received from Firestore');
             try {
-                if (!remoteData) return;
+                if (!remoteData) {
+                    console.log('🔥 LISTENER: No remote data');
+                    return;
+                }
+                
+                console.log('🔥 LISTENER: Data exists, checking if should process');
                 
                 // Prevent processing if we're already handling an update
                 if (isApplyingRemoteUpdateRef.current) {
+                    console.log('🔥 LISTENER: Already applying update, skipping');
                     return;
                 }
 
                 // UNIFIED SYNC: Debounce updates to prevent rapid-fire state changes (1 second)
                 if (updateTimeoutId) {
+                    console.log('🔥 LISTENER: Clearing previous timeout');
                     clearTimeout(updateTimeoutId);
                 }
 
+                console.log('🔥 LISTENER: Setting 1s timeout to process update');
                 updateTimeoutId = setTimeout(async () => {
+                    console.log('🔥 LISTENER: 1s timeout complete, processing update NOW');
                     try {
                         const now = Date.now();
                         // UNIFIED SYNC: Prevent update loops with 3-second skip window
                         // Ignores updates if we just applied a remote update (prevents write loops)
                         const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
                         const SKIP_WINDOW_MS = 3000; // 3 seconds
+                        console.log('🔥 LISTENER: Checking skip window', { timeSinceLastUpdate, SKIP_WINDOW_MS, willSkip: timeSinceLastUpdate < SKIP_WINDOW_MS });
                         if (timeSinceLastUpdate < SKIP_WINDOW_MS) {
                             console.log('📋 [PROTOCOL-SYNC] App data listener: skipping (own save,', Math.round(timeSinceLastUpdate), 'ms ago)');
                             return;
                         }
 
+                        console.log('🔥 LISTENER: Passed skip window, applying update');
                         lastRemoteUpdateTimeRef.current = now;
                         isApplyingRemoteUpdateRef.current = true;
 
@@ -2740,7 +2755,9 @@ export function AppProvider({ children }) {
                                     const mergedActive = mergedProtocols.filter(p => p.active).length;
                                     console.log('📋 [PROTOCOL-SYNC] ⚠️ Applying protocols from listener (REPLACING state)', {
                                         mergedTotal: mergedProtocols.length,
-                                        mergedActive
+                                        mergedActive,
+                                        localBeforeMerge: localProtocols.length,
+                                        cloudFiltered: filtered.length
                                     });
                                     setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
                                 } else {
@@ -2874,8 +2891,18 @@ export function AppProvider({ children }) {
                             if (freshData.taskCompletion) {
                                 // Check if we're in protection window after local task toggle
                                 const timeSinceTaskUpdate = Date.now() - (parseInt(localStorage.getItem('tpprover_protocols_lastUpdate'), 10) || 0);
+                                console.log('🔥 TASK SYNC: taskCompletion received from cloud', {
+                                    timeSinceTaskUpdate,
+                                    PROTECTION_WINDOW_MS,
+                                    willApply: timeSinceTaskUpdate >= PROTECTION_WINDOW_MS,
+                                    cloudTaskKeys: Object.keys(freshData.taskCompletion || {}).length
+                                });
                                 if (timeSinceTaskUpdate >= PROTECTION_WINDOW_MS) {
                                     const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                    console.log('🔥 TASK SYNC: Merging cloud taskCompletion with local', {
+                                        localKeys: Object.keys(localTaskCompletion).length,
+                                        cloudKeys: Object.keys(freshData.taskCompletion).length
+                                    });
                                     // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
                                     const merged = { ...freshData.taskCompletion };
                                     Object.keys(localTaskCompletion).forEach(date => {
@@ -2889,6 +2916,7 @@ export function AppProvider({ children }) {
                                         });
                                     });
                                     localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
+                                    console.log('🔥 TASK SYNC: Updated localStorage and dispatching event');
                                     // Dispatch event to notify components
                                     window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
                                         detail: { source: 'cloud-sync' }
@@ -2926,6 +2954,7 @@ export function AppProvider({ children }) {
                 console.error('❌ Error in app data sync listener:', error);
             }
         });
+        console.log('🔥 LISTENER SETUP: subscribeToAppData returned, listener is now active');
 
         return () => {
             console.log('🔄 Cleaning up real-time sync listeners');

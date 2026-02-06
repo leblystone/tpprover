@@ -699,7 +699,14 @@ export default function CustomizableDashboard() {
   // Listen for task completion changes from all views (including this one)
   useEffect(() => {
     const handleTaskCompletionChange = (event) => {
-      const { taskId, completed, date, timeSlot } = event.detail;
+      const { taskId, completed, date, timeSlot, source } = event.detail;
+      
+      // If this is a cloud sync event, regenerate all tasks from scratch
+      if (source === 'cloud-sync') {
+        console.log('🔄 Cloud sync detected - regenerating all tasks');
+        setCalendarBump(Date.now());
+        return;
+      }
       
       // Get today's date key for comparison
       const todayKey = toKey(new Date());
