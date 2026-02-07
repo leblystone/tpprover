@@ -221,10 +221,10 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
         if (item.updatedAt.toMillis) {
           return item.updatedAt.toMillis();
         }
-        // If it's a serverTimestamp() sentinel (before save), treat as "now"
-        // This ensures items pending save are considered newest
+        // If it's a serverTimestamp() sentinel (before save), treat as "now + buffer"
+        // Add 5 seconds to ensure local edits ALWAYS win over simultaneous cloud timestamps
         if (typeof item.updatedAt === 'object' && !item.updatedAt.toMillis) {
-          return Date.now();
+          return Date.now() + 5000; // Add 5s buffer to guarantee local wins
         }
         // If it's an ISO string or Date, convert normally
         const timestamp = new Date(item.updatedAt).getTime();
