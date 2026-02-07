@@ -2724,27 +2724,17 @@ export function AppProvider({ children }) {
                             // Filter out mock items if sample data was cleared
                             // CRITICAL: Merge all data types instead of overwriting to prevent data loss
                             if (freshData.protocols) {
-                                const timeSinceProtocolsListener = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                // Check if the last update came from THIS browser session
-                                const lastUpdateSession = sessionStorage.getItem('tpprover_protocols_lastUpdate_session');
-                                const isOwnEdit = lastUpdateSession === sessionIdRef.current;
-                                // Only apply protection window if the edit came from THIS session
-                                const willApply = !isOwnEdit || timeSinceProtocolsListener >= PROTECTION_WINDOW_MS;
+                                // Simple approach: Only skip if this is our own write echo (within 3s of our last write to Firestore)
+                                // The 3-second SKIP_WINDOW_MS already handled above prevents our own writes from being reapplied
+                                // So if we reach here, it's either: (1) an update from another device, or (2) old enough to be safe
                                 const freshActive = (freshData.protocols || []).filter(p => p.active).length;
                                 const localActive = (protocols || []).filter(p => p.active).length;
-                                console.log('📋 [PROTOCOL-SYNC] App data listener fired', {
-                                    timeSinceUpdateSec: Math.round(timeSinceProtocolsListener / 1000),
-                                    protectionMs: PROTECTION_WINDOW_MS,
-                                    mySessionId: sessionIdRef.current,
-                                    lastUpdateSession,
-                                    isOwnEdit,
-                                    willApply,
+                                console.log('📋 [PROTOCOL-SYNC] App data listener - applying protocols', {
                                     freshTotal: freshData.protocols.length,
                                     freshActive,
                                     localTotal: (protocols || []).length,
                                     localActive
                                 });
-                                if (willApply) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.protocols.filter(p => !p.isMock)
                                         : freshData.protocols;
@@ -2763,9 +2753,6 @@ export function AppProvider({ children }) {
                                     });
                                     setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
                                     console.log('📋 [PROTOCOL-SYNC] ✅ setProtocols() called - React should re-render components now');
-                                } else {
-                                    console.log('📋 [PROTOCOL-SYNC] ⏸️ Skipping - in protection window');
-                                }
                             }
                             if (freshData.reconItems) {
                                 const filtered = sampleDataCleared 
@@ -2892,34 +2879,25 @@ export function AppProvider({ children }) {
                             // Don't overwrite - merge to preserve any local completions
                             // APPLY PROTECTION WINDOW to prevent overwriting recent local changes
                             if (freshData.taskCompletion) {
-                                // Check if we're in protection window after local task toggle
-                                const timeSinceTaskUpdate = Date.now() - (parseInt(localStorage.getItem('tpprover_protocols_lastUpdate'), 10) || 0);
-                                const lastUpdateSession = sessionStorage.getItem('tpprover_protocols_lastUpdate_session');
-                                const isOwnEdit = lastUpdateSession === sessionIdRef.current;
-                                // Only apply protection if the edit came from THIS session
-                                const willApply = !isOwnEdit || timeSinceTaskUpdate >= PROTECTION_WINDOW_MS;
-                                if (willApply) {
-                                    const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
-                                    // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
-                                    const merged = { ...freshData.taskCompletion };
-                                    Object.keys(localTaskCompletion).forEach(date => {
-                                        if (!merged[date]) merged[date] = {};
-                                        Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
-                                            if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
-                                            merged[date][timeSlot] = {
-                                                ...(merged[date][timeSlot] || {}),
-                                                ...(localTaskCompletion[date][timeSlot] || {})
-                                            };
-                                        });
+                                // Simple: 3-second skip window above prevents our own writes, so always apply
+                                const localTaskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                                // Merge: cloud data as base, local data overwrites (local takes precedence for recent completions)
+                                const merged = { ...freshData.taskCompletion };
+                                Object.keys(localTaskCompletion).forEach(date => {
+                                    if (!merged[date]) merged[date] = {};
+                                    Object.keys(localTaskCompletion[date] || {}).forEach(timeSlot => {
+                                        if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                        merged[date][timeSlot] = {
+                                            ...(merged[date][timeSlot] || {}),
+                                            ...(localTaskCompletion[date][timeSlot] || {})
+                                        };
                                     });
-                                    localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
-                                    // Dispatch event to notify components
-                                    window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
-                                        detail: { source: 'cloud-sync' }
-                                    }));
-                                } else {
-                                    console.log('🔒 Skipping taskCompletion update from listener - in protection window');
-                                }
+                                });
+                                localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
+                                // Dispatch event to notify components
+                                window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+                                    detail: { source: 'cloud-sync' }
+                                }));
                             }
                             if (freshData.calendarDone) {
                                 const localCalendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
