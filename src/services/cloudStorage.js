@@ -462,11 +462,13 @@ export function mergeInjectionStats(localData, serverData) {
   
   // Merge task-specific stats
   const mergedTasks = {};
-  const allTasks = new Set([...Object.keys(local.tasks || {}), ...Object.keys(server.tasks || {})]);
+  const localTasks = local.tasks || {};
+  const serverTasks = server.tasks || {};
+  const allTasks = new Set([...Object.keys(localTasks), ...Object.keys(serverTasks)]);
   
   allTasks.forEach(taskName => {
-    const localTask = local.tasks[taskName];
-    const serverTask = server.tasks[taskName];
+    const localTask = localTasks[taskName];
+    const serverTask = serverTasks[taskName];
     
     mergedTasks[taskName] = {
       totalInjections: Math.max(
