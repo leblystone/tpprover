@@ -221,8 +221,14 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
         if (item.updatedAt.toMillis) {
           return item.updatedAt.toMillis();
         }
+        // If it's a serverTimestamp() sentinel (before save), treat as "now"
+        // This ensures items pending save are considered newest
+        if (typeof item.updatedAt === 'object' && !item.updatedAt.toMillis) {
+          return Date.now();
+        }
         // If it's an ISO string or Date, convert normally
-        return new Date(item.updatedAt).getTime();
+        const timestamp = new Date(item.updatedAt).getTime();
+        return isNaN(timestamp) ? 0 : timestamp;
       };
       
       const localTime = getTimestamp(localItem);
@@ -230,9 +236,20 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       
       // DEBUG: Log comparison for protocols
       if (dataType === 'protocols') {
+        const formatTime = (timestamp) => {
+          if (!timestamp || isNaN(timestamp)) return 'NO_TIMESTAMP';
+          try {
+            return new Date(timestamp).toISOString();
+          } catch (e) {
+            return `INVALID(${timestamp})`;
+          }
+        };
+        
         console.log(`🔍 Comparing ${localItem.name || localItem.id}:`, {
-          localTime: new Date(localTime).toISOString(),
-          serverTime: new Date(serverTime).toISOString(),
+          localTime: formatTime(localTime),
+          serverTime: formatTime(serverTime),
+          localRaw: localTime,
+          serverRaw: serverTime,
           winner: localTime > serverTime ? 'LOCAL' : serverTime > localTime ? 'SERVER' : 'TIE (use local)'
         });
       }
