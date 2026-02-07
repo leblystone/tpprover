@@ -1953,7 +1953,9 @@ export function AppProvider({ children }) {
                     calendarDone,
                     deletionTracking
                 };
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                // Use skipMerge: false to enable intelligent timestamp-based merging
+                // This prevents conflicts when multiple devices save simultaneously
+                const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
                     console.log('📋 [PROTOCOL-SYNC] ✅ Force sync complete', { activeCount });
                 } else {
