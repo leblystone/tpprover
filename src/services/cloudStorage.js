@@ -228,6 +228,15 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       const localTime = getTimestamp(localItem);
       const serverTime = getTimestamp(serverItem);
       
+      // DEBUG: Log comparison for protocols
+      if (dataType === 'protocols') {
+        console.log(`🔍 Comparing ${localItem.name || localItem.id}:`, {
+          localTime: new Date(localTime).toISOString(),
+          serverTime: new Date(serverTime).toISOString(),
+          winner: localTime > serverTime ? 'LOCAL' : serverTime > localTime ? 'SERVER' : 'TIE (use local)'
+        });
+      }
+      
       if (localTime > serverTime) {
         // Local is newer - use it
         itemMap.set(localItem.id, localItem);

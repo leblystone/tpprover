@@ -30,13 +30,11 @@ export function prepareItemForSave(item, options = {}) {
   const { isNew = false, preserveTimestamp = false } = options;
   const id = item.id || generateId(12);
   
-  // Use server timestamp for new items or items without timestamp
-  // If preserveTimestamp is true and item has updatedAt, keep it (for migrations)
-  const updatedAt = (preserveTimestamp && item.updatedAt) 
+  // ALWAYS use fresh server timestamp UNLESS explicitly preserving (for migrations)
+  // This ensures edits get new timestamps for proper conflict resolution
+  const updatedAt = preserveTimestamp && item.updatedAt
     ? item.updatedAt 
-    : (isNew || !item.updatedAt) 
-      ? serverTimestamp() 
-      : item.updatedAt;
+    : serverTimestamp();
       
   return { ...item, id, updatedAt };
 }
