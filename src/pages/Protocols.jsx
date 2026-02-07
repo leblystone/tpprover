@@ -33,6 +33,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
+import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
 import pwaNotificationService from '../services/pwaNotifications';
@@ -604,7 +605,7 @@ export default function Protocols() {
   const endProtocol = (protocolToEnd) => {
     const today = getLocalDateString();
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
-    updateProtocol(updatedProtocol);
+    updateProtocolWithForceSync(updatedProtocol); // Use force sync for immediate cross-device update
     
     // Update history entry
     const activeHistoryEntry = findActiveProtocolHistoryEntry(protocolToEnd.id);
@@ -713,7 +714,7 @@ export default function Protocols() {
         // If today is past the calculated end date, mark as finished
         if (calculatedEndDate && todayOnly > calculatedEndDate) {
           const endDateString = getLocalDateString(calculatedEndDate);
-          updateProtocol({ ...p, active: false, endDate: endDateString, endType: 'completed' });
+          updateProtocolWithForceSync({ ...p, active: false, endDate: endDateString, endType: 'completed' }); // Use force sync for auto-end
           hasUpdates = true;
           
           // Update history entry for this protocol
@@ -887,7 +888,7 @@ export default function Protocols() {
       // Update if endDate changed OR if washout was incorrectly included
       if (newEndDate && (newEndDate !== p.endDate || needsFix)) {
         console.log('✅ Updating protocol:', p.name || p.protocolName, 'from', p.endDate, 'to', newEndDate, needsFix ? '(fixing washout issue)' : '');
-        updateProtocol({ ...p, endDate: newEndDate });
+        updateProtocolWithForceSync({ ...p, endDate: newEndDate }); // Use force sync for migration
         migratedCount++;
       } else {
         console.log('  ℹ️ No update needed - endDate already correct or no new endDate calculated');
@@ -1047,11 +1048,18 @@ export default function Protocols() {
           const dCount = durCountIdx>=0 ? Number(cols[durCountIdx])||0 : 0
           const dUnit = durUnitIdx>=0 ? (cols[durUnitIdx]||'Week') : 'Week'
           const noEnd = noEndIdx>=0 ? /true|1|yes/i.test(cols[noEndIdx]) : false
-          rows.push({ id: generateId(), name, purpose, frequency: { count, per, time: times }, duration: { count: dCount, unit: dUnit, noEnd } })
+          rows.push(prepareItemForSave({ // Add timestamps to imported protocols
+            id: generateId(), 
+            name, 
+            purpose, 
+            frequency: { count, per, time: times }, 
+            duration: { count: dCount, unit: dUnit, noEnd }
+          }, { isNew: true }));
         }
       }
       if (rows.length > 0) {
-        setProtocols(prev => [...rows, ...prev])
+        // Add all protocols at once
+        rows.forEach(row => addProtocol(row));
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `Imported ${rows.length} peptides`, type: 'success' } }))
       }
     } catch (err) {
@@ -2437,8 +2445,8 @@ export default function Protocols() {
             console.log('🔄 Recalculated endDate for active protocol:', updatedProtocol.name || updatedProtocol.protocolName, 'from', updatedProtocol.endDate, 'to', newEndDate);
           }
 
-          // Update protocol
-          updateProtocol(finalProtocol);
+          // Update protocol with force sync for immediate cross-device update
+          updateProtocolWithForceSync(finalProtocol);
           
           // Save to protocol draft for real-time sync with tasks/calendar
           try {
@@ -2604,7 +2612,7 @@ export default function Protocols() {
                           type="button"
                           onClick={() => {
                                   if (manageConfirm) {
-                                      updateProtocol(manageConfirm);
+                                      updateProtocolWithForceSync(manageConfirm); // Use force sync for Save button
                                       
                                       // Update history entry with current linkedItems (for complete data preservation)
                                       try {

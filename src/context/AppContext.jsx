@@ -21,6 +21,7 @@ import { prepareItemForSave } from '../utils/userDataSave';
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
+import { runAllMigrations } from '../utils/localStorageMigration';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -1054,6 +1055,25 @@ export function AppProvider({ children }) {
                 if (cloudSubscription && !cloudSubscription.id?.includes('lab_access') && !cloudSubscription.id?.includes('demo') && !cloudSubscription.id?.includes('test') && cloudSubscription.status !== 'lab_access') {
                     setSubscription(cloudSubscription);
                 }
+
+                // 🔄 Run localStorage → cloud migrations (non-destructive)
+                // This syncs any data that exists in localStorage but not yet in cloud
+                setTimeout(async () => {
+                    try {
+                        console.log('🚀 Running localStorage migrations...');
+                        const migrationResults = await runAllMigrations({
+                            saveAppData,
+                            loadAppData,
+                            firebaseUser
+                        });
+                        if (migrationResults && !migrationResults.skipped) {
+                            console.log('✅ Migrations complete:', migrationResults);
+                        }
+                    } catch (error) {
+                        console.error('❌ Migration error:', error);
+                        // Non-fatal - user can continue using app
+                    }
+                }, 3000); // Wait 3 seconds for initial data load to complete
 
                 // Load user state from cloud (NO localStorage sync)
                 const cloudUserState = await loadUserState(userId);
