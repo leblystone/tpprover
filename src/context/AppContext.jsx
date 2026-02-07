@@ -1874,7 +1874,7 @@ export function AppProvider({ children }) {
             lastLocalProtocolsUpdateRef.current = now;
             try {
                 localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
-                localStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+                sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
             } catch (e) {
                 console.warn('⚠️ Failed to save protocols protection timestamp:', e);
             }
@@ -1906,7 +1906,7 @@ export function AppProvider({ children }) {
         lastRemoteUpdateTimeRef.current = now;
         try {
             localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
-            localStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+            sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
         } catch (e) {
             console.warn('⚠️ Failed to save protocols protection timestamp:', e);
         }
@@ -1955,7 +1955,7 @@ export function AppProvider({ children }) {
         lastLocalProtocolsUpdateRef.current = now;
         try {
             localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
-            localStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+            sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
         } catch (e) {
             console.warn('⚠️ Failed to save protocols protection timestamp:', e);
         }
@@ -2726,7 +2726,7 @@ export function AppProvider({ children }) {
                             if (freshData.protocols) {
                                 const timeSinceProtocolsListener = Date.now() - lastLocalProtocolsUpdateRef.current;
                                 // Check if the last update came from THIS browser session
-                                const lastUpdateSession = localStorage.getItem('tpprover_protocols_lastUpdate_session');
+                                const lastUpdateSession = sessionStorage.getItem('tpprover_protocols_lastUpdate_session');
                                 const isOwnEdit = lastUpdateSession === sessionIdRef.current;
                                 // Only apply protection window if the edit came from THIS session
                                 const willApply = !isOwnEdit || timeSinceProtocolsListener >= PROTECTION_WINDOW_MS;
@@ -2735,6 +2735,8 @@ export function AppProvider({ children }) {
                                 console.log('📋 [PROTOCOL-SYNC] App data listener fired', {
                                     timeSinceUpdateSec: Math.round(timeSinceProtocolsListener / 1000),
                                     protectionMs: PROTECTION_WINDOW_MS,
+                                    mySessionId: sessionIdRef.current,
+                                    lastUpdateSession,
                                     isOwnEdit,
                                     willApply,
                                     freshTotal: freshData.protocols.length,
@@ -2892,7 +2894,7 @@ export function AppProvider({ children }) {
                             if (freshData.taskCompletion) {
                                 // Check if we're in protection window after local task toggle
                                 const timeSinceTaskUpdate = Date.now() - (parseInt(localStorage.getItem('tpprover_protocols_lastUpdate'), 10) || 0);
-                                const lastUpdateSession = localStorage.getItem('tpprover_protocols_lastUpdate_session');
+                                const lastUpdateSession = sessionStorage.getItem('tpprover_protocols_lastUpdate_session');
                                 const isOwnEdit = lastUpdateSession === sessionIdRef.current;
                                 // Only apply protection if the edit came from THIS session
                                 const willApply = !isOwnEdit || timeSinceTaskUpdate >= PROTECTION_WINDOW_MS;

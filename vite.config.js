@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      // Fixed port for this project — use different ports in other projects (e.g. 5174, 5175) to avoid conflicts
       port: 5173,
       host: true,
       open: true,
