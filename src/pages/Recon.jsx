@@ -713,10 +713,8 @@ export default function Recon() {
         // CRITICAL: Record deletion so merge knows to remove this item on other devices
         recordDeletion('reconItems', itemToMove.id, itemToMove);
         
-        // Prepare items with fresh timestamps for proper sync
-        const updatedItems = reconItems
-            .filter(i => i.id !== itemToMove.id)
-            .map(item => prepareItemForSave(item)); // Ensure all items have timestamps
+        // Remove the item from reconItems (don't update timestamps on remaining items - they haven't changed!)
+        const updatedItems = reconItems.filter(i => i.id !== itemToMove.id);
         
         console.log(`🧪 [RECON-SYNC] handleMarkAsUsed - preparing to save`, {
             itemToMoveId: itemToMove.id,
@@ -726,11 +724,13 @@ export default function Recon() {
             updatedItemIds: updatedItems.map(i => i.id)
         });
         
+        // Prepare the item being moved with fresh timestamp
         const historyItem = prepareItemForSave({ 
             ...itemToMove, 
             usedDate: new Date().toISOString() 
         });
-        const updatedHistory = [historyItem, ...reconHistory.map(h => prepareItemForSave(h))];
+        // Add to history without updating timestamps on existing history items (they haven't changed)
+        const updatedHistory = [historyItem, ...reconHistory];
         
         setReconItems(updatedItems);
         setReconHistory(updatedHistory);
