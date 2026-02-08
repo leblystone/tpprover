@@ -60,7 +60,7 @@ export default function Recon() {
     const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
 	const [prefill, setPrefill] = useState(null)
 	const [draftIdToRemove, setDraftIdToRemove] = useState(null) // Track draft ID to remove when saving
-	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
+	const [activeTab, setActiveTab] = useState('inuse') // inuse | history | calculator
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
@@ -564,7 +564,7 @@ export default function Recon() {
             localStorage.removeItem('tpprover_recon_prefill');
         } catch {}
 
-        setActiveTab('reconstituted');
+        setActiveTab('inuse');
 
         // CRITICAL: Force immediate cloud sync to ensure draft is removed and new item is saved
         if (firebaseUser && updatedItems) {
@@ -823,11 +823,11 @@ export default function Recon() {
 	const tabs = isMobile
 		? [
 			{ value: 'calculator', label: 'Calculator' },
-			{ value: 'reconstituted', label: 'In Use' },
+			{ value: 'inuse', label: 'In Use' },
 			{ value: 'history', label: 'History' }
 		]
 		: [
-			{ value: 'reconstituted', label: 'In Use' },
+			{ value: 'inuse', label: 'In Use' },
 			{ value: 'history', label: 'History' }
 		];
 			window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
@@ -883,7 +883,7 @@ export default function Recon() {
 			{/* Main content area */}
 			<div className="order-2 lg:order-1 lg:col-span-2">
 				
-				{activeTab === 'reconstituted' && (
+				{activeTab === 'inuse' && (
 						<div className="space-y-4">
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (
