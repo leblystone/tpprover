@@ -61,6 +61,7 @@ export default function Recon() {
 	const [prefill, setPrefill] = useState(null)
 	const [draftIdToRemove, setDraftIdToRemove] = useState(null) // Track draft ID to remove when saving
 	const [activeTab, setActiveTab] = useState('inuse') // inuse | history | calculator
+	const [inUseFilter, setInUseFilter] = useState('all') // all | inuse | draft
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
@@ -693,9 +694,18 @@ export default function Recon() {
 
 	const filteredItems = reconItems.filter(i => {
 		const vendorName = i.vendorId ? vendorMap[i.vendorId] || '' : (i.vendor || '');
-		return (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || vendorName.toLowerCase().includes(searchQuery.toLowerCase())
+		const matchesSearch = (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+		
+		// Apply status filter
+		if (inUseFilter === 'inuse') {
+			return matchesSearch && !i.isDraft;
+		} else if (inUseFilter === 'draft') {
+			return matchesSearch && i.isDraft;
+		}
+		return matchesSearch; // 'all' shows everything
 	})
-	const sortedItems = [...filteredItems].sort((a, b) => new Date(b.date) - new Date(a.date))
+	// Sort by creation date: newest first (descending)
+	const sortedItems = [...filteredItems].sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
 
 	const filteredHistory = reconHistory.filter(i => {
         const matchesSearch = (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || (i.vendor || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -897,6 +907,64 @@ export default function Recon() {
 				
 				{activeTab === 'inuse' && (
 						<div className="space-y-4">
+							{/* Filter buttons - Currently In Use / Draft / All */}
+							<div className="flex gap-2 flex-wrap">
+								<button
+									onClick={() => setInUseFilter('inuse')}
+									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+									style={{
+										backgroundColor: inUseFilter === 'inuse' ? theme.primary : `${theme.primary}20`,
+										color: inUseFilter === 'inuse' ? theme.textOnPrimary : theme.text,
+										border: `1px solid ${inUseFilter === 'inuse' ? theme.primary : 'transparent'}`
+									}}
+								>
+									Currently In Use
+									{reconItems.filter(i => !i.isDraft).length > 0 && (
+										<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
+											backgroundColor: inUseFilter === 'inuse' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
+										}}>
+											{reconItems.filter(i => !i.isDraft).length}
+										</span>
+									)}
+								</button>
+								
+								<button
+									onClick={() => setInUseFilter('draft')}
+									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+									style={{
+										backgroundColor: inUseFilter === 'draft' ? theme.primary : `${theme.primary}20`,
+										color: inUseFilter === 'draft' ? theme.textOnPrimary : theme.text,
+										border: `1px solid ${inUseFilter === 'draft' ? theme.primary : 'transparent'}`
+									}}
+								>
+									Draft Vials
+									{reconItems.filter(i => i.isDraft).length > 0 && (
+										<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
+											backgroundColor: inUseFilter === 'draft' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
+										}}>
+											{reconItems.filter(i => i.isDraft).length}
+										</span>
+									)}
+								</button>
+								
+								<button
+									onClick={() => setInUseFilter('all')}
+									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+									style={{
+										backgroundColor: inUseFilter === 'all' ? theme.primary : `${theme.primary}20`,
+										color: inUseFilter === 'all' ? theme.textOnPrimary : theme.text,
+										border: `1px solid ${inUseFilter === 'all' ? theme.primary : 'transparent'}`
+									}}
+								>
+									All
+									<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
+										backgroundColor: inUseFilter === 'all' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
+									}}>
+										{reconItems.length}
+									</span>
+								</button>
+							</div>
+							
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
