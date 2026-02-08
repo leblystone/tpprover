@@ -184,7 +184,18 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       if (deletionRecord) {
         // Item was deleted - check if deletion is newer than server item
         const deletionTime = deletionRecord.timestamp || 0;
-        const serverTime = new Date(item.updatedAt || 0).getTime();
+        
+        // Get server timestamp (handle serverTimestamp() sentinels same as main merge)
+        let serverTime = 0;
+        if (item.updatedAt) {
+          if (item.updatedAt.toMillis) {
+            serverTime = item.updatedAt.toMillis(); // Firestore Timestamp
+          } else if (typeof item.updatedAt === 'object' && !item.updatedAt.toMillis) {
+            serverTime = Date.now() + 5000; // serverTimestamp() sentinel - treat as "now + buffer"
+          } else {
+            serverTime = new Date(item.updatedAt).getTime(); // ISO string
+          }
+        }
         
         console.log(`🔍 [${dataType}] Server item ${item.id.substring(0,8)} vs deletion:`, {
           deletionTime,
