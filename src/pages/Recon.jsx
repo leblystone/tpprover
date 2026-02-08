@@ -257,6 +257,13 @@ export default function Recon() {
 				const syncResult = await saveAppData(userId, appData, { skipMerge: false });
 				if (syncResult) {
 					console.log('✅ Draft removal synced to cloud with force merge');
+					
+					// CRITICAL: Update localStorage timestamp to prevent listener from overwriting
+					try {
+						localStorage.setItem('tpprover_reconItems_lastUpdate', String(Date.now()));
+					} catch (e) {
+						console.warn('Failed to set recon lastUpdate timestamp:', e);
+					}
 				} else {
 					console.error('❌ Failed to sync draft removal to cloud');
 				}
@@ -350,6 +357,13 @@ export default function Recon() {
 				const syncResult = await saveAppData(userId, appData, { skipMerge: false });
 				if (syncResult) {
 					console.log('✅ Recon item deletion synced to cloud with force merge');
+					
+					// CRITICAL: Update localStorage timestamp to prevent listener from overwriting
+					try {
+						localStorage.setItem('tpprover_reconItems_lastUpdate', String(Date.now()));
+					} catch (e) {
+						console.warn('Failed to set recon lastUpdate timestamp:', e);
+					}
 				} else {
 					console.error('❌ Failed to sync deleted recon item to cloud');
 				}
@@ -575,7 +589,13 @@ export default function Recon() {
                 if (syncResult) {
                     if (draftId) {
                         console.log('✅ Draft removed and new recon item synced to cloud with force merge');
-                    } else {
+                    }
+                    
+                    // CRITICAL: Update localStorage timestamp to prevent listener from overwriting
+                    try {
+                        localStorage.setItem('tpprover_reconItems_lastUpdate', String(Date.now()));
+                    } catch (e) {
+                        console.warn('Failed to set recon lastUpdate timestamp:', e);
                     }
                 } else {
                     console.error('❌ Failed to sync to cloud');
@@ -726,6 +746,13 @@ export default function Recon() {
                 const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
                     console.log('✅ Marked-as-used item synced to cloud with force merge');
+                    
+                    // CRITICAL: Update localStorage timestamp to prevent listener from overwriting
+                    try {
+                        localStorage.setItem('tpprover_reconItems_lastUpdate', String(Date.now()));
+                    } catch (e) {
+                        console.warn('Failed to set recon lastUpdate timestamp:', e);
+                    }
                 } else {
                     console.error('❌ Failed to sync marked-as-used item to cloud');
                 }
