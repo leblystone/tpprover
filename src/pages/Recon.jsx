@@ -223,9 +223,7 @@ export default function Recon() {
 		if (!draftId) return;
 		
 		// Remove from local state with timestamps
-		const updatedItems = reconItems
-			.filter(item => item.id !== draftId)
-			.map(item => prepareItemForSave(item)); // Ensure all remaining items have timestamps
+		const updatedItems = reconItems.filter(item => item.id !== draftId);
 		setReconItems(updatedItems);
 		
 		// Immediately sync to localStorage
@@ -327,10 +325,8 @@ export default function Recon() {
 			recordDeletion('reconItems', id);
 		}
 		
-		// Remove from local state, add timestamps to remaining items
-		const updatedItems = reconItems
-			.filter(item => item.id !== id)
-			.map(item => prepareItemForSave(item));
+		// Remove from local state (don't update timestamps on unchanged items)
+		const updatedItems = reconItems.filter(item => item.id !== id);
 		setReconItems(updatedItems);
 		setEditingItem(null);
 		setShowEditModal(false);
@@ -548,10 +544,10 @@ export default function Recon() {
             return [newItemWithTimestamp, ...filtered];
         });
         
-        // Calculate updated items for cloud sync (use current state, add timestamps to all)
+        // Calculate updated items for cloud sync (don't update timestamps on unchanged items)
         const updatedItems = draftId 
-            ? [newItemWithTimestamp, ...reconItems.filter(i => i.id !== draftId).map(i => prepareItemForSave(i))]
-            : [newItemWithTimestamp, ...reconItems.map(i => prepareItemForSave(i))];
+            ? [newItemWithTimestamp, ...reconItems.filter(i => i.id !== draftId)]
+            : [newItemWithTimestamp, ...reconItems];
         
         // Adjust stockpile - this will update quantities and remove items with 0
         adjustStockpileAfterRecon(peptides);
