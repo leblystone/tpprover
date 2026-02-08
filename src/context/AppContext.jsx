@@ -2542,27 +2542,45 @@ export function AppProvider({ children }) {
                                     }
                                 }
                                 if (freshData.reconItems) {
-                                    const filtered = freshData.reconItems.filter(r => !r.isMock);
-                                    // Merge with local reconItems instead of overwriting
-                                    const localReconItems = reconItems || [];
-                                    const mergedReconItems = mergeWithTimestamps(
-                                        localReconItems,
-                                        filtered,
-                                        'reconItems',
-                                        getDeletionTracking().reconItems
-                                    );
-                                    setReconItems(mergedReconItems);
+                                    // Check skip window for reconItems
+                                    const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                                    const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                                    const RECON_SKIP_WINDOW_MS = 3000;
+                                    
+                                    if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
+                                        console.log(`🧪 [RECON-SYNC] Sample-data: Skipping - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
+                                    } else {
+                                        const filtered = freshData.reconItems.filter(r => !r.isMock);
+                                        // Merge with local reconItems instead of overwriting
+                                        const localReconItems = reconItems || [];
+                                        const mergedReconItems = mergeWithTimestamps(
+                                            localReconItems,
+                                            filtered,
+                                            'reconItems',
+                                            getDeletionTracking().reconItems
+                                        );
+                                        setReconItems(mergedReconItems);
+                                    }
                                 }
                                 if (freshData.reconHistory) {
-                                    // Merge with local reconHistory instead of overwriting
-                                    const localReconHistory = reconHistory || [];
-                                    const mergedReconHistory = mergeWithTimestamps(
-                                        localReconHistory,
-                                        freshData.reconHistory,
-                                        'reconHistory',
-                                        getDeletionTracking().reconHistory
-                                    );
-                                    setReconHistory(mergedReconHistory);
+                                    // Check skip window for reconHistory too
+                                    const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                                    const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                                    const RECON_SKIP_WINDOW_MS = 3000;
+                                    
+                                    if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
+                                        console.log(`🧪 [RECON-SYNC] Sample-data: Skipping history - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
+                                    } else {
+                                        // Merge with local reconHistory instead of overwriting
+                                        const localReconHistory = reconHistory || [];
+                                        const mergedReconHistory = mergeWithTimestamps(
+                                            localReconHistory,
+                                            freshData.reconHistory,
+                                            'reconHistory',
+                                            getDeletionTracking().reconHistory
+                                        );
+                                        setReconHistory(mergedReconHistory);
+                                    }
                                 }
                                 if (freshData.supplements) {
                                     const filtered = freshData.supplements.filter(s => !s.isMock);
@@ -2777,29 +2795,47 @@ export function AppProvider({ children }) {
                                     console.log('📋 [PROTOCOL-SYNC] ✅ setProtocols() called - React should re-render components now');
                             }
                             if (freshData.reconItems) {
-                                const filtered = sampleDataCleared 
-                                    ? freshData.reconItems.filter(r => !r.isMock)
-                                    : freshData.reconItems;
-                                // Merge with local reconItems instead of overwriting
-                                const localReconItems = reconItems || [];
-                                const mergedReconItems = mergeWithTimestamps(
-                                    localReconItems,
-                                    filtered,
-                                    'reconItems',
-                                    getDeletionTracking().reconItems
-                                );
-                                setReconItems(mergedReconItems);
+                                // Check if we just saved reconItems locally (skip window to prevent overwrites)
+                                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                                const RECON_SKIP_WINDOW_MS = 3000; // 3 seconds
+                                
+                                if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
+                                    console.log(`🧪 [RECON-SYNC] Skipping listener update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
+                                } else {
+                                    const filtered = sampleDataCleared 
+                                        ? freshData.reconItems.filter(r => !r.isMock)
+                                        : freshData.reconItems;
+                                    // Merge with local reconItems instead of overwriting
+                                    const localReconItems = reconItems || [];
+                                    const mergedReconItems = mergeWithTimestamps(
+                                        localReconItems,
+                                        filtered,
+                                        'reconItems',
+                                        getDeletionTracking().reconItems
+                                    );
+                                    setReconItems(mergedReconItems);
+                                }
                             }
                             if (freshData.reconHistory) {
-                                // Merge with local reconHistory instead of overwriting
-                                const localReconHistory = reconHistory || [];
-                                const mergedReconHistory = mergeWithTimestamps(
-                                    localReconHistory,
-                                    freshData.reconHistory,
-                                    'reconHistory',
-                                    getDeletionTracking().reconHistory
-                                );
-                                setReconHistory(mergedReconHistory);
+                                // Check skip window for reconHistory too
+                                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                                const RECON_SKIP_WINDOW_MS = 3000;
+                                
+                                if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
+                                    console.log(`🧪 [RECON-SYNC] Skipping history update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
+                                } else {
+                                    // Merge with local reconHistory instead of overwriting
+                                    const localReconHistory = reconHistory || [];
+                                    const mergedReconHistory = mergeWithTimestamps(
+                                        localReconHistory,
+                                        freshData.reconHistory,
+                                        'reconHistory',
+                                        getDeletionTracking().reconHistory
+                                    );
+                                    setReconHistory(mergedReconHistory);
+                                }
                             }
                             if (freshData.supplements) {
                                 const filtered = sampleDataCleared 
