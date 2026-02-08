@@ -2542,6 +2542,11 @@ export function AppProvider({ children }) {
                                     }
                                 }
                                 if (freshData.reconItems) {
+                                    console.log(`🧪 [RECON-SYNC] Sample-data: Received reconItems`, {
+                                        itemCount: freshData.reconItems?.length,
+                                        localCount: reconItems?.length
+                                    });
+                                    
                                     // Check skip window for reconItems
                                     const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                     const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
@@ -2550,6 +2555,7 @@ export function AppProvider({ children }) {
                                     if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                         console.log(`🧪 [RECON-SYNC] Sample-data: Skipping - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
                                     } else {
+                                        console.log(`🧪 [RECON-SYNC] Sample-data: Applying update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
                                         const filtered = freshData.reconItems.filter(r => !r.isMock);
                                         // Merge with local reconItems instead of overwriting
                                         const localReconItems = reconItems || [];
@@ -2563,6 +2569,11 @@ export function AppProvider({ children }) {
                                     }
                                 }
                                 if (freshData.reconHistory) {
+                                    console.log(`🧪 [RECON-SYNC] Sample-data: Received reconHistory`, {
+                                        historyCount: freshData.reconHistory?.length,
+                                        localCount: reconHistory?.length
+                                    });
+                                    
                                     // Check skip window for reconHistory too
                                     const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                     const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
@@ -2571,6 +2582,7 @@ export function AppProvider({ children }) {
                                     if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                         console.log(`🧪 [RECON-SYNC] Sample-data: Skipping history - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
                                     } else {
+                                        console.log(`🧪 [RECON-SYNC] Sample-data: Applying history update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
                                         // Merge with local reconHistory instead of overwriting
                                         const localReconHistory = reconHistory || [];
                                         const mergedReconHistory = mergeWithTimestamps(
@@ -2795,6 +2807,11 @@ export function AppProvider({ children }) {
                                     console.log('📋 [PROTOCOL-SYNC] ✅ setProtocols() called - React should re-render components now');
                             }
                             if (freshData.reconItems) {
+                                console.log(`🧪 [RECON-SYNC] Listener received reconItems update`, {
+                                    itemCount: freshData.reconItems?.length,
+                                    localCount: reconItems?.length
+                                });
+                                
                                 // Check if we just saved reconItems locally (skip window to prevent overwrites)
                                 const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                 const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
@@ -2803,6 +2820,7 @@ export function AppProvider({ children }) {
                                 if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                     console.log(`🧪 [RECON-SYNC] Skipping listener update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
                                 } else {
+                                    console.log(`🧪 [RECON-SYNC] Applying reconItems update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
                                     const filtered = sampleDataCleared 
                                         ? freshData.reconItems.filter(r => !r.isMock)
                                         : freshData.reconItems;
@@ -2818,6 +2836,11 @@ export function AppProvider({ children }) {
                                 }
                             }
                             if (freshData.reconHistory) {
+                                console.log(`🧪 [RECON-SYNC] Listener received reconHistory update`, {
+                                    historyCount: freshData.reconHistory?.length,
+                                    localCount: reconHistory?.length
+                                });
+                                
                                 // Check skip window for reconHistory too
                                 const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                 const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
@@ -2826,6 +2849,7 @@ export function AppProvider({ children }) {
                                 if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                     console.log(`🧪 [RECON-SYNC] Skipping history update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
                                 } else {
+                                    console.log(`🧪 [RECON-SYNC] Applying reconHistory update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
                                     // Merge with local reconHistory instead of overwriting
                                     const localReconHistory = reconHistory || [];
                                     const mergedReconHistory = mergeWithTimestamps(
