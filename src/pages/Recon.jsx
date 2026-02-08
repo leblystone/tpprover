@@ -710,6 +710,9 @@ export default function Recon() {
 	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate || b.date) - new Date(a.usedDate || a.date));
 
     const handleMarkAsUsed = async (itemToMove) => {
+        // CRITICAL: Record deletion so merge knows to remove this item on other devices
+        recordDeletion('reconItems', itemToMove.id, itemToMove);
+        
         // Prepare items with fresh timestamps for proper sync
         const updatedItems = reconItems
             .filter(i => i.id !== itemToMove.id)
