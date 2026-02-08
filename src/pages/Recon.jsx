@@ -718,6 +718,14 @@ export default function Recon() {
             .filter(i => i.id !== itemToMove.id)
             .map(item => prepareItemForSave(item)); // Ensure all items have timestamps
         
+        console.log(`🧪 [RECON-SYNC] handleMarkAsUsed - preparing to save`, {
+            itemToMoveId: itemToMove.id,
+            itemToMoveName: itemToMove.peptide,
+            beforeCount: reconItems.length,
+            afterCount: updatedItems.length,
+            updatedItemIds: updatedItems.map(i => i.id)
+        });
+        
         const historyItem = prepareItemForSave({ 
             ...itemToMove, 
             usedDate: new Date().toISOString() 
@@ -744,6 +752,11 @@ export default function Recon() {
                     stockpile: stockpile || [],
                     scheduledBuys: scheduledBuys || []
                 };
+                
+                console.log(`🧪 [RECON-SYNC] Saving to cloud`, {
+                    reconItemsCount: updatedItems.length,
+                    reconHistoryCount: updatedHistory.length
+                });
                 
                 // Use skipMerge: false for intelligent timestamp-based merging
                 const syncResult = await saveAppData(userId, appData, { skipMerge: false });
