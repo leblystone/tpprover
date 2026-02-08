@@ -24,6 +24,7 @@ import { generateId } from '../utils/string'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { saveAppData } from '../services/cloudStorage'
+import { prepareItemForSave } from '../utils/userDataSave'
 import { useFirebase } from '../context/FirebaseContext'
 import { recordDeletion } from '../utils/deletionTracking'
 import { getProtocolHistory } from '../utils/protocolHistory'
@@ -196,25 +197,24 @@ export default function Recon() {
 	}, [editingItem?.penColor]);
 
 	const handleSave = (item) => {
-		const now = new Date().toISOString();
 		const next = editingItem?.id
-			? reconItems.map(i => i.id === editingItem.id ? { 
+			? reconItems.map(i => i.id === editingItem.id ? prepareItemForSave({ 
 				...i, 
-				...item, 
-				updatedAt: now 
-			} : i)
-			: [{ 
+				...item
+			}) : i)
+			: [prepareItemForSave({ 
 				id: generateId(), 
-				...item, 
-				createdAt: now, 
-				updatedAt: now 
-			}, ...reconItems]
+				...item,
+				createdAt: new Date().toISOString()
+			}, { isNew: true }), ...reconItems]
 		setReconItems(next)
 		setShowEditModal(false)
 	}
 
 	const handleSaveEdit = (editedData) => {
-		setReconItems(prev => prev.map(item => item.id === editingItem.id ? { ...item, ...editedData } : item));
+		setReconItems(prev => prev.map(item => 
+			item.id === editingItem.id ? prepareItemForSave({ ...item, ...editedData }) : item
+		));
 		setEditingItem(null);
 	};
 
@@ -222,8 +222,10 @@ export default function Recon() {
 	const removeDraftAndSync = useCallback(async (draftId) => {
 		if (!draftId) return;
 		
-		// Remove from local state
-		const updatedItems = reconItems.filter(item => item.id !== draftId);
+		// Remove from local state with timestamps
+		const updatedItems = reconItems
+			.filter(item => item.id !== draftId)
+			.map(item => prepareItemForSave(item)); // Ensure all remaining items have timestamps
 		setReconItems(updatedItems);
 		
 		// Immediately sync to localStorage
@@ -233,7 +235,7 @@ export default function Recon() {
 			console.error("Failed to save recon items to localStorage", e);
 		}
 		
-		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+		// CRITICAL: Force immediate cloud sync with skipMerge: false for proper timestamp resolution
 		// This prevents server data from restoring deleted items
 		if (firebaseUser) {
 			try {
@@ -251,9 +253,10 @@ export default function Recon() {
 					scheduledBuys: scheduledBuys || []
 				};
 				
-				// Force immediate sync with skipMerge to overwrite server data
-				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				// Use skipMerge: false for intelligent timestamp-based merging
+				const syncResult = await saveAppData(userId, appData, { skipMerge: false });
 				if (syncResult) {
+					console.log('✅ Draft removal synced to cloud with force merge');
 				} else {
 					console.error('❌ Failed to sync draft removal to cloud');
 				}
@@ -317,13 +320,15 @@ export default function Recon() {
 			recordDeletion('reconItems', id);
 		}
 		
-		// Remove from local state
-		const updatedItems = reconItems.filter(item => item.id !== id);
+		// Remove from local state, add timestamps to remaining items
+		const updatedItems = reconItems
+			.filter(item => item.id !== id)
+			.map(item => prepareItemForSave(item));
 		setReconItems(updatedItems);
 		setEditingItem(null);
 		setShowEditModal(false);
 		
-		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+		// CRITICAL: Force immediate cloud sync with skipMerge: false for proper timestamp resolution
 		// This prevents server data from restoring deleted items
 		if (firebaseUser) {
 			try {
@@ -341,9 +346,10 @@ export default function Recon() {
 					scheduledBuys: scheduledBuys || []
 				};
 				
-				// Force immediate sync with skipMerge to overwrite server data
-				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				// Use skipMerge: false for intelligent timestamp-based merging
+				const syncResult = await saveAppData(userId, appData, { skipMerge: false });
 				if (syncResult) {
+					console.log('✅ Recon item deletion synced to cloud with force merge');
 				} else {
 					console.error('❌ Failed to sync deleted recon item to cloud');
 				}
@@ -517,19 +523,21 @@ export default function Recon() {
             updatedAt: now
         };
 
-        // Calculate updated items (remove draft if present, add new item)
+        // Calculate updated items (remove draft if present, add new item with timestamp)
         const draftId = draftIdToRemove;
+        const newItemWithTimestamp = prepareItemForSave(newItem, { isNew: true });
+        
         setReconItems(prev => {
             const filtered = draftId 
                 ? prev.filter(i => i.id !== draftId)
                 : prev;
-            return [newItem, ...filtered];
+            return [newItemWithTimestamp, ...filtered];
         });
         
-        // Calculate updated items for cloud sync (use current state)
+        // Calculate updated items for cloud sync (use current state, add timestamps to all)
         const updatedItems = draftId 
-            ? [newItem, ...reconItems.filter(i => i.id !== draftId)]
-            : [newItem, ...reconItems];
+            ? [newItemWithTimestamp, ...reconItems.filter(i => i.id !== draftId).map(i => prepareItemForSave(i))]
+            : [newItemWithTimestamp, ...reconItems.map(i => prepareItemForSave(i))];
         
         // Adjust stockpile - this will update quantities and remove items with 0
         adjustStockpileAfterRecon(peptides);
@@ -562,10 +570,11 @@ export default function Recon() {
                     scheduledBuys: scheduledBuys || []
                 };
                 
-                // Force immediate sync with skipMerge to overwrite server data
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                // Use skipMerge: false for intelligent timestamp-based merging
+                const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
                     if (draftId) {
+                        console.log('✅ Draft removed and new recon item synced to cloud with force merge');
                     } else {
                     }
                 } else {
@@ -620,9 +629,11 @@ export default function Recon() {
             peptides, // Include full peptides array with stockpileId
             notes: '',
             isDraft: true,
-            createdAt: now,
-            updatedAt: now
+            createdAt: now
         };
+        
+        // Prepare draft with timestamp
+        const draftItemWithTimestamp = prepareItemForSave(draftItem, { isNew: true });
         
         setReconItems(prev => {
             // Remove any existing drafts matching this form
@@ -630,14 +641,14 @@ export default function Recon() {
             const filtered = existingDraftIndex >= 0 
                 ? prev.filter((_, idx) => idx !== existingDraftIndex)
                 : prev.filter(item => !item.isDraft || item.id !== draftItem.id);
-            return [draftItem, ...filtered];
+            return [draftItemWithTimestamp, ...filtered];
         });
 
         // Sync to cloud
         if (firebaseUser) {
             try {
                 const userId = firebaseUser.uid;
-                const updatedItems = [draftItem, ...reconItems.filter(item => !item.isDraft || item.id !== draftItem.id)];
+                const updatedItems = [draftItemWithTimestamp, ...reconItems.filter(item => !item.isDraft || item.id !== draftItem.id)];
                 
                 const appData = {
                     protocols: protocols || [],
@@ -652,7 +663,8 @@ export default function Recon() {
                     scheduledBuys: scheduledBuys || []
                 };
                 
-                await saveAppData(userId, appData, { skipMerge: true });
+                // Use skipMerge: false for intelligent timestamp-based merging
+                await saveAppData(userId, appData, { skipMerge: false });
             } catch (error) {
                 console.warn('Failed to sync draft to cloud:', error);
             }
@@ -678,14 +690,21 @@ export default function Recon() {
 	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate || b.date) - new Date(a.usedDate || a.date));
 
     const handleMarkAsUsed = async (itemToMove) => {
-        // Update local state immediately
-        const updatedItems = reconItems.filter(i => i.id !== itemToMove.id);
-        const updatedHistory = [{ ...itemToMove, usedDate: new Date().toISOString() }, ...reconHistory];
+        // Prepare items with fresh timestamps for proper sync
+        const updatedItems = reconItems
+            .filter(i => i.id !== itemToMove.id)
+            .map(item => prepareItemForSave(item)); // Ensure all items have timestamps
+        
+        const historyItem = prepareItemForSave({ 
+            ...itemToMove, 
+            usedDate: new Date().toISOString() 
+        });
+        const updatedHistory = [historyItem, ...reconHistory.map(h => prepareItemForSave(h))];
         
         setReconItems(updatedItems);
         setReconHistory(updatedHistory);
         
-        // CRITICAL: Force immediate cloud sync with skipMerge to ensure the change persists
+        // CRITICAL: Force immediate cloud sync with skipMerge: false for proper timestamp conflict resolution
         // This prevents server data from restoring the item back to reconItems
         if (firebaseUser) {
             try {
@@ -703,9 +722,10 @@ export default function Recon() {
                     scheduledBuys: scheduledBuys || []
                 };
                 
-                // Force immediate sync with skipMerge to overwrite server data
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                // Use skipMerge: false for intelligent timestamp-based merging
+                const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
+                    console.log('✅ Marked-as-used item synced to cloud with force merge');
                 } else {
                     console.error('❌ Failed to sync marked-as-used item to cloud');
                 }

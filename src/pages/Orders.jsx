@@ -14,6 +14,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
+import { prepareItemForSave } from '../utils/userDataSave'
 import { useFirebase } from '../context/FirebaseContext'
 import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import { recordDeletion, getDeletionTracking } from '../utils/deletionTracking'
@@ -355,8 +356,9 @@ export default function Orders() {
 									calendarDone
 								};
 								
-								await saveAppData(userId, appData);
-								console.log('✅ Synced order status updates to cloud');
+								// Use skipMerge: false for intelligent timestamp-based conflict resolution
+								await saveAppData(userId, appData, { skipMerge: false });
+								console.log('✅ Synced order status updates to cloud with force merge');
 							}
 						} catch (error) {
 							console.error('❌ Failed to sync order status updates to cloud:', error);
@@ -599,20 +601,20 @@ export default function Orders() {
 			return; // Don't cycle past 'Delivered'
 		}
 
-		const now = new Date().toISOString();
-		const updatedOrder = { 
+		// Prepare order with fresh timestamp for proper sync
+		const updatedOrder = prepareItemForSave({ 
 			...order, 
 			status: nextStatus,
-			updatedAt: now,
 			// Mark this as a manual status change to prevent tracking sync from overriding
 			statusSource: 'manual',
-			statusManuallySetAt: now
-		};
+			statusManuallySetAt: new Date().toISOString()
+		});
+		
 		if (nextStatus === 'Shipped' && !order.shipDate) {
-			updatedOrder.shipDate = now.slice(0, 10); // YYYY-MM-DD format
+			updatedOrder.shipDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
 		}
 		if (nextStatus === 'Delivered' && !order.deliveryDate) {
-			updatedOrder.deliveryDate = now.slice(0, 10); // YYYY-MM-DD format
+			updatedOrder.deliveryDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
 		}
 		
 		handleStockpileUpdate(order, updatedOrder);
@@ -630,7 +632,7 @@ export default function Orders() {
 			console.error('❌ Failed to save order status to localStorage:', error);
 		}
 		
-		// Sync to cloud if user is logged in (async, fire and forget)
+		// Force sync to cloud immediately with skipMerge: false for proper timestamp conflict resolution
 		if (firebaseUser) {
 			// Use a small delay to ensure stockpile state has updated from handleStockpileUpdate
 			setTimeout(async () => {
@@ -658,8 +660,9 @@ export default function Orders() {
 						calendarDone
 					};
 					
-					await saveAppData(userId, appData);
-					console.log('✅ Order status synced to cloud');
+					// Use skipMerge: false for intelligent timestamp-based merging
+					await saveAppData(userId, appData, { skipMerge: false });
+					console.log('✅ Order status synced to cloud with force merge');
 				} catch (error) {
 					console.error('❌ Failed to sync order status to cloud:', error);
 					// Don't show error to user - local change is saved, cloud sync will retry later
@@ -838,23 +841,22 @@ export default function Orders() {
 					
 					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
 					if (editingOrder) {
-						const now = new Date().toISOString();
 						const previousStatus = (editingOrder.status || 'Order Placed').toLowerCase();
 						const newStatus = (data.status || editingOrder.status || 'Order Placed').toLowerCase();
 						const statusChanged = previousStatus !== newStatus;
 						
-						const updatedOrder = { 
+						// Use prepareItemForSave for proper timestamp handling
+						const updatedOrder = prepareItemForSave({ 
 							...editingOrder, 
 							...data, 
 							vendorId,
 							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
-							updatedAt: now,
 							// Mark as manual if status changed (data already has statusSource from modal if user clicked status button)
 							...(statusChanged && data.statusSource === 'manual' ? {
 								statusSource: 'manual',
-								statusManuallySetAt: data.statusManuallySetAt || now
+								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
 							} : {})
-						};
+						});
 						console.log('📋 Updating existing order:', updatedOrder);
 						handleStockpileUpdate(editingOrder, updatedOrder);
 						setOrders(prev => {
@@ -865,22 +867,21 @@ export default function Orders() {
 						// Use 'category' field for consistency, fallback to activeTab for new orders
 						const category = data.category || activeTab;
 						const nextPublicNumber = getNextPublicOrderNumber(orders);
-						const now = new Date().toISOString();
-						const newOrder = { 
+						// Use prepareItemForSave with isNew flag for new orders
+						const newOrder = prepareItemForSave({ 
 							id: generateId(), 
 							publicOrderNumber: nextPublicNumber,
 							...data, 
 							vendorId, 
 							category, 
 							type: category,
-							createdAt: now,
-							updatedAt: now,
+							createdAt: new Date().toISOString(),
 							// Mark as manual if status was set (data already has statusSource from modal if user clicked status button)
 							...(data.statusSource === 'manual' ? {
 								statusSource: 'manual',
-								statusManuallySetAt: data.statusManuallySetAt || now
+								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
 							} : {})
-						};
+						}, { isNew: true });
 						console.log('📋 Creating new order:', newOrder);
 						handleStockpileUpdate(null, newOrder);
 						setOrders(prev => {
