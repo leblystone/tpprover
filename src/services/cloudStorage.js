@@ -186,12 +186,19 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
         const deletionTime = deletionRecord.timestamp || 0;
         const serverTime = new Date(item.updatedAt || 0).getTime();
         
+        console.log(`🔍 [${dataType}] Server item ${item.id.substring(0,8)} vs deletion:`, {
+          deletionTime,
+          serverTime,
+          willExclude: deletionTime > serverTime
+        });
+        
         // If deletion is newer than server update, exclude the item
         if (deletionTime > serverTime) {
           console.log(`🚫 Excluding deleted ${dataType} item from merge: ${item.id}`);
           return; // Skip this item
         }
         // If server update is newer than deletion, the item was recreated - include it
+        console.log(`✅ Server version of ${dataType} item ${item.id.substring(0,8)} is newer - including it`);
       }
       itemMap.set(item.id, item);
     }
