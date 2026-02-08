@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
+import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 
 /**
@@ -208,8 +208,9 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
           console.log(`🚫 Excluding deleted ${dataType} item from merge: ${item.id}`);
           return; // Skip this item
         }
-        // If server update is newer than deletion, the item was recreated - include it
-        console.log(`✅ Server version of ${dataType} item ${item.id.substring(0,8)} is newer - including it`);
+        // If server update is newer than deletion, the item was recreated - include it and clear stale deletion
+        console.log(`✅ Server version of ${dataType} item ${item.id.substring(0,8)} is newer - including it and clearing stale deletion`);
+        clearDeletionRecord(dataType, item.id);
       }
       itemMap.set(item.id, item);
     }
