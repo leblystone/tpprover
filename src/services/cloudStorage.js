@@ -234,8 +234,8 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       const localTime = getTimestamp(localItem);
       const serverTime = getTimestamp(serverItem);
       
-      // DEBUG: Log comparison for protocols
-      if (dataType === 'protocols') {
+      // DEBUG: Log comparison for protocols (only when there's a conflict)
+      if (dataType === 'protocols' && localTime !== serverTime) {
         const formatTime = (timestamp) => {
           if (!timestamp || isNaN(timestamp)) return 'NO_TIMESTAMP';
           try {
@@ -245,12 +245,12 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
           }
         };
         
-        console.log(`🔍 Comparing ${localItem.name || localItem.id}:`, {
+        const winner = localTime > serverTime ? 'LOCAL' : 'SERVER';
+        console.log(`🔍 Protocol conflict: ${localItem.name || localItem.id} - ${winner} wins`, {
           localTime: formatTime(localTime),
           serverTime: formatTime(serverTime),
           localRaw: localTime,
-          serverRaw: serverTime,
-          winner: localTime > serverTime ? 'LOCAL' : serverTime > localTime ? 'SERVER' : 'TIE (use local)'
+          serverRaw: serverTime
         });
       }
       
