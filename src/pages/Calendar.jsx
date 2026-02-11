@@ -1407,7 +1407,7 @@ export default function Calendar() {
           open={!!editingNotesFor}
           onClose={() => setEditingNotesFor(null)}
           theme={theme}
-          notes={editingNotesFor ? getCalendarNoteText(entries, toKey(editingNotesFor)) : ''}
+          notes={editingNotesFor ? getCalendarNoteText(calendarNotes, toKey(editingNotesFor)) : ''}
           onSave={handleSaveNotes}
       />
 
