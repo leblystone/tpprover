@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette } from 'lucide-react'
+import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, FileText } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
@@ -347,10 +347,23 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     </div>
                                 </div>
 
-                                {/* Notes - simplified for mobile */}
-                                <div className="text-[9px] sm:text-[10px] md:text-[11px] leading-tight mt-auto truncate sm:whitespace-normal" style={{ color: theme.textLight }}>
-                                    {entryText}
-                                </div>
+                                {/* Notes indicator - icon badge */}
+                                {entryText && (
+                                    <div className="mt-auto pt-1">
+                                        <div 
+                                            className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[8px] sm:text-[9px] rounded border" 
+                                            style={{ 
+                                                borderColor: theme.isDark ? '#4b5563' : '#d1d5db',
+                                                backgroundColor: theme.isDark ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.5)',
+                                                color: theme.isDark ? '#9ca3af' : '#6b7280'
+                                            }}
+                                            title={entryText}
+                                        >
+                                            <FileText size={10} className="flex-shrink-0" />
+                                            <span className="font-medium">Note</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Washout indicator - only show if enabled in settings */}
                                 {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
