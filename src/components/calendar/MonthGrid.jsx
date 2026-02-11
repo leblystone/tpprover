@@ -347,26 +347,24 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     </div>
                                 </div>
 
-                                {/* Notes indicator - icon only, bottom right */}
-                                {entryText && (
-                                    <div className="absolute bottom-1 right-1">
-                                        <div 
-                                            className="flex items-center justify-center w-5 h-5 rounded border border-gray-300 bg-gray-200" 
-                                            title={entryText}
-                                        >
-                                            <FileText size={10} className="text-gray-800" strokeWidth={2.5} />
-                                        </div>
+                                {/* Bottom indicators row - washout left, note right */}
+                                {(showWashoutIcons && sched.washout && sched.washout.length > 0) || entryText ? (
+                                    <div className="mt-1 flex items-center justify-between">
+                                        {/* Washout indicator - left side */}
+                                        {showWashoutIcons && sched.washout && sched.washout.length > 0 ? (
+                                            <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
+                                                W
+                                            </span>
+                                        ) : <span />}
+                                        
+                                        {/* Note indicator - right side */}
+                                        {entryText ? (
+                                            <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold flex items-center justify-center" title={entryText}>
+                                                <FileText size={10} strokeWidth={2.5} />
+                                            </span>
+                                        ) : <span />}
                                     </div>
-                                )}
-
-                                {/* Washout indicator - only show if enabled in settings */}
-                                {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
-                                    <div className="mt-1">
-                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
-                                            W
-                                        </span>
-                                    </div>
-                                )}
+                                ) : null}
                             </div>
                         </button>
                     )
