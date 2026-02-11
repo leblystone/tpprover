@@ -254,7 +254,7 @@ export const DEFAULT_WIDGETS = [
     title: 'Research Glossary',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 3 },
-    enabled: true,
+    enabled: false, // Hidden - Under construction
     settings: {
       showRecent: true,
       showFavorites: true
@@ -535,7 +535,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.9'; // UPDATED: Supplements widget moved to third position
+    const currentVersion = '3.10'; // UPDATED: Research Glossary widget hidden (under construction)
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
