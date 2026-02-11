@@ -34,8 +34,9 @@ function saveDeletionTracking(tracking) {
  * @param {string} dataType - Type of data (e.g., 'orders', 'protocols', 'stockpile')
  * @param {string} itemId - ID of the deleted item
  * @param {Object} itemData - Optional: Full item data snapshot for restore functionality
+ * @param {number} customTimestamp - Optional: Custom timestamp (for offsetting to handle serverTimestamp() sentinels)
  */
-export function recordDeletion(dataType, itemId, itemData = null) {
+export function recordDeletion(dataType, itemId, itemData = null, customTimestamp = null) {
   if (!dataType || !itemId) {
     console.warn('⚠️ Cannot record deletion - missing dataType or itemId');
     return;
@@ -47,15 +48,18 @@ export function recordDeletion(dataType, itemId, itemData = null) {
     tracking[dataType] = {};
   }
 
-  // Record deletion with current timestamp and optional item snapshot
+  // Use custom timestamp if provided, otherwise use current time
+  const timestamp = customTimestamp || Date.now();
+  
+  // Record deletion with timestamp and optional item snapshot
   tracking[dataType][itemId] = {
-    deletedAt: new Date().toISOString(),
-    timestamp: Date.now(),
+    deletedAt: new Date(timestamp).toISOString(),
+    timestamp: timestamp,
     ...(itemData && { itemData }) // Store item snapshot if provided
   };
 
   saveDeletionTracking(tracking);
-  console.log(`🗑️ Recorded deletion: ${dataType}/${itemId}${itemData ? ' (with snapshot)' : ''}`);
+  console.log(`🗑️ Recorded deletion: ${dataType}/${itemId}${itemData ? ' (with snapshot)' : ''}${customTimestamp ? ' (custom timestamp)' : ''}`);
 }
 
 /**

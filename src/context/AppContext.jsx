@@ -150,6 +150,9 @@ export function AppProvider({ children }) {
     const autoSyncTimerRef = useRef(null);
     const AUTOSYNC_DEBOUNCE_MS = 500;
     
+    // Flag to prevent auto-save until after initial Firestore load (prevents stale cache from overwriting fresh cloud data)
+    const hasLoadedFromFirestoreRef = useRef(false);
+    
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     // SECURITY: Validate user ownership before loading to prevent data bleeding
     useEffect(() => {
@@ -1558,6 +1561,14 @@ export function AppProvider({ children }) {
         if (isInitialLoad || isApplyingRemoteUpdateRef.current || !firebaseUser) {
             return;
         }
+        
+        // CRITICAL: Skip auto-sync until after initial Firestore load
+        // This prevents stale localStorage cache from overwriting fresh cloud data
+        // (e.g., phone opens with yesterday's cache, auto-saves before listener updates)
+        if (!hasLoadedFromFirestoreRef.current) {
+            console.log('⏸️ Skipping auto-sync - waiting for initial Firestore load');
+            return;
+        }
 
         // Clear existing timer
         if (autoSyncTimerRef.current) {
@@ -1753,6 +1764,9 @@ export function AppProvider({ children }) {
             localStorage.removeItem('tpprover_last_user_email');
             localStorage.removeItem('tpprover_user');
             localStorage.removeItem('tpprover_auth_token');
+            
+            // Reset Firestore load flag to prevent auto-save before next login's initial load
+            hasLoadedFromFirestoreRef.current = false;
             
             verifyUserDataCleared();
             
@@ -2812,10 +2826,10 @@ export function AppProvider({ children }) {
                                     localCount: reconItems?.length
                                 });
                                 
-                                // Check if we just saved reconItems locally (skip window to prevent overwrites)
-                                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
-                                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
-                                const RECON_SKIP_WINDOW_MS = 3000; // 3 seconds
+                // Check if we just saved reconItems locally (skip window to prevent overwrites)
+                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                const RECON_SKIP_WINDOW_MS = 1000; // 1 second
                                 
                                 if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                     console.log(`🧪 [RECON-SYNC] Skipping listener update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
@@ -2844,7 +2858,7 @@ export function AppProvider({ children }) {
                                 // Check skip window for reconHistory too
                                 const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                 const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
-                                const RECON_SKIP_WINDOW_MS = 3000;
+                                const RECON_SKIP_WINDOW_MS = 1000;
                                 
                                 if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
                                     console.log(`🧪 [RECON-SYNC] Skipping history update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
@@ -2996,6 +3010,13 @@ export function AppProvider({ children }) {
                                 localStorage.setItem('tpprover_injection_history', JSON.stringify(mergedHist));
                                 localStorage.setItem('tpprover_injection_stats', JSON.stringify(mergedStats));
                             }
+            }
+            
+            // Mark that we've successfully loaded from Firestore
+            // This enables auto-save to prevent stale cache overwrites
+            if (!hasLoadedFromFirestoreRef.current) {
+                hasLoadedFromFirestoreRef.current = true;
+                console.log('✅ Initial Firestore load complete - auto-save now enabled');
             }
             
             setTimeout(() => {

@@ -3,10 +3,11 @@ import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus, Link, Hand } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown, Hash, Info, Tag, Percent, FilePlus, Link, Hand, List, CheckCircle2, XCircle } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
+import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconTipsBanner from '../components/recon/ReconTipsBanner'
@@ -373,6 +374,31 @@ export default function Recon() {
 
 	const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
 
+	// Filter options for In Use tab
+	const inUseFilterOptions = useMemo(() => {
+		const inUseCount = reconItems.filter(i => !i.isDraft).length;
+		const draftCount = reconItems.filter(i => i.isDraft).length;
+		const totalCount = reconItems.length;
+		
+		return [
+			{
+				value: 'all',
+				label: `All Vials (${totalCount})`,
+				icon: <List size={16} style={{ color: theme.textLight }} />
+			},
+			{
+				value: 'inuse',
+				label: `Currently In Use (${inUseCount})`,
+				icon: <CheckCircle2 size={16} style={{ color: theme.primary }} />
+			},
+			{
+				value: 'draft',
+				label: `Draft Vials (${draftCount})`,
+				icon: <XCircle size={16} style={{ color: '#6b7280' }} />
+			}
+		];
+	}, [reconItems, theme.textLight, theme.primary]);
+
     const adjustStockpileAfterRecon = useCallback((peptidesUsed) => {
         if (!Array.isArray(peptidesUsed) || peptidesUsed.length === 0) {
             return;
@@ -716,8 +742,10 @@ export default function Recon() {
 	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate || b.date) - new Date(a.usedDate || a.date));
 
     const handleMarkAsUsed = async (itemToMove) => {
-        // CRITICAL: Record deletion so merge knows to remove this item on other devices
-        recordDeletion('reconItems', itemToMove.id, itemToMove);
+        // CRITICAL: Record deletion with +6000ms offset to ensure it's newer than serverTimestamp() sentinel (+5000ms)
+        // This prevents merge logic from treating the server version as a "recreate" after deletion
+        const deletionTimestamp = Date.now() + 6000;
+        recordDeletion('reconItems', itemToMove.id, itemToMove, deletionTimestamp);
         
         // Remove the item from reconItems (don't update timestamps on remaining items - they haven't changed!)
         const updatedItems = reconItems.filter(i => i.id !== itemToMove.id);
@@ -765,9 +793,10 @@ export default function Recon() {
                 });
                 
                 // Use skipMerge: false for intelligent timestamp-based merging
+                // Deletion timestamp is offset by +6000ms to beat serverTimestamp() sentinel (+5000ms)
                 const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
-                    console.log('✅ Marked-as-used item synced to cloud with force merge');
+                    console.log('✅ Marked-as-used item synced to cloud with timestamp merge');
                     
                     // CRITICAL: Update localStorage timestamp to prevent listener from overwriting
                     try {
@@ -838,7 +867,7 @@ export default function Recon() {
         }
     };
 
-	// Set topbar tabs via custom event
+    // Set topbar tabs via custom event
 	useEffect(() => {
 		const updateTabs = () => {
 			const isMobile = window.matchMedia('(max-width: 767px)').matches;
@@ -907,63 +936,20 @@ export default function Recon() {
 				
 				{activeTab === 'inuse' && (
 						<div className="space-y-4">
-							{/* Filter buttons - Currently In Use / Draft / All */}
-							<div className="flex gap-2 flex-wrap">
-								<button
-									onClick={() => setInUseFilter('inuse')}
-									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-									style={{
-										backgroundColor: inUseFilter === 'inuse' ? theme.primary : `${theme.primary}20`,
-										color: inUseFilter === 'inuse' ? theme.textOnPrimary : theme.text,
-										border: `1px solid ${inUseFilter === 'inuse' ? theme.primary : 'transparent'}`
-									}}
-								>
-									Currently In Use
-									{reconItems.filter(i => !i.isDraft).length > 0 && (
-										<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
-											backgroundColor: inUseFilter === 'inuse' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
-										}}>
-											{reconItems.filter(i => !i.isDraft).length}
-										</span>
-									)}
-								</button>
-								
-								<button
-									onClick={() => setInUseFilter('draft')}
-									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-									style={{
-										backgroundColor: inUseFilter === 'draft' ? theme.primary : `${theme.primary}20`,
-										color: inUseFilter === 'draft' ? theme.textOnPrimary : theme.text,
-										border: `1px solid ${inUseFilter === 'draft' ? theme.primary : 'transparent'}`
-									}}
-								>
-									Draft Vials
-									{reconItems.filter(i => i.isDraft).length > 0 && (
-										<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
-											backgroundColor: inUseFilter === 'draft' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
-										}}>
-											{reconItems.filter(i => i.isDraft).length}
-										</span>
-									)}
-								</button>
-								
-								<button
-									onClick={() => setInUseFilter('all')}
-									className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-									style={{
-										backgroundColor: inUseFilter === 'all' ? theme.primary : `${theme.primary}20`,
-										color: inUseFilter === 'all' ? theme.textOnPrimary : theme.text,
-										border: `1px solid ${inUseFilter === 'all' ? theme.primary : 'transparent'}`
-									}}
-								>
-									All
-									<span className="ml-2 px-2 py-0.5 rounded-full text-xs" style={{
-										backgroundColor: inUseFilter === 'all' ? `${theme.textOnPrimary}20` : `${theme.primary}30`
-									}}>
-										{reconItems.length}
-									</span>
-								</button>
-							</div>
+							{/* Filter Dropdown */}
+							{reconItems.length > 0 && (
+								<div className="mb-6">
+									<CustomDropdown
+										value={inUseFilter}
+										onChange={setInUseFilter}
+										options={inUseFilterOptions}
+										theme={theme}
+										placeholder="Filter vials..."
+										outlined={true}
+										customShadow={true}
+									/>
+								</div>
+							)}
 							
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (
@@ -1155,9 +1141,12 @@ export default function Recon() {
                                                     </div>
                                                 )}
                                                 <div className="flex items-center gap-1.5">
+                                                    <span className="text-[9px] font-medium opacity-60 uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                        {item.isDraft ? 'Started' : 'Reconstituted'}
+                                                    </span>
                                                     <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
                                                     <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
-                                                        {formatMMDDYYYY(item.date)}
+                                                        {item.date || item.createdAt ? formatMMDDYYYY(item.date || item.createdAt) : 'No Date'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1403,6 +1392,9 @@ export default function Recon() {
                                                             Archived
                                                         </div>
                                                         <div className="flex items-center gap-1.5">
+                                                            <span className="text-[9px] font-medium opacity-60 uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                                Finished
+                                                            </span>
                                                             <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
                                                             <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
                                                                 {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}
