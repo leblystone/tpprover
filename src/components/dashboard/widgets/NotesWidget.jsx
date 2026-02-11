@@ -3,6 +3,7 @@ import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
 import { generateId } from '../../../utils/string';
 import { prepareItemForSave } from '../../../utils/userDataSave';
+import { recordDeletion } from '../../../utils/deletionTracking';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -60,7 +61,6 @@ const NotesWidget = ({ widget, theme }) => {
     const noteToDelete = userNotes.find(note => note.id === noteId);
     
     // Record deletion with item snapshot for restore functionality
-    const { recordDeletion } = require('../../../utils/deletionTracking');
     if (noteToDelete) {
       recordDeletion('userNotes', noteId, noteToDelete);
     } else {

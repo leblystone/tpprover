@@ -2361,10 +2361,10 @@ export function AppProvider({ children }) {
                     scheduledBuys: scheduledBuys || []
                 };
                 
-                // Use skipMerge to force overwrite server data with our update
-                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                // Use skipMerge: false for timestamp-based merging
+                const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
-                    console.log('✅ Updated supplement synced to cloud immediately');
+                    console.log('✅ Updated supplement synced to cloud with timestamp merge');
                 } else {
                     console.error('❌ Failed to sync updated supplement to cloud');
                 }
@@ -2440,10 +2440,10 @@ export function AppProvider({ children }) {
                         scheduledBuys: scheduledBuys || []
                     };
                     
-                    // Force immediate sync with skipMerge to overwrite server data
-                    const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                    // Use skipMerge: false for timestamp-based merging with deletion tracking
+                    const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                     if (syncResult) {
-                        console.log('✅ Deleted supplement synced to cloud immediately');
+                        console.log('✅ Deleted supplement synced to cloud with timestamp merge');
                     } else {
                         console.error('❌ Failed to sync deleted supplement to cloud');
                     }

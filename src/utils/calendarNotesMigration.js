@@ -143,12 +143,14 @@ export function replaceCalendarNotesForDate(calendarNotes, dateKey, text) {
     }
     
     // Otherwise, replace with new note
-    const newNote = {
-        id: generateId(12),
-        text: text.trim(),
-        createdAt: now,
-        updatedAt: now
-    };
+    const newNote = prepareItemForSave(
+        {
+            id: generateId(12),
+            text: text.trim(),
+            createdAt: now
+        },
+        { isNew: true }
+    );
     
     return {
         ...calendarNotes,

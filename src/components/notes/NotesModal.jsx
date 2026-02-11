@@ -3,6 +3,7 @@ import { FileText, Plus, Edit3, Trash2, X, Save } from 'lucide-react';
 import Modal from '../common/Modal';
 import { generateId } from '../../utils/string';
 import { prepareItemForSave } from '../../utils/userDataSave';
+import { recordDeletion } from '../../utils/deletionTracking';
 
 const NotesModal = ({ isOpen, onClose, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
@@ -72,6 +73,10 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
   };
 
   const handleDeleteNote = (id) => {
+    const noteToDelete = userNotes.find(note => note.id === id);
+    if (noteToDelete) {
+      recordDeletion('userNotes', id, noteToDelete);
+    }
     const updatedNotes = userNotes.filter(note => note.id !== id);
     saveNotes(updatedNotes);
   };

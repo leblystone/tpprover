@@ -8,6 +8,8 @@ import { useAppContext } from '../../context/AppContext';
 import AddScheduledBuyModal from './AddScheduledBuyModal';
 import { saveAppData } from '../../services/cloudStorage';
 import { useFirebase } from '../../context/FirebaseContext';
+import { prepareItemForSave } from '../../utils/userDataSave';
+import { recordDeletion } from '../../utils/deletionTracking';
 
 export default function ScheduledBuysPanel({ theme }) {
     const { scheduledBuys, setScheduledBuys, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile } = useAppContext();
@@ -28,19 +30,18 @@ export default function ScheduledBuysPanel({ theme }) {
     }, [scheduledBuys]);
 
     const handleSave = (buy) => {
-        const now = new Date().toISOString();
         if (buy.id) {
-            setScheduledBuys(prev => prev.map(b => b.id === buy.id ? { 
-                ...buy, 
-                updatedAt: now 
-            } : b));
+            // Edit existing scheduled buy
+            const updatedBuy = prepareItemForSave({ ...buy });
+            setScheduledBuys(prev => prev.map(b => b.id === buy.id ? updatedBuy : b));
         } else {
-            setScheduledBuys(prev => [...prev, { 
+            // Create new scheduled buy
+            const newBuy = prepareItemForSave({ 
                 ...buy, 
-                id: generateId(), 
-                createdAt: now, 
-                updatedAt: now 
-            }]);
+                id: generateId(),
+                createdAt: new Date().toISOString()
+            }, { isNew: true });
+            setScheduledBuys(prev => [...prev, newBuy]);
         }
         setIsModalOpen(false);
         setEditingBuy(null);
@@ -50,6 +51,8 @@ export default function ScheduledBuysPanel({ theme }) {
         const buyToDelete = scheduledBuys.find(b => b.id === id);
         if (buyToDelete) {
             console.log('🗑️ Deleting scheduled buy:', buyToDelete.item || buyToDelete.name || 'Unknown');
+            // Record deletion for cross-device sync
+            recordDeletion('scheduledBuys', id, buyToDelete);
         }
         const updatedBuys = scheduledBuys.filter(b => b.id !== id);
         setScheduledBuys(updatedBuys);
@@ -68,8 +71,11 @@ export default function ScheduledBuysPanel({ theme }) {
                     stockpile: stockpile || [],
                     scheduledBuys: updatedBuys
                 };
-                saveAppData(userId, appData, { skipMerge: true });
-            } catch (error) {}
+                // Use skipMerge: false for timestamp-based merging
+                saveAppData(userId, appData, { skipMerge: false });
+            } catch (error) {
+                console.error('Failed to sync scheduled buy deletion:', error);
+            }
         }
     };
 
