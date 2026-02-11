@@ -349,20 +349,23 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
 
                                 {/* Bottom indicators row - washout left, note right */}
                                 {(showWashoutIcons && sched.washout && sched.washout.length > 0) || entryText ? (
-                                    <div className="mt-auto flex items-end justify-between gap-1">
+                                    <div className="mt-auto flex items-end gap-1">
                                         {/* Washout indicator - left side */}
-                                        {showWashoutIcons && sched.washout && sched.washout.length > 0 ? (
-                                            <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={`Washout: ${sched.washout.join(', ')}`}>
+                                        {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
+                                            <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={`Washout: ${sched.washout.join(', ')}`}>
                                                 W
                                             </span>
-                                        ) : <span />}
+                                        )}
+                                        
+                                        {/* Spacer to push note to right */}
+                                        <span className="flex-1" />
                                         
                                         {/* Note indicator - right side */}
-                                        {entryText ? (
-                                            <span className="inline-flex items-center justify-center px-1 py-0.5 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={entryText}>
-                                                <FileText size={10} strokeWidth={2.5} />
+                                        {entryText && (
+                                            <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={entryText}>
+                                                <FileText size={9} strokeWidth={2.5} />
                                             </span>
-                                        ) : <span />}
+                                        )}
                                     </div>
                                 ) : null}
                             </div>
