@@ -347,20 +347,14 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     </div>
                                 </div>
 
-                                {/* Notes indicator - icon badge */}
+                                {/* Notes indicator - icon only, bottom right */}
                                 {entryText && (
-                                    <div className="mt-auto pt-1">
+                                    <div className="absolute bottom-1 right-1">
                                         <div 
-                                            className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[8px] sm:text-[9px] rounded border" 
-                                            style={{ 
-                                                borderColor: theme.isDark ? '#4b5563' : '#d1d5db',
-                                                backgroundColor: theme.isDark ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.5)',
-                                                color: theme.isDark ? '#9ca3af' : '#6b7280'
-                                            }}
+                                            className="flex items-center justify-center w-5 h-5 rounded border border-gray-300 bg-gray-200" 
                                             title={entryText}
                                         >
-                                            <FileText size={10} className="flex-shrink-0" />
-                                            <span className="font-medium">Note</span>
+                                            <FileText size={10} className="text-gray-800" strokeWidth={2.5} />
                                         </div>
                                     </div>
                                 )}
