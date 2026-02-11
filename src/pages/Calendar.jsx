@@ -148,7 +148,7 @@ function getWindows(p) {
 
 export default function Calendar() {
   const { theme } = useOutletContext()
-  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys } = useAppContext();
+  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const { firebaseUser } = useFirebase();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -176,7 +176,6 @@ export default function Calendar() {
       return 'month';
     }
   }) // 'month' | 'week'
-  const [entries, setEntries] = useState({})
   const [activeDay, setActiveDay] = useState(null)
   const [editingNotesFor, setEditingNotesFor] = useState(null)
   const [dayModalDate, setDayModalDate] = useState(null) // For day modal in monthly view
@@ -212,19 +211,24 @@ export default function Calendar() {
   const [injectionTask, setInjectionTask] = useState(null);
   const [pendingInjectionTasks, setPendingInjectionTasks] = useState([]);
   const [pendingMarkAllContext, setPendingMarkAllContext] = useState(null); // { date, timeSlot, slotKey, allTaskIds }
-  // Load persisted notes (entries) and done slots
+  // Migrate legacy localStorage calendar notes to context on mount
   useEffect(() => {
     try { 
       const raw = localStorage.getItem('tpprover_calendar_notes'); 
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Migrate to new ID-based format
-        const migrated = migrateCalendarNotesToIdBased(parsed);
-        setEntries(migrated);
-        // Save migrated format back to localStorage
-        localStorage.setItem('tpprover_calendar_notes', JSON.stringify(migrated));
+        // Only migrate if there's no data in context yet (first-time migration)
+        if (!calendarNotes || Object.keys(calendarNotes).length === 0) {
+          const migrated = migrateCalendarNotesToIdBased(parsed);
+          setCalendarNotes(migrated);
+          console.log('📅 Migrated calendar notes from localStorage to context');
+        }
+        // Remove localStorage key now that data is in context/Firebase
+        localStorage.removeItem('tpprover_calendar_notes');
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Failed to migrate calendar notes:', e);
+    }
     // Load done data from unified completion system
     setDone(getCalendarDone());
   }, [])
@@ -1233,7 +1237,7 @@ export default function Calendar() {
   }, []);
 
 
-  useEffect(() => { try { localStorage.setItem('tpprover_calendar_notes', JSON.stringify(entries)) } catch {} }, [entries])
+  // Calendar notes now synced via context/Firebase (no localStorage needed)
   useEffect(() => { try { localStorage.setItem('tpprover_calendar_done', JSON.stringify(done)) } catch {} }, [done])
   // seed buys from dashboard-like state (dummy). Integration will come later.
   // scheduled example usage: setScheduled(prev => ({ ...prev, [someKey]: { ...(prev[someKey]||{}), buys: 2 } }))
@@ -1361,7 +1365,7 @@ export default function Calendar() {
         {viewMode === 'month' ? (
           <MonthGrid
             date={currentDate}
-            entries={entries}
+            entries={calendarNotes}
             scheduled={scheduled}
             theme={theme}
             calendarBump={calendarBump}
@@ -1376,7 +1380,7 @@ export default function Calendar() {
           <div className="space-y-2">
             <WeekView 
               startDate={weekStart} 
-              entries={entries} 
+              entries={calendarNotes} 
               scheduled={scheduled} 
               theme={theme} 
               calendarBump={calendarBump}
@@ -1435,7 +1439,7 @@ export default function Calendar() {
       {dayModalDate && (
         <DayModal
           date={dayModalDate}
-          entries={entries}
+          entries={calendarNotes}
           scheduled={scheduled}
           theme={theme}
           onClose={() => setDayModalDate(null)}

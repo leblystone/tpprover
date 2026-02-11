@@ -337,10 +337,6 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                 // Prevent blur events on mobile
                 e.preventDefault();
               }}
-              onTouchStart={(e) => {
-                // Prevent blur events on touch devices
-                e.preventDefault();
-              }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
