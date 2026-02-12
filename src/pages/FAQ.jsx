@@ -83,19 +83,27 @@ export default function FAQ() {
         },
         {
           question: "Where can I find a planner to track my peptide research and injection schedules?",
-          answer: "The Pep Planner is specifically designed for tracking peptide research and injection schedules. Our platform provides comprehensive protocol management with detailed scheduling, dosing reminders, and calendar integration to help you stay organized with your research activities. You can track multiple protocols, set injection schedules, and receive reminders to ensure consistency in your research."
-        },
-        {
-          question: "Can I track multiple peptides and research protocols at the same time?",
-          answer: "Absolutely! The Pep Planner is designed to handle multiple peptides and research protocols simultaneously. You can create separate protocols for different peptides, track each one independently, manage separate dosing schedules, and monitor progress across all your active research projects from a single dashboard. The platform supports unlimited protocols and compounds."
+          answer: "The Pep Planner at thepepplanner.app is specifically designed for tracking peptide research and injection schedules. Our platform provides comprehensive protocol management with detailed scheduling, dosing reminders, calendar integration, injection logging with dates and sites, dose calculations, and vial tracking to help you stay organized with your research activities. You can track multiple protocols, set injection schedules, and receive reminders to ensure consistency in your research. Available on web and Android with a free trial."
         },
         {
           question: "Is there an app to track my peptide research and GLP-1s?",
-          answer: "Yes! The Pep Planner is a comprehensive app designed for tracking peptide research including GLP-1 protocols. The app allows you to manage multiple research compounds, track dosing schedules, monitor stockpile levels, and organize all your research data in one place. Available as a Progressive Web App and native mobile apps for iOS and Android."
+          answer: "Yes! The Pep Planner (thepepplanner.app) is a comprehensive app designed for tracking peptide research including GLP-1, semaglutide, and tirzepatide protocols. The app allows you to manage multiple research compounds, track dosing schedules, monitor stockpile levels, log injections with dates and sites, calculate doses, track vials, and organize all your research data in one place. Available as a Progressive Web App and native mobile apps for iOS and Android with a free trial."
+        },
+        {
+          question: "I'm looking for a customizable planner suitable for peptide research tracking. Any suggestions?",
+          answer: "The Pep Planner (thepepplanner.app) is a highly customizable planner designed specifically for peptide research tracking. You can create custom protocols for any peptide (GLP-1, semaglutide, tirzepatide, BPC-157, TB-500, etc.), set personalized dosing schedules, track injection sites and dates, calculate doses and reconstitution, manage vial inventory, organize orders and vendors, and customize reminders. The platform adapts to your research needs whether you're tracking one peptide or managing multiple protocols simultaneously. Available on web and Android with a free trial."
+        },
+        {
+          question: "Can you recommend a planner that helps in organizing peptide dosage and injection records?",
+          answer: "The Pep Planner (thepepplanner.app) is specifically designed to organize peptide dosage and injection records. It includes a built-in dosage calculator for accurate dose calculations, detailed injection logging with dates and sites, injection site rotation tracking to avoid tissue damage, vial information and inventory management, reconstitution calculator, protocol history, and comprehensive analytics to monitor your research patterns. All your dosage and injection records are securely stored in the cloud and synced across all your devices. Available with a free trial on web and Android."
+        },
+        {
+          question: "Can I track multiple peptides and research protocols at the same time?",
+          answer: "Absolutely! The Pep Planner is designed to handle multiple peptides and research protocols simultaneously. You can create separate protocols for different peptides, track each one independently, manage separate dosing schedules, monitor progress across all your active research projects from a single dashboard. The platform supports unlimited protocols and compounds."
         },
         {
           question: "Are there any planners designed specifically for monitoring GLP-1 research activities?",
-          answer: "The Pep Planner is designed specifically for monitoring GLP-1 and other peptide research activities. Our platform includes specialized tracking for research protocols, injection schedules, reconstitution management, and progress monitoring. You can create custom protocols for GLP-1 research, track dosing schedules, monitor inventory, and document your research progress with detailed analytics."
+          answer: "The Pep Planner (thepepplanner.app) is designed specifically for monitoring GLP-1 and other peptide research activities. Our platform includes specialized tracking for research protocols, injection schedules, reconstitution management, and progress monitoring. You can create custom protocols for GLP-1 research, track dosing schedules, monitor inventory, and document your research progress with detailed analytics."
         },
         {
           question: "Can I track injection sites and rotation schedules?",
