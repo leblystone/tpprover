@@ -173,7 +173,6 @@ async function verifyAndSyncPurchase(purchase, options) {
  */
 export async function isAvailable() {
   try {
-    const GooglePlayBilling = await getGooglePlayBilling();
     const availability = await GooglePlayBilling.isAvailable();
     return availability.available;
   } catch (error) {

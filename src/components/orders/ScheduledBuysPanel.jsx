@@ -38,8 +38,7 @@ export default function ScheduledBuysPanel({ theme }) {
             // Create new scheduled buy
             const newBuy = prepareItemForSave({ 
                 ...buy, 
-                id: generateId(),
-                createdAt: new Date().toISOString()
+                id: generateId()
             }, { isNew: true });
             setScheduledBuys(prev => [...prev, newBuy]);
         }

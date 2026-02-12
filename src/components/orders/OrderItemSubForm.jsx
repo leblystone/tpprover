@@ -45,7 +45,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
             return 'Cost per Gram ($/g)';
         } else if (unit === 'ml') {
             return 'Cost per Milliliter ($/mL)';
-        } else if (unit === 'iu') {
+        } else if (unit === 'iu' || unit === 'IU') {
             return 'Cost per IU ($/IU)';
         }
         return 'Cost per Milligram ($/mg)';

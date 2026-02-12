@@ -38,6 +38,82 @@ function getDayDifference(date1, date2) {
     return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Get the correct dose and unit for a peptide on a specific date, accounting for titration schedules
+ * @param {Object} protocol - The protocol object with startDate
+ * @param {Object} peptide - The peptide object with dosage and optional titration array
+ * @param {Date|string} targetDate - The date to calculate dose for
+ * @returns {Object} { dose, unit } - The dose amount and unit for the target date
+ */
+function getTitrationDoseForDate(protocol, peptide, targetDate) {
+    // If no titration array or it's empty, use fixed dose
+    if (!peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0) {
+        return {
+            dose: peptide.dosage?.amount || '',
+            unit: peptide.dosage?.unit || ''
+        };
+    }
+
+    // Calculate days elapsed since protocol start
+    const protocolStart = parseDateString(protocol.startDate);
+    const target = parseDateString(targetDate);
+    
+    if (!protocolStart || !target) {
+        // Can't calculate, use fixed dose
+        return {
+            dose: peptide.dosage?.amount || '',
+            unit: peptide.dosage?.unit || ''
+        };
+    }
+
+    const daysElapsed = getDayDifference(protocolStart, target);
+    if (daysElapsed < 0) {
+        // Target date is before protocol start
+        return { dose: '', unit: '' };
+    }
+
+    // Walk through titration phases to find which one applies
+    let cumulativeDays = 0;
+    for (let i = 0; i < peptide.titration.length; i++) {
+        const phase = peptide.titration[i];
+        const isLastPhase = i === peptide.titration.length - 1;
+        const durationCount = Number(phase.durationCount) || 0;
+        const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
+        
+        // Convert duration to days (support 'days' and 'day', 'weeks' and 'week')
+        let phaseDays = durationCount;
+        if (durationUnit.includes('week')) {
+            phaseDays = durationCount * 7;
+        } else if (durationUnit.includes('month')) {
+            phaseDays = durationCount * 30; // Approximate
+        }
+        // If duration is 0: last phase = maintenance (infinite); otherwise treat as 1 day so we don't get stuck on phase 1
+        if (phaseDays <= 0) {
+            if (isLastPhase) {
+                return { dose: phase.dose || '', unit: phase.doseUnit || '' };
+            }
+            phaseDays = 1;
+        }
+        
+        // Check if target date falls within this phase
+        if (daysElapsed < cumulativeDays + phaseDays) {
+            return {
+                dose: phase.dose || '',
+                unit: phase.doseUnit || ''
+            };
+        }
+        
+        cumulativeDays += phaseDays;
+    }
+
+    // Past all phases, use the last phase as maintenance dose
+    const lastPhase = peptide.titration[peptide.titration.length - 1];
+    return {
+        dose: lastPhase.dose || '',
+        unit: lastPhase.doseUnit || ''
+    };
+}
+
 // Helper to get protocol date windows
 function getWindows(p) {
     try {
@@ -202,16 +278,17 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 const times = freq.time || ['AM'];
                 const firstPeptide = peptides[0];
                 
-                // Build dose display
-                const doseParts = peptides.map(pep => 
-                    `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
-                );
+                // Build dose display accounting for titration
+                const doseParts = peptides.map(pep => {
+                    const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
+                    return `${pep.name} ${titrationResult.dose} ${titrationResult.unit || 'mcg'}`;
+                });
                 const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
                 
                 let dose = doseParts.join(' + ');
                 let unit = '';
                 
-                // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
+                // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Titration/Default dose/unit
                 if (additionalUnits && additionalUnits.trim() !== '') {
                     // User manually entered units in protocol - HIGHEST priority
                     dose = `${additionalUnits} units`;
@@ -229,7 +306,14 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                             return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
                         }, 0);
                         const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
-                        const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
+                        // Get first peptide's unit for calculation context
+                        const firstPepUnit = peptides[0]?.dosage?.unit || 'mcg';
+                        const calc = calculateRecon({ 
+                            ...reconItem, 
+                            mg: totalMg, 
+                            dose: totalDoseInMcg,
+                            doseUnit: firstPepUnit // FIX: Pass doseUnit for proper calculation
+                        });
                         if (calc.unitsPerDose > 0) {
                             dose = `${calc.unitsPerDose.toFixed(0)} units`;
                             unit = '';
@@ -325,11 +409,14 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
 
                 if (isScheduledToday) {
                     const times = freq.time || ['AM'];
-                    let dose = pep.dosage?.amount || '';
-                    let unit = pep.dosage?.unit || '';
+                    
+                    // Get dose/unit accounting for titration schedule
+                    const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
+                    let dose = titrationResult.dose;
+                    let unit = titrationResult.unit;
                     const additionalUnits = pep.unitValue || '';
 
-                    // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
+                    // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Titration/Default dose/unit
                     if (additionalUnits && additionalUnits.trim() !== '') {
                         // User manually entered units in protocol - HIGHEST priority
                         dose = `${additionalUnits} units`;
@@ -345,19 +432,20 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                             const calc = calculateRecon({
                                 mg: reconItem.mg,
                                 water: reconItem.water,
-                                dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount
+                                dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount,
+                                doseUnit: unit || 'mcg' // FIX: Pass doseUnit for proper calculation
                             });
                             if (calc.unitsPerDose > 0) {
                                 dose = `${calc.unitsPerDose.toFixed(0)} units`;
                                 unit = '';
                             } else {
-                                // No calculation available, use default dose/unit
+                                // No calculation available, use titration/default dose/unit
                                 dose = `${dose} ${unit}`;
                                 unit = '';
                             }
                         }
                     } else {
-                        // No recon item, use default dose/unit
+                        // No recon item, use titration/default dose/unit
                         dose = `${dose} ${unit}`;
                         unit = '';
                     }

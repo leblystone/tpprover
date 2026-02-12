@@ -20,9 +20,8 @@ export default function CombinedDosageInput({
     const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
     const inputRef = useRef(null);
     // Determine units to display based on delivery method
-    // Match the recon calculator: mcg, mg, mL, iu, and sprays
-    // Always include all units to match recon calculator
-    const displayUnits = units || ['mcg', 'mg', 'mL', 'iu', 'sprays'];
+    // Match Recon and protocol editors: mcg, mg, mL, IU, sprays
+    const displayUnits = units || ['mcg', 'mg', 'mL', 'IU', 'sprays'];
 
     // Close dropdown when delivery method changes
     useEffect(() => {
@@ -166,7 +165,7 @@ export default function CombinedDosageInput({
                                                 e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
                                             }}
                             >
-                                {unit === 'iu' ? 'IU' : unit}
+                                {(unit === 'iu' || unit === 'IU') ? 'IU' : unit}
                             </button>
                                     </React.Fragment>
                         ))}

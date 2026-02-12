@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
+import { prepareItemForSave } from '../utils/userDataSave'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
@@ -711,9 +712,6 @@ export default function Stockpile() {
     const { sourceItems, targetItems, mergedName, mergedUnit } = mergeConfig
 
     try {
-      // CRITICAL: Update timestamps on merged items so they persist during cloud sync
-      const now = new Date().toISOString()
-      
       // Update all items to use the new merged name and unit
       // This includes BOTH source and target items
       const updatedItems = items.map(item => {
@@ -723,13 +721,12 @@ export default function Stockpile() {
         const isTargetItem = targetItems.some(targetItem => targetItem.id === item.id)
         
         if (isSourceItem || isTargetItem) {
-          return {
+          // CRITICAL: Use prepareItemForSave to apply serverTimestamp for proper conflict resolution
+          return prepareItemForSave({
             ...item,
             name: mergedName,
-            mgUnit: mergedUnit,
-            // CRITICAL: Update timestamp so merged items are seen as newer than server data
-            updatedAt: now
-          }
+            mgUnit: mergedUnit
+          });
         }
         return item
       })
@@ -900,7 +897,15 @@ export default function Stockpile() {
         }
     });
 
-    const cleaned = convertedRows.filter(r => (r.name || '').trim())
+    // Keep rows that have name or any other data (draft can lose name, so don't require it for filter)
+    const cleaned = convertedRows.filter(r =>
+      (r.name != null && String(r.name).trim() !== '') ||
+      (String(r.mg || '').trim() !== '') ||
+      (String(r.quantity || '').trim() !== '') ||
+      (r.vendor != null && String(r.vendor).trim() !== '')
+    );
+    // Ensure every saved row has name = manageName so the card never disappears from draft/state bugs
+    const cleanedWithName = cleaned.map(r => ({ ...r, name: (r.name && String(r.name).trim()) || manageName || 'Unknown' }));
     
     // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
     const matchesManageName = (itemName) => {
@@ -913,24 +918,31 @@ export default function Stockpile() {
     
     const others = (items || []).filter(i => !matchesManageName(i.name))
     
-    // Track deleted items for logging
+    // Track deleted items for logging (compare by id/mg/vendor to before)
     const before = (items || []).filter(i => matchesManageName(i.name))
     const deletedItems = before.filter(b => {
-      const afterMatch = cleaned.find(a => String(a.mg) === String(b.mg) && (a.vendorId ? a.vendorId === b.vendorId : (a.vendor||'') === (b.vendor||'')))
+      const afterMatch = cleanedWithName.find(a => (a.id && a.id === b.id) || (String(a.mg) === String(b.mg) && (a.vendorId ? a.vendorId === b.vendorId : (a.vendor||'') === (b.vendor||''))))
       return !afterMatch
     })
     
     if (deletedItems.length > 0) {
       console.log('🗑️ Deleting stockpile items:', deletedItems.map(i => `${i.name} ${i.mg}mg from ${i.vendorId ? vendorMap[i.vendorId] : i.vendor}`).join(', '))
+      // Record deletions for cross-device sync
+      deletedItems.forEach(item => {
+        if (item.id) {
+          recordDeletion('stockpile', item.id, item);
+        }
+      });
     }
     
-    // Add/update timestamps for modified items
-    const now = new Date().toISOString();
-    const cleanedWithTimestamps = cleaned.map(item => ({
-      ...item,
-      updatedAt: now,
-      createdAt: item.createdAt || now
-    }));
+    // Add/update timestamps for modified items using prepareItemForSave
+    const cleanedWithTimestamps = cleanedWithName.map(item => {
+      const isNew = !item.createdAt;
+      return prepareItemForSave(
+        { ...item, createdAt: item.createdAt || new Date().toISOString() },
+        { isNew }
+      );
+    });
     
     // Append history snapshots and usage markers
     try {
@@ -1010,7 +1022,7 @@ export default function Stockpile() {
       const next = [...(items || [])]
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',')
-        const row = {
+        const row = prepareItemForSave({
           id: generateId(),
           name: cols[idx('name')] || '',
           mg: cols[idx('mg')] || '',
@@ -1019,7 +1031,7 @@ export default function Stockpile() {
           capColor: cols[idx('capcolor')] || cols[idx('cap_color')] || '',
           batchNumber: cols[idx('batchnumber')] || cols[idx('batch_#')] || cols[idx('batch')] || '',
           minQty: cols[idx('minqty')] || cols[idx('min_qty')] || '1',
-        }
+        }, { isNew: true })
         next.unshift(row)
       }
       setItems(next)
@@ -1668,14 +1680,11 @@ export default function Stockpile() {
                 }
 
                 const finalVendor = (vendors || []).find(v => v.name === form.vendor);
-                const now = new Date().toISOString();
-                let itemToAdd = { 
+                let itemToAdd = prepareItemForSave({ 
                   ...form, 
                   id: generateId(), 
-                  vendorId: finalVendor ? finalVendor.id : null,
-                  createdAt: now,
-                  updatedAt: now
-                };
+                  vendorId: finalVendor ? finalVendor.id : null
+                }, { isNew: true });
                 
                 // Convert kit to vials before saving
                 if (itemToAdd.unit === 'kit') {
@@ -2132,7 +2141,7 @@ export default function Stockpile() {
                     if (unit === 'vial') return 'Vial';
                     if (unit === 'mg') return 'mg';
                     if (unit === 'g') return 'g';
-                    if (unit === 'iu') return 'IU';
+                    if (unit === 'iu' || unit === 'IU') return 'IU';
                     if (unit === 'tablet') return 'Tablet';
                     return unit.charAt(0).toUpperCase() + unit.slice(1);
                   })()}
@@ -2300,7 +2309,7 @@ export default function Stockpile() {
                     if (unit === 'vial') return 'Vial';
                     if (unit === 'mg') return 'mg';
                     if (unit === 'g') return 'g';
-                    if (unit === 'iu') return 'IU';
+                    if (unit === 'iu' || unit === 'IU') return 'IU';
                     if (unit === 'tablet') return 'Tablet';
                     return unit.charAt(0).toUpperCase() + unit.slice(1);
                   })()}
@@ -3495,13 +3504,11 @@ export default function Stockpile() {
         onSave={(data) => {
           const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
           if (editingOrder) {
-            const now = new Date().toISOString();
-            const updatedOrder = {
+            const updatedOrder = prepareItemForSave({
               ...editingOrder,
               ...data,
-              vendorId,
-              updatedAt: now
-            };
+              vendorId
+            });
             handleStockpileUpdate(editingOrder, updatedOrder);
             setOrders(prev => {
               const normalizedPrev = ensurePublicOrderNumbers(prev);
@@ -3510,17 +3517,14 @@ export default function Stockpile() {
           } else {
             const category = data.category || 'domestic';
             const nextPublicNumber = getNextPublicOrderNumber(orders);
-            const now = new Date().toISOString();
-            const newOrder = {
+            const newOrder = prepareItemForSave({
               id: generateId(),
               publicOrderNumber: nextPublicNumber,
               ...data,
               vendorId,
               category,
-              type: category,
-              createdAt: now,
-              updatedAt: now
-            };
+              type: category
+            }, { isNew: true });
             handleStockpileUpdate(null, newOrder);
             setOrders(prev => {
               const normalizedPrev = ensurePublicOrderNumbers(prev);
@@ -3596,15 +3600,16 @@ export default function Stockpile() {
               }
             });
 
-            // Get vendor IDs
+            // Get vendor IDs and apply proper timestamps
             const itemsWithVendorIds = itemsToAdd.map(item => {
               const vendor = vendors.find(v => v.name === item.vendor);
-              return {
-                ...item,
-                vendorId: vendor ? vendor.id : null,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              };
+              return prepareItemForSave(
+                {
+                  ...item,
+                  vendorId: vendor ? vendor.id : null
+                },
+                { isNew: true }
+              );
             });
 
             // Add to stockpile

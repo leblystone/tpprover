@@ -265,7 +265,8 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     const calc = calculateRecon({
                                         mg: reconItem.mg,
                                         water: reconItem.water,
-                                        dose: item.dosage?.unit === 'mg' ? (item.dosage?.amount || 0) * 1000 : item.dosage?.amount
+                                        dose: item.dosage?.unit === 'mg' ? (item.dosage?.amount || 0) * 1000 : item.dosage?.amount,
+                                        doseUnit: item.dosage?.unit || 'mcg' // FIX: Pass doseUnit for proper calculation
                                     });
 
                                     if (calc.unitsPerDose <= 0) return null;

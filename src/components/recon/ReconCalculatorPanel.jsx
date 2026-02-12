@@ -303,7 +303,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             // Without concentration data, we can't accurately convert
             // Skip this calculation and fall back to default method
             costPerMg = 0;
-          } else if (unit === 'iu') {
+          } else if (unit === 'iu' || unit === 'IU') {
             // Cost per IU -> cost per mg: use conversion factor
             const conversionFactor = Number(firstPeptide?.iuConversionFactor) || 0.001; // Default: 0.001 mg per IU
             if (conversionFactor > 0) {
@@ -1015,7 +1015,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           if (unit === 'vial') return 'Vial';
                           if (unit === 'mg') return 'mg';
                           if (unit === 'g') return 'g';
-                          if (unit === 'iu') return 'IU';
+                          if (unit === 'iu' || unit === 'IU') return 'IU';
                           if (unit === 'tablet') return 'Tablet';
                           return unit.charAt(0).toUpperCase() + unit.slice(1);
                         })()}

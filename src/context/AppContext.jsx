@@ -1904,6 +1904,16 @@ export function AppProvider({ children }) {
             const newProtocols = [...protocols];
             newProtocols[index] = prepareItemForSave(updatedProtocol);
             setProtocols(newProtocols);
+            
+            // Dispatch event for Dashboard and Calendar to refresh their task calculations
+            try {
+                window.dispatchEvent(new CustomEvent('tpp:protocol-changed', { 
+                    detail: { protocolId: updatedProtocol.id, timestamp: Date.now() } 
+                }));
+            } catch (e) {
+                console.warn('⚠️ Failed to dispatch protocol-changed event:', e);
+            }
+            
             const now = Date.now();
             lastLocalProtocolsUpdateRef.current = now;
             try {
@@ -1935,6 +1945,16 @@ export function AppProvider({ children }) {
             updatedActive: updatedProtocol.active
         });
         setProtocols(newProtocols);
+        
+        // Dispatch event for Dashboard and Calendar to refresh their task calculations
+        try {
+            window.dispatchEvent(new CustomEvent('tpp:protocol-changed', { 
+                detail: { protocolId: updatedProtocol.id, timestamp: Date.now() } 
+            }));
+        } catch (e) {
+            console.warn('⚠️ Failed to dispatch protocol-changed event:', e);
+        }
+        
         const now = Date.now();
         lastLocalProtocolsUpdateRef.current = now;
         lastRemoteUpdateTimeRef.current = now;
@@ -1983,7 +2003,7 @@ export function AppProvider({ children }) {
     
     const addProtocol = (newProtocol) => {
         const withTimestamp = prepareItemForSave(
-            { ...newProtocol, createdAt: newProtocol.createdAt || new Date().toISOString() },
+            { ...newProtocol },
             { isNew: true }
         );
         setProtocols(prev => [withTimestamp, ...prev]);
@@ -2090,15 +2110,13 @@ export function AppProvider({ children }) {
                     ? list[existingIndex].id
                     : generateId());
 
-            const now = new Date().toISOString();
-
             if (existingIndex !== -1) {
                 const existingVendor = list[existingIndex] || {};
                 const mergedVendor = prepareItemForSave({
                     ...existingVendor,
                     ...newVendor,
                     id: existingVendor.id != null ? existingVendor.id : targetId,
-                    createdAt: existingVendor.createdAt || now
+                    createdAt: existingVendor.createdAt || serverTimestamp()
                 });
                 if (newVendor.isStub === undefined) {
                     mergedVendor.isStub = !hasMeaningfulDetails(mergedVendor);
@@ -2119,7 +2137,7 @@ export function AppProvider({ children }) {
             }
 
             const createdVendor = prepareItemForSave(
-                { ...newVendor, id: targetId, createdAt: now },
+                { ...newVendor, id: targetId },
                 { isNew: true }
             );
             if (createdVendor.isStub === undefined) {

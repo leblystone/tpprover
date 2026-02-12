@@ -875,11 +875,10 @@ export default function Orders() {
 							vendorId, 
 							category, 
 							type: category,
-							createdAt: new Date().toISOString(),
 							// Mark as manual if status was set (data already has statusSource from modal if user clicked status button)
 							...(data.statusSource === 'manual' ? {
 								statusSource: 'manual',
-								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
+								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString() // Semantic timestamp for UI
 							} : {})
 						}, { isNew: true });
 						console.log('📋 Creating new order:', newOrder);

@@ -7,7 +7,16 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
     const [durationUnitDropdowns, setDurationUnitDropdowns] = useState({});
 
     const addStep = () => {
-        onChange([...(titration || []), { dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'days' }]);
+        // Phase 2+ default to Phase 1's duration to avoid repetitive entry
+        const first = (titration && titration[0]) ? titration[0] : null;
+        const defaultDurationCount = first?.durationCount != null && first.durationCount !== '' ? first.durationCount : '';
+        const defaultDurationUnit = first?.durationUnit || 'days';
+        onChange([...(titration || []), {
+            dose: '',
+            doseUnit: (first?.doseUnit) || 'mcg',
+            durationCount: defaultDurationCount,
+            durationUnit: defaultDurationUnit
+        }]);
     };
 
     const updateStep = (index, field, value) => {
@@ -34,7 +43,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
         }));
     };
 
-    const doseUnits = ['mcg', 'mg', 'mL', 'iu', 'sprays'];
+    const doseUnits = ['mcg', 'mg', 'mL', 'IU', 'sprays'];
     const durationUnits = ['days', 'weeks'];
 
     // Close dropdowns when clicking outside
@@ -185,7 +194,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                                 e.currentTarget.style.color = (step.doseUnit || 'mcg') === unit ? theme.primary : theme.text;
                                                             }}
                                                         >
-                                                            {unit === 'iu' ? 'IU' : unit}
+                                                            {(unit === 'iu' || unit === 'IU') ? 'IU' : unit}
                                                         </button>
                                                     </React.Fragment>
                                                 ))}

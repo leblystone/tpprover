@@ -2307,15 +2307,12 @@ export default function Protocols() {
         onSave={(data) => {
           setOpenAdd(false)
           // New protocols should not be active until explicitly started
-          const now = new Date().toISOString();
-          const cleaned = { 
+          const cleaned = prepareItemForSave({ 
             id: generateId(), 
             ...data, 
             active: false, 
-            startDate: data.startDate || '',
-            createdAt: now,
-            updatedAt: now
-          }
+            startDate: data.startDate || ''
+          }, { isNew: true });
           addProtocol(cleaned);
         }}
       />
@@ -2327,12 +2324,9 @@ export default function Protocols() {
         onSave={async (protocolData) => {
           // Protocol is already created with active: true and startDate set
           // Just add it to the protocols list
-          const now = new Date().toISOString();
-          const finalProtocol = {
-            ...protocolData,
-            createdAt: now,
-            updatedAt: now
-          };
+          const finalProtocol = prepareItemForSave({
+            ...protocolData
+          }, { isNew: true });
           
           addProtocol(finalProtocol);
           
@@ -3674,12 +3668,26 @@ export default function Protocols() {
             }
             
             // Merge with original to preserve any missing fields
+            // CRITICAL: Deep-merge peptides to preserve titration, dosage, and all nested data
+            const mergedPeptides = (finalizedProtocol.peptides || originalProtocol.peptides || []).map((pep, index) => {
+                const originalPep = originalProtocol.peptides?.[index];
+                // If wizard returned peptides, merge each one with original to preserve titration/dosage/etc
+                return {
+                    ...originalPep,  // Original first (includes titration, dosage, all fields)
+                    ...pep,          // Wizard data second (linkedItems, deliveryMethod updates)
+                    // Explicitly preserve critical nested data that might be missing from wizard
+                    titration: pep.titration || originalPep?.titration,
+                    dosage: pep.dosage || originalPep?.dosage,
+                    frequency: pep.frequency || originalPep?.frequency
+                };
+            });
+            
             const mergedProtocol = {
                 ...originalProtocol, // Start with original to preserve all data
                 ...finalizedProtocol, // Override with wizard data
                 // Ensure critical fields are preserved
                 protocolName: finalizedProtocol.protocolName || originalProtocol.protocolName || originalProtocol.name,
-                peptides: finalizedProtocol.peptides || originalProtocol.peptides,
+                peptides: mergedPeptides, // Use deep-merged peptides
                 purpose: finalizedProtocol.purpose || originalProtocol.purpose,
                 duration: finalizedProtocol.duration || originalProtocol.duration
             };
@@ -3746,6 +3754,7 @@ export default function Protocols() {
                 peptides: (p.peptides || []).map(pep => {
                     const f = pep.frequency || {};
                     const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['AM'];
+                    // CRITICAL: Preserve all peptide data including titration, dosage, deliveryMethod, etc.
                     return { ...pep, frequency: { ...f, time } };
                 })
             });

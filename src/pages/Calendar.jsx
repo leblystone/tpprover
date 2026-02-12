@@ -195,12 +195,19 @@ export default function Calendar() {
       setCalendarBump(Date.now());
     };
     
+    const handleProtocolChange = (e) => {
+      // Protocol was updated (dose/titration changed) - refresh calendar tasks
+      setCalendarBump(Date.now());
+    };
+    
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     window.addEventListener('tpp:calendar-sync', handleCalendarSync);
+    window.addEventListener('tpp:protocol-changed', handleProtocolChange);
     
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
       window.removeEventListener('tpp:calendar-sync', handleCalendarSync);
+      window.removeEventListener('tpp:protocol-changed', handleProtocolChange);
     };
   }, []);
   const [showIconKey, setShowIconKey] = useState(false);
@@ -755,7 +762,8 @@ export default function Calendar() {
                                       const calc = calculateRecon({ 
                                           mg: reconItem.mg, 
                                           water: reconItem.water, 
-                                          dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
+                                          dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount,
+                                          doseUnit: pep.dosage?.unit || 'mcg' // FIX: Pass doseUnit for proper calculation
                                       });
                                       if (calc.unitsPerDose > 0) {
                                           dose = `${calc.unitsPerDose.toFixed(0)} units`;

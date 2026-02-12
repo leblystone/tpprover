@@ -206,8 +206,7 @@ export default function Recon() {
 			}) : i)
 			: [prepareItemForSave({ 
 				id: generateId(), 
-				...item,
-				createdAt: new Date().toISOString()
+				...item
 			}, { isNew: true }), ...reconItems]
 		setReconItems(next)
 		setShowEditModal(false)
@@ -539,9 +538,8 @@ export default function Recon() {
 
         // Use vendorId from data if available, otherwise try to find it from vendor name
         const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
-        const now = new Date().toISOString();
 
-        const newItem = {
+        const newItem = prepareItemForSave({
             id: generateId(),
             peptide: peptideNames,
             mg: totalMg,
@@ -552,29 +550,26 @@ export default function Recon() {
             deliveryMethod: data.deliveryMethod,
             penColor: data.penColor,
             cost: data.cost,
-            date: now,
+            date: new Date().toISOString(), // Reconstitution date - semantic field, not for conflict resolution
             dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
-            notes: '',
-            createdAt: now,
-            updatedAt: now
-        };
+            notes: ''
+        }, { isNew: true });
 
         // Calculate updated items (remove draft if present, add new item with timestamp)
         const draftId = draftIdToRemove;
-        const newItemWithTimestamp = prepareItemForSave(newItem, { isNew: true });
         
         setReconItems(prev => {
             const filtered = draftId 
                 ? prev.filter(i => i.id !== draftId)
                 : prev;
-            return [newItemWithTimestamp, ...filtered];
+            return [newItem, ...filtered];
         });
         
         // Calculate updated items for cloud sync (don't update timestamps on unchanged items)
         const updatedItems = draftId 
-            ? [newItemWithTimestamp, ...reconItems.filter(i => i.id !== draftId)]
-            : [newItemWithTimestamp, ...reconItems];
+            ? [newItem, ...reconItems.filter(i => i.id !== draftId)]
+            : [newItem, ...reconItems];
         
         // Adjust stockpile - this will update quantities and remove items with 0
         adjustStockpileAfterRecon(peptides);
@@ -654,9 +649,8 @@ export default function Recon() {
 
         // Use vendorId from data if available, otherwise try to find it from vendor name
         const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
-        const now = new Date().toISOString();
 
-        const draftItem = {
+        const draftItem = prepareItemForSave({
             id: `draft_${generateId()}`,
             peptide: peptideNames,
             mg: totalMg,
@@ -667,16 +661,12 @@ export default function Recon() {
             deliveryMethod: data.deliveryMethod || 'pipette',
             penColor: data.penColor || '',
             cost: data.cost || '',
-            date: now,
+            date: new Date().toISOString(), // Semantic date for display, not conflict resolution
             dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
             notes: '',
-            isDraft: true,
-            createdAt: now
-        };
-        
-        // Prepare draft with timestamp
-        const draftItemWithTimestamp = prepareItemForSave(draftItem, { isNew: true });
+            isDraft: true
+        }, { isNew: true });
         
         setReconItems(prev => {
             // Remove any existing drafts matching this form
@@ -684,7 +674,7 @@ export default function Recon() {
             const filtered = existingDraftIndex >= 0 
                 ? prev.filter((_, idx) => idx !== existingDraftIndex)
                 : prev.filter(item => !item.isDraft || item.id !== draftItem.id);
-            return [draftItemWithTimestamp, ...filtered];
+            return [draftItem, ...filtered];
         });
 
         // Sync to cloud
@@ -1795,6 +1785,7 @@ export default function Recon() {
                                                     { value: 'mcg', label: 'mcg' },
                                                 { value: 'mg', label: 'mg' },
                                                 { value: 'mL', label: 'mL' },
+                                                { value: 'IU', label: 'IU' },
                                                 ...(editingItem?.deliveryMethod === 'nasal' ? [{ value: 'sprays', label: 'sprays' }] : [])
                                             ].map((option, optIdx) => (
                                                 <React.Fragment key={option.value}>

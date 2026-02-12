@@ -239,12 +239,19 @@ export default function Dashboard() {
           setCalendarBump(Date.now());
       };
       
+      const handleProtocolChange = (e) => {
+          // Protocol was updated (dose/titration changed) - refresh tasks
+          setCalendarBump(Date.now());
+      };
+      
       window.addEventListener('storage', handleStorageChange);
       window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      window.addEventListener('tpp:protocol-changed', handleProtocolChange);
       
       return () => {
           window.removeEventListener('storage', handleStorageChange);
           window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+          window.removeEventListener('tpp:protocol-changed', handleProtocolChange);
       };
   }, []);
 
