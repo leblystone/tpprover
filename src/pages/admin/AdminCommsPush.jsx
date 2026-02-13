@@ -10,9 +10,9 @@ export default function AdminCommsPush() {
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header with Template Editor Button */}
-      <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div>
           <h2 className="text-lg font-bold" style={{ color: theme.text }}>
             Push Notification Management
@@ -34,8 +34,15 @@ export default function AdminCommsPush() {
         </button>
       </div>
 
-      <PushNotificationBroadcast theme={theme} />
-      <TriggeredNotificationManager theme={theme} />
+      {/* Grid layout for sections */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="xl:col-span-2">
+          <PushNotificationBroadcast theme={theme} />
+        </div>
+        <div className="xl:col-span-2">
+          <TriggeredNotificationManager theme={theme} />
+        </div>
+      </div>
 
       {/* Template Editor Modal */}
       <NotificationTemplateEditor

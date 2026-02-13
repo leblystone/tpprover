@@ -12,7 +12,7 @@ export default function AdminContent() {
   const [editingPenType, setEditingPenType] = useState(null);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 max-w-6xl mx-auto">
       <div className="flex justify-end gap-3">
         <button
           type="button"
@@ -34,8 +34,8 @@ export default function AdminContent() {
         </button>
       </div>
 
-      <div className="rounded-lg border p-3 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center justify-between mb-2">
+      <div className="rounded-lg border p-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Research Topics (Glossary)</h2>
             <p className="text-sm mt-1" style={{ color: theme.textLight }}>Manage research topics shown in the glossary and global search.</p>

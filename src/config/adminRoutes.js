@@ -45,7 +45,7 @@ export const adminPrimaryTabs = [
   },
   {
     id: 'comms',
-    label: 'Comms',
+    label: 'Communications',
     path: `${ADMIN_BASE}/comms/emails`,
     icon: 'MailOpen',
     children: [
