@@ -209,6 +209,22 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
 
         if (!inRange || !active) continue;
 
+        // TEMP DEBUG: Log custom frequency protocols
+        const tempPeps = getNormalizedPeptides(p);
+        const hasCustomFreq = tempPeps.some(pep => pep.frequency?.type === 'custom');
+        if (hasCustomFreq) {
+            console.log('📅 CUSTOM FREQ protocol in range:', {
+                name: p.protocolName || p.name,
+                dateKey,
+                startDate: p.startDate,
+                peptides: tempPeps.map(pep => ({
+                    name: pep.name,
+                    freqType: pep.frequency?.type,
+                    customDays: pep.frequency?.customDays
+                }))
+            });
+        }
+
         const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
         
         // Find matching recon item
@@ -398,7 +414,18 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         const customDays = Number(freq.customDays) || 1;
                         if (customDays > 0) {
                             const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
-                            if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
+                            const isMatch = dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0;
+                            console.log('📅 CUSTOM match check:', {
+                                peptide: pep.name,
+                                date: dateKey,
+                                customDays,
+                                dayDiff,
+                                mod: dayDiff !== null ? dayDiff % customDays : null,
+                                isMatch,
+                                protocolStart: protocolStartDate?.toLocaleDateString(),
+                                target: dateNormalized?.toLocaleDateString()
+                            });
+                            if (isMatch) {
                                 isScheduledToday = true;
                             }
                         }
