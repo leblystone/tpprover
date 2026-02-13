@@ -81,9 +81,15 @@ function getWindows(p) {
       if (!p?.startDate) return { start: null, end: null, washStart: null, washEnd: null }
       const startDt = parseDateString(p.startDate)
       let endDt = null;
-      if (p.endDate) {
+      // FIX: If duration is "ongoing" (noEnd), ignore endDate entirely
+      // Protocols were saving endDate = startDate even when "Ongoing" was selected
+      const isOngoing = p.duration?.noEnd === true;
+      
+      if (isOngoing) {
+        endDt = null;
+      } else if (p.endDate) {
         endDt = parseDateString(p.endDate);
-      } else if (p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
+      } else if (p.duration && Number(p.duration.count) > 0) {
           const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
           
           if (cyclePeptide) {

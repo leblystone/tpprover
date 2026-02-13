@@ -120,9 +120,18 @@ function getWindows(p) {
         if (!p?.startDate) return { start: null, end: null };
         const startDt = parseDateString(p.startDate);
         let endDt = null;
-        if (p.endDate) {
+        
+        // FIX: If duration is set to "no end" (ongoing), ignore endDate entirely
+        // Previously, protocols saved endDate = startDate even when "Ongoing" was selected,
+        // which caused scheduling to only work on day 1
+        const isOngoing = p.duration?.noEnd === true;
+        
+        if (isOngoing) {
+            // Ongoing protocol - no end date, runs forever
+            endDt = null;
+        } else if (p.endDate) {
             endDt = parseDateString(p.endDate);
-        } else if (p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
+        } else if (p.duration && Number(p.duration.count) > 0) {
             if (startDt) {
                 endDt = new Date(startDt);
                 const unit = String(p.duration.unit || 'week').toLowerCase();
@@ -210,39 +219,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         const inRange = (psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
 
-        // TEMP DEBUG: Log Semaglutide specifically to find why it's missing on future dates
-        if ((p.protocolName || p.name || '').toLowerCase().includes('sema')) {
-            console.log('🎯 SEMA range check:', {
-                name: p.protocolName || p.name,
-                dateKey,
-                startDate: p.startDate,
-                endDate: p.endDate,
-                duration: p.duration,
-                active: p.active,
-                inRange,
-                psOnly: psOnly?.toISOString(),
-                peOnly: peOnly?.toISOString(),
-                dateNormalized: dateNormalized?.toISOString()
-            });
-        }
-
         if (!inRange || !active) continue;
-
-        // TEMP DEBUG: Log custom frequency protocols
-        const tempPeps = getNormalizedPeptides(p);
-        const hasCustomFreq = tempPeps.some(pep => pep.frequency?.type === 'custom');
-        if (hasCustomFreq) {
-            console.log('📅 CUSTOM FREQ protocol in range:', {
-                name: p.protocolName || p.name,
-                dateKey,
-                startDate: p.startDate,
-                peptides: tempPeps.map(pep => ({
-                    name: pep.name,
-                    freqType: pep.frequency?.type,
-                    customDays: pep.frequency?.customDays
-                }))
-            });
-        }
 
         const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
         
@@ -433,18 +410,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         const customDays = Number(freq.customDays) || 1;
                         if (customDays > 0) {
                             const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
-                            const isMatch = dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0;
-                            console.log('📅 CUSTOM match check:', {
-                                peptide: pep.name,
-                                date: dateKey,
-                                customDays,
-                                dayDiff,
-                                mod: dayDiff !== null ? dayDiff % customDays : null,
-                                isMatch,
-                                protocolStart: protocolStartDate?.toLocaleDateString(),
-                                target: dateNormalized?.toLocaleDateString()
-                            });
-                            if (isMatch) {
+                            if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                                 isScheduledToday = true;
                             }
                         }
