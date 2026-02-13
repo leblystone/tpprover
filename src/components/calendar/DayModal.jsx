@@ -267,17 +267,26 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   
   // Calculate detailed tasks for this date using the same logic as Dashboard
   const detailedTasks = React.useMemo(() => {
-    if (!date || !protocols) return { bySlot: {} };
-    const result = calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
-    console.log('🔍 DayModal calculateScheduledTasksForDate:', {
-      date: date.toISOString().split('T')[0],
-      protocolsCount: protocols?.length,
-      bySlotKeys: Object.keys(result.bySlot || {}),
-      AMTasks: result.bySlot?.AM?.peptides?.length || 0,
-      PMTasks: result.bySlot?.PM?.peptides?.length || 0,
-      sampleAMTask: result.bySlot?.AM?.peptides?.[0]
-    });
-    return result;
+    try {
+      console.log('🔍 DayModal: Starting calculation', { hasDate: !!date, hasProtocols: !!protocols });
+      if (!date || !protocols) {
+        console.log('🔍 DayModal: Missing date or protocols, returning empty');
+        return { bySlot: {} };
+      }
+      const result = calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
+      console.log('🔍 DayModal calculateScheduledTasksForDate:', {
+        date: date.toISOString().split('T')[0],
+        protocolsCount: protocols?.length,
+        bySlotKeys: Object.keys(result.bySlot || {}),
+        AMTasks: result.bySlot?.AM?.peptides?.length || 0,
+        PMTasks: result.bySlot?.PM?.peptides?.length || 0,
+        sampleAMTask: result.bySlot?.AM?.peptides?.[0]
+      });
+      return result;
+    } catch (error) {
+      console.error('🔍 DayModal: Error in calculateScheduledTasksForDate:', error);
+      return { bySlot: {} };
+    }
   }, [date, protocols, supplements, reconItems, calendarBump]);
   
   // Merge detailed tasks with the indicator data from parent
