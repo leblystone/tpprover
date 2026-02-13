@@ -362,15 +362,16 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     if (parsedData.data && Object.keys(parsedData.data).length > 0) {
                         const savedState = parsedData.data;
                         isRestoringRef.current = true; // Prevent auto-save from triggering
-                        const today = getLocalDateString();
-                        // Always use today's date - don't load stale dates from saved drafts
-                        setStartDate(today);
+                        // Allow user to select any date (past, present, or future)
+                        // Only default to today if no saved date exists
+                        const dateToUse = savedState.startDate || getLocalDateString();
+                        setStartDate(dateToUse);
                         if (savedState.expandedSections) setExpandedSections(savedState.expandedSections);
                         if (savedState.linkedData) setLinkedData(savedState.linkedData);
                         if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
                         if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
                         if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
-                        previousStateRef.current = { ...savedState, startDate: today };
+                        previousStateRef.current = { ...savedState, startDate: dateToUse };
                         setLastSaved(new Date(parsedData.timestamp));
                         return;
                     }
@@ -381,7 +382,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
             // Initialize fresh state if no saved draft
             isRestoringRef.current = true;
-            const today = getLocalDateString(); // Always use today's date for fresh start
+            const today = getLocalDateString(); // Default to today for fresh start
             const initialData = {};
             protocol.peptides.forEach((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;
@@ -389,14 +390,14 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 initialData[uniqueKey] = { status: 'pending' };
             });
             setLinkedData(initialData);
-            setStartDate(today); // Reset to today when opening fresh
+            setStartDate(today); // Default to today when opening fresh
             setReconStrategy(null);
             setReconComplete(false);
             setSkippedPeptideDeliveryMethods({});
             setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
             previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: today, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
         }
-    }, [open, protocol, storageKey, startDate]);
+    }, [open, protocol, storageKey]);
 
     const handleSelectVial = React.useCallback((peptideId, vialId) => {
         setLinkedData(prev => {

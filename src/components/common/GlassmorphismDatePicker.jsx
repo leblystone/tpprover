@@ -455,14 +455,6 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                             <button
                                 key={day}
                                 type="button"
-                                onMouseDown={(e) => {
-                                    // Prevent blur events on mobile
-                                    e.preventDefault();
-                                }}
-                                onTouchStart={(e) => {
-                                    // Prevent blur events on touch devices
-                                    e.preventDefault();
-                                }}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -575,14 +567,6 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                onMouseDown={(e) => {
-                    // Prevent any parent blur events on mobile
-                    e.preventDefault();
-                }}
-                onTouchStart={(e) => {
-                    // Prevent any parent blur events on touch devices
-                    e.preventDefault();
-                }}
                 className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
                 style={{
                     border: `1px solid #f0eee7`,
