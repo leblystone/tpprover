@@ -129,8 +129,25 @@ async function sendEmail(to, subject, html, options = {}) {
     const { Resend } = require('resend');
     const resend = new Resend(resendApiKey);
 
+    // Determine the best 'from' address based on email type
+    let fromAddress = 'noreply@thepepplanner.app'; // Default for most transactional emails
+    
+    if (options.type) {
+      const type = options.type.toLowerCase();
+      
+      // Use specific addresses for different email types
+      if (type.includes('alert') || type.includes('reminder') || type.includes('notification')) {
+        fromAddress = 'alerts@thepepplanner.app';
+      } else if (type.includes('receipt') || type.includes('payment') || type.includes('subscription') || type.includes('billing')) {
+        fromAddress = 'receipts@thepepplanner.app';
+      } else if (type.includes('announcement') || type.includes('update') || type.includes('feature')) {
+        fromAddress = 'team@thepepplanner.app';
+      }
+      // All others default to noreply@thepepplanner.app
+    }
+
     const result = await resend.emails.send({
-      from: 'The Pep Planner <contact@thepepplanner.com>',
+      from: `The Pep Planner <${fromAddress}>`,
       to,
       subject,
       html,
@@ -443,7 +460,7 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null, reason = nu
 
 /**
  * Send custom password reset email with Firebase token
- * Disables click tracking to ensure direct links work properly
+ * Now uses unified sendEmail() system for consistency and reliability
  */
 exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
   // Use environment variable for base URL, fallback to production
@@ -452,89 +469,54 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
   const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
   
   logger.info(`🔗 Password reset link: ${resetLink}`);
+  logger.info(`📧 Sending password reset email to: ${userEmail}`);
   
+  // Try to load custom template from Firestore, fallback to themed default
+  let subject, html;
   try {
-    // Get Resend API key from environment variables
-    let resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/\r?\n/g, '');
-    
-    if (!resendApiKey) {
-      logger.warn('⚠️ Resend not configured - password reset email not sent');
-      return false;
+    logger.info('🔍 Attempting to load passwordReset template from Firestore...');
+    const customTemplate = await loadEmailTemplate('passwordReset');
+    if (customTemplate) {
+      logger.info('✅ passwordReset template loaded successfully!');
+      logger.info(`📋 Template has these fields: ${Object.keys(customTemplate).join(', ')}`);
+      logger.info(`📋 Template ctaLink: ${customTemplate.ctaLink}`);
+      subject = customTemplate.subject || 'Reset your password for The Pep Planner';
+      logger.info(`📧 Generating HTML with resetLink: ${resetLink.substring(0, 50)}...`);
+      html = generateEmailHTML(customTemplate, { resetLink, userEmail });
+      logger.info(`✅ HTML generated successfully, length: ${html.length}`);
+    } else {
+      logger.warn('⚠️ passwordReset template returned null from Firestore');
+      throw new Error('No custom template found');
     }
-    
-    // Validate API key format
-    if (!resendApiKey.startsWith('re_') || resendApiKey.length < 30) {
-      logger.error('❌ Invalid Resend API key format');
-      return false;
-    }
-
-    // Dynamic import of Resend
-    const { Resend } = require('resend');
-    const resend = new Resend(resendApiKey);
-
-    // Try to load custom template from Firestore, fallback to themed default
-    let subject, html;
-    try {
-      const customTemplate = await loadEmailTemplate('passwordReset');
-      if (customTemplate) {
-        subject = customTemplate.subject || 'Reset your password for The Pep Planner';
-        html = generateEmailHTML(customTemplate, { resetLink, userEmail });
-      } else {
-        throw new Error('No custom template found');
-      }
-    } catch (error) {
-      logger.warn('Failed to load custom password reset template, using themed default:', error);
-      // Fallback to themed default template that matches other emails
-      const defaultTemplate = {
-        heading: 'Reset Your Password 🔐',
-        greeting: `Hi there,`,
-        mainMessage: `We received a request to reset the password for your account (${userEmail}). Click the button below to create a new password.`,
-        ctaText: 'Reset Password',
-        ctaLink: resetLink,
-        highlightTitle: '⏱️ This link expires in 1 hour',
-        highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
-        postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.',
-        features: []
-      };
-      subject = 'Reset your password for The Pep Planner';
-      html = generateEmailHTML(defaultTemplate, { resetLink, userEmail });
-    }
-
-    // Send email via Resend (Resend doesn't track clicks by default, so links work directly)
-    const result = await resend.emails.send({
-      from: 'The Pep Planner <contact@thepepplanner.com>',
-      to: userEmail,
-      subject,
-      html,
-      replyTo: 'contact@thepepplanner.com',
-      headers: {
-        // Mark as transactional to avoid Promotions tab
-        'X-Priority': '1',
-        'X-Mailer': 'The Pep Planner',
-        'Auto-Submitted': 'no',
-        'X-Auto-Response-Suppress': 'All',
-        'X-Transaction-Type': 'transactional',
-      },
-      tags: [
-        { name: 'category', value: 'transactional' },
-        { name: 'type', value: 'password-reset' }
-      ],
-    });
-    
-    logger.info('✅ Password reset email sent successfully to:', userEmail);
-    logger.info('📊 Resend Response:', JSON.stringify(result));
-    
-    return result.data && result.data.id ? true : false;
-    
   } catch (error) {
-    logger.error('❌ Failed to send password reset email:', error);
-    logger.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      response: error.response?.body
-    });
-    return false;
+    logger.warn('Failed to load custom password reset template, using themed default:', error);
+    logger.warn('Error details:', error.message, error.stack);
+    // Fallback to themed default template that matches other emails
+    const defaultTemplate = {
+      heading: 'Reset Your Password 🔐',
+      greeting: `Hi there,`,
+      mainMessage: `We received a request to reset the password for your account (${userEmail}). Click the button below to create a new password.`,
+      ctaText: 'Reset Password',
+      ctaLink: resetLink,
+      highlightTitle: '⏱️ This link expires in 1 hour',
+      highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
+      postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.',
+      features: []
+    };
+    subject = 'Reset your password for The Pep Planner';
+    html = generateEmailHTML(defaultTemplate, { resetLink, userEmail });
   }
+
+  // Use unified sendEmail() system for consistency and better error handling
+  logger.info('📧 Sending via unified email system...');
+  const result = await sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'password-reset',
+    sentBy: 'system'
+  });
+  
+  logger.info(`${result ? '✅' : '❌'} Password reset email ${result ? 'sent successfully' : 'failed'} to: ${userEmail}`);
+  return result;
 };
 
 /**

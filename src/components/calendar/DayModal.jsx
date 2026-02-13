@@ -14,6 +14,7 @@ import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
+import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {})
 
@@ -257,12 +258,26 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
 }
 
 export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump }) {
-  const { scheduledBuys } = useAppContext()
+  const { scheduledBuys, protocols, supplements, reconItems } = useAppContext()
   const { firebaseUser } = useFirebase()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null)
   const [selectedNote, setSelectedNote] = useState(null)
+  
+  // Calculate detailed tasks for this date using the same logic as Dashboard
+  const detailedTasks = React.useMemo(() => {
+    if (!date || !protocols) return { bySlot: {} };
+    return calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
+  }, [date, protocols, supplements, reconItems, calendarBump]);
+  
+  // Merge detailed tasks with the indicator data from parent
+  const mergedScheduled = React.useMemo(() => {
+    return {
+      ...scheduled,
+      bySlot: detailedTasks.bySlot || {}
+    };
+  }, [scheduled, detailedTasks]);
   
   // Check if group buys are enabled
   const groupBuysEnabled = areGroupBuysEnabled()
@@ -312,7 +327,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   const dayKey = toKey(date)
   // Get note text from new ID-based structure
   const dayNotesText = entries[dayKey] ? getCalendarNoteText(entries, dayKey) : ''
-  const dayScheduled = scheduled[dayKey]
+  const dayScheduled = mergedScheduled[dayKey]
   
   // Get protocol notes for this date
   const protocolNotes = getNotesForDate(dayKey)

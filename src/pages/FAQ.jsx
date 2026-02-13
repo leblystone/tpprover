@@ -192,18 +192,29 @@ export default function FAQ() {
   // Flatten all FAQs for schema markup
   const allFaqs = faqCategories.flatMap(category => category.faqs);
 
-  // FAQ Schema for AI Search
+  // Sanitize text for FAQ schema (Google rich results: no empty, no HTML, trim)
+  const sanitizeForSchema = (str) => {
+    if (typeof str !== 'string') return '';
+    return str
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 5000); // Google recommends reasonable length
+  };
+
+  // FAQ Schema for AI Search (only include valid Q&A pairs for rich results)
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": allFaqs.map(faq => ({
-      "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": faq.answer
-      }
-    }))
+    "mainEntity": allFaqs
+      .map(faq => ({
+        "@type": "Question",
+        "name": sanitizeForSchema(faq.question),
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": sanitizeForSchema(faq.answer)
+        }
+      }))
+      .filter(item => item.name.length > 0 && item.acceptedAnswer.text.length > 0)
   };
 
   return (

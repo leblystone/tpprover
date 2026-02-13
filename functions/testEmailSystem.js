@@ -31,7 +31,7 @@ async function sendEmailViaResend(to, subject, html) {
   
   try {
     result = await resend.emails.send({
-      from: 'The Pep Planner <contact@thepepplanner.com>',
+      from: 'The Pep Planner <noreply@thepepplanner.app>',
       to,
       subject,
       html,

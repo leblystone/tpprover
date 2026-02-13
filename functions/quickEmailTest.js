@@ -28,7 +28,7 @@ exports.quickEmailTest = onCall(
       const resend = new Resend(apiKey);
 
       const result = await resend.emails.send({
-        from: 'The Pep Planner <contact@thepepplanner.com>',
+        from: 'The Pep Planner <noreply@thepepplanner.app>',
         to: testEmail,
         subject: '🧪 Quick Test Email - The Pep Planner',
         html: `

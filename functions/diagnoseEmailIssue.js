@@ -82,7 +82,7 @@ exports.diagnoseEmailSystem = onCall(
           const resend = new Resend(resendApiKey);
           
           const result = await resend.emails.send({
-            from: 'The Pep Planner <contact@thepepplanner.com>',
+            from: 'The Pep Planner <noreply@thepepplanner.app>',
             to: testEmail,
             subject: '🔍 Email System Diagnostic Test',
             html: `

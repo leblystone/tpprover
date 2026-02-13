@@ -119,16 +119,10 @@ const DEFAULT_TEMPLATES = {
     ctaLink: '%RESET_LINK%',
     highlightTitle: '⏱️ This link expires in 1 hour',
     highlightMessage: 'For your security, this password reset link is only valid for 60 minutes.',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
+    showFeatures: false,
+    featuresTitle: "",
+    features: [],
+    postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.'
   },
   trialEnding: {
     name: 'Trial Ending Soon',
