@@ -268,7 +268,16 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   // Calculate detailed tasks for this date using the same logic as Dashboard
   const detailedTasks = React.useMemo(() => {
     if (!date || !protocols) return { bySlot: {} };
-    return calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
+    const result = calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
+    console.log('🔍 DayModal calculateScheduledTasksForDate:', {
+      date: date.toISOString().split('T')[0],
+      protocolsCount: protocols?.length,
+      bySlotKeys: Object.keys(result.bySlot || {}),
+      AMTasks: result.bySlot?.AM?.peptides?.length || 0,
+      PMTasks: result.bySlot?.PM?.peptides?.length || 0,
+      sampleAMTask: result.bySlot?.AM?.peptides?.[0]
+    });
+    return result;
   }, [date, protocols, supplements, reconItems, calendarBump]);
   
   // Merge detailed tasks with the indicator data from parent
@@ -276,13 +285,21 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   // We need to merge the bySlot data for the current date
   const mergedScheduled = React.useMemo(() => {
     const dayKey = toKey(date);
-    return {
+    const merged = {
       ...scheduled,
       [dayKey]: {
         ...(scheduled?.[dayKey] || {}),
         bySlot: detailedTasks.bySlot || {}
       }
     };
+    console.log('🔍 DayModal mergedScheduled:', {
+      dayKey,
+      hasDayData: !!merged[dayKey],
+      bySlotKeys: Object.keys(merged[dayKey]?.bySlot || {}),
+      AMPeptides: merged[dayKey]?.bySlot?.AM?.peptides?.length || 0,
+      sampleAM: merged[dayKey]?.bySlot?.AM?.peptides?.[0]
+    });
+    return merged;
   }, [date, scheduled, detailedTasks]);
   
   // Check if group buys are enabled
