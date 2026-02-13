@@ -207,11 +207,24 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         const inRange = (!psOnly || psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
 
+        const peptideNames = getNormalizedPeptides(p).map(pep => pep.name);
+        const peptideFreqs = getNormalizedPeptides(p).map(pep => ({
+            name: pep.name,
+            freqType: pep.frequency?.type,
+            customDays: pep.frequency?.customDays,
+            days: pep.frequency?.days,
+            time: pep.frequency?.time
+        }));
         console.log('🔍 calendarTasks checking protocol:', {
             name: p.protocolName || p.name,
+            peptideNames,
+            peptideFreqs,
             inRange,
             active,
             startDate: p.startDate,
+            endDate: p.endDate,
+            blendMode: p.blendMode,
+            hasPeptides: Array.isArray(p.peptides) && p.peptides.length,
             psOnly: psOnly?.toISOString(),
             peOnly: peOnly?.toISOString(),
             dateNormalized: dateNormalized?.toISOString()
@@ -408,14 +421,31 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         const customDays = Number(freq.customDays) || 1;
                         if (customDays > 0) {
                             const dayDiff = getDayDifference(protocolStartDate, dateNormalized);
+                            console.log('🔍 CUSTOM freq check:', {
+                                peptideName: pep.name,
+                                customDays,
+                                dayDiff,
+                                mod: dayDiff !== null ? dayDiff % customDays : null,
+                                isMatch: dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0,
+                                protocolStart: protocolStartDate.toISOString(),
+                                targetDate: dateNormalized.toISOString()
+                            });
                             if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                                 isScheduledToday = true;
                             }
                         }
                         break;
                     default:
+                        console.log('🔍 UNKNOWN freq type for:', pep.name, 'type:', freq.type, 'full freq:', JSON.stringify(freq));
                         break;
                 }
+
+                console.log('🔍 Peptide schedule result:', {
+                    name: pep.name,
+                    freqType: freq.type,
+                    isScheduledToday,
+                    protocolName: p.protocolName || p.name
+                });
 
                 if (isScheduledToday) {
                     const times = freq.time || ['AM'];

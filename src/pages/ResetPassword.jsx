@@ -27,7 +27,7 @@ export default function ResetPassword() {
       setToken(tokenParam);
       validateToken(tokenParam);
     } else {
-      setError('Invalid reset link. Please request a new password reset.');
+      setError('This reset link is incomplete or incorrect. Please request a new password reset from the login page.');
     }
   }, [searchParams]);
 
@@ -57,12 +57,24 @@ export default function ResetPassword() {
         if (result.data.success) {
           setIsValidToken(true);
         } else {
-          setError(result.data.message || 'Invalid reset token');
+          // Check if it's expired or just invalid
+          if (result.data.message && result.data.message.toLowerCase().includes('expired')) {
+            setError('This password reset link has expired. For security, reset links are only valid for 1 hour. Please request a new one.');
+          } else {
+            setError('This password reset link is no longer valid. Please request a new password reset from the login page.');
+          }
         }
       }
     } catch (error) {
       console.error('Token validation error:', error);
-      setError('Invalid or expired reset token. Please request a new password reset.');
+      // Check if it's an expired link or invalid link
+      if (error.code === 'auth/expired-action-code' || error.message?.toLowerCase().includes('expired')) {
+        setError('This password reset link has expired. For security, reset links are only valid for 1 hour. Please request a new one.');
+      } else if (error.code === 'auth/invalid-action-code') {
+        setError('This password reset link is no longer valid. It may have already been used or is incorrect. Please request a new password reset from the login page.');
+      } else {
+        setError('This password reset link is no longer valid. Please request a new password reset from the login page.');
+      }
     } finally {
       setLoading(false);
     }
@@ -173,9 +185,9 @@ export default function ResetPassword() {
       if (error.code === 'auth/weak-password') {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       } else if (error.code === 'auth/invalid-action-code') {
-        errorMessage = 'Invalid or expired reset link. Please request a new password reset.';
-      } else if (error.message?.includes('expired')) {
-        errorMessage = 'Reset link has expired. Please request a new password reset.';
+        errorMessage = 'This reset link is no longer valid. It may have already been used or is incorrect. Please request a new password reset from the login page.';
+      } else if (error.code === 'auth/expired-action-code' || error.message?.includes('expired')) {
+        errorMessage = 'This password reset link has expired. For security, reset links are only valid for 1 hour. Please request a new one.';
       } else {
         errorMessage += error.message || 'Please try again.';
       }
@@ -191,7 +203,7 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p style={{ color: theme.text }}>Validating reset link...</p>
+          <p style={{ color: theme.text }}>Verifying your reset link...</p>
         </div>
       </div>
     );
@@ -217,7 +229,7 @@ export default function ResetPassword() {
                 </svg>
               </div>
               <h2 className="text-2xl font-semibold mb-2" style={{ color: theme.primaryDark }}>
-                Invalid Reset Link
+                {error && error.includes('expired') ? 'Link Expired' : 'Invalid Link'}
               </h2>
               <p className="text-sm mt-2 mb-6" style={{ color: theme.textLight }}>
                 {error}
