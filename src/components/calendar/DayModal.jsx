@@ -540,7 +540,18 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   )}
                 </div>
                 <SlotContent 
-                  scheduled={dayScheduled?.bySlot?.AM} 
+                  scheduled={(() => {
+                    const slotData = dayScheduled?.bySlot?.AM;
+                    console.log('🔍 Rendering AM SlotContent:', {
+                      hasDayScheduled: !!dayScheduled,
+                      hasBySlot: !!dayScheduled?.bySlot,
+                      hasAM: !!dayScheduled?.bySlot?.AM,
+                      peptides: slotData?.peptides?.length || 0,
+                      supplements: slotData?.supplements?.length || 0,
+                      firstPeptide: slotData?.peptides?.[0]
+                    });
+                    return slotData;
+                  })()} 
                   theme={theme} 
                   date={date}
                   timeSlot="AM"
