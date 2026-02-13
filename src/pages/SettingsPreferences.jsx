@@ -71,7 +71,7 @@ export default function SettingsPreferences() {
     saveSettings(next)
   }
 
-  const handleTimezoneChange = (newTimezone) => {
+  const handleTimezoneChange = async (newTimezone) => {
     const oldTimezone = settings.region.timeZone;
     
     if (oldTimezone === newTimezone) return;
@@ -88,12 +88,18 @@ export default function SettingsPreferences() {
       setShowTimezoneWarning(true);
     } else {
       update('region.timeZone', newTimezone);
+      // Sync timezone change to Firestore immediately for scheduled notifications
+      const { syncNotificationSettingsToFirestore } = await import('../utils/settingsHelpers');
+      await syncNotificationSettingsToFirestore();
     }
   };
   
-  const confirmTimezoneChange = () => {
+  const confirmTimezoneChange = async () => {
     if (timezoneChangeData) {
       update('region.timeZone', timezoneChangeData.newTimezone);
+      // Sync timezone change to Firestore immediately for scheduled notifications
+      const { syncNotificationSettingsToFirestore } = await import('../utils/settingsHelpers');
+      await syncNotificationSettingsToFirestore();
       setShowTimezoneWarning(false);
       setTimezoneChangeData(null);
     }
