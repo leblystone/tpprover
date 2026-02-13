@@ -207,6 +207,16 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         const inRange = (!psOnly || psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
 
+        console.log('🔍 calendarTasks checking protocol:', {
+            name: p.protocolName || p.name,
+            inRange,
+            active,
+            startDate: p.startDate,
+            psOnly: psOnly?.toISOString(),
+            peOnly: peOnly?.toISOString(),
+            dateNormalized: dateNormalized?.toISOString()
+        });
+
         if (!inRange || !active) continue;
 
         const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;

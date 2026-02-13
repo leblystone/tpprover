@@ -241,41 +241,119 @@ exports.testEmailSystem = onCall(
       emailName = 'Trial Ending Email';
     } else if (templateType === 'verification') {
       logger.info('Testing verification email...');
+      
+      // Try to load custom template from Firestore first
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
       try {
-        await sendEmailViaResend(
-          testEmail,
-          'Verify your email for The Pep Planner',
-          `
+        logger.info('📧 Attempting to load custom verification template from Firestore...');
+        const customTemplate = await loadEmailTemplate('verification');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom verification template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          // Generate a fake verification link for testing
+          const testVerificationLink = `https://thepepplanner.app/verify?token=TEST_${Date.now()}`;
+          htmlContent = generateEmailHTML(customTemplate, { 
+            verificationLink: testVerificationLink,
+            userEmail: testEmail,
+            userName: 'Test User'
+          });
+          subjectText = customTemplate.subject || 'Verify your email for The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          const testVerificationLink = `https://thepepplanner.app/verify?token=TEST_${Date.now()}`;
+          htmlContent = generateEmailHTML(templateData, { 
+            verificationLink: testVerificationLink,
+            userEmail: testEmail,
+            userName: 'Test User'
+          });
+          subjectText = templateData.subject || 'Verify your email for The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          const testVerificationLink = `https://thepepplanner.app/verify?token=TEST_${Date.now()}`;
+          htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Verify Your Email 📧</h1>
               <p>Thanks for signing up! Please verify your email address.</p>
+              <p><a href="${testVerificationLink}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a></p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
-          `
-        );
+          `;
+          subjectText = 'Verify your email for The Pep Planner';
+        }
+        
+        // Send the email via Resend
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Verification test email sent successfully');
       } catch (error) {
-        logger.error('Verification email failed:', error);
+        logger.error('❌ Verification email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Verification Email';
     } else if (templateType === 'passwordReset') {
       logger.info('Testing password reset email...');
+      
+      // Try to load custom template from Firestore first
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
       try {
-        await sendEmailViaResend(
-          testEmail,
-          'Reset your password for The Pep Planner',
-          `
+        logger.info('📧 Attempting to load custom passwordReset template from Firestore...');
+        const customTemplate = await loadEmailTemplate('passwordReset');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom passwordReset template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          // Generate a fake reset link for testing
+          const testResetLink = `https://thepepplanner.app/reset-password?token=TEST_${Date.now()}`;
+          htmlContent = generateEmailHTML(customTemplate, { 
+            resetLink: testResetLink,
+            userEmail: testEmail
+          });
+          subjectText = customTemplate.subject || 'Reset your password for The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          const testResetLink = `https://thepepplanner.app/reset-password?token=TEST_${Date.now()}`;
+          htmlContent = generateEmailHTML(templateData, { 
+            resetLink: testResetLink,
+            userEmail: testEmail
+          });
+          subjectText = templateData.subject || 'Reset your password for The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          const testResetLink = `https://thepepplanner.app/reset-password?token=TEST_${Date.now()}`;
+          htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Reset Your Password 🔐</h1>
               <p>We received a request to reset the password for your account.</p>
+              <p><a href="${testResetLink}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
-          `
-        );
+          `;
+          subjectText = 'Reset your password for The Pep Planner';
+        }
+        
+        // Send the email via Resend
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Password reset test email sent successfully');
       } catch (error) {
-        logger.error('Password reset email failed:', error);
+        logger.error('❌ Password reset email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Password Reset Email';
@@ -337,75 +415,110 @@ exports.testEmailSystem = onCall(
     } else if (templateType === 'paymentSuccessful') {
       logger.info('Testing payment successful email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        logger.info('🔍 Template data fields:', Object.keys(templateData));
-        logger.info('🔍 Template heading:', templateData.heading);
-        logger.info('🔍 Template greeting:', templateData.greeting);
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          amount: '$29.99',
-          planName: 'Monthly Plan'
-        });
-        subjectText = templateData.subject || 'Payment Successful - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #10b981;">Payment Successful! ✅</h1>
-            <p>Your payment of $29.99 for the Monthly Plan has been processed successfully.</p>
-            <p>You now have full access to all features.</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Payment Successful - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom paymentSuccessful template from Firestore...');
+        const customTemplate = await loadEmailTemplate('paymentSuccessful');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom paymentSuccessful template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            amount: '$29.99',
+            planName: 'Monthly Plan'
+          });
+          subjectText = customTemplate.subject || 'Payment Successful - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            amount: '$29.99',
+            planName: 'Monthly Plan'
+          });
+          subjectText = templateData.subject || 'Payment Successful - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #10b981;">Payment Successful! ✅</h1>
+              <p>Your payment of $29.99 for the Monthly Plan has been processed successfully.</p>
+              <p>You now have full access to all features.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Payment Successful - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Payment successful test email sent successfully');
       } catch (error) {
-        logger.error('Payment successful email failed:', error);
+        logger.error('❌ Payment successful email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Payment Successful Email';
     } else if (templateType === 'subscriptionCancelled') {
       logger.info('Testing subscription cancelled email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          planName: 'Monthly Plan',
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
-        });
-        subjectText = templateData.subject || 'Subscription Cancelled - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #ef4444;">Subscription Cancelled</h1>
-            <p>Your Monthly Plan subscription has been cancelled.</p>
-            <p>You'll continue to have access until ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Subscription Cancelled - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom subscriptionCancelled template from Firestore...');
+        const customTemplate = await loadEmailTemplate('subscriptionCancelled');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom subscriptionCancelled template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            planName: 'Monthly Plan',
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+          });
+          subjectText = customTemplate.subject || 'Subscription Cancelled - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            planName: 'Monthly Plan',
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+          });
+          subjectText = templateData.subject || 'Subscription Cancelled - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #ef4444;">Subscription Cancelled</h1>
+              <p>Your Monthly Plan subscription has been cancelled.</p>
+              <p>You'll continue to have access until ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Subscription Cancelled - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         logger.info(`📧 Sending subscription cancelled email to ${testEmail}...`);
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
@@ -423,34 +536,52 @@ exports.testEmailSystem = onCall(
     } else if (templateType === 'renewalReminder') {
       logger.info('Testing renewal reminder email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          daysUntil: 3,
-          planName: 'Monthly Plan'
-        });
-        subjectText = templateData.subject || 'Your subscription renews in 3 days - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #f59e0b;">Subscription Renewal in 3 Days ⏰</h1>
-            <p>Your Monthly Plan subscription will renew automatically in 3 days.</p>
-            <p>Make sure your payment method is up to date.</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Your subscription renews in 3 days - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom renewalReminder template from Firestore...');
+        const customTemplate = await loadEmailTemplate('renewalReminder');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom renewalReminder template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            daysUntil: 3,
+            planName: 'Monthly Plan'
+          });
+          subjectText = customTemplate.subject || 'Your subscription renews in 3 days - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            daysUntil: 3,
+            planName: 'Monthly Plan'
+          });
+          subjectText = templateData.subject || 'Your subscription renews in 3 days - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #f59e0b;">Subscription Renewal in 3 Days ⏰</h1>
+              <p>Your Monthly Plan subscription will renew automatically in 3 days.</p>
+              <p>Make sure your payment method is up to date.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Your subscription renews in 3 days - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         logger.info(`📧 Sending renewal reminder email to ${testEmail}...`);
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
@@ -468,115 +599,176 @@ exports.testEmailSystem = onCall(
     } else if (templateType === 'weeklyReminder') {
       logger.info('Testing weekly reminder email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          taskCount: 3,
-          peptideName: 'BPC-157'
-        });
-        subjectText = templateData.subject || 'Weekly Research Reminder - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #8b5cf6;">Weekly Research Reminder 📅</h1>
-            <p>You have 3 research tasks scheduled for this week.</p>
-            <p>Don't forget to track your BPC-157 protocol progress!</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Weekly Research Reminder - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom weeklyReminder template from Firestore...');
+        const customTemplate = await loadEmailTemplate('weeklyReminder');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom weeklyReminder template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            taskCount: 3,
+            peptideName: 'BPC-157'
+          });
+          subjectText = customTemplate.subject || 'Weekly Research Reminder - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            taskCount: 3,
+            peptideName: 'BPC-157'
+          });
+          subjectText = templateData.subject || 'Weekly Research Reminder - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #8b5cf6;">Weekly Research Reminder 📅</h1>
+              <p>You have 3 research tasks scheduled for this week.</p>
+              <p>Don't forget to track your BPC-157 protocol progress!</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Weekly Research Reminder - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Weekly reminder test email sent successfully');
       } catch (error) {
-        logger.error('Weekly reminder email failed:', error);
+        logger.error('❌ Weekly reminder email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Weekly Reminder Email';
     } else if (templateType === 'paymentFailed') {
       logger.info('Testing payment failed email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          amount: '$29.99',
-          planName: 'Monthly Plan'
-        });
-        subjectText = templateData.subject || 'Payment Failed - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #ef4444;">Payment Failed ❌</h1>
-            <p>We couldn't process your payment of $29.99 for the Monthly Plan.</p>
-            <p>Please update your payment method to continue your subscription.</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Payment Failed - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom paymentFailed template from Firestore...');
+        const customTemplate = await loadEmailTemplate('paymentFailed');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom paymentFailed template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            amount: '$29.99',
+            planName: 'Monthly Plan'
+          });
+          subjectText = customTemplate.subject || 'Payment Failed - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            amount: '$29.99',
+            planName: 'Monthly Plan'
+          });
+          subjectText = templateData.subject || 'Payment Failed - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #ef4444;">Payment Failed ❌</h1>
+              <p>We couldn't process your payment of $29.99 for the Monthly Plan.</p>
+              <p>Please update your payment method to continue your subscription.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Payment Failed - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Payment failed test email sent successfully');
       } catch (error) {
-        logger.error('Payment failed email failed:', error);
+        logger.error('❌ Payment failed email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Payment Failed Email';
     } else if (templateType === 'giftExpiringSoon') {
       logger.info('Testing gift expiring soon email...');
       
-      // Use custom template data if provided, otherwise use simple test
+      // Try to load custom template from Firestore first
       let htmlContent, subjectText;
-      
-      if (templateData) {
-        // Use the custom template from admin panel
-        const { generateEmailHTML } = require('./emailService');
-        htmlContent = generateEmailHTML(templateData, { 
-          userName: 'Test User', 
-          userEmail: testEmail,
-          daysLeft: 3,
-          planName: 'Monthly Gift Plan',
-          giftGiverName: 'Test Friend'
-        });
-        subjectText = templateData.subject || 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
-        logger.info('✅ Using custom template from admin panel');
-      } else {
-        // Simple fallback
-        htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #f59e0b;">🎁 Your Gifted Research Time Is Ending Soon</h1>
-            <p>Your gifted Monthly Gift Plan subscription from Test Friend is ending in 3 days.</p>
-            <p>Don't let your research organization stop! Extend your access with our flexible plans.</p>
-            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-          </div>
-        `;
-        subjectText = 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
-      }
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
       
       try {
+        logger.info('📧 Attempting to load custom giftExpiringSoon template from Firestore...');
+        const customTemplate = await loadEmailTemplate('giftExpiringSoon');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom giftExpiringSoon template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            daysLeft: 3,
+            planName: 'Monthly Gift Plan',
+            giftGiverName: 'Test Friend'
+          });
+          subjectText = customTemplate.subject || 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User', 
+            userEmail: testEmail,
+            daysLeft: 3,
+            planName: 'Monthly Gift Plan',
+            giftGiverName: 'Test Friend'
+          });
+          subjectText = templateData.subject || 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #f59e0b;">🎁 Your Gifted Research Time Is Ending Soon</h1>
+              <p>Your gifted Monthly Gift Plan subscription from Test Friend is ending in 3 days.</p>
+              <p>Don't let your research organization stop! Extend your access with our flexible plans.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
+        }
+        
+        // Send the email via Resend
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
+        logger.info('✅ Gift expiring soon test email sent successfully');
       } catch (error) {
-        logger.error('Gift expiring soon email failed:', error);
+        logger.error('❌ Gift expiring soon email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Gift Expiring Soon Email';
