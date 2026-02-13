@@ -187,8 +187,7 @@ export async function isAvailable() {
  */
 export async function getAvailableProducts() {
   try {
-    const GooglePlayBilling = await getGooglePlayBilling();
-    
+    // GooglePlayBilling is already imported at the top of the file
     const availability = await GooglePlayBilling.isAvailable();
     if (!availability.available) {
       return [];
@@ -225,8 +224,7 @@ export async function getAvailableProducts() {
  */
 export async function queryPurchases() {
   try {
-    const GooglePlayBilling = await getGooglePlayBilling();
-    
+    // GooglePlayBilling is already imported at the top of the file
     const availability = await GooglePlayBilling.isAvailable();
     if (!availability.available) {
       return [];
@@ -247,9 +245,102 @@ export async function queryPurchases() {
   }
 }
 
+/**
+ * Restore purchases from Google Play
+ * Queries Google Play for existing purchases and re-verifies them with the backend
+ * Useful for users who reinstalled the app or switched devices
+ * 
+ * @param {Object} options - User options
+ * @param {string} options.userId - User's ID
+ * @param {string} options.userEmail - User's email
+ * @returns {Promise<Object>} Result with success/failure counts and subscription data
+ */
+export async function restorePurchases(options = {}) {
+  console.log('🔄 GooglePlayBillingService: Restoring purchases...');
+  
+  const result = {
+    success: false,
+    purchasesFound: 0,
+    purchasesVerified: 0,
+    purchasesFailed: 0,
+    subscription: null,
+    errors: []
+  };
+  
+  try {
+    // Check if Google Play Billing is available
+    const availability = await GooglePlayBilling.isAvailable();
+    if (!availability || !availability.available) {
+      throw new Error('Google Play Billing is not available on this device.');
+    }
+    
+    console.log('🔍 Querying Google Play for existing purchases...');
+    
+    // Query Google Play for all purchases
+    const purchases = await queryPurchases();
+    result.purchasesFound = purchases.length;
+    
+    console.log(`📦 Found ${purchases.length} purchase(s) in Google Play`);
+    
+    if (purchases.length === 0) {
+      // No purchases found is not an error - just means user hasn't subscribed
+      result.success = true;
+      return result;
+    }
+    
+    // Verify each purchase with the backend
+    for (const purchase of purchases) {
+      try {
+        console.log(`🔐 Verifying purchase: ${purchase.orderId}`);
+        
+        const verificationResult = await verifyAndSyncPurchase(purchase, options);
+        
+        if (verificationResult && verificationResult.subscription) {
+          result.purchasesVerified++;
+          result.subscription = verificationResult.subscription;
+          console.log(`✅ Purchase verified: ${purchase.orderId}`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to verify purchase ${purchase.orderId}:`, error);
+        result.purchasesFailed++;
+        result.errors.push({
+          orderId: purchase.orderId,
+          error: error.message
+        });
+      }
+    }
+    
+    // If at least one purchase was verified successfully, consider it a success
+    if (result.purchasesVerified > 0) {
+      result.success = true;
+      
+      // Dispatch subscription update event
+      if (result.subscription) {
+        console.log('🔄 Dispatching subscription update event...');
+        window.dispatchEvent(new CustomEvent('subscription:updated', {
+          detail: { subscription: result.subscription }
+        }));
+      }
+    } else if (result.purchasesFailed > 0) {
+      // All purchases failed verification
+      throw new Error('Failed to verify purchases with backend. Please check your internet connection and try again.');
+    }
+    
+    console.log('✅ Restore purchases complete:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('❌ GooglePlayBillingService: Restore purchases error:', error);
+    result.success = false;
+    result.errors.push({ error: error.message });
+    throw error;
+  }
+}
+
 export default {
   subscribe,
   isAvailable,
-  getAvailableProducts
+  getAvailableProducts,
+  restorePurchases
 };
 

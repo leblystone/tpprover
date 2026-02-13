@@ -333,7 +333,10 @@ export default function AccountProfile() {
         setEmailVerified(false)
       }
       
+      // This sends Firebase's native verification email to the new address
+      console.log('🔐 Sending Firebase verification email to:', emailDraft)
       await verifyBeforeUpdateEmail(auth.currentUser, emailDraft)
+      console.log('✅ Firebase verification email sent')
       
       // Send security notification to old email
       try {
@@ -344,6 +347,7 @@ export default function AccountProfile() {
           newEmail: emailDraft,
           timestamp: new Date().toISOString()
         })
+        console.log('✅ Security notification sent to old email')
       } catch (notificationError) {
         // Don't fail the email change if notification fails, but log it
         console.warn('Failed to send security notification:', notificationError)
@@ -357,13 +361,18 @@ export default function AccountProfile() {
           newEmail: emailDraft,
           oldEmail: oldEmail
         })
+        console.log('✅ Instructional email sent to new email')
       } catch (verificationError) {
         // Don't fail the email change if verification notification fails, but log it
         console.warn('Failed to send verification notification:', verificationError)
       }
       
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Verification email sent to new address. Please verify your new email.', type: 'success' } 
+        detail: { 
+          message: `📧 Verification email sent to ${emailDraft}. Please check your inbox (and spam folder) and click the verification link to complete the change.`, 
+          type: 'success',
+          duration: 8000 // Longer duration for important message
+        } 
       }))
       
       setEditingEmail(false)
@@ -371,8 +380,23 @@ export default function AccountProfile() {
       console.error('Error updating email:', error)
       // Revert verification status if update failed
       setEmailVerified(firebaseUser?.emailVerified || false)
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to update email'
+      if (error.code === 'auth/requires-recent-login') {
+        errorMessage = 'For security, please sign out and sign in again before changing your email.'
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already in use by another account.'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'The email address is invalid. Please check and try again.'
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email change is not allowed. Please contact support.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to update email', type: 'error' } 
+        detail: { message: errorMessage, type: 'error', duration: 6000 } 
       }))
     } finally {
       setIsUpdating(false)
@@ -1330,10 +1354,22 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
       </div>
       {!isVerified && (
         <div 
-          className="text-xs pl-1 leading-relaxed opacity-50"
-          style={{ color: theme.text }}
+          className="text-xs pl-1 leading-relaxed space-y-2"
         >
-          Email verification is required to ensure the security of your research account and enable important features like password recovery and account notifications.
+          <div style={{ color: theme.text, opacity: 0.5 }}>
+            Email verification is required to ensure the security of your research account and enable important features like password recovery and account notifications.
+          </div>
+          <div 
+            className="p-2 rounded-lg text-xs"
+            style={{ 
+              backgroundColor: theme.secondary, 
+              color: theme.text,
+              opacity: 0.8
+            }}
+          >
+            <strong>💡 Tip:</strong> Can't find the verification email? Check your spam/junk folder. 
+            Add <span className="font-mono">noreply@thepepplanner.com</span> to your contacts to ensure future emails arrive in your inbox.
+          </div>
         </div>
       )}
     </div>
