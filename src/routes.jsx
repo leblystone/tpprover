@@ -122,15 +122,16 @@ export const router = createBrowserRouter([
       // Overview section (new structure)
       { path: 'overview/dashboard', element: <AdminOverviewDashboard /> },
       { path: 'overview/support', element: <AdminSupport /> },
+      { path: 'overview/contact', element: <AdminContact /> },
       { path: 'overview/analytics', element: <AdminAnalytics /> },
       { path: 'overview/automation', element: <AdminAutomation /> },
       
       // Legacy routes - redirect to new structure for backward compatibility
       { path: 'analytics', element: <Navigate to="/admin/overview/analytics" replace /> },
       { path: 'ghost-worker', element: <Navigate to="/admin/overview/automation" replace /> },
-      { path: 'work-queue', element: <Navigate to="/admin/overview/support" replace /> },
+      { path: 'work-queue', element: <Navigate to="/admin/overview/automation" replace /> }, // Changed: work queue now under automation
       { path: 'feedback', element: <Navigate to="/admin/overview/support" replace /> },
-      { path: 'contact', element: <Navigate to="/admin/overview/support" replace /> },
+      { path: 'contact', element: <Navigate to="/admin/overview/contact" replace /> },
       
       // Users section
       { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },

@@ -15,6 +15,7 @@ export const adminPrimaryTabs = [
     children: [
       { id: 'dashboard', label: 'Dashboard', path: `${ADMIN_BASE}/overview/dashboard` },
       { id: 'support', label: 'Support', path: `${ADMIN_BASE}/overview/support` },
+      { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
       { id: 'automation', label: 'Automation', path: `${ADMIN_BASE}/overview/automation` },
     ],
@@ -74,14 +75,15 @@ export const adminPaths = {
   // Overview paths
   overviewDashboard: `${ADMIN_BASE}/overview/dashboard`,
   overviewSupport: `${ADMIN_BASE}/overview/support`,
+  overviewContact: `${ADMIN_BASE}/overview/contact`,
   overviewAnalytics: `${ADMIN_BASE}/overview/analytics`,
   overviewAutomation: `${ADMIN_BASE}/overview/automation`,
   // Legacy paths for backward compatibility
   analytics: `${ADMIN_BASE}/overview/analytics`,
   ghostWorker: `${ADMIN_BASE}/overview/automation`,
-  workQueue: `${ADMIN_BASE}/overview/support`,
+  workQueue: `${ADMIN_BASE}/overview/automation`, // Changed: work queue now under automation
   feedback: `${ADMIN_BASE}/overview/support`,
-  contact: `${ADMIN_BASE}/overview/support`,
+  contact: `${ADMIN_BASE}/overview/contact`,
   // Users paths
   usersSubscriptions: `${ADMIN_BASE}/users/subscriptions`,
   usersLifetime: `${ADMIN_BASE}/users/lifetime`,
