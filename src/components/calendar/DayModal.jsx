@@ -272,12 +272,18 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   }, [date, protocols, supplements, reconItems, calendarBump]);
   
   // Merge detailed tasks with the indicator data from parent
+  // scheduled is structured as { [dateKey]: { bySlot, peptides, supplements, buys, etc. } }
+  // We need to merge the bySlot data for the current date
   const mergedScheduled = React.useMemo(() => {
+    const dayKey = toKey(date);
     return {
       ...scheduled,
-      bySlot: detailedTasks.bySlot || {}
+      [dayKey]: {
+        ...(scheduled?.[dayKey] || {}),
+        bySlot: detailedTasks.bySlot || {}
+      }
     };
-  }, [scheduled, detailedTasks]);
+  }, [date, scheduled, detailedTasks]);
   
   // Check if group buys are enabled
   const groupBuysEnabled = areGroupBuysEnabled()
