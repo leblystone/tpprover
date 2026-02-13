@@ -45,6 +45,46 @@ function getDayDifference(date1, date2) {
  * @param {Date|string} targetDate - The date to calculate dose for
  * @returns {Object} { dose, unit } - The dose amount and unit for the target date
  */
+// Calculate effective days elapsed accounting for titration hold/offset
+// titrationHeldAt: ISO date string when hold was activated (null = not held)
+// titrationDaysOffset: number of days to shift the titration schedule (negative = slow down, positive = speed up)
+function getEffectiveTitrationDays(protocol, peptide, targetDate) {
+    const protocolStart = parseDateString(protocol?.startDate);
+    const target = targetDate instanceof Date ? targetDate : parseDateString(targetDate);
+    
+    if (!protocolStart || !target) return null;
+    
+    let daysElapsed = getDayDifference(protocolStart, target);
+    if (daysElapsed < 0) return null;
+    
+    // Apply days offset (from skip/hold resume adjustments)
+    const offset = Number(peptide.titrationDaysOffset) || 0;
+    daysElapsed += offset;
+    
+    // If currently held, freeze at the held date
+    if (peptide.titrationHeldAt) {
+        const heldAt = parseDateString(peptide.titrationHeldAt);
+        if (heldAt) {
+            const heldDays = getDayDifference(protocolStart, heldAt);
+            if (heldDays !== null && heldDays >= 0) {
+                daysElapsed = heldDays + offset;
+            }
+        }
+    }
+    
+    return Math.max(0, daysElapsed);
+}
+
+// Convert phase duration to days
+function getPhaseDurationInDays(phase) {
+    const durationCount = Number(phase.durationCount) || 0;
+    const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
+    let phaseDays = durationCount;
+    if (durationUnit.includes('week')) phaseDays = durationCount * 7;
+    else if (durationUnit.includes('month')) phaseDays = durationCount * 30;
+    return phaseDays;
+}
+
 function getTitrationDoseForDate(protocol, peptide, targetDate) {
     // If no titration array or it's empty, use fixed dose
     if (!peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0) {
@@ -54,22 +94,12 @@ function getTitrationDoseForDate(protocol, peptide, targetDate) {
         };
     }
 
-    // Calculate days elapsed since protocol start
-    const protocolStart = parseDateString(protocol.startDate);
-    const target = parseDateString(targetDate);
-    
-    if (!protocolStart || !target) {
-        // Can't calculate, use fixed dose
+    const daysElapsed = getEffectiveTitrationDays(protocol, peptide, targetDate);
+    if (daysElapsed === null) {
         return {
             dose: peptide.dosage?.amount || '',
             unit: peptide.dosage?.unit || ''
         };
-    }
-
-    const daysElapsed = getDayDifference(protocolStart, target);
-    if (daysElapsed < 0) {
-        // Target date is before protocol start
-        return { dose: '', unit: '' };
     }
 
     // Walk through titration phases to find which one applies
@@ -77,17 +107,8 @@ function getTitrationDoseForDate(protocol, peptide, targetDate) {
     for (let i = 0; i < peptide.titration.length; i++) {
         const phase = peptide.titration[i];
         const isLastPhase = i === peptide.titration.length - 1;
-        const durationCount = Number(phase.durationCount) || 0;
-        const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
+        let phaseDays = getPhaseDurationInDays(phase);
         
-        // Convert duration to days (support 'days' and 'day', 'weeks' and 'week')
-        let phaseDays = durationCount;
-        if (durationUnit.includes('week')) {
-            phaseDays = durationCount * 7;
-        } else if (durationUnit.includes('month')) {
-            phaseDays = durationCount * 30; // Approximate
-        }
-        // If duration is 0: last phase = maintenance (infinite); otherwise treat as 1 day so we don't get stuck on phase 1
         if (phaseDays <= 0) {
             if (isLastPhase) {
                 return { dose: phase.dose || '', unit: phase.doseUnit || '' };
@@ -95,7 +116,6 @@ function getTitrationDoseForDate(protocol, peptide, targetDate) {
             phaseDays = 1;
         }
         
-        // Check if target date falls within this phase
         if (daysElapsed < cumulativeDays + phaseDays) {
             return {
                 dose: phase.dose || '',
@@ -170,24 +190,16 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
         return null;
     }
 
-    const protocolStart = parseDateString(protocol?.startDate);
-    const target = targetDate instanceof Date ? targetDate : parseDateString(targetDate);
-    
-    if (!protocolStart || !target) return null;
+    const daysElapsed = getEffectiveTitrationDays(protocol, peptide, targetDate);
+    if (daysElapsed === null) return null;
 
-    const daysElapsed = getDayDifference(protocolStart, target);
-    if (daysElapsed < 0) return null;
+    const isHeld = !!peptide.titrationHeldAt;
 
     let cumulativeDays = 0;
     for (let i = 0; i < peptide.titration.length; i++) {
         const phase = peptide.titration[i];
         const isLastPhase = i === peptide.titration.length - 1;
-        const durationCount = Number(phase.durationCount) || 0;
-        const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
-        
-        let phaseDays = durationCount;
-        if (durationUnit.includes('week')) phaseDays = durationCount * 7;
-        else if (durationUnit.includes('month')) phaseDays = durationCount * 30;
+        let phaseDays = getPhaseDurationInDays(phase);
         
         if (phaseDays <= 0) {
             if (isLastPhase) {
@@ -197,9 +209,10 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
                     dose: phase.dose || '',
                     unit: phase.doseUnit || '',
                     daysIntoPhase: daysElapsed - cumulativeDays,
-                    daysRemainingInPhase: null, // maintenance - no end
+                    daysRemainingInPhase: null,
                     totalPhases: peptide.titration.length,
-                    isMaintenancePhase: true
+                    isMaintenancePhase: true,
+                    isHeld
                 };
             }
             phaseDays = 1;
@@ -214,7 +227,8 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
                 daysIntoPhase: daysElapsed - cumulativeDays,
                 daysRemainingInPhase: (cumulativeDays + phaseDays) - daysElapsed,
                 totalPhases: peptide.titration.length,
-                isMaintenancePhase: false
+                isMaintenancePhase: false,
+                isHeld
             };
         }
         
@@ -231,7 +245,8 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
         daysIntoPhase: daysElapsed - cumulativeDays,
         daysRemainingInPhase: null,
         totalPhases: peptide.titration.length,
-        isMaintenancePhase: true
+        isMaintenancePhase: true,
+        isHeld
     };
 }
 

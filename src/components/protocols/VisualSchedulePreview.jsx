@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
-import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp, Check } from 'lucide-react';
+import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp, Check, Pause, Play, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 
 /**
  * Protocol Summary Card - Shows full protocol overview
  * Start/End dates, total doses, duration, frequency pattern
  */
-const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
+const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol }) => {
     
     // Calculate protocol stats
     const stats = useMemo(() => {
@@ -58,7 +58,7 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
         
         // Calculate doses per week per peptide
         let weeklyDoses = 0;
-        const peptideStats = protocol.peptides.map(peptide => {
+        const peptideStats = protocol.peptides.map((peptide, index) => {
             const freq = peptide.frequency || { type: 'daily', time: ['AM'] };
             const times = Array.isArray(freq.time) ? freq.time : (freq.time ? [freq.time] : ['AM']);
             const timesPerDay = times.length;
@@ -110,6 +110,8 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
             
             return {
                 name: peptide.name,
+                peptideId: peptide.id,
+                peptideIndex: index,
                 dosage: currentPhaseInfo ? currentPhaseInfo.dose : dosageAmount,
                 unit: currentPhaseInfo ? currentPhaseInfo.unit : dosageUnit,
                 times: times.join(' & '),
@@ -117,7 +119,8 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                 dosesPerWeek,
                 hasTitration,
                 titration: hasTitration ? peptide.titration : null,
-                currentPhaseInfo
+                currentPhaseInfo,
+                isHeld: !!peptide.titrationHeldAt
             };
         });
         
@@ -243,10 +246,16 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                                         Titration Schedule
                                     </span>
                                     {pep.currentPhaseInfo && (
-                                        <span className="text-[10px] font-medium ml-auto" style={{ color: theme.textLight }}>
-                                            Phase {pep.currentPhaseInfo.phaseIndex + 1}/{pep.currentPhaseInfo.totalPhases}
-                                            {pep.currentPhaseInfo.daysRemainingInPhase !== null && (
-                                                <> · {pep.currentPhaseInfo.daysRemainingInPhase}d left</>
+                                        <span className="text-[10px] font-medium ml-auto" style={{ color: pep.isHeld ? (theme.warning || '#f59e0b') : theme.textLight }}>
+                                            {pep.isHeld ? (
+                                                <>Phase {pep.currentPhaseInfo.phaseIndex + 1}/{pep.currentPhaseInfo.totalPhases} · HELD</>
+                                            ) : (
+                                                <>
+                                                    Phase {pep.currentPhaseInfo.phaseIndex + 1}/{pep.currentPhaseInfo.totalPhases}
+                                                    {pep.currentPhaseInfo.daysRemainingInPhase !== null && (
+                                                        <> · {pep.currentPhaseInfo.daysRemainingInPhase}d left</>
+                                                    )}
+                                                </>
                                             )}
                                         </span>
                                     )}
@@ -262,15 +271,17 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                                                     className="px-2 py-1 rounded text-[10px] font-medium relative"
                                                     style={{ 
                                                         backgroundColor: isCurrentPhase 
-                                                            ? `${theme.primary}30` 
+                                                            ? (pep.isHeld ? `${theme.warning || '#f59e0b'}25` : `${theme.primary}30`)
                                                             : isCompletedPhase 
                                                                 ? `${theme.success || '#22c55e'}15`
                                                                 : `${theme.primary}08`,
                                                         color: isCompletedPhase 
                                                             ? (theme.success || '#22c55e')
-                                                            : theme.text,
+                                                            : (isCurrentPhase && pep.isHeld) 
+                                                                ? (theme.warning || '#f59e0b')
+                                                                : theme.text,
                                                         border: isCurrentPhase 
-                                                            ? `2px solid ${theme.primary}` 
+                                                            ? `2px solid ${pep.isHeld ? (theme.warning || '#f59e0b') : theme.primary}` 
                                                             : isCompletedPhase
                                                                 ? `1px solid ${theme.success || '#22c55e'}40`
                                                                 : `1px solid ${theme.primary}15`,
@@ -279,6 +290,9 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                                                 >
                                                     {isCompletedPhase && (
                                                         <Check size={8} className="inline mr-0.5" style={{ color: theme.success || '#22c55e' }} />
+                                                    )}
+                                                    {isCurrentPhase && pep.isHeld && (
+                                                        <Pause size={8} className="inline mr-0.5" style={{ color: theme.warning || '#f59e0b' }} />
                                                     )}
                                                     <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
                                                     {(phase.durationCount && phase.durationUnit) && (
@@ -298,6 +312,85 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                                         );
                                     })}
                                 </div>
+                                
+                                {/* Titration Controls */}
+                                {onUpdateProtocol && protocol.active && pep.currentPhaseInfo && (
+                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t" style={{ borderColor: `${theme.border}60` }}>
+                                        {/* Hold / Resume */}
+                                        <button
+                                            onClick={() => {
+                                                const updatedPeptides = protocol.peptides.map((peptide, pidx) => {
+                                                    if (pidx !== pep.peptideIndex) return peptide;
+                                                    if (peptide.titrationHeldAt) {
+                                                        // RESUME
+                                                        const now = new Date();
+                                                        const heldAt = new Date(peptide.titrationHeldAt);
+                                                        const heldDays = Math.floor((now - heldAt) / (1000 * 60 * 60 * 24));
+                                                        return {
+                                                            ...peptide,
+                                                            titrationHeldAt: null,
+                                                            titrationDaysOffset: (Number(peptide.titrationDaysOffset) || 0) - heldDays
+                                                        };
+                                                    } else {
+                                                        // HOLD
+                                                        const today = new Date();
+                                                        const yyyy = today.getFullYear();
+                                                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                                        const dd = String(today.getDate()).padStart(2, '0');
+                                                        return {
+                                                            ...peptide,
+                                                            titrationHeldAt: `${yyyy}-${mm}-${dd}`
+                                                        };
+                                                    }
+                                                });
+                                                onUpdateProtocol({ ...protocol, peptides: updatedPeptides });
+                                            }}
+                                            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
+                                            style={{
+                                                backgroundColor: pep.isHeld 
+                                                    ? `${theme.success || '#22c55e'}15`
+                                                    : `${theme.warning || '#f59e0b'}15`,
+                                                color: pep.isHeld 
+                                                    ? (theme.success || '#22c55e')
+                                                    : (theme.warning || '#f59e0b'),
+                                                border: `1px solid ${pep.isHeld 
+                                                    ? (theme.success || '#22c55e') 
+                                                    : (theme.warning || '#f59e0b')}30`
+                                            }}
+                                        >
+                                            {pep.isHeld ? (
+                                                <><Play size={9} /> Resume Titration</>
+                                            ) : (
+                                                <><Pause size={9} /> Hold Phase</>
+                                            )}
+                                        </button>
+                                        
+                                        {/* Skip to Next Phase */}
+                                        {!pep.currentPhaseInfo.isMaintenancePhase && pep.currentPhaseInfo.phaseIndex < pep.currentPhaseInfo.totalPhases - 1 && (
+                                            <button
+                                                onClick={() => {
+                                                    const updatedPeptides = protocol.peptides.map((peptide, pidx) => {
+                                                        if (pidx !== pep.peptideIndex) return peptide;
+                                                        return {
+                                                            ...peptide,
+                                                            titrationHeldAt: null,
+                                                            titrationDaysOffset: (Number(peptide.titrationDaysOffset) || 0) + (pep.currentPhaseInfo.daysRemainingInPhase || 0)
+                                                        };
+                                                    });
+                                                    onUpdateProtocol({ ...protocol, peptides: updatedPeptides });
+                                                }}
+                                                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
+                                                style={{
+                                                    backgroundColor: `${theme.primary}15`,
+                                                    color: theme.primary,
+                                                    border: `1px solid ${theme.primary}30`
+                                                }}
+                                            >
+                                                <SkipForward size={9} /> Next Phase
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

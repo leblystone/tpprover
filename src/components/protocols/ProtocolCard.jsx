@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
@@ -61,7 +61,7 @@ const SectionDivider = ({ label, theme, icon }) => (
     </div>
 );
 
-const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false }) {
+const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false, onUpdateProtocol }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
@@ -579,21 +579,108 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                     <span>{formatIndividualFrequency(peptide.frequency)}</span>
                                                                 )}
                                                             </div>
-                                                            {/* Titration phase indicator */}
+                                                            {/* Titration phase indicator + controls */}
                                                             {hasTitration && currentPhase && (
-                                                                <div className="flex items-center gap-1.5 mt-1">
-                                                                    <TrendingUp size={10} style={{ color: theme.primary }} />
-                                                                    <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
-                                                                        Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
-                                                                    </span>
-                                                                    {currentPhase.daysRemainingInPhase !== null ? (
-                                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
-                                                                            · {currentPhase.daysRemainingInPhase}d remaining
+                                                                <div className="mt-1.5 space-y-1.5">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <TrendingUp size={10} style={{ color: theme.primary }} />
+                                                                        <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
+                                                                            Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
                                                                         </span>
-                                                                    ) : (
-                                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
-                                                                            · maintenance
-                                                                        </span>
+                                                                        {currentPhase.isHeld ? (
+                                                                            <span className="text-[10px] font-medium" style={{ color: theme.warning || '#f59e0b' }}>
+                                                                                · HELD
+                                                                            </span>
+                                                                        ) : currentPhase.daysRemainingInPhase !== null ? (
+                                                                            <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
+                                                                                · {currentPhase.daysRemainingInPhase}d remaining
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
+                                                                                · maintenance
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {/* Titration controls */}
+                                                                    {onUpdateProtocol && isActive && (
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            {/* Hold / Resume button */}
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    const updatedPeptides = p.peptides.map(pep => {
+                                                                                        if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
+                                                                                        if (pep.titrationHeldAt) {
+                                                                                            // RESUME: Calculate days held and add to offset
+                                                                                            const now = new Date();
+                                                                                            const heldAt = new Date(pep.titrationHeldAt);
+                                                                                            const heldDays = Math.floor((now - heldAt) / (1000 * 60 * 60 * 24));
+                                                                                            return {
+                                                                                                ...pep,
+                                                                                                titrationHeldAt: null,
+                                                                                                titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) - heldDays
+                                                                                            };
+                                                                                        } else {
+                                                                                            // HOLD: Save current date
+                                                                                            const today = new Date();
+                                                                                            const yyyy = today.getFullYear();
+                                                                                            const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                                                                            const dd = String(today.getDate()).padStart(2, '0');
+                                                                                            return {
+                                                                                                ...pep,
+                                                                                                titrationHeldAt: `${yyyy}-${mm}-${dd}`
+                                                                                            };
+                                                                                        }
+                                                                                    });
+                                                                                    onUpdateProtocol({ ...p, peptides: updatedPeptides });
+                                                                                }}
+                                                                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
+                                                                                style={{
+                                                                                    backgroundColor: currentPhase.isHeld 
+                                                                                        ? `${theme.success || '#22c55e'}15`
+                                                                                        : `${theme.warning || '#f59e0b'}15`,
+                                                                                    color: currentPhase.isHeld 
+                                                                                        ? (theme.success || '#22c55e')
+                                                                                        : (theme.warning || '#f59e0b'),
+                                                                                    border: `1px solid ${currentPhase.isHeld 
+                                                                                        ? (theme.success || '#22c55e') 
+                                                                                        : (theme.warning || '#f59e0b')}30`
+                                                                                }}
+                                                                            >
+                                                                                {currentPhase.isHeld ? (
+                                                                                    <><Play size={8} /> Resume</>
+                                                                                ) : (
+                                                                                    <><Pause size={8} /> Hold Phase</>
+                                                                                )}
+                                                                            </button>
+                                                                            
+                                                                            {/* Skip to Next Phase button - only if not on last phase */}
+                                                                            {!currentPhase.isMaintenancePhase && currentPhase.phaseIndex < currentPhase.totalPhases - 1 && (
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        const updatedPeptides = p.peptides.map(pep => {
+                                                                                            if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
+                                                                                            // Add remaining days to offset to jump to next phase
+                                                                                            return {
+                                                                                                ...pep,
+                                                                                                titrationHeldAt: null, // Clear hold if active
+                                                                                                titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) + (currentPhase.daysRemainingInPhase || 0)
+                                                                                            };
+                                                                                        });
+                                                                                        onUpdateProtocol({ ...p, peptides: updatedPeptides });
+                                                                                    }}
+                                                                                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
+                                                                                    style={{
+                                                                                        backgroundColor: `${theme.primary}15`,
+                                                                                        color: theme.primary,
+                                                                                        border: `1px solid ${theme.primary}30`
+                                                                                    }}
+                                                                                >
+                                                                                    <SkipForward size={8} /> Next Phase
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}

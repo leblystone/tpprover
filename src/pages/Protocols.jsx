@@ -1581,6 +1581,7 @@ export default function Protocols() {
                           onEditClick={handleEditClick}
                           onHistoryClick={setHistoryProtocol}
                           hasDraftStart={hasDraftStart(p.id)}
+                          onUpdateProtocol={updateProtocolWithForceSync}
                         />
                       ))}
                     </div>
@@ -2886,6 +2887,10 @@ export default function Protocols() {
                             protocol={manageConfirm}
                             startDate={manageConfirm?.startDate || getLocalDateString()}
                             theme={theme}
+                            onUpdateProtocol={(updated) => {
+                              updateProtocolWithForceSync(updated);
+                              setManageConfirm(updated);
+                            }}
                           />
                         </div>
                       )}
