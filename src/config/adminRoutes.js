@@ -49,7 +49,8 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/comms/emails`,
     icon: 'MailOpen',
     children: [
-      { id: 'emails', label: 'Emails', path: `${ADMIN_BASE}/comms/emails` },
+      { id: 'emails', label: 'Email Templates', path: `${ADMIN_BASE}/comms/emails` },
+      { id: 'triggers', label: 'Email Triggers', path: `${ADMIN_BASE}/comms/triggers` },
       { id: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/comms/notifications` },
     ],
   },
@@ -95,8 +96,8 @@ export const adminPaths = {
   improvements: `${ADMIN_BASE}/improvements`,
   // Comms paths
   commsEmails: `${ADMIN_BASE}/comms/emails`,
+  commsTriggers: `${ADMIN_BASE}/comms/triggers`,
   commsNotifications: `${ADMIN_BASE}/comms/notifications`,
-  commsTriggers: `${ADMIN_BASE}/overview/automation`,
   // Legacy comms paths
   commsPush: `${ADMIN_BASE}/comms/notifications`,
   commsInApp: `${ADMIN_BASE}/comms/notifications`,

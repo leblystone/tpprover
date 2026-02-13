@@ -147,12 +147,12 @@ export const router = createBrowserRouter([
       
       // Comms section
       { path: 'comms/emails', element: <AdminCommsEmails /> },
+      { path: 'comms/triggers', element: <AdminCommsTriggers /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },
       { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
       // Legacy comms routes - redirect to new structure
       { path: 'comms/push', element: <Navigate to="/admin/comms/notifications" replace /> },
       { path: 'comms/in-app', element: <Navigate to="/admin/comms/notifications" replace /> },
-      { path: 'comms/triggers', element: <Navigate to="/admin/overview/automation" replace /> },
       
       // Settings section
       { path: 'settings/security', element: <AdminSettingsSecurity /> },
