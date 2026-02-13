@@ -14,7 +14,7 @@ import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
-import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
+// calculateScheduledTasksForDate is now used by Calendar.jsx directly (single source of truth)
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {})
 
@@ -258,60 +258,17 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
 }
 
 export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump }) {
-  const { scheduledBuys, protocols, supplements, reconItems } = useAppContext()
+  const { scheduledBuys } = useAppContext()
   const { firebaseUser } = useFirebase()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null)
   const [selectedNote, setSelectedNote] = useState(null)
   
-  // Calculate detailed tasks for this date using the same logic as Dashboard
-  const detailedTasks = React.useMemo(() => {
-    try {
-      console.log('🔍 DayModal: Starting calculation', { hasDate: !!date, hasProtocols: !!protocols });
-      if (!date || !protocols) {
-        console.log('🔍 DayModal: Missing date or protocols, returning empty');
-        return { bySlot: {} };
-      }
-      const result = calculateScheduledTasksForDate(date, protocols, supplements || [], reconItems || []);
-      console.log('🔍 DayModal calculateScheduledTasksForDate:', {
-        date: date.toISOString().split('T')[0],
-        protocolsCount: protocols?.length,
-        bySlotKeys: Object.keys(result.bySlot || {}),
-        AMTasks: result.bySlot?.AM?.peptides?.length || 0,
-        AMPeptideNames: result.bySlot?.AM?.peptides?.map(p => typeof p === 'object' ? p.name : p) || [],
-        PMTasks: result.bySlot?.PM?.peptides?.length || 0,
-        sampleAMTask: result.bySlot?.AM?.peptides?.[0]
-      });
-      return result;
-    } catch (error) {
-      console.error('🔍 DayModal: Error in calculateScheduledTasksForDate:', error);
-      return { bySlot: {} };
-    }
-  }, [date, protocols, supplements, reconItems, calendarBump]);
-  
-  // Merge detailed tasks with the indicator data from parent
-  // scheduled is structured as { [dateKey]: { bySlot, peptides, supplements, buys, etc. } }
-  // We need to merge the bySlot data for the current date
-  const mergedScheduled = React.useMemo(() => {
-    const dayKey = toKey(date);
-    const merged = {
-      ...scheduled,
-      [dayKey]: {
-        ...(scheduled?.[dayKey] || {}),
-        bySlot: detailedTasks.bySlot || {}
-      }
-    };
-    console.log('🔍 DayModal mergedScheduled:', {
-      dayKey,
-      hasDayData: !!merged[dayKey],
-      bySlotKeys: Object.keys(merged[dayKey]?.bySlot || {}),
-      AMPeptides: merged[dayKey]?.bySlot?.AM?.peptides?.length || 0,
-      AMPeptideNames: merged[dayKey]?.bySlot?.AM?.peptides?.map(p => typeof p === 'object' ? p.name : p) || [],
-      sampleAM: merged[dayKey]?.bySlot?.AM?.peptides?.[0]
-    });
-    return merged;
-  }, [date, scheduled, detailedTasks]);
+  // Calendar now uses calculateScheduledTasksForDate (same as Dashboard/notifications),
+  // so the scheduled prop already contains the correct data. No need for duplicate calculation.
+  // Just use scheduled directly - SINGLE SOURCE OF TRUTH.
+  const mergedScheduled = scheduled;
   
   // Check if group buys are enabled
   const groupBuysEnabled = areGroupBuysEnabled()
@@ -542,18 +499,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   )}
                 </div>
                 <SlotContent 
-                  scheduled={(() => {
-                    const slotData = dayScheduled?.bySlot?.AM;
-                    console.log('🔍 Rendering AM SlotContent:', {
-                      hasDayScheduled: !!dayScheduled,
-                      hasBySlot: !!dayScheduled?.bySlot,
-                      hasAM: !!dayScheduled?.bySlot?.AM,
-                      peptides: slotData?.peptides?.length || 0,
-                      supplements: slotData?.supplements?.length || 0,
-                      firstPeptide: slotData?.peptides?.[0]
-                    });
-                    return slotData;
-                  })()} 
+                  scheduled={dayScheduled?.bySlot?.AM} 
                   theme={theme} 
                   date={date}
                   timeSlot="AM"

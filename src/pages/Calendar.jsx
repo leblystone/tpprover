@@ -11,7 +11,7 @@ import NotesModal from '../components/calendar/NotesModal'
 import CalendarIconKey from '../components/calendar/CalendarIconKey'
 import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import DayModal from '../components/calendar/DayModal'
-import { calculateRecon } from '../utils/recon'
+import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { useAppContext } from '../context/AppContext'
 import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
@@ -397,18 +397,6 @@ export default function Calendar() {
           }).filter(t => t.start);
           setProtocolTimelines(timelines);
 
-          const getNormalizedPeptides = (p) => {
-            const basePeptides = (Array.isArray(p.peptides) && p.peptides.length > 0)
-              ? p.peptides
-              : [{ name: p.name || p.peptide, dosage: p.dosage, frequency: p.frequency }]
-            return basePeptides.map(pep => {
-              const f = pep?.frequency || {}
-              const type = f.type || 'daily'
-              const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['AM']
-              return { ...pep, frequency: { ...f, type, time } }
-            })
-          }
-
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const key = toKey(d)
             // Mark scheduled group buys covering this day
@@ -416,450 +404,89 @@ export default function Calendar() {
               if (!gb?.openDate || !gb?.closeDate) continue
               const od = parseDateString(gb.openDate)
               const cd = parseDateString(gb.closeDate)
-              // Add null checks to prevent getTime() errors on Android
               if (!od || !cd) continue
               const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
               if (dOnly >= new Date(od.getFullYear(), od.getMonth(), od.getDate()) && dOnly <= new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())) {
-                // Store full group buy object instead of just label to preserve vendor and other details
                 next[key] = {
                   ...(next[key] || {}),
                   groupBuys: [ ...(next[key]?.groupBuys || []), gb ],
                 }
               }
             }
+
+            // ========================================
+            // SINGLE SOURCE OF TRUTH: Use calculateScheduledTasksForDate
+            // This is the SAME function used by DayModal, Dashboard, and notifications
+            // ========================================
+            const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+            const dayTasks = calculateScheduledTasksForDate(dayDate, prots, supps, reconItems)
+            
+            // Merge calculated tasks with existing supplement data already in next[key]
+            const existingBySlot = next[key]?.bySlot || {}
+            const calculatedBySlot = dayTasks.bySlot || {}
+            const mergedBySlot = { ...existingBySlot }
+            
+            for (const slot in calculatedBySlot) {
+              const existingPeptides = mergedBySlot[slot]?.peptides || []
+              const newPeptides = calculatedBySlot[slot]?.peptides || []
+              const existingSupplements = mergedBySlot[slot]?.supplements || []
+              const newSupplements = calculatedBySlot[slot]?.supplements || []
+              
+              // Deduplicate peptides by name + protocolId + peptideId
+              const uniquePeptides = [...existingPeptides]
+              newPeptides.forEach(newPep => {
+                if (!uniquePeptides.some(existing => 
+                  existing.name === newPep.name && 
+                  existing.protocolId === newPep.protocolId &&
+                  existing.peptideId === newPep.peptideId
+                )) {
+                  uniquePeptides.push(newPep)
+                }
+              })
+              
+              // Deduplicate supplements by name
+              const uniqueSupplements = [...existingSupplements]
+              newSupplements.forEach(newSup => {
+                if (!uniqueSupplements.some(existing => existing.name === newSup.name)) {
+                  uniqueSupplements.push(newSup)
+                }
+              })
+              
+              mergedBySlot[slot] = {
+                peptides: uniquePeptides,
+                supplements: uniqueSupplements,
+              }
+            }
+            
+            // Count tasks per slot and track active protocol names
             const activeProtoNames = new Set()
-            const count = prots.reduce((acc, p) => {
+            prots.forEach(p => {
               const { start: ps, end: pe } = getWindows(p)
               const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
               const psOnly = ps ? new Date(ps.getFullYear(), ps.getMonth(), ps.getDate()) : null
               const peOnly = pe ? new Date(pe.getFullYear(), pe.getMonth(), pe.getDate()) : null
               const inRange = (!psOnly || psOnly <= dOnly) && (!peOnly || peOnly >= dOnly)
-              const active = p.active !== false
-              
-              if (!inRange || !active) return acc;
-              if (p.protocolName) activeProtoNames.add(p.protocolName)
-
-              const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
-              let dailyDoses = 0;
-
-              if (isBlended) {
-                  // For blended protocols, count as one task with shared frequency
-                  const peptides = getNormalizedPeptides(p);
-                  if (peptides.length > 0) {
-                      const freq = peptides[0].frequency || {};
-                      let isScheduledToday = false;
-                      
-                      // Skip if protocol start date is null
-                      if (!ps) return acc;
-                      const protocolStartDate = normalizeToMidnight(ps);
-                      const currentDate = normalizeToMidnight(d);
-                      // Add null checks to prevent getTime() errors on Android
-                      if (!protocolStartDate || !currentDate) return acc;
-
-                      switch (freq.type) {
-                          case 'daily':
-                              isScheduledToday = true;
-                              break;
-                          case 'weekly':
-                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              // Normalize stored days to short format for comparison
-                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
-                              if (normalizedDays.includes(dayName)) {
-                                  isScheduledToday = true;
-                              }
-                              break;
-                          case 'cycle':
-                              // Parse onDays and offDays, handling both string and number formats
-                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
-                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
-                              if (on > 0 && off >= 0) {
-                                  const cycleLen = on + off;
-                                  if (cycleLen > 0) {
-                                      // CRITICAL: Calculate day difference using normalized dates
-                                      // dayDiff = 0 means it's the start day (first "on" day)
-                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                      if (dayDiff !== null && dayDiff >= 0) {
-                                          // dayInCycle ranges from 0 to (cycleLen - 1)
-                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
-                                          const dayInCycle = dayDiff % cycleLen;
-                                          if (dayInCycle < on) {
-                                              isScheduledToday = true;
-                                          }
-                                      }
-                                  }
-                              }
-                              break;
-                          case 'custom':
-                              const customDays = Number(freq.customDays) || 1;
-                              if (customDays > 0) {
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
-                                      isScheduledToday = true;
-                                  }
-                              }
-                              break;
-                          default:
-                              break;
-                      }
-
-                      if (isScheduledToday) {
-                          dailyDoses = (freq.time?.length || 1);
-                      }
-                  }
-              } else {
-                  // For separate protocols, count each peptide individually
-                  getNormalizedPeptides(p).forEach(pep => {
-                      const freq = pep.frequency || {};
-                      let isScheduledToday = false;
-                      
-                      // Skip if protocol start date is null
-                      if (!ps) return;
-                      const protocolStartDate = normalizeToMidnight(ps);
-                      const currentDate = normalizeToMidnight(d);
-                      // Add null checks to prevent getTime() errors on Android
-                      if (!protocolStartDate || !currentDate) return;
-
-                      switch (freq.type) {
-                          case 'daily':
-                              isScheduledToday = true;
-                              break;
-                          case 'weekly':
-                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              // Normalize stored days to short format for comparison
-                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
-                              if (normalizedDays.includes(dayName)) {
-                                  isScheduledToday = true;
-                              }
-                              break;
-                          case 'cycle':
-                              // Parse onDays and offDays, handling both string and number formats
-                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
-                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
-                              if (on > 0 && off >= 0) {
-                                  const cycleLen = on + off;
-                                  if (cycleLen > 0) {
-                                      // CRITICAL: Calculate day difference using normalized dates
-                                      // dayDiff = 0 means it's the start day (first "on" day)
-                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                      if (dayDiff !== null && dayDiff >= 0) {
-                                          // dayInCycle ranges from 0 to (cycleLen - 1)
-                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
-                                          const dayInCycle = dayDiff % cycleLen;
-                                          if (dayInCycle < on) {
-                                              isScheduledToday = true;
-                                          }
-                                      }
-                                  }
-                              }
-                              break;
-                          case 'custom':
-                              const customDays = Number(freq.customDays) || 1;
-                              if (customDays > 0) {
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
-                                      isScheduledToday = true;
-                                  }
-                              }
-                              break;
-                          default:
-                              break;
-                      }
-
-                      if (isScheduledToday) {
-                          dailyDoses += (pep.frequency?.time?.length || 1);
-                      }
-                  });
+              if (inRange && p.active !== false && p.protocolName) {
+                activeProtoNames.add(p.protocolName)
               }
-
-              return acc + dailyDoses;
-            }, 0)
-            if (count > 0) {
-              const bySlot = prots.reduce((obj, p) => {
-                const { start: ps, end: pe } = getWindows(p)
-                const dOnly2 = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-                const psOnly2 = ps ? new Date(ps.getFullYear(), ps.getMonth(), ps.getDate()) : null
-                const peOnly2 = pe ? new Date(pe.getFullYear(), pe.getMonth(), pe.getDate()) : null
-                const inRange = (!psOnly2 || psOnly2 <= dOnly2) && (!peOnly2 || peOnly2 >= dOnly2)
-                const active = p.active !== false
-                if (inRange && active) {
-                  const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1
-                  
-                  const protocolPeptideNames = getNormalizedPeptides(p).map(p => (p.name || '').toLowerCase().trim()).sort();
-                  const reconItem = reconItems.find(r => {
-                      if (!r.peptides || r.peptides.length === 0) return false;
-                      const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim()).sort();
-                      if (protocolPeptideNames.length === 0 || reconPeptideNames.length === 0) return false;
-                      return protocolPeptideNames.length === reconPeptideNames.length && protocolPeptideNames.every((val, index) => val === reconPeptideNames[index]);
-                  });
-
-                  if (isBlended) {
-                    const peptides = getNormalizedPeptides(p);
-                    // Check if any peptide has unitValue (manual override)
-                    const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
-                    
-                    // Build dose display from all peptides in the blend
-                    const doseParts = peptides.map(pep => 
-                        `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
-                    );
-                    
-                    // For blended protocols, build dose display
-                    const firstPeptide = peptides[0];
-                    const baseDose = firstPeptide?.dosage?.amount || '';
-                    const baseUnit = firstPeptide?.dosage?.unit || 'mcg';
-                    
-                    let dose = '';
-                    let unit = '';
-                    
-                    // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
-                    if (additionalUnits && additionalUnits.trim() !== '') {
-                        // User manually entered units in protocol - HIGHEST priority
-                        dose = `${additionalUnits} units`;
-                        unit = '';
-                    } else if (reconItem) {
-                        // Check for manual units in recon item first
-                        if (reconItem.units && reconItem.units.trim() !== '') {
-                            // User manually entered units in recon modal - SECOND priority
-                            dose = `${reconItem.units} units`;
-                            unit = '';
-                        } else {
-                            // No manual override, use calculated units if available
-                            const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
-                                const dose = Number(pep.dose) || 0;
-                                return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-                            }, 0);
-                            const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
-                            const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
-                            if (calc.unitsPerDose > 0) {
-                                dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                                unit = '';
-                            } else {
-                                dose = `${baseDose} ${baseUnit}`;
-                                unit = '';
-                            }
-                        }
-                    } else {
-                        dose = `${baseDose} ${baseUnit}`;
-                        unit = '';
-                    }
-
-                    // For blended protocols, all peptides share the same frequency
-                    // Get times from the first peptide only
-                    const times = peptides.length > 0 ? (peptides[0].frequency?.time || ['AM']) : ['AM'];
-                    
-                    Array.from(times).forEach(t => {
-                      // Use AM/PM format directly
-                      const normalizedTimeSlot = t;
-                      const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] }
-                      let deliveryInfo = '';
-                      if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                      if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
-                      const peptideName = `${p.protocolName || 'Blended Protocol'} - ${dose}${deliveryInfo}`;
-
-                      const peptideData = {
-                          name: p.protocolName || 'Blended Protocol',
-                          dose: dose,
-                          unit: unit,
-                          deliveryMethod: reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'injection',
-                          delivery: firstPeptide?.delivery || 'injection', // Also include delivery field for fallback
-                          penColor: reconItem?.penColor || firstPeptide?.penColor,
-                          penType: reconItem?.penType || firstPeptide?.penType,
-                          protocolId: p.id,
-                          peptideId: `${p.id}-blended`
-                      };
-                      if (!currentSlot.peptides.some(item => 
-                          item.name === peptideData.name && 
-                          item.protocolId === peptideData.protocolId &&
-                          item.peptideId === peptideData.peptideId
-                      )) {
-                        obj[normalizedTimeSlot] = {
-                          ...currentSlot,
-                          peptides: [...currentSlot.peptides, peptideData],
-                        }
-                      }
-                    })
-                    return obj
-                  }
-                  getNormalizedPeptides(p).forEach((pep, pepIndex) => {
-                      const freq = pep.frequency || {};
-                      let isScheduledToday = false;
-                      
-                      // Skip if protocol start date is null
-                      if (!ps) return;
-                      const protocolStartDate = normalizeToMidnight(ps);
-                      const currentDate = normalizeToMidnight(d);
-                      // Add null checks to prevent getTime() errors on Android
-                      if (!protocolStartDate || !currentDate) return;
-
-                      switch (freq.type) {
-                          case 'daily':
-                              isScheduledToday = true;
-                              break;
-                          case 'weekly':
-                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                              // Normalize stored days to short format for comparison
-                              const normalizedDays = freq.days?.map(d => normalizeDayName(d)) || [];
-                              if (normalizedDays.includes(dayName)) {
-                                  isScheduledToday = true;
-                              }
-                              break;
-                          case 'cycle':
-                              // Parse onDays and offDays, handling both string and number formats
-                              const on = Math.max(0, parseInt(String(freq.onDays || '0'), 10) || 0);
-                              const off = Math.max(0, parseInt(String(freq.offDays || '0'), 10) || 0);
-                              if (on > 0 && off >= 0) {
-                                  const cycleLen = on + off;
-                                  if (cycleLen > 0) {
-                                      // CRITICAL: Calculate day difference using normalized dates
-                                      // dayDiff = 0 means it's the start day (first "on" day)
-                                      const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                      if (dayDiff !== null && dayDiff >= 0) {
-                                          // dayInCycle ranges from 0 to (cycleLen - 1)
-                                          // 0 to (on-1) are "on" days, on to (cycleLen-1) are "off" days
-                                          const dayInCycle = dayDiff % cycleLen;
-                                          if (dayInCycle < on) {
-                                              isScheduledToday = true;
-                                          }
-                                      }
-                                  }
-                              }
-                              break;
-                          case 'custom':
-                              const customDays = Number(freq.customDays) || 1;
-                              if (customDays > 0) {
-                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
-                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
-                                      isScheduledToday = true;
-                                  }
-                              }
-                              break;
-                          default:
-                              break;
-                      }
-
-                      if (isScheduledToday) {
-                          pep.frequency.time.forEach(t => {
-                              // Use AM/PM format directly
-                              const normalizedTimeSlot = t;
-                              const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] };
-                              
-                              let dose = pep.dosage?.amount || '';
-                              let unit = pep.dosage?.unit || '';
-                              let additionalUnits = pep.unitValue || ''; // Get manual units value from peptide
-
-                              // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Default dose/unit
-                              if (additionalUnits && additionalUnits.trim() !== '') {
-                                  // User manually entered units in protocol - HIGHEST priority
-                                  dose = `${additionalUnits} units`;
-                                  unit = '';
-                              } else if (reconItem) {
-                                  // Check for manual units in recon item first
-                                  if (reconItem.units && reconItem.units.trim() !== '') {
-                                      // User manually entered units in recon modal - SECOND priority
-                                      dose = `${reconItem.units} units`;
-                                      unit = '';
-                                  } else {
-                                      // No manual override, use calculated units if available
-                                      const calc = calculateRecon({ 
-                                          mg: reconItem.mg, 
-                                          water: reconItem.water, 
-                                          dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount,
-                                          doseUnit: pep.dosage?.unit || 'mcg' // FIX: Pass doseUnit for proper calculation
-                                      });
-                                      if (calc.unitsPerDose > 0) {
-                                          dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                                          unit = '';
-                                      } else {
-                                          dose = `${dose} ${unit}`;
-                                          unit = '';
-                                      }
-                                  }
-                              } else {
-                                  // No recon item, use default dose/unit
-                                  dose = `${dose} ${unit}`;
-                                  unit = '';
-                              }
-
-                              let deliveryInfo = '';
-                              if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                              if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
-
-                              const peptideName = `${pep.name || 'Peptide'} - ${dose}${deliveryInfo}`;
-
-                              const peptideData = {
-                                  name: pep.name || 'Peptide',
-                                  dose: dose,
-                                  unit: unit,
-                                  deliveryMethod: reconItem?.deliveryMethod || pep.deliveryMethod || pep.delivery || 'injection',
-                                  delivery: pep.delivery || 'injection', // Also include delivery field for fallback
-                                  penColor: reconItem?.penColor || pep.penColor,
-                                  penType: reconItem?.penType || pep.penType,
-                                  protocolId: p.id,
-                                  peptideId: pep.id || `peptide-${pepIndex}` // Match calendarTasks.js for same task IDs as Today's Research
-                              };
-                              
-                              if (!currentSlot.peptides.some(item => 
-                                  item.name === peptideData.name && 
-                                  item.protocolId === peptideData.protocolId &&
-                                  item.peptideId === peptideData.peptideId
-                              )) {
-                                obj[normalizedTimeSlot] = {
-                                    ...currentSlot,
-                                    peptides: [...currentSlot.peptides, peptideData],
-                                };
-                              }
-                          });
-                      }
-                  });
-                }
-                return obj
-              }, (next[key]?.bySlot || {}))
-
-              const times = Object.keys(bySlot).reduce((acc, slot) => {
-                acc[slot] = (bySlot[slot]?.peptides?.length || 0)
+            })
+            
+            const hasTasks = Object.keys(mergedBySlot).some(slot => 
+              (mergedBySlot[slot]?.peptides?.length > 0) || (mergedBySlot[slot]?.supplements?.length > 0)
+            )
+            
+            if (hasTasks) {
+              const times = Object.keys(mergedBySlot).reduce((acc, slot) => {
+                acc[slot] = (mergedBySlot[slot]?.peptides?.length || 0)
                 return acc
               }, {})
 
-              // compute day completion (all scheduled done)
               const doneForDay = done[key] || {}
               const maxTotal = Object.values(times).reduce((a, b) => a + (b || 0), 0)
               const doneTotal = Object.values(doneForDay).reduce((a, b) => a + (b || 0), 0)
               const doneAll = maxTotal > 0 && doneTotal >= maxTotal
 
-              // Merge bySlot data carefully instead of overwriting
-              const existingBySlot = next[key]?.bySlot || {};
-              const mergedBySlot = { ...existingBySlot };
-              for (const slot in bySlot) {
-                  const existingPeptides = mergedBySlot[slot]?.peptides || [];
-                  const newPeptides = bySlot[slot]?.peptides || [];
-                  const existingSupplements = mergedBySlot[slot]?.supplements || [];
-                  const newSupplements = bySlot[slot]?.supplements || [];
-                  
-                  // Remove duplicates by checking name property
-                  const uniquePeptides = [...existingPeptides];
-                  newPeptides.forEach(newPep => {
-                      if (!uniquePeptides.some(existing => existing.name === newPep.name)) {
-                          uniquePeptides.push(newPep);
-                      }
-                  });
-                  
-                  const uniqueSupplements = [...existingSupplements];
-                  newSupplements.forEach(newSup => {
-                      if (!uniqueSupplements.some(existing => existing.name === newSup.name)) {
-                          uniqueSupplements.push(newSup);
-                      }
-                  });
-                  
-                  mergedBySlot[slot] = {
-                      peptides: uniquePeptides,
-                      supplements: uniqueSupplements,
-                  };
-              }
-
               next[key] = { ...(next[key] || {}), times, bySlot: mergedBySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
-            }
-            // Ensure supplement data is preserved even if there are no protocols for a day
-            if (!next[key]?.supplements && scheduled[key]?.supplements) {
-                next[key] = { ...next[key], supplements: scheduled[key].supplements };
             }
             
             // Wash-out chips

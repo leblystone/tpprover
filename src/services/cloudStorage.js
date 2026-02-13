@@ -2,6 +2,7 @@ import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, ge
 import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
+import { APP_VERSION } from '../utils/appVersion';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -84,7 +85,7 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
       ...cleanData,
       userId,
       lastUpdated: serverTimestamp(), // ✅ Server-side timestamp
-      version: '1.0'
+      version: APP_VERSION // ✅ Dynamic version from package.json
     };
     
     await setDoc(userDoc, finalData, { merge: true });

@@ -276,7 +276,7 @@ async function wipeDemoDataForUser(userId) {
 
     // Update Firestore with cleaned data
     console.log('\n💾 Saving cleaned data to Firestore...');
-    await userDataRef.set(cleanedData);
+    await userDataRef.set(cleanedData, { merge: true });
     
     console.log('\n✅ SUCCESS! Demo data removed from user account.');
     console.log('\n📊 Final data summary:');

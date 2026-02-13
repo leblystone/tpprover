@@ -632,7 +632,7 @@ export default function Stockpile() {
             stockpile: updatedItems,
             scheduledBuys: scheduledBuys || []
           };
-          await saveAppData(userId, appData, { skipMerge: true });
+          await saveAppData(userId, appData, { skipMerge: false });
         } catch (e) {
           console.error('Failed to sync deleted item to cloud:', e);
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -760,9 +760,9 @@ export default function Stockpile() {
             scheduledBuys: scheduledBuys || []
           };
           
-          // Force immediate sync with skipMerge to overwrite server data
-          // This ensures merged items persist even if real-time listener triggers
-          await saveAppData(userId, appData, { skipMerge: true });
+          // Sync merged items with timestamp-based conflict resolution
+          // This ensures merged items persist correctly across devices
+          await saveAppData(userId, appData, { skipMerge: false });
           console.log('✅ Merged items synced to cloud immediately');
         } catch (e) {
           console.error('Failed to sync merged items to cloud:', e);
@@ -1380,7 +1380,7 @@ export default function Stockpile() {
                                   stockpile: updatedItems,
                                   scheduledBuys: scheduledBuys || []
                                 };
-                                await saveAppData(userId, appData, { skipMerge: true });
+                                await saveAppData(userId, appData, { skipMerge: false });
                               } catch (e) {
                                 console.error('Failed to sync deleted item to cloud:', e);
                                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -1501,17 +1501,17 @@ export default function Stockpile() {
                               const userId = firebaseUser.uid;
                               const appData = {
                                 protocols: protocols || [],
-                                reconItems: reconItems || [],
-                                reconHistory: reconHistory || [],
-                                supplements: supplements || [],
-                                orders: orders || [],
-                                metrics: metrics || [],
-                                vendors: vendors || [],
-                                calendarNotes: calendarNotes || {},
-                                stockpile: updatedItems,
-                                scheduledBuys: scheduledBuys || []
-                              };
-                              saveAppData(userId, appData, { skipMerge: true });
+                              reconItems: reconItems || [],
+                              reconHistory: reconHistory || [],
+                              supplements: supplements || [],
+                              orders: orders || [],
+                              metrics: metrics || [],
+                              vendors: vendors || [],
+                              calendarNotes: calendarNotes || {},
+                              stockpile: updatedItems,
+                              scheduledBuys: scheduledBuys || []
+                            };
+                            saveAppData(userId, appData, { skipMerge: false });
                             } catch (e) {
                               console.error('Failed to sync to cloud:', e);
                             }
@@ -3441,7 +3441,7 @@ export default function Stockpile() {
                   stockpile: updatedItems,
                   scheduledBuys: scheduledBuys || []
                 };
-                await saveAppData(userId, appData, { skipMerge: true });
+                await saveAppData(userId, appData, { skipMerge: false });
               } catch (e) {
                 console.error('Failed to sync deleted items to cloud:', e);
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -3629,17 +3629,17 @@ export default function Stockpile() {
                 const userId = firebaseUser.uid;
                 const appData = {
                   protocols: protocols || [],
-                  reconItems: reconItems || [],
-                  reconHistory: reconHistory || [],
-                  supplements: supplements || [],
-                  orders: orders || [],
-                  metrics: metrics || [],
-                  vendors: vendors || [],
-                  calendarNotes: calendarNotes || {},
-                  stockpile: [...itemsWithVendorIds, ...items],
-                  scheduledBuys: scheduledBuys || []
-                };
-                await saveAppData(userId, appData, { skipMerge: true });
+                reconItems: reconItems || [],
+                reconHistory: reconHistory || [],
+                supplements: supplements || [],
+                orders: orders || [],
+                metrics: metrics || [],
+                vendors: vendors || [],
+                calendarNotes: calendarNotes || {},
+                stockpile: [...itemsWithVendorIds, ...items],
+                scheduledBuys: scheduledBuys || []
+              };
+              await saveAppData(userId, appData, { skipMerge: false });
               } catch (e) {
                 console.error('Failed to sync bulk import to cloud:', e);
               }
