@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight } from '../../utils/date';
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical } from 'lucide-react';
+import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -554,33 +555,59 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             />
                                             
                                             <div className="flex-1 py-0.5">
-                                                <div className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.text }}>
-                                                    {peptide.name || 'Unnamed Peptide'}
-                                                    {peptide.emoji && <span className="text-base leading-none">{peptide.emoji}</span>}
-                                                </div>
-                                                <div className="flex items-center gap-2 text-[12px] mt-0.5" style={{ color: theme.textLight }}>
-                                                    {peptide.dosage?.amount > 0 && (
-                                                        <span>{peptide.dosage.amount} {peptide.dosage.unit}</span>
-                                                    )}
-                                                    {(peptide.dosage?.amount > 0 && peptide.frequency) && (
-                                                        <span className="opacity-30">|</span>
-                                                    )}
-                                                    {peptide.frequency && (
-                                                        <span>{formatIndividualFrequency(peptide.frequency)}</span>
-                                                    )}
-                                                </div>
-                                                {/* Titration indicator */}
-                                                {peptide.titration && Array.isArray(peptide.titration) && peptide.titration.length > 0 && (
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <TrendingUp size={10} style={{ color: theme.primary }} />
-                                                        <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
-                                                            {peptide.titration.length}-phase titration
-                                                        </span>
-                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
-                                                            {formatTitration(peptide.titration)}
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                {(() => {
+                                                    const currentPhase = getCurrentTitrationPhase(p, peptide);
+                                                    const hasTitration = peptide.titration && Array.isArray(peptide.titration) && peptide.titration.length > 0;
+                                                    // Show current phase dose if in titration, otherwise base dose
+                                                    const displayDose = currentPhase ? currentPhase.dose : peptide.dosage?.amount;
+                                                    const displayUnit = currentPhase ? currentPhase.unit : peptide.dosage?.unit;
+                                                    
+                                                    return (
+                                                        <>
+                                                            <div className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.text }}>
+                                                                {peptide.name || 'Unnamed Peptide'}
+                                                                {peptide.emoji && <span className="text-base leading-none">{peptide.emoji}</span>}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-[12px] mt-0.5" style={{ color: theme.textLight }}>
+                                                                {displayDose && (
+                                                                    <span>{displayDose} {displayUnit}</span>
+                                                                )}
+                                                                {(displayDose && peptide.frequency) && (
+                                                                    <span className="opacity-30">|</span>
+                                                                )}
+                                                                {peptide.frequency && (
+                                                                    <span>{formatIndividualFrequency(peptide.frequency)}</span>
+                                                                )}
+                                                            </div>
+                                                            {/* Titration phase indicator */}
+                                                            {hasTitration && currentPhase && (
+                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                    <TrendingUp size={10} style={{ color: theme.primary }} />
+                                                                    <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
+                                                                        Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
+                                                                    </span>
+                                                                    {currentPhase.daysRemainingInPhase !== null ? (
+                                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
+                                                                            · {currentPhase.daysRemainingInPhase}d remaining
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
+                                                                            · maintenance
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {hasTitration && !currentPhase && (
+                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                    <TrendingUp size={10} style={{ color: theme.primary }} />
+                                                                    <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
+                                                                        {peptide.titration.length}-phase titration
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     ))

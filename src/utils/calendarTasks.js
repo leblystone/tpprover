@@ -161,6 +161,81 @@ function getNormalizedPeptides(p) {
 }
 
 /**
+ * Get the current titration phase for a peptide based on today's date
+ * Returns { phaseIndex, phase, dose, unit, daysIntoPhase, daysRemainingInPhase, totalPhases }
+ * or null if no titration
+ */
+export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Date()) {
+    if (!peptide?.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0) {
+        return null;
+    }
+
+    const protocolStart = parseDateString(protocol?.startDate);
+    const target = targetDate instanceof Date ? targetDate : parseDateString(targetDate);
+    
+    if (!protocolStart || !target) return null;
+
+    const daysElapsed = getDayDifference(protocolStart, target);
+    if (daysElapsed < 0) return null;
+
+    let cumulativeDays = 0;
+    for (let i = 0; i < peptide.titration.length; i++) {
+        const phase = peptide.titration[i];
+        const isLastPhase = i === peptide.titration.length - 1;
+        const durationCount = Number(phase.durationCount) || 0;
+        const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
+        
+        let phaseDays = durationCount;
+        if (durationUnit.includes('week')) phaseDays = durationCount * 7;
+        else if (durationUnit.includes('month')) phaseDays = durationCount * 30;
+        
+        if (phaseDays <= 0) {
+            if (isLastPhase) {
+                return {
+                    phaseIndex: i,
+                    phase,
+                    dose: phase.dose || '',
+                    unit: phase.doseUnit || '',
+                    daysIntoPhase: daysElapsed - cumulativeDays,
+                    daysRemainingInPhase: null, // maintenance - no end
+                    totalPhases: peptide.titration.length,
+                    isMaintenancePhase: true
+                };
+            }
+            phaseDays = 1;
+        }
+        
+        if (daysElapsed < cumulativeDays + phaseDays) {
+            return {
+                phaseIndex: i,
+                phase,
+                dose: phase.dose || '',
+                unit: phase.doseUnit || '',
+                daysIntoPhase: daysElapsed - cumulativeDays,
+                daysRemainingInPhase: (cumulativeDays + phaseDays) - daysElapsed,
+                totalPhases: peptide.titration.length,
+                isMaintenancePhase: false
+            };
+        }
+        
+        cumulativeDays += phaseDays;
+    }
+
+    // Past all phases - maintenance on last phase
+    const lastPhase = peptide.titration[peptide.titration.length - 1];
+    return {
+        phaseIndex: peptide.titration.length - 1,
+        phase: lastPhase,
+        dose: lastPhase.dose || '',
+        unit: lastPhase.doseUnit || '',
+        daysIntoPhase: daysElapsed - cumulativeDays,
+        daysRemainingInPhase: null,
+        totalPhases: peptide.titration.length,
+        isMaintenancePhase: true
+    };
+}
+
+/**
  * Calculate scheduled tasks for a specific date
  * Uses the exact same logic as Calendar.jsx
  * 

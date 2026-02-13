@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp } from 'lucide-react';
+import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp, Check } from 'lucide-react';
+import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 
 /**
  * Protocol Summary Card - Shows full protocol overview
@@ -105,16 +106,18 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
             
             // Include titration data if present
             const hasTitration = Array.isArray(peptide.titration) && peptide.titration.length > 0;
+            const currentPhaseInfo = hasTitration ? getCurrentTitrationPhase(protocol, peptide) : null;
             
             return {
                 name: peptide.name,
-                dosage: dosageAmount,
-                unit: dosageUnit,
+                dosage: currentPhaseInfo ? currentPhaseInfo.dose : dosageAmount,
+                unit: currentPhaseInfo ? currentPhaseInfo.unit : dosageUnit,
                 times: times.join(' & '),
                 freqDescription,
                 dosesPerWeek,
                 hasTitration,
-                titration: hasTitration ? peptide.titration : null
+                titration: hasTitration ? peptide.titration : null,
+                currentPhaseInfo
             };
         });
         
@@ -239,28 +242,61 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                                     <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
                                         Titration Schedule
                                     </span>
+                                    {pep.currentPhaseInfo && (
+                                        <span className="text-[10px] font-medium ml-auto" style={{ color: theme.textLight }}>
+                                            Phase {pep.currentPhaseInfo.phaseIndex + 1}/{pep.currentPhaseInfo.totalPhases}
+                                            {pep.currentPhaseInfo.daysRemainingInPhase !== null && (
+                                                <> · {pep.currentPhaseInfo.daysRemainingInPhase}d left</>
+                                            )}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-1 flex-wrap">
-                                    {pep.titration.map((phase, phaseIdx) => (
-                                        <React.Fragment key={phaseIdx}>
-                                            <div 
-                                                className="px-2 py-1 rounded text-[10px] font-medium"
-                                                style={{ 
-                                                    backgroundColor: `${theme.primary}15`,
-                                                    color: theme.text,
-                                                    border: `1px solid ${theme.primary}25`
-                                                }}
-                                            >
-                                                <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
-                                                {(phase.durationCount && phase.durationUnit) && (
-                                                    <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
+                                    {pep.titration.map((phase, phaseIdx) => {
+                                        const isCurrentPhase = pep.currentPhaseInfo?.phaseIndex === phaseIdx;
+                                        const isCompletedPhase = pep.currentPhaseInfo && phaseIdx < pep.currentPhaseInfo.phaseIndex;
+                                        
+                                        return (
+                                            <React.Fragment key={phaseIdx}>
+                                                <div 
+                                                    className="px-2 py-1 rounded text-[10px] font-medium relative"
+                                                    style={{ 
+                                                        backgroundColor: isCurrentPhase 
+                                                            ? `${theme.primary}30` 
+                                                            : isCompletedPhase 
+                                                                ? `${theme.success || '#22c55e'}15`
+                                                                : `${theme.primary}08`,
+                                                        color: isCompletedPhase 
+                                                            ? (theme.success || '#22c55e')
+                                                            : theme.text,
+                                                        border: isCurrentPhase 
+                                                            ? `2px solid ${theme.primary}` 
+                                                            : isCompletedPhase
+                                                                ? `1px solid ${theme.success || '#22c55e'}40`
+                                                                : `1px solid ${theme.primary}15`,
+                                                        opacity: !isCurrentPhase && !isCompletedPhase ? 0.6 : 1
+                                                    }}
+                                                >
+                                                    {isCompletedPhase && (
+                                                        <Check size={8} className="inline mr-0.5" style={{ color: theme.success || '#22c55e' }} />
+                                                    )}
+                                                    <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
+                                                    {(phase.durationCount && phase.durationUnit) && (
+                                                        <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
+                                                    )}
+                                                </div>
+                                                {phaseIdx < pep.titration.length - 1 && (
+                                                    <ArrowRight 
+                                                        size={10} 
+                                                        style={{ 
+                                                            color: isCompletedPhase ? (theme.success || '#22c55e') : theme.textLight, 
+                                                            opacity: isCompletedPhase ? 0.6 : 0.3 
+                                                        }} 
+                                                    />
                                                 )}
-                                            </div>
-                                            {phaseIdx < pep.titration.length - 1 && (
-                                                <ArrowRight size={10} style={{ color: theme.textLight, opacity: 0.4 }} />
-                                            )}
-                                        </React.Fragment>
-                                    ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
