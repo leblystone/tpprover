@@ -279,6 +279,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
         protocolsCount: protocols?.length,
         bySlotKeys: Object.keys(result.bySlot || {}),
         AMTasks: result.bySlot?.AM?.peptides?.length || 0,
+        AMPeptideNames: result.bySlot?.AM?.peptides?.map(p => typeof p === 'object' ? p.name : p) || [],
         PMTasks: result.bySlot?.PM?.peptides?.length || 0,
         sampleAMTask: result.bySlot?.AM?.peptides?.[0]
       });
@@ -306,6 +307,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
       hasDayData: !!merged[dayKey],
       bySlotKeys: Object.keys(merged[dayKey]?.bySlot || {}),
       AMPeptides: merged[dayKey]?.bySlot?.AM?.peptides?.length || 0,
+      AMPeptideNames: merged[dayKey]?.bySlot?.AM?.peptides?.map(p => typeof p === 'object' ? p.name : p) || [],
       sampleAM: merged[dayKey]?.bySlot?.AM?.peptides?.[0]
     });
     return merged;
