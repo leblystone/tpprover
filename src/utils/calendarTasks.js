@@ -204,8 +204,27 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         const { start: ps, end: pe } = getWindows(p);
         const psOnly = ps ? normalizeToMidnight(ps) : null;
         const peOnly = pe ? normalizeToMidnight(pe) : null;
-        const inRange = (!psOnly || psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
+        // FIX: If no start date exists, protocol should NOT be scheduled
+        // Previously (!null) evaluated to true, allowing ghost protocols through
+        if (!psOnly) continue;
+        const inRange = (psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
+
+        // TEMP DEBUG: Log Semaglutide specifically to find why it's missing on future dates
+        if ((p.protocolName || p.name || '').toLowerCase().includes('sema')) {
+            console.log('🎯 SEMA range check:', {
+                name: p.protocolName || p.name,
+                dateKey,
+                startDate: p.startDate,
+                endDate: p.endDate,
+                duration: p.duration,
+                active: p.active,
+                inRange,
+                psOnly: psOnly?.toISOString(),
+                peOnly: peOnly?.toISOString(),
+                dateNormalized: dateNormalized?.toISOString()
+            });
+        }
 
         if (!inRange || !active) continue;
 
