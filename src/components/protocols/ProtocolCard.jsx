@@ -569,6 +569,18 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                         <span>{formatIndividualFrequency(peptide.frequency)}</span>
                                                     )}
                                                 </div>
+                                                {/* Titration indicator */}
+                                                {peptide.titration && Array.isArray(peptide.titration) && peptide.titration.length > 0 && (
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <TrendingUp size={10} style={{ color: theme.primary }} />
+                                                        <span className="text-[10px] font-medium" style={{ color: theme.primary }}>
+                                                            {peptide.titration.length}-phase titration
+                                                        </span>
+                                                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
+                                                            {formatTitration(peptide.titration)}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))

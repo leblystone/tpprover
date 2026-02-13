@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Calendar, Pill, Clock, Repeat, ArrowRight } from 'lucide-react';
+import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp } from 'lucide-react';
 
 /**
  * Protocol Summary Card - Shows full protocol overview
@@ -103,13 +103,18 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                 ? (peptide.dosage.unit || peptide.dosageUnit || 'mcg')
                 : (peptide.dosageUnit || 'mcg');
             
+            // Include titration data if present
+            const hasTitration = Array.isArray(peptide.titration) && peptide.titration.length > 0;
+            
             return {
                 name: peptide.name,
                 dosage: dosageAmount,
                 unit: dosageUnit,
                 times: times.join(' & '),
                 freqDescription,
-                dosesPerWeek
+                dosesPerWeek,
+                hasTitration,
+                titration: hasTitration ? peptide.titration : null
             };
         });
         
@@ -204,22 +209,61 @@ const VisualSchedulePreview = ({ protocol, startDate, theme }) => {
                 {stats.peptideStats.map((pep, idx) => (
                     <div 
                         key={idx}
-                        className="flex items-center justify-between p-2.5 rounded-lg text-xs"
+                        className="rounded-lg text-xs overflow-hidden"
                         style={{ 
                             backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
                             border: `1px solid ${theme.border}`
                         }}
                     >
-                        <div>
-                            <div className="font-semibold" style={{ color: theme.text }}>{pep.name}</div>
-                            <div style={{ color: theme.textLight }}>
-                                {pep.dosage} {pep.unit} • {pep.times}
+                        <div className="flex items-center justify-between p-2.5">
+                            <div>
+                                <div className="font-semibold" style={{ color: theme.text }}>{pep.name}</div>
+                                <div style={{ color: theme.textLight }}>
+                                    {pep.dosage} {pep.unit} • {pep.times}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-medium" style={{ color: theme.primary }}>{pep.freqDescription}</div>
+                                <div style={{ color: theme.textLight }}>{pep.dosesPerWeek}/week</div>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div className="font-medium" style={{ color: theme.primary }}>{pep.freqDescription}</div>
-                            <div style={{ color: theme.textLight }}>{pep.dosesPerWeek}/week</div>
-                        </div>
+                        
+                        {/* Titration Schedule */}
+                        {pep.hasTitration && pep.titration && (
+                            <div 
+                                className="px-2.5 pb-2.5 pt-1 border-t"
+                                style={{ borderColor: `${theme.border}80` }}
+                            >
+                                <div className="flex items-center gap-1 mb-1.5">
+                                    <TrendingUp size={10} style={{ color: theme.primary }} />
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
+                                        Titration Schedule
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {pep.titration.map((phase, phaseIdx) => (
+                                        <React.Fragment key={phaseIdx}>
+                                            <div 
+                                                className="px-2 py-1 rounded text-[10px] font-medium"
+                                                style={{ 
+                                                    backgroundColor: `${theme.primary}15`,
+                                                    color: theme.text,
+                                                    border: `1px solid ${theme.primary}25`
+                                                }}
+                                            >
+                                                <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
+                                                {(phase.durationCount && phase.durationUnit) && (
+                                                    <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
+                                                )}
+                                            </div>
+                                            {phaseIdx < pep.titration.length - 1 && (
+                                                <ArrowRight size={10} style={{ color: theme.textLight, opacity: 0.4 }} />
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
