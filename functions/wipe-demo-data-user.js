@@ -258,6 +258,29 @@ async function wipeDemoDataForUser(userId) {
     console.log(`  Scheduled Buys: ${data.scheduledBuys?.length || 0}`);
     console.log(`  Calendar Notes: ${Object.keys(data.calendarNotes || {}).length}`);
 
+    // SAFETY: Create backup before modifying data
+    // Store backup in backups/{userId}/snapshots/{timestamp} collection
+    const backupTimestamp = Date.now();
+    const backupId = `${backupTimestamp}_pre-demo-wipe`;
+    const backupRef = admin.firestore().doc(`backups/${userId}/snapshots/${backupId}`);
+    
+    console.log('\n💾 Creating backup before operation...');
+    await backupRef.set({
+      userId,
+      reason: 'pre-demo-wipe',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestampMs: backupTimestamp,
+      data,
+      version: data.version || '1.0',
+      metadata: {
+        dataTypes: Object.keys(data),
+        protocolsCount: data.protocols?.length || 0,
+        ordersCount: data.orders?.length || 0,
+        stockpileCount: data.stockpile?.length || 0
+      }
+    });
+    console.log(`✅ Backup created: ${backupId}`);
+
     // Check if user has sample data metadata
     const hasSampleMetadata = data._metadata?.isSampleData === true || data._metadata?.isDemoData === true;
     if (hasSampleMetadata) {

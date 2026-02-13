@@ -4,6 +4,7 @@ import { getDeletedItemsForRestore, clearDeletionRecord, isDeleted } from '../..
 import { useAppContext } from '../../context/AppContext'
 import { useFirebase } from '../../context/FirebaseContext'
 import { saveAppData } from '../../services/cloudStorage'
+import { prepareItemForSave } from '../../utils/userDataSave'
 import Modal from '../common/Modal'
 
 export default function RecentlyDeleted({ theme }) {
@@ -159,7 +160,9 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Protocol already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(protocols || []), itemData]
+          // Update item timestamp for proper sync
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(protocols || []), restoredItem]
           setProtocols(updated)
           // Update localStorage immediately
           try {
@@ -171,7 +174,7 @@ export default function RecentlyDeleted({ theme }) {
           }
           if (firebaseUser) {
             console.log(`☁️ Syncing restored protocol to cloud: ${itemData.id}`)
-            await saveAppData(firebaseUser.uid, { protocols: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { protocols: updated }, { skipMerge: false })
             console.log(`✅ Protocol restored and synced: ${itemData.id}`)
           }
           break
@@ -183,7 +186,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Order already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(orders || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(orders || []), restoredItem]
           setOrders(updated)
           // Update localStorage immediately
           try {
@@ -194,7 +198,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save orders to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { orders: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { orders: updated }, { skipMerge: false })
           }
           break
         }
@@ -205,7 +209,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Stockpile item already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(stockpile || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(stockpile || []), restoredItem]
           setStockpile(updated)
           // Update localStorage immediately
           try {
@@ -216,12 +221,13 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save stockpile to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { stockpile: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { stockpile: updated }, { skipMerge: false })
           }
           break
         }
         case 'scheduledBuys': {
-          const updated = [...(scheduledBuys || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(scheduledBuys || []), restoredItem]
           setScheduledBuys(updated)
           // Also update localStorage for scheduled buys
           try {
@@ -234,7 +240,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save scheduled buys to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { scheduledBuys: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { scheduledBuys: updated }, { skipMerge: false })
           }
           break
         }
@@ -245,7 +251,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Recon item already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(reconItems || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(reconItems || []), restoredItem]
           setReconItems(updated)
           // Update localStorage immediately
           try {
@@ -256,7 +263,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save recon items to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { reconItems: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { reconItems: updated }, { skipMerge: false })
           }
           break
         }
@@ -267,7 +274,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Recon history already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(reconHistory || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(reconHistory || []), restoredItem]
           setReconHistory(updated)
           // Update localStorage immediately
           try {
@@ -278,7 +286,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save recon history to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { reconHistory: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { reconHistory: updated }, { skipMerge: false })
           }
           break
         }
@@ -289,7 +297,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Supplement already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(supplements || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(supplements || []), restoredItem]
           setSupplements(updated)
           // Update localStorage immediately
           try {
@@ -301,7 +310,7 @@ export default function RecentlyDeleted({ theme }) {
           }
           if (firebaseUser) {
             console.log(`☁️ Syncing restored supplement to cloud: ${itemData.id}`)
-            await saveAppData(firebaseUser.uid, { supplements: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { supplements: updated }, { skipMerge: false })
             console.log(`✅ Supplement restored and synced: ${itemData.id}`)
           }
           break
@@ -313,7 +322,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Vendor already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(vendors || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(vendors || []), restoredItem]
           setVendors(updated)
           // Update localStorage immediately
           try {
@@ -324,7 +334,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save vendors to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { vendors: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { vendors: updated }, { skipMerge: false })
           }
           break
         }
@@ -335,7 +345,8 @@ export default function RecentlyDeleted({ theme }) {
             console.warn('⚠️ Metric already exists, skipping restore:', itemData.id)
             break
           }
-          const updated = [...(metrics || []), itemData]
+          const restoredItem = prepareItemForSave(itemData)
+          const updated = [...(metrics || []), restoredItem]
           setMetrics(updated)
           // Update localStorage immediately
           try {
@@ -346,7 +357,7 @@ export default function RecentlyDeleted({ theme }) {
             console.error('Failed to save metrics to localStorage:', e)
           }
           if (firebaseUser) {
-            await saveAppData(firebaseUser.uid, { metrics: updated }, { skipMerge: true })
+            await saveAppData(firebaseUser.uid, { metrics: updated }, { skipMerge: false })
           }
           break
         }

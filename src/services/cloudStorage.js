@@ -3,6 +3,7 @@ import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
+import { validateBeforeSave } from '../utils/dataValidation';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -575,7 +576,7 @@ export function mergeWaterTracker(localData, serverData) {
 
 /**
  * Save user's main application data (protocols, vendors, etc.)
- * Now with timestamp-based conflict resolution
+ * Now with timestamp-based conflict resolution and data validation
  */
 export async function saveAppData(userId, appData, options = {}) {
   const { skipMerge = false } = options;
@@ -583,6 +584,9 @@ export async function saveAppData(userId, appData, options = {}) {
   const activeCount = (appData.protocols || []).filter(p => p && p.active).length;
 
   try {
+    // Validate data before saving (in development, throws on error)
+    validateBeforeSave(appData, 'saveAppData');
+    
     // Load existing server data for comparison
     const serverData = skipMerge ? null : await loadAppData(userId);
     if (skipMerge) {
