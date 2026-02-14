@@ -4,7 +4,7 @@ import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
-import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan } from 'lucide-react';
+import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan, Beaker } from 'lucide-react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
@@ -18,6 +18,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     const [penTypeDropdownPosition, setPenTypeDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const penTypeDropdownRef = React.useRef(null);
     const penTypeButtonRef = React.useRef(null);
+    const penTypeListRef = React.useRef(null);
     
     useEffect(() => {
         try {
@@ -109,16 +110,19 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
         handleFrequencyChange('days', newDays);
     };
 
-    // Handle click outside for pen type dropdown (supports both mouse and touch)
+    // Handle click outside for pen type dropdown (supports both mouse and touch).
+    // List is portaled to document.body so we must check both trigger container and list ref.
     React.useEffect(() => {
         const handleClickOutside = (event) => {
-            if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
+            const target = event.target;
+            const inTrigger = penTypeDropdownRef.current?.contains(target);
+            const inList = penTypeListRef.current?.contains(target);
+            if (!inTrigger && !inList) {
                 setIsPenTypeDropdownOpen(false);
             }
         };
 
         if (isPenTypeDropdownOpen) {
-            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
             document.addEventListener('touchstart', handleClickOutside);
         }
@@ -262,11 +266,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     if (!reconItem) return null;
 
                                     // Calculate units from recon item
+                                    // Pass raw dose amount + unit; recon.js handles conversion
                                     const calc = calculateRecon({
                                         mg: reconItem.mg,
                                         water: reconItem.water,
-                                        dose: item.dosage?.unit === 'mg' ? (item.dosage?.amount || 0) * 1000 : item.dosage?.amount,
-                                        doseUnit: item.dosage?.unit || 'mcg' // FIX: Pass doseUnit for proper calculation
+                                        dose: item.dosage?.amount || 0,
+                                        doseUnit: item.dosage?.unit || 'mcg'
                                     });
 
                                     if (calc.unitsPerDose <= 0) return null;
@@ -300,6 +305,49 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                             </div>
                         </div>
                     )}
+
+                    {/* Reconstitution info - show when a matching recon item exists */}
+                    {(() => {
+                        const reconItem = reconItems?.find(r => {
+                            if (!r.peptides || r.peptides.length === 0) return false;
+                            const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                            const itemName = (item.name || '').toLowerCase().trim();
+                            return reconPeptideNames.includes(itemName);
+                        });
+                        if (!reconItem) return null;
+                        const totalMg = Array.isArray(reconItem.peptides)
+                            ? reconItem.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0)
+                            : (Number(reconItem.mg) || 0);
+                        const water = Number(reconItem.water) || 0;
+                        if (totalMg <= 0 && water <= 0) return null;
+                        return (
+                            <div
+                                style={{
+                                    fontSize: '11px',
+                                    marginTop: '6px',
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: theme.isDark ? 'rgba(140,166,140,0.10)' : 'rgba(140,166,140,0.08)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => {
+                                    try { window.location.href = '/app/recon'; } catch { /* noop */ }
+                                }}
+                                title="View or edit reconstitution details"
+                            >
+                                <Beaker size={13} style={{ color: '#8ca68c', flexShrink: 0 }} />
+                                <span style={{ color: theme.textLight }}>
+                                    Recon: {totalMg}{reconItem.mgUnit || 'mg'} + {water} mL
+                                </span>
+                                <span style={{ color: '#8ca68c', marginLeft: 'auto', fontWeight: 600 }}>
+                                    View →
+                                </span>
+                            </div>
+                        );
+                    })()}
 
                     {/* Titration Schedule Editor */}
                     {(item.titration && item.titration.length > 0) && (
@@ -482,6 +530,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             </button>
                                             {isPenTypeDropdownOpen && createPortal(
                                                 <div 
+                                                    ref={penTypeListRef}
                                                     className="fixed rounded-lg shadow-lg border overflow-hidden"
                                                     style={{
                                                         backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',

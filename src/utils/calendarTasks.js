@@ -531,11 +531,12 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                             unit = '';
                         } else {
                             // No manual override, use calculated units if available
+                            // Pass raw dose amount + unit; recon.js handles conversion
                             const calc = calculateRecon({
                                 mg: reconItem.mg,
                                 water: reconItem.water,
-                                dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount,
-                                doseUnit: unit || 'mcg' // FIX: Pass doseUnit for proper calculation
+                                dose: pep.dosage?.amount || 0,
+                                doseUnit: pep.dosage?.unit || 'mcg'
                             });
                             if (calc.unitsPerDose > 0) {
                                 dose = `${calc.unitsPerDose.toFixed(0)} units`;

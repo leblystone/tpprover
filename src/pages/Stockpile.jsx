@@ -2988,6 +2988,67 @@ export default function Stockpile() {
                     allowImages={true}
                     allowLinks={true}
                   />
+
+                  {/* Reconstitution info - show when a matching recon item exists for this vial */}
+                  {(() => {
+                    const matchedRecon = reconItems?.find(r => {
+                      if (Array.isArray(r.peptides)) {
+                        return r.peptides.some(p => p.stockpileId === row.id);
+                      }
+                      return false;
+                    }) || reconItems?.find(r => {
+                      if (!r.peptides || r.peptides.length === 0) return false;
+                      const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                      const rowName = (row.name || manageName || '').toLowerCase().trim();
+                      return rowName && reconPeptideNames.includes(rowName);
+                    });
+                    const matchedHistory = !matchedRecon ? (reconHistory?.find(r => {
+                      if (Array.isArray(r.peptides)) {
+                        return r.peptides.some(p => p.stockpileId === row.id);
+                      }
+                      return false;
+                    }) || reconHistory?.find(r => {
+                      if (!r.peptides || r.peptides.length === 0) return false;
+                      const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                      const rowName = (row.name || manageName || '').toLowerCase().trim();
+                      return rowName && reconPeptideNames.includes(rowName);
+                    })) : null;
+                    const reconEntry = matchedRecon || matchedHistory;
+                    if (!reconEntry) return null;
+                    const totalMg = Array.isArray(reconEntry.peptides)
+                      ? reconEntry.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0)
+                      : (Number(reconEntry.mg) || 0);
+                    const water = Number(reconEntry.water) || 0;
+                    if (totalMg <= 0 && water <= 0) return null;
+                    const reconDate = reconEntry.date ? new Date(reconEntry.date).toLocaleDateString() : null;
+                    const isHistory = !!matchedHistory && !matchedRecon;
+                    return (
+                      <div
+                        className="mt-3 p-3 rounded-lg border cursor-pointer transition-all hover:opacity-80"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(140,166,140,0.08)' : 'rgba(140,166,140,0.06)',
+                          borderColor: theme.isDark ? 'rgba(140,166,140,0.2)' : 'rgba(140,166,140,0.15)'
+                        }}
+                        onClick={() => navigate('/app/recon')}
+                        title="View or edit reconstitution details on the Recon page"
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Beaker size={14} style={{ color: '#8ca68c' }} />
+                          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
+                            {isHistory ? 'Reconstitution (Finished)' : 'Reconstitution'}
+                          </span>
+                          <span style={{ color: '#8ca68c', marginLeft: 'auto', fontSize: '11px', fontWeight: 600 }}>
+                            View →
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: theme.textLight }}>
+                          {reconDate && <span>📅 {reconDate}</span>}
+                          <span>💊 {totalMg}{reconEntry.mgUnit || 'mg'}</span>
+                          <span>💧 {water} mL</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -3364,6 +3425,69 @@ export default function Stockpile() {
                               </div>
                             </div>
                           )}
+
+                          {/* Reconstitution info - show when a matching recon item exists for this vial */}
+                          {(() => {
+                            // Match by stockpileId first, then by name
+                            const matchedRecon = reconItems?.find(r => {
+                              if (Array.isArray(r.peptides)) {
+                                return r.peptides.some(p => p.stockpileId === item.id);
+                              }
+                              return false;
+                            }) || reconItems?.find(r => {
+                              if (!r.peptides || r.peptides.length === 0) return false;
+                              const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                              const itemName = (item.name || '').toLowerCase().trim();
+                              return itemName && reconPeptideNames.includes(itemName);
+                            });
+                            // Also check reconHistory if not found in active items
+                            const matchedHistory = !matchedRecon ? (reconHistory?.find(r => {
+                              if (Array.isArray(r.peptides)) {
+                                return r.peptides.some(p => p.stockpileId === item.id);
+                              }
+                              return false;
+                            }) || reconHistory?.find(r => {
+                              if (!r.peptides || r.peptides.length === 0) return false;
+                              const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
+                              const itemName = (item.name || '').toLowerCase().trim();
+                              return itemName && reconPeptideNames.includes(itemName);
+                            })) : null;
+                            const reconEntry = matchedRecon || matchedHistory;
+                            if (!reconEntry) return null;
+                            const totalMg = Array.isArray(reconEntry.peptides)
+                              ? reconEntry.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0)
+                              : (Number(reconEntry.mg) || 0);
+                            const water = Number(reconEntry.water) || 0;
+                            if (totalMg <= 0 && water <= 0) return null;
+                            const reconDate = reconEntry.date ? new Date(reconEntry.date).toLocaleDateString() : null;
+                            const isHistory = !!matchedHistory && !matchedRecon;
+                            return (
+                              <div
+                                className="mt-3 p-3 rounded-lg border cursor-pointer transition-all hover:opacity-80"
+                                style={{
+                                  backgroundColor: theme.isDark ? 'rgba(140,166,140,0.08)' : 'rgba(140,166,140,0.06)',
+                                  borderColor: theme.isDark ? 'rgba(140,166,140,0.2)' : 'rgba(140,166,140,0.15)'
+                                }}
+                                onClick={() => navigate('/app/recon')}
+                                title="View or edit reconstitution details on the Recon page"
+                              >
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <Beaker size={14} style={{ color: '#8ca68c' }} />
+                                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
+                                    {isHistory ? 'Reconstitution (Finished)' : 'Reconstitution'}
+                                  </span>
+                                  <span style={{ color: '#8ca68c', marginLeft: 'auto', fontSize: '11px', fontWeight: 600 }}>
+                                    View →
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs" style={{ color: theme.textLight }}>
+                                  {reconDate && <span>📅 {reconDate}</span>}
+                                  <span>💊 {totalMg}{reconEntry.mgUnit || 'mg'}</span>
+                                  <span>💧 {water} mL</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
