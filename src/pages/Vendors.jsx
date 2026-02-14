@@ -15,7 +15,7 @@ const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'developme
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
-	const { vendors, addVendor, updateVendor, deleteVendor } = useAppContext();
+	const { vendors, addVendor, updateVendor, deleteVendor, setVendors } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
 	const [editingVendor, setEditingVendor] = useState(null)
 	const [activeTab, setActiveTab] = useLocalStorage('tpprover_vendors_tab', 'domestic')
