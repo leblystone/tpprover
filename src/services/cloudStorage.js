@@ -83,7 +83,11 @@ function estimateDocSize(data) {
     // JSON.stringify is a reasonable approximation; Firestore encoding is similar
     const json = JSON.stringify(data, (key, val) => {
       // serverTimestamp() sentinels aren't serializable, estimate them as ~20 bytes
-      if (val && typeof val === 'object' && val.constructor && val.constructor.name === 'FieldValue') {
+      if (val && typeof val === 'object' && (
+        (val.constructor && val.constructor.name === 'FieldValue') ||
+        val._methodName === 'serverTimestamp' || val.methodName === 'serverTimestamp' ||
+        (typeof val.isEqual === 'function' && typeof val.toJSON !== 'function' && !val.toMillis)
+      )) {
         return '__TIMESTAMP__';
       }
       return val;
@@ -238,7 +242,9 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
           if (item.updatedAt.toMillis) {
             serverTime = item.updatedAt.toMillis(); // Firestore Timestamp
           } else if (typeof item.updatedAt === 'object' && !item.updatedAt.toMillis) {
-            serverTime = Date.now() + 5000; // serverTimestamp() sentinel - treat as "now + buffer"
+            // Garbage serialized sentinel from localStorage (e.g. {"_methodName":"serverTimestamp"})
+            // or real sentinel — treat as 0 so server data can win when appropriate
+            serverTime = 0;
           } else {
             serverTime = new Date(item.updatedAt).getTime(); // ISO string
           }
@@ -287,10 +293,10 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
         if (item.updatedAt.toMillis) {
           return item.updatedAt.toMillis();
         }
-        // If it's a serverTimestamp() sentinel (before save), treat as "now + buffer"
-        // Add 5 seconds to ensure local edits ALWAYS win over simultaneous cloud timestamps
+        // If it's a garbage serialized sentinel from localStorage (e.g. {"_methodName":"serverTimestamp"})
+        // or a real sentinel — treat as 0 so it doesn't incorrectly win over valid timestamps
         if (typeof item.updatedAt === 'object' && !item.updatedAt.toMillis) {
-          return Date.now() + 5000; // Add 5s buffer to guarantee local wins
+          return 0;
         }
         // If it's an ISO string or Date, convert normally
         const timestamp = new Date(item.updatedAt).getTime();

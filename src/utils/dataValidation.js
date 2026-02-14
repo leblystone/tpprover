@@ -8,10 +8,19 @@ import { serverTimestamp } from 'firebase/firestore';
  */
 
 /**
- * Check if a value is a valid Firestore serverTimestamp sentinel
+ * Check if a value is a valid Firestore serverTimestamp sentinel.
+ * Uses multiple detection strategies because class names are mangled in production builds.
  */
 export function isServerTimestampSentinel(value) {
-  return value && typeof value === 'object' && value.constructor && value.constructor.name === 'FieldValue';
+  if (!value || typeof value !== 'object') return false;
+  // Strategy 1: Constructor name (works in development)
+  if (value.constructor && value.constructor.name === 'FieldValue') return true;
+  // Strategy 2: Duck-type detection for Firestore sentinels (works in production)
+  // serverTimestamp() sentinels have _methodName or methodName property
+  if (value._methodName === 'serverTimestamp' || value.methodName === 'serverTimestamp') return true;
+  // Strategy 3: Check for Firestore FieldValue prototype markers
+  if (typeof value.isEqual === 'function' && typeof value.toJSON !== 'function' && !value.toMillis) return true;
+  return false;
 }
 
 /**
