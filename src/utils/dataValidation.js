@@ -10,7 +10,7 @@ import { serverTimestamp } from 'firebase/firestore';
 /**
  * Check if a value is a valid Firestore serverTimestamp sentinel
  */
-function isServerTimestampSentinel(value) {
+export function isServerTimestampSentinel(value) {
   return value && typeof value === 'object' && value.constructor && value.constructor.name === 'FieldValue';
 }
 
@@ -216,4 +216,85 @@ export function validateBeforeSave(appData, context = 'Unknown') {
   }
   
   return appData;
+}
+
+/**
+ * Validate and sanitize cloud data BEFORE applying it to local state.
+ * Strips invalid entries rather than rejecting the whole payload.
+ * @param {Object} cloudData - Raw data from Firestore
+ * @returns {Object} Sanitized data safe to apply to state
+ */
+export function validateOnLoad(cloudData) {
+  if (!cloudData || typeof cloudData !== 'object') return {};
+  
+  const sanitized = { ...cloudData };
+  
+  // Array fields that should contain objects with 'id'
+  const arrayFields = [
+    'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
+    'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
+    'wishlist', 'userNotes', 'userGoals', 'injectionHistory'
+  ];
+  
+  arrayFields.forEach(key => {
+    if (sanitized[key] !== undefined) {
+      if (!Array.isArray(sanitized[key])) {
+        console.warn(`⚠️ validateOnLoad: ${key} is not an array, resetting to []`);
+        sanitized[key] = [];
+      } else {
+        // Strip entries that aren't objects (null, undefined, strings, etc.)
+        const before = sanitized[key].length;
+        sanitized[key] = sanitized[key].filter(item => item && typeof item === 'object');
+        if (sanitized[key].length !== before) {
+          console.warn(`⚠️ validateOnLoad: stripped ${before - sanitized[key].length} invalid entries from ${key}`);
+        }
+      }
+    }
+  });
+  
+  // Object fields that should be plain objects
+  const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'injectionStats', 'deletionTracking'];
+  
+  objectFields.forEach(key => {
+    if (sanitized[key] !== undefined && (typeof sanitized[key] !== 'object' || Array.isArray(sanitized[key]))) {
+      console.warn(`⚠️ validateOnLoad: ${key} is not an object, resetting to {}`);
+      sanitized[key] = {};
+    }
+  });
+  
+  return sanitized;
+}
+
+/**
+ * Recursively replace Firestore serverTimestamp() sentinels with ISO strings.
+ * Required before JSON.stringify - sentinels cannot be serialized and can throw in some envs (e.g. Chrome on PC).
+ */
+export function sanitizeForLocalStorage(data) {
+  if (data == null || typeof data !== 'object') return data;
+  if (isServerTimestampSentinel(data)) return new Date().toISOString();
+  if (Array.isArray(data)) return data.map(sanitizeForLocalStorage);
+  const out = {};
+  for (const k of Object.keys(data)) {
+    out[k] = sanitizeForLocalStorage(data[k]);
+  }
+  return out;
+}
+
+/**
+ * Safely parse a localStorage value with try/catch.
+ * Returns the fallback on failure WITHOUT saving it back to localStorage
+ * (saving a fallback would cause data loss if the value was just temporarily corrupted).
+ * @param {string} key - localStorage key
+ * @param {*} fallback - Value to return if parse fails (default: depends on usage)
+ * @returns {*} Parsed value or fallback
+ */
+export function safeParseLocalStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined) return fallback;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`⚠️ Failed to parse localStorage key "${key}":`, error.message);
+    return fallback;
+  }
 }

@@ -3,7 +3,7 @@ import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
-import { validateBeforeSave } from '../utils/dataValidation';
+import { validateBeforeSave, validateOnLoad } from '../utils/dataValidation';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -611,31 +611,48 @@ export async function saveAppData(userId, appData, options = {}) {
       }
     }
     
-    // Add timestamps to all items
-    const timestampedData = {
-      protocols: ensureTimestamps(appData.protocols || []),
-      reconItems: ensureTimestamps(appData.reconItems || []),
-      reconHistory: ensureTimestamps(appData.reconHistory || []),
-      supplements: ensureTimestamps(appData.supplements || []),
-      orders: ensureTimestamps(appData.orders || []),
-      metrics: ensureTimestamps(appData.metrics || []),
-      vendors: ensureTimestamps(appData.vendors || []),
-      stockpile: ensureTimestamps(appData.stockpile || []),
-      scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
-      protocolHistory: ensureTimestamps(appData.protocolHistory || []),
-      wishlist: ensureTimestamps(appData.wishlist || []),
-      calendarNotes: appData.calendarNotes || {},
-      userNotes: ensureTimestamps(appData.userNotes || []),
-      userGoals: ensureTimestamps(appData.userGoals || []),
-      waterTracker: appData.waterTracker || {},
-      taskCompletion: appData.taskCompletion || {},
-      calendarDone: appData.calendarDone || {},
-      injectionHistory: ensureInjectionHistoryIds(appData.injectionHistory || []),
-      injectionStats: appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} },
-      deletionTracking: appData.deletionTracking || deletionTracking || {}
-    };
-    
-    // If we have server data, merge intelligently
+    // PARTIAL-SAVE SAFE: Only process fields the caller explicitly provided.
+    // Firestore setDoc({ merge: true }) leaves unspecified fields untouched,
+    // so a partial save (e.g. ending a protocol) won't overwrite unrelated data.
+    const provided = (key) => appData[key] !== undefined;
+
+    // Array fields that need ensureTimestamps
+    const arrayFields = [
+      'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
+      'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
+      'wishlist', 'userNotes', 'userGoals'
+    ];
+    // Object fields (pass through as-is)
+    const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
+
+    const timestampedData = {};
+
+    // Only include array fields the caller actually sent
+    arrayFields.forEach(key => {
+      if (provided(key)) {
+        timestampedData[key] = ensureTimestamps(appData[key] || []);
+      }
+    });
+
+    // Only include object fields the caller actually sent
+    objectFields.forEach(key => {
+      if (provided(key)) {
+        timestampedData[key] = appData[key] || {};
+      }
+    });
+
+    // Special handling for injection data (only if provided)
+    if (provided('injectionHistory')) {
+      timestampedData.injectionHistory = ensureInjectionHistoryIds(appData.injectionHistory || []);
+    }
+    if (provided('injectionStats')) {
+      timestampedData.injectionStats = appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} };
+    }
+
+    // Always include deletionTracking (lightweight, needed for merge)
+    timestampedData.deletionTracking = appData.deletionTracking || deletionTracking || {};
+
+    // If we have server data, merge intelligently (only for provided fields)
     let dataToSave = timestampedData;
     if (serverData && !skipMerge) {
       // Merge deletion tracking first
@@ -643,43 +660,71 @@ export async function saveAppData(userId, appData, options = {}) {
         timestampedData.deletionTracking || {},
         serverData.deletionTracking || {}
       );
-      
-      const mergedProtocols = mergeWithTimestamps(timestampedData.protocols, serverData.protocols, 'protocols', mergedDeletionTracking.protocols);
-      const mergedActive = (mergedProtocols || []).filter(p => p && p.active).length;
-      console.log('📋 [PROTOCOL-SYNC] saveAppData merge result', {
-        mergedTotal: (mergedProtocols || []).length,
-        mergedActive
-      });
-      dataToSave = {
-        protocols: mergedProtocols,
-        reconItems: mergeWithTimestamps(timestampedData.reconItems, serverData.reconItems, 'reconItems', mergedDeletionTracking.reconItems),
-        reconHistory: mergeWithTimestamps(timestampedData.reconHistory, serverData.reconHistory, 'reconHistory', mergedDeletionTracking.reconHistory),
-        supplements: mergeWithTimestamps(timestampedData.supplements, serverData.supplements, 'supplements', mergedDeletionTracking.supplements),
-        orders: mergeWithTimestamps(timestampedData.orders, serverData.orders, 'orders', mergedDeletionTracking.orders),
-        metrics: mergeWithTimestamps(timestampedData.metrics, serverData.metrics, 'metrics', mergedDeletionTracking.metrics),
-        vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors, 'vendors', mergedDeletionTracking.vendors),
-        stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile, 'stockpile', mergedDeletionTracking.stockpile),
-        scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys, 'scheduledBuys', mergedDeletionTracking.scheduledBuys),
-        protocolHistory: mergeWithTimestamps(timestampedData.protocolHistory, serverData.protocolHistory || [], 'protocolHistory', mergedDeletionTracking.protocolHistory),
-        wishlist: mergeWithTimestamps(timestampedData.wishlist, serverData.wishlist || [], 'wishlist', mergedDeletionTracking.wishlist),
-        calendarNotes: mergeCalendarNotes(timestampedData.calendarNotes, serverData.calendarNotes || {}),
-        userNotes: mergeWithTimestamps(timestampedData.userNotes, serverData.userNotes || [], 'userNotes', mergedDeletionTracking.userNotes),
-        userGoals: mergeWithTimestamps(timestampedData.userGoals, serverData.userGoals || [], 'goals', mergedDeletionTracking.goals),
-        waterTracker: mergeWaterTracker(timestampedData.waterTracker, serverData.waterTracker || {}),
-        // Merge task completion data - prefer local data (more recent completions)
-        taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
-        calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {}),
-        injectionHistory: mergeInjectionHistory(timestampedData.injectionHistory, serverData.injectionHistory || []),
-        injectionStats: mergeInjectionStats(timestampedData.injectionStats, serverData.injectionStats || {}),
-        deletionTracking: mergedDeletionTracking
+
+      dataToSave = { deletionTracking: mergedDeletionTracking };
+
+      // Merge array fields (only ones the caller provided)
+      const arrayMergeMap = {
+        protocols: 'protocols',
+        reconItems: 'reconItems',
+        reconHistory: 'reconHistory',
+        supplements: 'supplements',
+        orders: 'orders',
+        metrics: 'metrics',
+        vendors: 'vendors',
+        stockpile: 'stockpile',
+        scheduledBuys: 'scheduledBuys',
+        protocolHistory: 'protocolHistory',
+        wishlist: 'wishlist',
+        userNotes: 'userNotes',
+        userGoals: 'goals'   // deletion tracking key differs
       };
+
+      Object.entries(arrayMergeMap).forEach(([field, deletionKey]) => {
+        if (provided(field)) {
+          dataToSave[field] = mergeWithTimestamps(
+            timestampedData[field],
+            serverData[field] || [],
+            field,
+            mergedDeletionTracking[deletionKey]
+          );
+        }
+      });
+
+      // Log protocol merge results if protocols were provided
+      if (dataToSave.protocols) {
+        const mergedActive = (dataToSave.protocols || []).filter(p => p && p.active).length;
+        console.log('📋 [PROTOCOL-SYNC] saveAppData merge result', {
+          mergedTotal: (dataToSave.protocols || []).length,
+          mergedActive
+        });
+      }
+
+      // Merge object fields (only ones the caller provided)
+      if (provided('calendarNotes')) {
+        dataToSave.calendarNotes = mergeCalendarNotes(timestampedData.calendarNotes, serverData.calendarNotes || {});
+      }
+      if (provided('waterTracker')) {
+        dataToSave.waterTracker = mergeWaterTracker(timestampedData.waterTracker, serverData.waterTracker || {});
+      }
+      if (provided('taskCompletion')) {
+        dataToSave.taskCompletion = mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {});
+      }
+      if (provided('calendarDone')) {
+        dataToSave.calendarDone = mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {});
+      }
+      if (provided('injectionHistory')) {
+        dataToSave.injectionHistory = mergeInjectionHistory(timestampedData.injectionHistory, serverData.injectionHistory || []);
+      }
+      if (provided('injectionStats')) {
+        dataToSave.injectionStats = mergeInjectionStats(timestampedData.injectionStats, serverData.injectionStats || {});
+      }
     }
     
     return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
-    // Fallback to simple save
-    // Load deletion tracking for fallback
+    // Fallback to simple save - only include fields the caller provided
     let deletionTracking = {};
     try {
       deletionTracking = getDeletionTracking();
@@ -687,36 +732,38 @@ export async function saveAppData(userId, appData, options = {}) {
       console.warn('⚠️ Could not load deletion tracking for fallback save:', error);
     }
     
-    return await saveUserData(userId, {
-    protocols: appData.protocols || [],
-    reconItems: appData.reconItems || [],
-    reconHistory: appData.reconHistory || [],
-    supplements: appData.supplements || [],
-    orders: appData.orders || [],
-    metrics: appData.metrics || [],
-    vendors: appData.vendors || [],
-    calendarNotes: appData.calendarNotes || {},
-    userNotes: appData.userNotes || [],
-    userGoals: appData.userGoals || [],
-    waterTracker: appData.waterTracker || {},
-    stockpile: appData.stockpile || [],
-    scheduledBuys: appData.scheduledBuys || [],
-    protocolHistory: appData.protocolHistory || [],
-    wishlist: appData.wishlist || [],
-    taskCompletion: appData.taskCompletion || {},
-    calendarDone: appData.calendarDone || {},
-    injectionHistory: appData.injectionHistory || [],
-    injectionStats: appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} },
-    deletionTracking: appData.deletionTracking || deletionTracking
-    }, COLLECTIONS.USER_DATA);
+    const fallbackData = { deletionTracking: appData.deletionTracking || deletionTracking };
+    const fallbackArrayFields = [
+      'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
+      'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
+      'wishlist', 'userNotes', 'userGoals'
+    ];
+    const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
+
+    fallbackArrayFields.forEach(key => {
+      if (appData[key] !== undefined) fallbackData[key] = appData[key] || [];
+    });
+    fallbackObjectFields.forEach(key => {
+      if (appData[key] !== undefined) fallbackData[key] = appData[key] || {};
+    });
+    if (appData.injectionHistory !== undefined) {
+      fallbackData.injectionHistory = appData.injectionHistory || [];
+    }
+    if (appData.injectionStats !== undefined) {
+      fallbackData.injectionStats = appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} };
+    }
+
+    return await saveUserData(userId, fallbackData, COLLECTIONS.USER_DATA);
   }
 }
 
 /**
  * Load user's main application data
+ * Validates and sanitizes data on load to prevent corrupted cloud data from crashing the app.
  */
 export async function loadAppData(userId) {
-  return await loadUserData(userId, COLLECTIONS.USER_DATA);
+  const data = await loadUserData(userId, COLLECTIONS.USER_DATA);
+  return data ? validateOnLoad(data) : null;
 }
 
 /**

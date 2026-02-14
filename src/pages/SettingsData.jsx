@@ -419,9 +419,10 @@ export default function SettingsData() {
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(snapshotData.scheduledBuys));
       }
 
-      // Attempt to sync to cloud
+      // Attempt to sync to cloud using merge (not overwrite) to preserve any
+      // data that was added after the snapshot was created
       setRecoveryStatus('syncing');
-      const syncResult = await saveAppData(firebaseUser.uid, snapshotData, { skipMerge: true });
+      const syncResult = await saveAppData(firebaseUser.uid, snapshotData, { skipMerge: false });
       
       if (syncResult) {
         setRecoveryStatus('success');
