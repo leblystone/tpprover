@@ -10,16 +10,57 @@ import { calculateScheduledTasksForDate } from './calendarTasks';
  * - Data conditions (low stock, etc.)  
  * - Time-based triggers (inactive users, etc.)
  * - Scheduled notifications
+ * 
+ * Loads notification definitions from Firestore (adminConfig/triggeredNotifications)
+ * with localStorage as a fallback/cache.
  */
 
 class TriggeredNotificationProcessor {
   constructor() {
     this.isProcessing = false;
     this.lastProcessTime = Date.now();
+    this.cachedNotifications = null;
+    this.lastFirestoreLoad = 0;
+    this.FIRESTORE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   }
 
   /**
-   * Load triggered notifications from localStorage
+   * Load triggered notifications from Firestore, falling back to localStorage
+   * Caches the result for 5 minutes to avoid excessive reads
+   */
+  async loadTriggeredNotificationsAsync() {
+    const now = Date.now();
+    
+    // Return cache if still fresh
+    if (this.cachedNotifications && (now - this.lastFirestoreLoad) < this.FIRESTORE_CACHE_TTL) {
+      return this.cachedNotifications;
+    }
+    
+    try {
+      const { db } = await import('../config/firebase');
+      const { doc, getDoc } = await import('firebase/firestore');
+      
+      const docRef = doc(db, 'adminConfig', 'triggeredNotifications');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data()?.notifications || {};
+        this.cachedNotifications = data;
+        this.lastFirestoreLoad = now;
+        // Update localStorage cache
+        localStorage.setItem('tpp_triggered_notifications', JSON.stringify(data));
+        return data;
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load triggered notifications from Firestore, using localStorage:', error.message);
+    }
+    
+    // Fallback to localStorage
+    return this.loadTriggeredNotifications();
+  }
+
+  /**
+   * Load triggered notifications from localStorage (synchronous fallback)
    */
   loadTriggeredNotifications() {
     try {
@@ -35,7 +76,7 @@ class TriggeredNotificationProcessor {
    * Process user event triggers
    */
   async processUserEvent(eventName, userData = {}) {
-    const notifications = this.loadTriggeredNotifications();
+    const notifications = await this.loadTriggeredNotificationsAsync();
     
     for (const notification of Object.values(notifications)) {
       if (!notification.enabled || !notification.scheduling.active) continue;
@@ -65,7 +106,7 @@ class TriggeredNotificationProcessor {
    * Process data condition triggers (called periodically)
    */
   async processDataConditions() {
-    const notifications = this.loadTriggeredNotifications();
+    const notifications = await this.loadTriggeredNotificationsAsync();
     
     for (const notification of Object.values(notifications)) {
       if (!notification.enabled || !notification.scheduling.active) continue;
@@ -95,7 +136,7 @@ class TriggeredNotificationProcessor {
    * Process time-based triggers
    */
   async processTimeBased() {
-    const notifications = this.loadTriggeredNotifications();
+    const notifications = await this.loadTriggeredNotificationsAsync();
     const userData = this.getUserData();
     
     for (const notification of Object.values(notifications)) {
