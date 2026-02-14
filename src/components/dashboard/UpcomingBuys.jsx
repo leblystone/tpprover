@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
-import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins } from 'lucide-react'
-import Modal from '../common/Modal'
+import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins, ChevronDown } from 'lucide-react'
+import BottomSheet from '../common/BottomSheet'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
@@ -16,7 +16,7 @@ const SCHEDULED_BUYS_KEY = 'tpprover_scheduled_buys'
 const SCHEDULED_BUYS_UPDATE_KEY = 'tpprover_scheduledBuys_lastUpdate'
 const isDev = () => process.env.NODE_ENV === 'development'
 
-export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
+export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [editingItems, setEditingItems] = useState({});
@@ -99,8 +99,10 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   }
 
   const handleItemClick = (item) => {
-    // CRITICAL: Preserve any unsaved edits when switching items
-    // Don't clear editingItems here - let users save or cancel explicitly
+    if (onOpenBuy) {
+      onOpenBuy(item);
+      return;
+    }
     setSelectedItem(item);
     setShowModal(true);
   }
@@ -356,8 +358,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         )}
       </div>
       
-      {/* Upcoming Buys Modal */}
-      <Modal
+      {/* Upcoming Buys - Bottom Sheet */}
+      <BottomSheet
         open={showModal}
         onClose={() => {
           setShowModal(false);
@@ -366,43 +368,50 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         }}
         title="Upcoming Group Buys"
         theme={theme}
-        maxWidth="max-w-4xl"
-        variant="modern"
+        maxHeight="90vh"
+        footer={list.length > 0 ? (
+          <div className="w-full flex justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAdd();
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] touch-manipulation"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff', WebkitTapHighlightColor: 'transparent' }}
+            >
+              <Plus size={18} />
+              Schedule New Group Buy
+            </button>
+          </div>
+        ) : null}
       >
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-y-auto min-h-0">
           {list.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-                <ShoppingCart size={32} style={{ color: theme.primary }} />
-              </div>
-              <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Upcoming Buys</h3>
-              <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                You don't have any scheduled group buys yet. Group buys are a great way to save money on bulk peptide orders.
+            <div className="flex flex-col items-center justify-center gap-3 py-8 px-4 text-center">
+              <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+                No upcoming buys
               </p>
               <button
                 type="button"
-                onMouseDown={(e) => {
-                  // Prevent blur events on mobile
-                  e.preventDefault();
-                }}
-                onTouchStart={(e) => {
-                  // Prevent blur events on touch devices
-                  e.preventDefault();
-                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onAdd();
                 }}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105 touch-manipulation"
-                style={{ 
-                  backgroundColor: theme.primary, 
-                  color: theme.textOnPrimary,
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                style={{
+                  color: theme.primary,
+                  backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                  border: `1px solid ${theme.primary}40`,
                   WebkitTapHighlightColor: 'transparent'
                 }}
               >
-                <Plus size={18} />
-                Schedule a Group Buy
+                Schedule Buy
+                <ChevronDown size={14} />
               </button>
             </div>
           ) : (
@@ -712,21 +721,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
               ))}
             </div>
           )}
-          
-          {list.length > 0 && (
-            <div className="flex justify-center pt-4 border-t" style={{ borderColor: theme.border }}>
-              <button
-                onClick={onAdd}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                <Plus size={18} />
-                Schedule New Group Buy
-              </button>
-            </div>
-          )}
         </div>
-      </Modal>
+      </BottomSheet>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal

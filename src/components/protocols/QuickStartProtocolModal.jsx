@@ -123,7 +123,8 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
             onClose={onClose}
             title="Quick Start Protocol"
             theme={theme}
-            maxHeight="80vh"
+            maxHeight="90vh"
+            fitContent={true}
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
                     <button
@@ -196,7 +197,6 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                     color: theme.textLight
                 }}>
                     <p className="leading-relaxed">
-                        <strong>Start in 30 seconds.</strong><br />
                         Create and start a protocol instantly. Add details later.
                     </p>
                 </div>

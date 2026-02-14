@@ -119,6 +119,7 @@ export default function CustomizableDashboard() {
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
+  const [editingScheduledBuy, setEditingScheduledBuy] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showStockpileAdd, setShowStockpileAdd] = useState(false);
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
@@ -867,11 +868,6 @@ export default function CustomizableDashboard() {
                   maxHeight = '280px';
               }
               
-              // Pending Vendors widget was replaced by "Action Items" (DontForgetWidget) and no longer renders; skip so we don't show an empty card
-              if (widget.type === WIDGET_TYPES.PENDING_VENDORS) {
-                return null;
-              }
-
               return (
                 <div key={`${widget.id}-${widget.position?.x}-${widget.position?.y}-${widget.enabled}`} className={`${gridClasses} w-full flex`}>
                   <DashboardWidget
@@ -916,7 +912,8 @@ export default function CustomizableDashboard() {
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                       onNewOrder={() => setShowNewOrder(true)}
-                      onAddBuy={() => setShowAddBuyModal(true)}
+                      onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
+                      onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                       wishlist={wishlist}
                       onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
                       onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
@@ -1058,7 +1055,8 @@ export default function CustomizableDashboard() {
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                         onNewOrder={() => setShowNewOrder(true)}
-                        onAddBuy={() => setShowAddBuyModal(true)}
+                        onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
+                      onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                         onViewAllVendors={() => navigate('/app/vendors')}
                         onCompleteVendor={(vendor) => {
                           setEditingVendor(vendor);
@@ -1345,9 +1343,9 @@ export default function CustomizableDashboard() {
 
       <AddScheduledBuyModal
         open={showAddBuyModal}
-        onClose={() => setShowAddBuyModal(false)}
+        onClose={() => { setShowAddBuyModal(false); setEditingScheduledBuy(null); }}
         theme={theme}
-        buy={null}
+        buy={editingScheduledBuy}
         onSave={(buy) => {
           // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp during sync
           const newBuy = { 

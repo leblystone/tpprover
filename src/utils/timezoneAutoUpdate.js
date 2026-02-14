@@ -11,21 +11,31 @@ export function initTimezoneAutoUpdate() {
     try {
       const currentTimezone = getLocalTimezone();
       
-      // Skip if timezone hasn't changed
+      // Skip if timezone hasn't changed from what we last knew
       if (lastKnownTimezone === currentTimezone) {
         return;
       }
 
-      // Initialize on first run
+      // On first run, check if stored settings timezone differs from browser timezone
+      // This catches the case where user traveled and the app restarts in a new timezone
       if (lastKnownTimezone === null) {
-        lastKnownTimezone = currentTimezone;
-        console.log(`⏰ Timezone initialized: ${currentTimezone}`);
-        return;
+        const settings = loadSettings();
+        const storedTimezone = settings?.region?.timeZone;
+        
+        // If stored timezone matches browser timezone, just initialize and skip
+        if (storedTimezone === currentTimezone) {
+          lastKnownTimezone = currentTimezone;
+          console.log(`⏰ Timezone initialized: ${currentTimezone}`);
+          return;
+        }
+        
+        // Stored timezone is stale or missing — fall through to update it
+        console.log(`🌍 Timezone mismatch on init: stored=${storedTimezone || 'none'}, browser=${currentTimezone}`);
+      } else {
+        console.log(`🌍 Timezone changed: ${lastKnownTimezone} → ${currentTimezone}`);
       }
 
-      // Timezone changed - update settings
-      console.log(`🌍 Timezone changed: ${lastKnownTimezone} → ${currentTimezone}`);
-      
+      // Update settings with current browser timezone
       const settings = loadSettings();
       settings.region = settings.region || {};
       settings.region.timeZone = currentTimezone;

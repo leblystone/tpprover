@@ -4,7 +4,8 @@ import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
-import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan, Beaker } from 'lucide-react';
+import TimePicker15Min from '../common/inputs/TimePicker15Min';
+import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan, Beaker, Bell } from 'lucide-react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
@@ -178,22 +179,20 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         </span>
                     </div>
                     
-                    {/* Dosage Type Toggle */}
+                    {/* Dosage Type Toggle - preserve both fixed and titration data when switching */}
+                    {(() => {
+                        const isFixedDose = item.dosageScheduleType === 'fixed' || (!item.dosageScheduleType && (!item.titration || item.titration.length === 0));
+                        const isTitration = item.dosageScheduleType === 'titration' || (!item.dosageScheduleType && item.titration && item.titration.length > 0);
+                        return (
                     <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
                         <button 
                             type="button"
                             onClick={() => {
-                                // Switch to fixed dose - clear titration if exists
-                                const updated = { ...item };
-                                if (updated.titration && updated.titration.length > 0) {
-                                    updated.titration = [];
-                                }
+                                const updated = { ...item, dosageScheduleType: 'fixed' };
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
-                                (!item.titration || item.titration.length === 0) ? 'text-white shadow-sm' : 'text-gray-500'
-                            }`}
-                            style={(!item.titration || item.titration.length === 0) ? { backgroundColor: theme.primary } : {}}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${isFixedDose ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                            style={isFixedDose ? { backgroundColor: theme.primary } : {}}
                         >
                             <Pipette size={12} />
                             Fixed Dose
@@ -201,25 +200,24 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         <button 
                             type="button"
                             onClick={() => {
-                                // Switch to titration - initialize if empty
-                                const updated = { ...item };
+                                const updated = { ...item, dosageScheduleType: 'titration' };
                                 if (!updated.titration || updated.titration.length === 0) {
                                     updated.titration = [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'days' }];
                                 }
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
-                                (item.titration && item.titration.length > 0) ? 'text-white shadow-sm' : 'text-gray-500'
-                            }`}
-                            style={(item.titration && item.titration.length > 0) ? { backgroundColor: theme.primary } : {}}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${isTitration ? 'text-white shadow-sm' : 'text-gray-500'}`}
+                            style={isTitration ? { backgroundColor: theme.primary } : {}}
                         >
                             <TrendingUp size={12} />
                             Titration
                         </button>
                     </div>
+                        );
+                    })()}
 
-                    {/* Fixed Dose Input */}
-                    {(!item.titration || item.titration.length === 0) && (
+                    {/* Fixed Dose Input - show when Fixed Dose is selected (data preserved when switching to Titration) */}
+                    {(item.dosageScheduleType === 'fixed' || (!item.dosageScheduleType && (!item.titration || item.titration.length === 0))) && (
                         <div className="grid grid-cols-3 gap-3">
                             <div className="col-span-2">
                                 <CombinedDosageInput
@@ -349,8 +347,8 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         );
                     })()}
 
-                    {/* Titration Schedule Editor */}
-                    {(item.titration && item.titration.length > 0) && (
+                    {/* Titration Schedule Editor - show when Titration is selected (data preserved when switching to Fixed Dose) */}
+                    {(item.dosageScheduleType === 'titration' || (item.titration && item.titration.length > 0)) && (
                         <div className="mt-2">
                             <DosingScheduleEditor
                                 titration={item.titration}
@@ -696,6 +694,74 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             </button>
                                         );
                                     })}
+                                </div>
+
+                                {/* Per-peptide custom reminder time */}
+                                <div 
+                                    className="rounded-lg border p-2.5 space-y-2 transition-all"
+                                    style={{ 
+                                        borderColor: item.frequency?.customReminder ? theme.primary + '40' : theme.border + '60',
+                                        backgroundColor: item.frequency?.customReminder ? theme.primary + '08' : 'transparent'
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newFreq = { ...(item.frequency || { type: 'daily' }) };
+                                            newFreq.customReminder = !newFreq.customReminder;
+                                            // Set a sensible default time based on AM/PM
+                                            if (newFreq.customReminder && !newFreq.reminderTime) {
+                                                const isAM = Array.isArray(newFreq.time) ? newFreq.time.includes('AM') : true;
+                                                newFreq.reminderTime = isAM ? '08:00' : '18:00';
+                                            }
+                                            handleChange('frequency', newFreq);
+                                        }}
+                                        className="w-full flex items-center gap-2 text-left"
+                                    >
+                                        <div
+                                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                            style={{ 
+                                                backgroundColor: item.frequency?.customReminder ? theme.primary + '20' : theme.secondary 
+                                            }}
+                                        >
+                                            <Bell 
+                                                size={13} 
+                                                style={{ color: item.frequency?.customReminder ? theme.primary : theme.textLight }}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-xs font-bold block" style={{ color: theme.text }}>
+                                                Custom Reminder
+                                            </span>
+                                            <span className="text-[10px] opacity-50 block" style={{ color: theme.text }}>
+                                                Get a push notification at a specific time for this peptide
+                                            </span>
+                                        </div>
+                                        <div 
+                                            className={`w-8 h-[18px] rounded-full relative transition-all flex-shrink-0 ${item.frequency?.customReminder ? '' : ''}`}
+                                            style={{ backgroundColor: item.frequency?.customReminder ? theme.primary : '#d1d5db' }}
+                                        >
+                                            <div 
+                                                className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-all"
+                                                style={{ left: item.frequency?.customReminder ? '16px' : '2px' }}
+                                            />
+                                        </div>
+                                    </button>
+
+                                    {item.frequency?.customReminder && (
+                                        <div className="pt-1">
+                                            <TimePicker15Min
+                                                label="Remind me at"
+                                                value={item.frequency?.reminderTime || '08:00'}
+                                                onChange={(time) => {
+                                                    const newFreq = { ...(item.frequency || { type: 'daily' }) };
+                                                    newFreq.reminderTime = time;
+                                                    handleChange('frequency', newFreq);
+                                                }}
+                                                theme={theme}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -71,15 +71,27 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           buys={props.upcomingBuys}
           onAdd={props.onAddBuy}
+          onOpenBuy={props.onOpenBuy}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}
         />
       );
       
     case WIDGET_TYPES.PENDING_VENDORS:
-      // Hidden - replaced by DONT_FORGET widget
-      return null;
-      
+      // Same content as Action Items: vendors needing completion, protocols needing follow-up, incomplete stockpile
+      return (
+        <DontForgetWidget
+          widget={widget}
+          theme={theme}
+          vendors={props.vendors}
+          stockpile={props.stockpile}
+          onCompleteVendor={props.onCompleteVendor}
+          onViewAllVendors={props.onViewAllVendors}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
+        />
+      );
+
     case WIDGET_TYPES.DONT_FORGET:
       return (
         <DontForgetWidget 
@@ -225,6 +237,7 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
         <NotesWidget 
           widget={widget} 
           theme={theme}
+          protocols={props.protocols}
         />
       );
       

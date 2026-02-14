@@ -556,10 +556,7 @@ exports.scheduledResearchReminders = onSchedule({
       const todayPeptides = [];
       const todaySupplements = [];
       
-      // Use user's timezone to determine "today" (not server UTC)
-      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
-      
-      // Get today's date in user's timezone
+      // Get today's date in user's timezone (userTimezone already declared above)
       const userDateString = now.toLocaleString("en-US", {
         timeZone: userTimezone,
         year: 'numeric',
@@ -592,7 +589,10 @@ exports.scheduledResearchReminders = onSchedule({
                       dose: peptide.dosage?.amount || '',
                       unit: peptide.dosage?.unit || 'mcg',
                       time: time,
-                      type: 'peptide'
+                      type: 'peptide',
+                      // Per-peptide custom reminder support
+                      customReminder: peptide.frequency.customReminder === true,
+                      reminderTime: peptide.frequency.reminderTime || null
                     });
                   });
                 }
@@ -694,101 +694,153 @@ exports.scheduledResearchReminders = onSchedule({
         return !isTaskCompleted(taskId, 'PM');
       });
 
-      // NEW LOGIC: Send notifications based on incomplete tasks + time matching
-      let shouldSendNotification = false;
-      let reminderType = '';
-      let reminderTime = '';
-      let notificationType = ''; // 'AM' or 'PM' for template selection
-      let notificationPeptides = [];
-      let notificationSupplements = [];
-      
-      // Parse reminder times (HH:MM format)
-      const [defaultAMHour, defaultAMMinute] = reminderTimeAM.split(':').map(Number);
-      const [amHour, amMinute] = reminderTimeAM.split(':').map(Number);
-      const [pmHour, pmMinute] = reminderTimePM.split(':').map(Number);
-      
       // Helper function to check if current time matches target time (within 15-minute window)
       const isWithinWindow = (targetHour, targetMinute) => {
-        // Check if we're within the same hour
         if (currentHour !== targetHour) return false;
-        
-        // Check if we're close to the target minute (within 15 minutes to catch the scheduled run)
-        // Round currentMinute to nearest 15-minute interval (0, 15, 30, 45)
         const roundedCurrentMinute = Math.floor(currentMinute / 15) * 15;
         const roundedTargetMinute = Math.floor(targetMinute / 15) * 15;
-        
-        // Only send if we're at the same 15-minute interval as the target time
         return roundedCurrentMinute === roundedTargetMinute;
       };
       
-      // Default AM notification: Send at user's default AM time if INCOMPLETE tasks exist
-      const isDefaultAMTime = isWithinWindow(defaultAMHour, defaultAMMinute);
+      // Helper: build notification body from a list of peptides/supplements
+      // Caps at 3 items to keep push notifications concise (iOS ~178 chars, Android ~240 chars)
+      const buildNotificationBody = (peptides, supplements, label) => {
+        const peptideNames = peptides.map(p => {
+          const dose = p.dose && p.unit ? ` (${p.dose} ${p.unit})` : '';
+          return `${p.name}${dose}`;
+        });
+        const supplementNameList = supplements.map(s => s.name);
+        const allItems = [...peptideNames, ...supplementNameList];
+        
+        if (allItems.length === 0) return null;
+        
+        if (allItems.length <= 3) {
+          return `${label}: ${allItems.join(', ')}`;
+        } else {
+          const shown = allItems.slice(0, 3).join(', ');
+          const remaining = allItems.length - 3;
+          return `${label}: ${shown} +${remaining} more`;
+        }
+      };
       
-      // Check if current time matches user's AM reminder time (if enabled)
+      // ───────────────────────────────────────────────────
+      // STEP A: Per-peptide custom reminders (specific time)
+      // ───────────────────────────────────────────────────
+      const allIncompletePeptides = [...incompletePeptidesAM, ...incompletePeptidesPM];
+      const customTimePeptides = allIncompletePeptides.filter(p => p.customReminder && p.reminderTime);
+      
+      // Group custom-reminder peptides by their reminder time
+      const peptidesByCustomTime = {};
+      for (const peptide of customTimePeptides) {
+        const time = peptide.reminderTime;
+        if (!peptidesByCustomTime[time]) peptidesByCustomTime[time] = [];
+        peptidesByCustomTime[time].push(peptide);
+      }
+      
+      // Send one notification per unique custom time that matches now
+      for (const [customTime, peptides] of Object.entries(peptidesByCustomTime)) {
+        const [cHour, cMinute] = customTime.split(':').map(Number);
+        if (isWithinWindow(cHour, cMinute)) {
+          const body = buildNotificationBody(peptides, [], 'Reminder');
+          if (body) {
+            const customNotifData = {
+              title: `🔔 ${peptides.length === 1 ? peptides[0].name : 'Research'} Reminder`,
+              body: body,
+              peptides: peptides,
+              supplements: [],
+              peptideCount: peptides.length,
+              supplementCount: 0,
+              appUrl: 'https://thepepplanner.com/app/dashboard'
+            };
+            logger.info(`🔔 Sending custom-time reminder for user ${userId} at ${customTime}: ${peptides.map(p => p.name).join(', ')}`);
+            promises.push(
+              pushNotifications.sendPushNotificationByType(userId, 'researchReminders', customNotifData)
+            );
+          }
+        }
+      }
+      
+      // ───────────────────────────────────────────────────
+      // STEP B: Global AM/PM reminders (for non-custom peptides + supplements)
+      // ───────────────────────────────────────────────────
+      // Exclude peptides that have custom reminders (they're handled above)
+      const globalPeptidesAM = incompletePeptidesAM.filter(p => !p.customReminder || !p.reminderTime);
+      const globalPeptidesPM = incompletePeptidesPM.filter(p => !p.customReminder || !p.reminderTime);
+      
+      const [amHour, amMinute] = reminderTimeAM.split(':').map(Number);
+      const [pmHour, pmMinute] = reminderTimePM.split(':').map(Number);
+      
       const matchesAM = remindersAMEnabled && isWithinWindow(amHour, amMinute);
-      
-      // Check if current time matches user's PM reminder time (if enabled)
       const matchesPM = remindersPMEnabled && isWithinWindow(pmHour, pmMinute);
       
-      // Send notification if:
-      // 1. It's the default AM time (8 AM or user's AM time) - send if incomplete AM tasks exist
-      // 2. OR it matches user's enabled AM reminder time - send if incomplete AM tasks exist
-      // 3. OR it matches user's enabled PM reminder time - send if incomplete PM tasks exist
-      if ((isDefaultAMTime || matchesAM) && (incompletePeptidesAM.length > 0 || incompleteSupplementsAM.length > 0)) {
+      let shouldSendNotification = false;
+      let notificationType = '';
+      let notificationPeptides = [];
+      let notificationSupplements = [];
+      
+      if (matchesAM && (globalPeptidesAM.length > 0 || incompleteSupplementsAM.length > 0)) {
         shouldSendNotification = true;
-        reminderType = isDefaultAMTime ? 'AM (Default)' : 'AM (Custom)';
-        reminderTime = reminderTimeAM;
         notificationType = 'AM';
-        notificationPeptides = incompletePeptidesAM;
+        notificationPeptides = globalPeptidesAM;
         notificationSupplements = incompleteSupplementsAM;
-      } else if (matchesPM && (incompletePeptidesPM.length > 0 || incompleteSupplementsPM.length > 0)) {
+      } else if (matchesPM && (globalPeptidesPM.length > 0 || incompleteSupplementsPM.length > 0)) {
         shouldSendNotification = true;
-        reminderType = 'PM (Custom)';
-        reminderTime = reminderTimePM;
         notificationType = 'PM';
-        notificationPeptides = incompletePeptidesPM;
+        notificationPeptides = globalPeptidesPM;
         notificationSupplements = incompleteSupplementsPM;
       }
       
-      // Skip if it's not the right time to send OR if all tasks are completed
       if (!shouldSendNotification) {
-        if (isDefaultAMTime || matchesAM || matchesPM) {
-          logger.info(`✅ Skipping user ${userId}: All ${notificationType} tasks completed!`);
-        } else {
-          logger.info(`⏭️ Skipping user ${userId}: Not the right time (current: ${currentHour}:${currentMinute}, target AM: ${amHour}:${amMinute}, target PM: ${pmHour}:${pmMinute})`);
+        if (matchesAM || matchesPM) {
+          logger.info(`✅ Skipping user ${userId}: All ${notificationType || 'global'} tasks completed or handled by custom reminders`);
+        } else if (Object.keys(peptidesByCustomTime).length === 0) {
+          logger.info(`⏭️ Skipping user ${userId}: Not the right time (current: ${currentHour}:${String(currentMinute).padStart(2, '0')}, target AM: ${amHour}:${String(amMinute).padStart(2, '0')}, target PM: ${pmHour}:${String(pmMinute).padStart(2, '0')})`);
         }
         continue;
       }
       
-      logger.info(`⏰ Sending ${reminderType} reminder for user ${userId} at ${reminderTime} in timezone ${userTimezone} (${notificationPeptides.length} incomplete peptides, ${notificationSupplements.length} incomplete supplements)`);
-      logger.info(`📍 User time: ${currentHour}:${currentMinute}, Rounded to: ${Math.floor(currentMinute / 15) * 15}`);
-
-      // Load template from Firestore (researchReminderAM or researchReminderPM)
-      const templateType = notificationType === 'AM' ? 'researchReminderAM' : 'researchReminderPM';
+      const timeLabel = notificationType === 'AM' ? 'Morning' : 'Evening';
       let notificationTitle = notificationType === 'AM' ? '☀️ Morning Research Reminder' : '🌙 Evening Research Reminder';
-      let notificationBody = `You have ${notificationPeptides.length} peptide(s) and ${notificationSupplements.length} supplement(s) scheduled for this ${notificationType === 'AM' ? 'morning' : 'evening'}.`;
+      let notificationBody = buildNotificationBody(notificationPeptides, notificationSupplements, `${timeLabel} research`);
       
+      if (!notificationBody) {
+        logger.info(`✅ Skipping user ${userId}: No items to include in ${notificationType} notification`);
+        continue;
+      }
+      
+      logger.info(`⏰ Sending ${notificationType} reminder for user ${userId} in timezone ${userTimezone} (${notificationPeptides.length} peptides, ${notificationSupplements.length} supplements)`);
+      
+      // Check for custom template override from Firestore
+      const templateType = notificationType === 'AM' ? 'researchReminderAM' : 'researchReminderPM';
       try {
         const templateDoc = await admin.firestore().collection('notificationTemplates').doc(templateType).get();
         if (templateDoc.exists) {
           const template = templateDoc.data();
           notificationTitle = template.title || notificationTitle;
-          notificationBody = template.body || notificationBody;
           
-          // Replace variables in template
-          notificationBody = notificationBody
-            .replace(/{peptideCount}/g, notificationPeptides.length.toString())
-            .replace(/{supplementCount}/g, notificationSupplements.length.toString());
+          // Support new template variables
+          if (template.body) {
+            const peptideNames = notificationPeptides.map(p => p.name);
+            const supplementNameList = notificationSupplements.map(s => s.name);
+            let templateBody = template.body
+              .replace(/{peptideCount}/g, notificationPeptides.length.toString())
+              .replace(/{supplementCount}/g, notificationSupplements.length.toString())
+              .replace(/{peptideList}/g, peptideNames.join(', ') || 'none')
+              .replace(/{supplementList}/g, supplementNameList.join(', ') || 'none');
+            
+            // Only use template body if it has real content after replacement
+            if (templateBody.trim()) {
+              notificationBody = templateBody;
+            }
+          }
           
           logger.info(`✅ Using custom ${templateType} notification template from Firestore`);
-        } else {
-          logger.info(`ℹ️ No custom template found for ${templateType}, using default`);
         }
       } catch (error) {
-        logger.warn(`⚠️ Could not load notification template ${templateType} from Firestore, using default:`, error.message);
+        logger.warn(`⚠️ Could not load notification template ${templateType}:`, error.message);
       }
 
-      // Send reminder notification with proper AM/PM template (only incomplete tasks)
+      // Send global AM/PM notification
       const notificationData = {
         title: notificationTitle,
         body: notificationBody,

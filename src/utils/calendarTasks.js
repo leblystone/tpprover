@@ -86,8 +86,9 @@ function getPhaseDurationInDays(phase) {
 }
 
 function getTitrationDoseForDate(protocol, peptide, targetDate) {
-    // If no titration array or it's empty, use fixed dose
-    if (!peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0) {
+    // If user selected fixed dose, or no titration array / empty, use fixed dose
+    const useFixedDose = peptide.dosageScheduleType === 'fixed' || !peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0;
+    if (useFixedDose) {
         return {
             dose: peptide.dosage?.amount || '',
             unit: peptide.dosage?.unit || ''
@@ -186,6 +187,7 @@ function getNormalizedPeptides(p) {
  * or null if no titration
  */
 export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Date()) {
+    if (peptide.dosageScheduleType === 'fixed') return null;
     if (!peptide?.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0) {
         return null;
     }
@@ -385,24 +387,24 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
                     return `${pep.name} ${titrationResult.dose} ${titrationResult.unit || 'mcg'}`;
                 });
-                const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
+                const anyUsingTitration = peptides.some(pep => (pep.titration && pep.titration.length > 0) && pep.dosageScheduleType !== 'fixed');
+                const additionalUnits = !anyUsingTitration ? (peptides.find(pep => pep.unitValue)?.unitValue || '') : '';
                 
                 let dose = doseParts.join(' + ');
                 let unit = '';
                 
+                // Only use unitValue when protocol is in fixed-dose mode; when titration is selected use titration dose/unit only
                 // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Titration/Default dose/unit
                 if (additionalUnits && additionalUnits.trim() !== '') {
                     // User manually entered units in protocol - HIGHEST priority
                     dose = `${additionalUnits} units`;
                     unit = '';
-                } else if (reconItem) {
-                    // Check for manual units in recon item first
+                } else if (!anyUsingTitration && reconItem) {
+                    // Only use recon units when all peptides in fixed-dose mode
                     if (reconItem.units && reconItem.units.trim() !== '') {
-                        // User manually entered units in recon modal - SECOND priority
                         dose = `${reconItem.units} units`;
                         unit = '';
                     } else {
-                        // No manual override, use calculated units if available
                         const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
                             const dose = Number(pep.dose) || 0;
                             return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
@@ -516,22 +518,21 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
                     let dose = titrationResult.dose;
                     let unit = titrationResult.unit;
-                    const additionalUnits = pep.unitValue || '';
+                    const useFixedDoseForUnits = pep.dosageScheduleType === 'fixed' || !pep.titration || pep.titration.length === 0;
+                    const additionalUnits = useFixedDoseForUnits ? (pep.unitValue || '') : '';
 
+                    // Only use unitValue when peptide is in fixed-dose mode; when titration is selected use titration dose/unit only
                     // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Titration/Default dose/unit
                     if (additionalUnits && additionalUnits.trim() !== '') {
                         // User manually entered units in protocol - HIGHEST priority
                         dose = `${additionalUnits} units`;
                         unit = '';
-                    } else if (reconItem) {
-                        // Check for manual units in recon item first
+                    } else if (useFixedDoseForUnits && reconItem) {
+                        // Only use recon units when in fixed-dose mode; titration uses dose/unit from titration phases only
                         if (reconItem.units && reconItem.units.trim() !== '') {
-                            // User manually entered units in recon modal - SECOND priority
                             dose = `${reconItem.units} units`;
                             unit = '';
                         } else {
-                            // No manual override, use calculated units if available
-                            // Pass raw dose amount + unit; recon.js handles conversion
                             const calc = calculateRecon({
                                 mg: reconItem.mg,
                                 water: reconItem.water,
@@ -542,13 +543,12 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                                 dose = `${calc.unitsPerDose.toFixed(0)} units`;
                                 unit = '';
                             } else {
-                                // No calculation available, use titration/default dose/unit
                                 dose = `${dose} ${unit}`;
                                 unit = '';
                             }
                         }
                     } else {
-                        // No recon item, use titration/default dose/unit
+                        // Titration mode or no recon: use titration/default dose/unit
                         dose = `${dose} ${unit}`;
                         unit = '';
                     }

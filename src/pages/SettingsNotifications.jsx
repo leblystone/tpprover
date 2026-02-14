@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard } from 'lucide-react'
-import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers'
+import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard, Zap, Bug, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore, getLocalTimezone } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useFirebase } from '../context/FirebaseContext'
 import TimePicker15Min from '../components/common/inputs/TimePicker15Min'
 
@@ -56,6 +57,11 @@ export default function SettingsNotifications() {
     enabled: false,
     loading: false
   })
+
+  // Test notification state
+  const [testState, setTestState] = useState({ loading: false, result: null })
+  // Diagnostic state
+  const [diagState, setDiagState] = useState({ loading: false, data: null, open: false })
 
 
   // Settings state
@@ -209,6 +215,105 @@ export default function SettingsNotifications() {
       }));
       
       setPwaNotificationStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Send a real test push notification via Firebase
+  const handleSendTestNotification = async () => {
+    if (testState.loading) return;
+    setTestState({ loading: true, result: null });
+    
+    try {
+      const functions = getFunctions();
+      const sendTest = httpsCallable(functions, 'sendTestNotification');
+      const result = await sendTest({ 
+        type: 'researchReminders', 
+        testData: {
+          title: '🧪 Test Notification',
+          body: 'If you see this, push notifications are working! 🎉'
+        }
+      });
+      
+      const success = result.data?.success;
+      setTestState({ 
+        loading: false, 
+        result: success 
+          ? { type: 'success', message: 'Notification sent! Check your device.' }
+          : { type: 'error', message: result.data?.error || 'Failed to send. Check diagnostics below.' }
+      });
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: {
+          message: success ? '✅ Test notification sent!' : '❌ Failed to send notification',
+          type: success ? 'success' : 'error'
+        }
+      }));
+    } catch (error) {
+      console.error('Test notification error:', error);
+      setTestState({ 
+        loading: false, 
+        result: { type: 'error', message: error.message || 'Failed to send test notification' }
+      });
+    }
+    
+    // Clear result after 8 seconds
+    setTimeout(() => setTestState(prev => ({ ...prev, result: null })), 8000);
+  };
+
+  // Run notification diagnostics
+  const handleRunDiagnostics = async () => {
+    if (diagState.loading) return;
+    setDiagState({ loading: true, data: null, open: true });
+    
+    try {
+      const currentTz = getLocalTimezone();
+      const storedSettings = loadSettings();
+      const storedTz = storedSettings?.region?.timeZone;
+      const isNative = Capacitor.isNativePlatform();
+      const platform = Capacitor.getPlatform();
+      
+      // Check Firestore data
+      let firestoreData = null;
+      if (firebaseUser?.uid) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            firestoreData = {
+              hasFcmToken: !!data.fcmToken,
+              tokenPrefix: data.fcmToken ? data.fcmToken.substring(0, 20) + '...' : 'MISSING',
+              pushEnabled: data.notificationSettings?.push === true,
+              researchReminders: data.notificationSettings?.researchReminders === true,
+              amEnabled: data.notificationSettings?.researchRemindersAM === true,
+              pmEnabled: data.notificationSettings?.researchRemindersPM === true,
+              amTime: data.notificationSettings?.researchReminderTimeAM || '08:00',
+              pmTime: data.notificationSettings?.researchReminderTimePM || '18:00',
+              storedTimezone: data.settings?.region?.timeZone || 'NOT SET',
+            };
+          }
+        } catch (e) {
+          firestoreData = { error: e.message };
+        }
+      }
+      
+      setDiagState({
+        loading: false,
+        open: true,
+        data: {
+          platform,
+          isNative,
+          browserTimezone: currentTz,
+          localStorageTimezone: storedTz || 'NOT SET',
+          timezonesMatch: currentTz === storedTz,
+          firestoreTimezoneMatch: firestoreData?.storedTimezone === currentTz,
+          notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'N/A (native)',
+          firebaseUser: firebaseUser?.uid ? `${firebaseUser.uid.substring(0, 8)}...` : 'NOT LOGGED IN',
+          firestore: firestoreData,
+          localTime: new Date().toLocaleString(),
+        }
+      });
+    } catch (error) {
+      setDiagState({ loading: false, open: true, data: { error: error.message } });
     }
   };
 
@@ -431,11 +536,145 @@ export default function SettingsNotifications() {
           </div>
         </div>
 
+        {/* Test & Diagnostics */}
+        {settings.notifications.push && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <Zap size={14} style={{ color: theme.primary }} />
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+                Test & Diagnostics
+              </h4>
+            </div>
+
+            <div 
+              className="p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
+              style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            >
+              {/* Send Test Notification */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSendTestNotification}
+                  disabled={testState.loading}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
+                  style={{ 
+                    backgroundColor: theme.primary, 
+                    color: theme.textOnPrimary,
+                    opacity: testState.loading ? 0.7 : 1
+                  }}
+                >
+                  {testState.loading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Send size={15} />
+                  )}
+                  {testState.loading ? 'Sending...' : 'Send Test Notification'}
+                </button>
+              </div>
+
+              {/* Test Result */}
+              {testState.result && (
+                <div 
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                  style={{ 
+                    backgroundColor: testState.result.type === 'success' ? '#10b98120' : '#ef444420',
+                    color: testState.result.type === 'success' ? '#10b981' : '#ef4444'
+                  }}
+                >
+                  {testState.result.type === 'success' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                  {testState.result.message}
+                </div>
+              )}
+
+              {/* Run Diagnostics */}
+              <button
+                onClick={handleRunDiagnostics}
+                disabled={diagState.loading}
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all active:scale-[0.98] border"
+                style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: 'transparent',
+                  color: theme.text,
+                  opacity: diagState.loading ? 0.7 : 1
+                }}
+              >
+                {diagState.loading ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Bug size={13} />
+                )}
+                {diagState.loading ? 'Checking...' : 'Run Diagnostics'}
+              </button>
+
+              {/* Diagnostic Results */}
+              {diagState.open && diagState.data && (
+                <div 
+                  className="rounded-xl border p-3 space-y-2 text-[11px] font-mono"
+                  style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#0f172a' : '#f8fafc' }}
+                >
+                  <div className="text-xs font-bold font-sans mb-2" style={{ color: theme.text }}>
+                    Notification Diagnostics
+                  </div>
+                  
+                  {diagState.data.error ? (
+                    <div style={{ color: '#ef4444' }}>Error: {diagState.data.error}</div>
+                  ) : (
+                    <>
+                      <DiagRow label="Platform" value={`${diagState.data.platform} (${diagState.data.isNative ? 'native' : 'web'})`} theme={theme} />
+                      <DiagRow label="Device Timezone" value={diagState.data.browserTimezone} theme={theme} />
+                      <DiagRow label="Stored Timezone" value={diagState.data.localStorageTimezone} theme={theme} ok={diagState.data.timezonesMatch} />
+                      <DiagRow label="Firestore Timezone" value={diagState.data.firestore?.storedTimezone || 'N/A'} theme={theme} ok={diagState.data.firestoreTimezoneMatch} />
+                      <DiagRow label="Permission" value={diagState.data.notificationPermission} theme={theme} ok={diagState.data.notificationPermission === 'granted'} />
+                      <DiagRow label="Firebase User" value={diagState.data.firebaseUser} theme={theme} ok={!diagState.data.firebaseUser.includes('NOT')} />
+                      
+                      {diagState.data.firestore && !diagState.data.firestore.error && (
+                        <>
+                          <div className="h-px my-1" style={{ backgroundColor: theme.border + '40' }} />
+                          <DiagRow label="FCM Token" value={diagState.data.firestore.hasFcmToken ? 'Present' : 'MISSING'} theme={theme} ok={diagState.data.firestore.hasFcmToken} />
+                          <DiagRow label="Push Enabled" value={diagState.data.firestore.pushEnabled ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.pushEnabled} />
+                          <DiagRow label="Research Reminders" value={diagState.data.firestore.researchReminders ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.researchReminders} />
+                          <DiagRow label="AM Enabled" value={`${diagState.data.firestore.amEnabled ? 'Yes' : 'No'} @ ${diagState.data.firestore.amTime}`} theme={theme} />
+                          <DiagRow label="PM Enabled" value={`${diagState.data.firestore.pmEnabled ? 'Yes' : 'No'} @ ${diagState.data.firestore.pmTime}`} theme={theme} />
+                        </>
+                      )}
+                      
+                      <div className="h-px my-1" style={{ backgroundColor: theme.border + '40' }} />
+                      <DiagRow label="Local Time" value={diagState.data.localTime} theme={theme} />
+                    </>
+                  )}
+                  
+                  <button
+                    onClick={() => setDiagState(prev => ({ ...prev, open: false }))}
+                    className="w-full text-center py-1 text-[10px] font-bold uppercase tracking-wider opacity-50 hover:opacity-100 transition-opacity mt-1"
+                    style={{ color: theme.text }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+
+              <p className="text-[10px] opacity-40 text-center leading-relaxed" style={{ color: theme.text }}>
+                Test sends a real push notification via Firebase. Diagnostics show what the server sees when deciding to send your reminders.
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
 
     </section>
   )
 }
+
+const DiagRow = ({ label, value, theme, ok }) => (
+  <div className="flex items-center justify-between gap-2">
+    <span className="opacity-60 shrink-0" style={{ color: theme.text }}>{label}</span>
+    <span className="text-right flex items-center gap-1 truncate" style={{ color: ok === true ? '#10b981' : ok === false ? '#ef4444' : theme.text }}>
+      {ok === true && <CheckCircle size={10} />}
+      {ok === false && <XCircle size={10} />}
+      {value}
+    </span>
+  </div>
+)
 
 const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
   <div className={`flex items-center justify-between py-4 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>

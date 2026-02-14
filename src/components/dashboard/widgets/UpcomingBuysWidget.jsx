@@ -1,11 +1,11 @@
 import React from 'react';
-import { Lock, Plus, ShoppingCart } from 'lucide-react';
+import { Lock, Plus, ShoppingCart, ChevronDown } from 'lucide-react';
 import UpcomingBuys from '../UpcomingBuys';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, onUpgrade }) => {
+const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, onOpenBuy, isReadOnly = false, onUpgrade }) => {
   const { maxItems = 3 } = widget.settings;
   
   // Limit items based on settings
@@ -50,16 +50,22 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
           </div>
         </div>
         
-        <div className="flex-1 p-4 flex flex-col items-center justify-center">
-          <p className="text-sm mb-4 text-center" style={{ color: theme.textLight }}>
+        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0">
+          <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
             No planned purchases
           </p>
           <button
+            type="button"
             onClick={onAdd}
-            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            style={{
+              color: theme.primary,
+              backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+              border: `1px solid ${theme.primary}40`
+            }}
           >
-            <span className="text-hover">Schedule Buy</span>
+            Schedule Buy
+            <ChevronDown size={14} />
           </button>
         </div>
         
@@ -96,6 +102,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
         buys={limitedBuys} 
         theme={theme} 
         onAdd={onAdd}
+        onOpenBuy={onOpenBuy}
       />
       
       {/* Lockout Overlay */}

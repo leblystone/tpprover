@@ -151,11 +151,7 @@ const DontForgetWidget = ({
     }
   };
 
-  // Don't render if no tasks
   const totalTasks = groupedTasks.reduce((sum, group) => sum + group.items.length, 0);
-  if (totalTasks === 0) {
-    return null;
-  }
 
   return (
     <div className="h-full flex flex-col">
@@ -172,6 +168,17 @@ const DontForgetWidget = ({
       </div>
       
       <div className="flex-1 p-4 overflow-y-auto min-h-0 space-y-4">
+      {totalTasks === 0 ? (
+        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-2 min-h-0">
+          <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+            You're all caught up
+          </p>
+          <p className="text-xs text-center px-2 max-w-[200px]" style={{ color: theme.textLight, opacity: 0.8 }}>
+            Incomplete vendor profiles, protocol follow-ups, or stockpile entries will show here.
+          </p>
+        </div>
+      ) : (
+        <>
         {groupedTasks.map((group, groupIndex) => {
           const GroupIcon = group.icon;
           const displayItems = group.items.slice(0, 5);
@@ -269,7 +276,6 @@ const DontForgetWidget = ({
             </div>
           );
         })}
-      </div>
       
       {totalTasks > 5 && (
         <button 
@@ -280,6 +286,9 @@ const DontForgetWidget = ({
           View all {totalTasks} items
         </button>
       )}
+        </>
+      )}
+      </div>
     </div>
   );
 };

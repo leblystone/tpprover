@@ -76,7 +76,9 @@ Doc also gets `userId`, `lastUpdated` (server timestamp), and `version` when sav
 - **protocolName** (string) – Display name.
 - **purpose** (string) – Optional purpose/notes.
 - **protocolType** (string) – e.g. `'separate'` \| `'blended'`.
-- **peptides** (array) – Each: `id`, `name`, `frequency` (e.g. `{ type: 'daily', time: ['AM'] }`), `unitValue`, etc.
+- **peptides** (array) – Each: `id`, `name`, `frequency` (e.g. `{ type: 'daily', time: ['AM'], customReminder: false, reminderTime: null }`), `unitValue`, etc.
+  - **frequency.customReminder** (boolean) – If true, this peptide has its own push notification time.
+  - **frequency.reminderTime** (string|null) – HH:mm format, e.g. `'07:30'`. Used when customReminder is true.
 - **duration** (object) – `count`, `unit` (e.g. `'weeks'`), `noEnd`.
 - **washout** (object) – `enabled`, `duration`, `unit`.
 - **notes** (string).
