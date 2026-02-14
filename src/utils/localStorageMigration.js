@@ -135,6 +135,136 @@ export async function migrateUserSettingsToCloud(saveToCloud) {
 }
 
 /**
+ * One-time cleanup: replace garbage serialized serverTimestamp() sentinel objects
+ * in localStorage with valid ISO timestamps.
+ * 
+ * BACKGROUND: Before the sentinel detection fix, serverTimestamp() sentinels were
+ * saved as objects like {"_methodName":"serverTimestamp"} into localStorage because
+ * JSON.stringify couldn't detect them in production builds. These garbage objects
+ * break timestamp-based merge comparisons (they parse as timestamp 0), causing
+ * cross-device sync to always prefer local data and discard remote edits.
+ *
+ * This migration:
+ * 1. Scans all localStorage keys for items with garbage updatedAt objects
+ * 2. Replaces them with a far-past ISO timestamp ("2000-01-01T00:00:00.000Z")
+ *    — deliberately old so that REAL edits (with valid timestamps) from any device win
+ * 3. Runs synchronously before any cloud merge to prevent the cascade
+ */
+export function cleanupGarbageTimestamps() {
+  const MIGRATION_KEY = 'garbageTimestampCleanup';
+  const status = getMigrationStatus();
+  
+  if (status[MIGRATION_KEY]?.completed) {
+    return { alreadyDone: true };
+  }
+  
+  console.log('🧹 [MIGRATION] Cleaning garbage serverTimestamp() sentinels from localStorage...');
+  
+  // Far-past timestamp: old enough that any real edit (ISO string) from any device wins
+  const FAR_PAST = '2000-01-01T00:00:00.000Z';
+  
+  // All localStorage keys that contain arrays of items with updatedAt
+  const arrayKeys = [
+    'tpprover_protocols',
+    'tpprover_recon_items',
+    'tpprover_recon_history',
+    'tpprover_supplements',
+    'tpprover_orders',
+    'tpprover_metrics',
+    'tpprover_vendors',
+    'tpprover_stockpile',
+    'tpprover_scheduled_buys',
+    'tpprover_protocol_history',
+    'tpprover_wishlist',
+    'tpprover_user_notes',
+    'tpprover_user_goals',
+    'tpprover_injection_history'
+  ];
+  
+  let totalCleaned = 0;
+  
+  /**
+   * Check if a value is a garbage serialized sentinel.
+   * In localStorage (after JSON parse), these look like:
+   *   {"_methodName":"serverTimestamp"} or {"methodName":"serverTimestamp"} or {}
+   * They should be objects that are NOT valid dates, NOT Firestore Timestamps, and NOT null.
+   */
+  function isGarbageTimestamp(val) {
+    if (val == null) return false;
+    if (typeof val !== 'object') return false;
+    // A real Firestore Timestamp has toMillis; a Date has getTime
+    if (typeof val.toMillis === 'function') return false;
+    if (val instanceof Date) return false;
+    // It's a plain object in a timestamp field → garbage
+    return true;
+  }
+  
+  /**
+   * Recursively clean garbage timestamps in an item and its nested arrays.
+   * Returns true if any field was cleaned.
+   */
+  function cleanItem(item) {
+    if (!item || typeof item !== 'object') return false;
+    let cleaned = false;
+    
+    // Check updatedAt
+    if (isGarbageTimestamp(item.updatedAt)) {
+      item.updatedAt = FAR_PAST;
+      cleaned = true;
+    }
+    // Check createdAt
+    if (isGarbageTimestamp(item.createdAt)) {
+      item.createdAt = FAR_PAST;
+      cleaned = true;
+    }
+    
+    // Check nested arrays (e.g., protocol.peptides[].titration[])
+    for (const key of Object.keys(item)) {
+      const val = item[key];
+      if (Array.isArray(val)) {
+        for (const nested of val) {
+          if (nested && typeof nested === 'object') {
+            if (cleanItem(nested)) cleaned = true;
+          }
+        }
+      } else if (val && typeof val === 'object' && !isGarbageTimestamp(val) && !(val instanceof Date)) {
+        // Nested object (not a garbage timestamp itself)
+        if (cleanItem(val)) cleaned = true;
+      }
+    }
+    
+    return cleaned;
+  }
+  
+  for (const key of arrayKeys) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      
+      const items = JSON.parse(raw);
+      if (!Array.isArray(items)) continue;
+      
+      let keyCleaned = 0;
+      for (const item of items) {
+        if (cleanItem(item)) keyCleaned++;
+      }
+      
+      if (keyCleaned > 0) {
+        localStorage.setItem(key, JSON.stringify(items));
+        console.log(`  🧹 ${key}: cleaned ${keyCleaned} items`);
+        totalCleaned += keyCleaned;
+      }
+    } catch (e) {
+      console.warn(`  ⚠️ Failed to clean ${key}:`, e);
+    }
+  }
+  
+  markMigrationComplete(MIGRATION_KEY, '1.0');
+  console.log(`🧹 [MIGRATION] Done! Cleaned ${totalCleaned} items with garbage timestamps`);
+  return { cleaned: totalCleaned };
+}
+
+/**
  * Master migration function - runs all migrations in sequence
  * Call this once on login after user is authenticated
  * 
@@ -181,6 +311,9 @@ export async function runAllMigrations(context) {
       return false;
     }
   };
+  
+  // Run timestamp cleanup FIRST (synchronous, no cloud needed)
+  results.timestampCleanup = cleanupGarbageTimestamps();
   
   // Run migrations in sequence
   results.protocolHistory = await migrateProtocolHistoryToCloud(saveToCloud);
