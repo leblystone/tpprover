@@ -234,6 +234,11 @@ function App() {
                 await setDoc(userRef, {
                   fcmToken: token.value,
                   pushToken: token.value, // Backward compatibility
+                  notificationSettings: {
+                    push: true,
+                    pushEnabled: true,
+                    lastUpdated: serverTimestamp()
+                  },
                   deviceInfo: {
                     platform: Capacitor.getPlatform(),
                     isNative: true,
@@ -245,6 +250,11 @@ function App() {
             } catch (error) {
               console.error('❌ Failed to save FCM token on app start:', error);
             }
+          });
+          
+          // Listen for registration errors (e.g., APNs not configured, no internet)
+          PushNotifications.addListener('registrationError', (error) => {
+            console.error('❌ Push registration error on app start:', JSON.stringify(error));
           });
           
           // Register to get/refresh token

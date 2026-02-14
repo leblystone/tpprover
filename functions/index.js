@@ -3989,8 +3989,7 @@ exports.submitContactForm = onCall(
 );
 
 // ===== SUPPORT TICKET SYSTEM =====
-
-const ADMIN_EMAILS = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];
+// (ADMIN_EMAILS already declared at top of file)
 
 // Get all tickets for admin dashboard (server-side, bypasses Firestore rules)
 exports.getAllTicketsAdmin = onCall(

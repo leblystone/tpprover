@@ -260,6 +260,75 @@ export default function SettingsNotifications() {
     setTimeout(() => setTestState(prev => ({ ...prev, result: null })), 8000);
   };
 
+  // Force re-register FCM token (fixes MISSING token)
+  const handleFixToken = async () => {
+    setTestState({ loading: true, result: null });
+    
+    try {
+      const isNative = Capacitor.isNativePlatform();
+      
+      if (isNative) {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        
+        // Request permissions first (in case they were revoked)
+        const permResult = await PushNotifications.requestPermissions();
+        
+        if (permResult.receive !== 'granted') {
+          setTestState({ loading: false, result: { type: 'error', message: 'Push permission denied. Check iOS Settings > Notifications for this app.' } });
+          return;
+        }
+        
+        // Set up one-time listener for the token
+        const tokenPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Token registration timed out (10s). Check APNs configuration.')), 10000);
+          
+          PushNotifications.addListener('registration', async (token) => {
+            clearTimeout(timeout);
+            console.log('📱 FCM token re-registered:', token.value);
+            
+            // Save to Firestore
+            await savePushTokenToFirestore(token.value);
+            resolve(token.value);
+          });
+          
+          PushNotifications.addListener('registrationError', (error) => {
+            clearTimeout(timeout);
+            console.error('❌ Registration error:', JSON.stringify(error));
+            reject(new Error(`Registration failed: ${error.error || JSON.stringify(error)}`));
+          });
+        });
+        
+        // Trigger registration
+        await PushNotifications.register();
+        
+        // Wait for token
+        const token = await tokenPromise;
+        
+        setTestState({ 
+          loading: false, 
+          result: { type: 'success', message: `Token registered! (${token.substring(0, 15)}...)` }
+        });
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '✅ FCM token registered successfully!', type: 'success' }
+        }));
+        
+      } else {
+        // Web/PWA — re-enable
+        await pwaNotificationService.enable();
+        setTestState({ loading: false, result: { type: 'success', message: 'PWA token refreshed!' } });
+      }
+    } catch (error) {
+      console.error('Fix token error:', error);
+      setTestState({ 
+        loading: false, 
+        result: { type: 'error', message: error.message || 'Failed to register token' }
+      });
+    }
+    
+    setTimeout(() => setTestState(prev => ({ ...prev, result: null })), 10000);
+  };
+
   // Run notification diagnostics
   const handleRunDiagnostics = async () => {
     if (diagState.loading) return;
@@ -630,6 +699,16 @@ export default function SettingsNotifications() {
                         <>
                           <div className="h-px my-1" style={{ backgroundColor: theme.border + '40' }} />
                           <DiagRow label="FCM Token" value={diagState.data.firestore.hasFcmToken ? 'Present' : 'MISSING'} theme={theme} ok={diagState.data.firestore.hasFcmToken} />
+                          {!diagState.data.firestore.hasFcmToken && (
+                            <button
+                              onClick={handleFixToken}
+                              disabled={testState.loading}
+                              className="w-full py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-[0.98]"
+                              style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
+                            >
+                              {testState.loading ? '⏳ Registering...' : '🔧 Fix: Re-register FCM Token'}
+                            </button>
+                          )}
                           <DiagRow label="Push Enabled" value={diagState.data.firestore.pushEnabled ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.pushEnabled} />
                           <DiagRow label="Research Reminders" value={diagState.data.firestore.researchReminders ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.researchReminders} />
                           <DiagRow label="AM Enabled" value={`${diagState.data.firestore.amEnabled ? 'Yes' : 'No'} @ ${diagState.data.firestore.amTime}`} theme={theme} />
