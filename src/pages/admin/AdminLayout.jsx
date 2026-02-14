@@ -237,7 +237,6 @@ function AdminAuthenticatedLayout({
     handleExtendTrial,
     isLoadingUserDetails,
     isExtendingTrial,
-    ADMIN_PASSWORD,
   } = useAdmin();
 
   return (
@@ -426,7 +425,7 @@ function AdminAuthenticatedLayout({
           onExtendTrial={handleExtendTrial}
           isExtendingTrial={isExtendingTrial}
           isLoadingDetails={isLoadingUserDetails}
-          adminPassword={ADMIN_PASSWORD}
+          adminPassword={null}
         />
       )}
     </div>

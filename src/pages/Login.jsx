@@ -274,14 +274,11 @@ export default function Login() {
         };
         
         // Admin function to check blocked account (uses Admin SDK to see disabled accounts)
-        window.checkBlockedAccount = async (emailToCheck, adminPassword) => {
+        // Auth is verified via Firebase Auth token — must be logged in as admin
+        window.checkBlockedAccount = async (emailToCheck) => {
             const emailAddr = emailToCheck || email;
             if (!emailAddr) {
                 console.error('❌ Please provide an email address or fill in the email field');
-                return;
-            }
-            if (!adminPassword) {
-                console.error('❌ Admin password required');
                 return;
             }
             
@@ -290,7 +287,7 @@ export default function Login() {
                 const functions = getFunctions();
                 const checkBlockedAccount = httpsCallable(functions, 'checkAndCleanBlockedAccount');
                 
-                const result = await checkBlockedAccount({ email: emailAddr, adminPassword });
+                const result = await checkBlockedAccount({ email: emailAddr });
                 
                 return result.data;
             } catch (error) {
@@ -301,14 +298,11 @@ export default function Login() {
         };
         
         // Admin function to delete blocked account
-        window.deleteBlockedAccount = async (emailToDelete, adminPassword, deleteFirestore = true) => {
+        // Auth is verified via Firebase Auth token — must be logged in as admin
+        window.deleteBlockedAccount = async (emailToDelete, deleteFirestore = true) => {
             const emailAddr = emailToDelete || email;
             if (!emailAddr) {
                 console.error('❌ Please provide an email address or fill in the email field');
-                return;
-            }
-            if (!adminPassword) {
-                console.error('❌ Admin password required');
                 return;
             }
             
@@ -324,7 +318,6 @@ export default function Login() {
                 
                 const result = await deleteBlockedAccount({ 
                     email: emailAddr, 
-                    adminPassword,
                     deleteFirestore 
                 });
                 

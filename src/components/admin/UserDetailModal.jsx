@@ -196,8 +196,8 @@ export default function UserDetailModal({
   };
 
   const handleSendOneWayMessage = async () => {
-    if (!oneWayMessage.trim() || !user?.email || !adminPassword) {
-      setLocalMessage('Please enter a message and ensure admin password is set.');
+    if (!oneWayMessage.trim() || !user?.email) {
+      setLocalMessage('Please enter a message.');
       setLocalMessageType('error');
       return;
     }
@@ -206,7 +206,8 @@ export default function UserDetailModal({
     setLocalMessage(null);
     
     try {
-      await createAdminMessage(user.email, oneWayMessage.trim(), adminPassword);
+      // No password needed — cloud function verifies admin via Firebase Auth token
+      await createAdminMessage(user.email, oneWayMessage.trim());
       setLocalMessage('One-way support message sent successfully! 📨');
       setLocalMessageType('success');
       setOneWayMessage('');

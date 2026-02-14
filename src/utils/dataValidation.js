@@ -275,12 +275,21 @@ export function validateOnLoad(cloudData) {
 }
 
 /**
- * Recursively replace Firestore serverTimestamp() sentinels with ISO strings.
- * Required before JSON.stringify - sentinels cannot be serialized and can throw in some envs (e.g. Chrome on PC).
+ * Recursively replace Firestore serverTimestamp() sentinels and Firestore Timestamp
+ * objects with ISO strings. Required before JSON.stringify — these objects cannot
+ * be serialized safely and produce garbage in localStorage.
  */
 export function sanitizeForLocalStorage(data) {
   if (data == null || typeof data !== 'object') return data;
+  // Firestore serverTimestamp() sentinel → replace with current ISO
   if (isServerTimestampSentinel(data)) return new Date().toISOString();
+  // Firestore Timestamp object (has toMillis or toDate) → convert to ISO
+  if (typeof data.toMillis === 'function') {
+    try { return new Date(data.toMillis()).toISOString(); } catch { return new Date().toISOString(); }
+  }
+  if (typeof data.toDate === 'function') {
+    try { return data.toDate().toISOString(); } catch { return new Date().toISOString(); }
+  }
   if (Array.isArray(data)) return data.map(sanitizeForLocalStorage);
   const out = {};
   for (const k of Object.keys(data)) {

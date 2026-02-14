@@ -190,12 +190,18 @@ function ensureTimestamps(items) {
       );
     }
   }
-  return items.map(item => ({
-    ...item,
-    // Keep existing timestamp if present (already synced from server)
-    // New items will get serverTimestamp when saved to Firestore
-    updatedAt: item.updatedAt || serverTimestamp()
-  }));
+  return items.map(item => {
+    let updatedAt = item.updatedAt;
+    // Fix garbage serialized sentinels from localStorage (e.g. {"_methodName":"serverTimestamp"})
+    if (updatedAt && typeof updatedAt === 'object' && !updatedAt.toMillis) {
+      updatedAt = null; // Clear garbage — will be replaced below
+    }
+    return {
+      ...item,
+      // Keep existing valid timestamp; use ISO string for missing/garbage ones
+      updatedAt: updatedAt || new Date().toISOString()
+    };
+  });
 }
 
 /**
@@ -332,8 +338,13 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
       } else if (serverTime > localTime) {
         // Server is newer - use it
         itemMap.set(localItem.id, serverItem);
+      } else if (localTime === 0 && serverTime === 0) {
+        // Both timestamps are garbage/missing — prefer SERVER.
+        // Firebase is the canonical last-synced state from any device.
+        // Picking local here would discard edits synced from other devices.
+        itemMap.set(localItem.id, serverItem);
       } else {
-        // Same timestamp or both missing - prefer local (benefit of doubt)
+        // Same VALID timestamp - prefer local (benefit of doubt for recent edits)
         itemMap.set(localItem.id, localItem);
       }
     }

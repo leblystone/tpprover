@@ -221,6 +221,10 @@ exports.createCheckoutSession = onCall(
 exports.completeGiftFromSession = onCall(
   { cors: true },
   async (request) => {
+    // Must be authenticated — gift completion requires a logged-in user
+    if (!request.auth) {
+      throw new Error('Authentication required to complete gift purchase');
+    }
     if (!request.data?.sessionId) {
       throw new Error('sessionId is required');
     }

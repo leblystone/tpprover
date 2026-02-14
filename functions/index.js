@@ -32,6 +32,33 @@ const telegramBot = require('./telegramBot');
 
 admin.initializeApp();
 
+// ==================== ADMIN VERIFICATION ====================
+// Centralized admin check using Firebase Auth email verification.
+// This replaces the old hardcoded password approach.
+// Cloud functions receive the caller's auth token automatically via onCall.
+const ADMIN_EMAILS = [
+  'lebrockmaldonado@gmail.com',
+  'contact@thepepplanner.com',
+  'thepepplanner@gmail.com'
+];
+
+/**
+ * Verify the caller is an authenticated admin.
+ * Throws HttpsError if not authorized.
+ * @param {Object} request - The onCall request object
+ * @returns {string} The admin's email
+ */
+function verifyAdmin(request) {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required');
+  }
+  const callerEmail = request.auth.token.email;
+  if (!callerEmail || !ADMIN_EMAILS.includes(callerEmail.toLowerCase())) {
+    throw new HttpsError('permission-denied', 'Admin access required');
+  }
+  return callerEmail;
+}
+
 // Import and export the Stripe functions individually
 exports.createCheckoutSession = stripe.createCheckoutSession;
 exports.createPortalSession = stripe.createPortalSession;
@@ -69,6 +96,7 @@ exports.getEmailQueueStats = onCall(
   },
   async (request) => {
     try {
+      verifyAdmin(request); // Admin only — email queue is internal
       const stats = await emailQueue.getQueueStats();
       return { success: true, stats };
     } catch (error) {
@@ -84,6 +112,7 @@ exports.processEmailQueueManually = onCall(
   },
   async (request) => {
     try {
+      verifyAdmin(request); // Admin only — manual email processing
       const result = await emailQueue.processEmailQueue();
       return { success: true, ...result };
     } catch (error) {
@@ -100,13 +129,9 @@ exports.adminGrantLifetimeAccess = onCall(
   },
   async (request) => {
     try {
-      // Verify admin password (simple auth check)
-      const { adminPassword, userId, email, reason, grantedBy } = request.data;
-      
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      // Verify admin via Firebase Auth email (no more password in client code)
+      verifyAdmin(request);
+      const { userId, email, reason, grantedBy } = request.data;
       
       if (!email) {
         throw new Error('email is required');
@@ -212,12 +237,8 @@ exports.adminRevokeLifetimeAccess = onCall(
   },
   async (request) => {
     try {
-      const { adminPassword, userId, reason } = request.data;
-      
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      verifyAdmin(request);
+      const { userId, reason } = request.data;
       
       if (!userId) {
         throw new Error('userId is required');
@@ -262,12 +283,8 @@ exports.adminExtendTrialPeriod = onCall(
   },
   async (request) => {
     try {
-      const { adminPassword, userId, days, note, adminEmail } = request.data;
-      
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      const adminEmail = verifyAdmin(request);
+      const { userId, days, note } = request.data;
       
       if (!userId) {
         throw new Error('userId is required');
@@ -431,12 +448,8 @@ exports.debugUserSubscription = onCall(
   { cors: true },
   async (request) => {
     try {
-      const { adminPassword, userId } = request.data;
-      
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      verifyAdmin(request);
+      const { userId } = request.data;
       
       const db = admin.firestore();
       
@@ -2867,13 +2880,8 @@ exports.checkAndCleanBlockedAccount = onCall(
   },
   async (request) => {
     try {
-      const { email, adminPassword } = request.data;
-      
-      // Simple admin auth
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      verifyAdmin(request);
+      const { email } = request.data;
       
       if (!email) {
         throw new Error('Email is required');
@@ -2963,13 +2971,8 @@ exports.deleteBlockedAccount = onCall(
   },
   async (request) => {
     try {
-      const { email, adminPassword, deleteFirestore = true } = request.data;
-      
-      // Simple admin auth
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin password');
-      }
+      verifyAdmin(request);
+      const { email, deleteFirestore = true } = request.data;
       
       if (!email) {
         throw new Error('Email is required');
@@ -3317,18 +3320,21 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Proceeding with deletion despite email failure`);
       }
 
-      // STEP 5: Delete all Firestore collections
-      const collectionsToDelete = [
+      // STEP 5: Delete ALL Firestore data (comprehensive cleanup)
+      // A) Collections keyed by userId (direct doc delete)
+      const userIdCollections = [
         'users',
         'userData',
         'userdata', // Handle both cases for backwards compatibility
         'userSubscriptions',
         'userPreferences',
         'userState',
-        'lifetimeAccess'
+        'lifetimeAccess',
+        'userSecurity',              // 2FA settings
+        'userNotificationSettings',  // Notification preferences
       ];
 
-      const deletePromises = collectionsToDelete.map(async (collectionName) => {
+      const deleteByIdPromises = userIdCollections.map(async (collectionName) => {
         try {
           const docRef = db.collection(collectionName).doc(userId);
           const docSnap = await docRef.get();
@@ -3338,11 +3344,86 @@ exports.deleteUserAccount = onCall(
           }
         } catch (error) {
           logger.warn(`⚠️ Error deleting ${collectionName}: ${error.message}`);
-          // Continue with other deletions
         }
       });
 
-      await Promise.all(deletePromises);
+      await Promise.all(deleteByIdPromises);
+
+      // B) Collections keyed by other IDs — query by email or userId field
+      const queryDeleteConfigs = [
+        { collection: 'notifications', field: 'userEmail', value: userEmail },
+        { collection: 'adminMessages', field: 'userEmail', value: userEmail },
+        { collection: 'feedback', field: 'userEmail', value: userEmail },
+        { collection: 'user_agreements', field: 'userEmail', value: userEmail },
+      ];
+
+      const queryDeletePromises = queryDeleteConfigs.map(async ({ collection: colName, field, value }) => {
+        try {
+          const snap = await db.collection(colName).where(field, '==', value).get();
+          if (!snap.empty) {
+            const delBatch = db.batch();
+            snap.docs.forEach(d => delBatch.delete(d.ref));
+            await delBatch.commit();
+            logger.info(`✅ Deleted ${snap.size} ${colName} docs for user`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Error deleting ${colName}: ${error.message}`);
+        }
+      });
+
+      await Promise.all(queryDeletePromises);
+
+      // C) Push subscriptions (may be keyed by subscriptionId, query by userId or endpoint)
+      try {
+        // Try by userId field first
+        let pushSnap = await db.collection('pushSubscriptions').where('userId', '==', userId).get();
+        if (pushSnap.empty) {
+          // Fallback: try by email
+          pushSnap = await db.collection('pushSubscriptions').where('userEmail', '==', userEmail).get();
+        }
+        if (!pushSnap.empty) {
+          const pushBatch = db.batch();
+          pushSnap.docs.forEach(d => pushBatch.delete(d.ref));
+          await pushBatch.commit();
+          logger.info(`✅ Deleted ${pushSnap.size} push subscriptions for user`);
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Error deleting push subscriptions: ${error.message}`);
+      }
+
+      // D) Support tickets + messages subcollection
+      try {
+        const ticketSnap = await db.collection('supportTickets')
+          .where('userEmail', '==', userEmail).get();
+        if (!ticketSnap.empty) {
+          for (const ticketDoc of ticketSnap.docs) {
+            const messagesSnap = await ticketDoc.ref.collection('messages').get();
+            if (!messagesSnap.empty) {
+              const msgBatch = db.batch();
+              messagesSnap.docs.forEach(d => msgBatch.delete(d.ref));
+              await msgBatch.commit();
+            }
+            await ticketDoc.ref.delete();
+          }
+          logger.info(`✅ Deleted ${ticketSnap.size} support tickets + messages for user`);
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Error deleting support tickets: ${error.message}`);
+      }
+
+      // E) Gift access — delete where user is recipient
+      try {
+        const giftSnap = await db.collection('giftAccess')
+          .where('recipientEmail', '==', userEmail).get();
+        if (!giftSnap.empty) {
+          const giftBatch = db.batch();
+          giftSnap.docs.forEach(d => giftBatch.delete(d.ref));
+          await giftBatch.commit();
+          logger.info(`✅ Deleted ${giftSnap.size} gift access records for user`);
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Error deleting gift access: ${error.message}`);
+      }
 
       // STEP 6: Delete from Firebase Auth (FINAL step)
       try {
@@ -4314,16 +4395,11 @@ exports.updateTicketStatus = onCall(
     cors: true
   },
   async (request) => {
-    const { ticketId, status, adminPassword, adminNotes } = request.data;
+    verifyAdmin(request);
+    const { ticketId, status, adminNotes } = request.data;
 
     if (!ticketId || !status) {
       throw new Error('Ticket ID and status are required');
-    }
-
-    // Verify admin password
-    const ADMIN_PASSWORD = 'j&jm9102';
-    if (adminPassword !== ADMIN_PASSWORD) {
-      throw new Error('Invalid admin password');
     }
 
     logger.info(`🔄 Updating ticket status: ${ticketId} -> ${status}`);
@@ -4393,15 +4469,11 @@ exports.closeSupportTicketFromWorkQueue = onCall(
     cors: true
   },
   async (request) => {
-    const { ticketId, logId, adminNotes, adminPassword } = request.data;
+    verifyAdmin(request);
+    const { ticketId, logId, adminNotes } = request.data;
 
     if (!ticketId || !logId) {
       throw new HttpsError('invalid-argument', 'ticketId and logId are required');
-    }
-
-    const ADMIN_PASSWORD = 'j&jm9102';
-    if (adminPassword !== ADMIN_PASSWORD) {
-      throw new HttpsError('permission-denied', 'Invalid admin password');
     }
 
     try {
@@ -4552,18 +4624,12 @@ exports.createAdminMessage = onCall(
   },
   async (request) => {
     try {
-      const { userEmail, message, adminPassword } = request.data || {};
+      verifyAdmin(request);
+      const { userEmail, message } = request.data || {};
 
-      if (!userEmail || !message || !adminPassword) {
-        logger.error('❌ Missing required fields:', { userEmail: !!userEmail, message: !!message, adminPassword: !!adminPassword });
-        throw new HttpsError('invalid-argument', 'User email, message, and admin password are required');
-      }
-
-      // Verify admin password
-      const ADMIN_PASSWORD = 'j&jm9102';
-      if (adminPassword !== ADMIN_PASSWORD) {
-        logger.error('❌ Invalid admin password');
-        throw new HttpsError('permission-denied', 'Invalid admin password');
+      if (!userEmail || !message) {
+        logger.error('❌ Missing required fields:', { userEmail: !!userEmail, message: !!message });
+        throw new HttpsError('invalid-argument', 'User email and message are required');
       }
 
       logger.info(`📨 Creating admin message for: ${userEmail}`);
@@ -5091,32 +5157,60 @@ exports.terminateUser = onCall(
         logger.warn(`⚠️ Proceeding with deletion despite email failure`);
       }
 
-      // STEP 5: Delete all Firestore collections
-      const collectionsToDelete = [
-        'users',
-        'userData',
-        'userdata', // Handle both cases for backwards compatibility
-        'userSubscriptions',
-        'userPreferences',
-        'userState',
-        'lifetimeAccess'
+      // STEP 5: Delete ALL Firestore data (comprehensive cleanup — matches deleteUserAccount)
+      const userIdCols = [
+        'users', 'userData', 'userdata', 'userSubscriptions',
+        'userPreferences', 'userState', 'lifetimeAccess',
+        'userSecurity', 'userNotificationSettings',
       ];
-
-      const deletePromises = collectionsToDelete.map(async (collectionName) => {
+      await Promise.all(userIdCols.map(async (col) => {
         try {
-          const docRef = db.collection(collectionName).doc(userId);
-          const docSnap = await docRef.get();
-          if (docSnap.exists) {
-            await docRef.delete();
-            logger.info(`✅ Deleted ${collectionName} for user ${userId}`);
-          }
-        } catch (error) {
-          logger.warn(`⚠️ Error deleting ${collectionName}: ${error.message}`);
-          // Continue with other deletions
-        }
-      });
+          const ref = db.collection(col).doc(userId);
+          const snap = await ref.get();
+          if (snap.exists) { await ref.delete(); logger.info(`✅ Deleted ${col} for ${userId}`); }
+        } catch (e) { logger.warn(`⚠️ Error deleting ${col}: ${e.message}`); }
+      }));
 
-      await Promise.all(deletePromises);
+      // Query-based deletions
+      const qConfigs = [
+        { col: 'notifications', field: 'userEmail', val: email },
+        { col: 'adminMessages', field: 'userEmail', val: email },
+        { col: 'feedback', field: 'userEmail', val: email },
+        { col: 'user_agreements', field: 'userEmail', val: email },
+      ];
+      await Promise.all(qConfigs.map(async ({ col, field, val }) => {
+        try {
+          const snap = await db.collection(col).where(field, '==', val).get();
+          if (!snap.empty) {
+            const b = db.batch(); snap.docs.forEach(d => b.delete(d.ref)); await b.commit();
+            logger.info(`✅ Deleted ${snap.size} ${col} docs`);
+          }
+        } catch (e) { logger.warn(`⚠️ Error deleting ${col}: ${e.message}`); }
+      }));
+
+      // Push subscriptions
+      try {
+        let pSnap = await db.collection('pushSubscriptions').where('userId', '==', userId).get();
+        if (pSnap.empty) pSnap = await db.collection('pushSubscriptions').where('userEmail', '==', email).get();
+        if (!pSnap.empty) { const b = db.batch(); pSnap.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
+      } catch (e) { logger.warn(`⚠️ Error deleting push subscriptions: ${e.message}`); }
+
+      // Support tickets + messages
+      try {
+        const tSnap = await db.collection('supportTickets').where('userEmail', '==', email).get();
+        for (const t of tSnap.docs) {
+          const m = await t.ref.collection('messages').get();
+          if (!m.empty) { const b = db.batch(); m.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
+          await t.ref.delete();
+        }
+        if (!tSnap.empty) logger.info(`✅ Deleted ${tSnap.size} support tickets`);
+      } catch (e) { logger.warn(`⚠️ Error deleting tickets: ${e.message}`); }
+
+      // Gift access
+      try {
+        const g = await db.collection('giftAccess').where('recipientEmail', '==', email).get();
+        if (!g.empty) { const b = db.batch(); g.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
+      } catch (e) { logger.warn(`⚠️ Error deleting gift access: ${e.message}`); }
 
       // STEP 6: Delete from Firebase Auth (FINAL step)
       try {

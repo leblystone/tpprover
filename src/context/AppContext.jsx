@@ -22,7 +22,7 @@ import { safeParseLocalStorage, sanitizeForLocalStorage } from '../utils/dataVal
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
-import { runAllMigrations } from '../utils/localStorageMigration';
+import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -550,6 +550,11 @@ export function AppProvider({ children }) {
                     // First time login or no cloud data - set timestamp
                     localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
                 }
+                
+                // 🧹 Clean garbage serverTimestamp() sentinels from localStorage BEFORE merging
+                // This MUST run before the initial merge so garbage timestamps don't cause
+                // local data to incorrectly win over server data from other devices
+                cleanupGarbageTimestamps();
                 
                 // Check if cloud data is actually empty (all arrays empty, no real data)
                 const isCloudEmpty = cloudAppData && (
@@ -2088,6 +2093,8 @@ export function AppProvider({ children }) {
         const now = Date.now();
         lastLocalProtocolsUpdateRef.current = now;
         lastRemoteUpdateTimeRef.current = now;
+        // Block auto-sync from firing a duplicate save while we force-sync
+        isApplyingRemoteUpdateRef.current = true;
         try {
             localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
             sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
@@ -2111,6 +2118,8 @@ export function AppProvider({ children }) {
                 const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
                     console.log('📋 [PROTOCOL-SYNC] ✅ Force sync complete', { activeCount });
+                    // Refresh skip window AFTER save completes to cover listener echoes
+                    lastRemoteUpdateTimeRef.current = Date.now();
                 } else {
                     console.error('📋 [PROTOCOL-SYNC] ❌ Force sync FAILED');
                 }
@@ -2118,6 +2127,10 @@ export function AppProvider({ children }) {
                 console.error('📋 [PROTOCOL-SYNC] ❌ Force sync error:', error);
             }
         }
+        // Release auto-sync block after enough time for listener echoes to settle
+        setTimeout(() => {
+            isApplyingRemoteUpdateRef.current = false;
+        }, 3000);
     };
     
     const addProtocol = (newProtocol) => {
@@ -2229,7 +2242,7 @@ export function AppProvider({ children }) {
                     ...existingVendor,
                     ...newVendor,
                     id: existingVendor.id != null ? existingVendor.id : targetId,
-                    createdAt: existingVendor.createdAt || serverTimestamp()
+                    createdAt: existingVendor.createdAt || new Date().toISOString()
                 });
                 if (newVendor.isStub === undefined) {
                     mergedVendor.isStub = !hasMeaningfulDetails(mergedVendor);
@@ -2901,10 +2914,10 @@ export function AppProvider({ children }) {
                 updateTimeoutId = setTimeout(async () => {
                     try {
                         const now = Date.now();
-                        // UNIFIED SYNC: Prevent update loops with 3-second skip window
-                        // Ignores updates if we just applied a remote update (prevents write loops)
+                        // UNIFIED SYNC: Prevent update loops with 5-second skip window
+                        // Ignores listener echoes from our own saves (force-sync + auto-sync round-trip)
                         const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
-                        const SKIP_WINDOW_MS = 3000; // 3 seconds
+                        const SKIP_WINDOW_MS = 5000; // 5 seconds — covers force-sync + auto-sync echo
                         if (timeSinceLastUpdate < SKIP_WINDOW_MS) {
                             console.log('📋 [PROTOCOL-SYNC] App data listener: skipping (own save,', Math.round(timeSinceLastUpdate), 'ms ago)');
                             return;

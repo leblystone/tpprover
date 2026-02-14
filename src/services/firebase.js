@@ -899,7 +899,6 @@ export async function extendTrialForUser(userId, additionalDays, note = '', admi
     const extendTrialFunction = httpsCallable(functions, 'adminExtendTrialPeriod');
     
     const result = await extendTrialFunction({
-      adminPassword: 'j&jm9102',
       userId,
       days,
       note,
@@ -931,7 +930,6 @@ export async function debugUserSubscription(userId) {
     const debugFunction = httpsCallable(functions, 'debugUserSubscription');
     
     const result = await debugFunction({
-      adminPassword: 'j&jm9102',
       userId
     });
     
@@ -1387,18 +1385,18 @@ export async function getAllTickets() {
  * Update ticket status (admin only)
  * @param {string} ticketId - The ticket ID
  * @param {string} status - New status
- * @param {string} adminPassword - Admin password
+ * @param {Object} additionalData - Optional additional data
  * @returns {Promise<void>}
  */
-export async function updateTicketStatus(ticketId, status, adminPassword, additionalData = {}) {
+export async function updateTicketStatus(ticketId, status, additionalData = {}) {
   try {
     const functions = getFunctions();
     const updateStatus = httpsCallable(functions, 'updateTicketStatus');
-    
+
+    // No password needed — cloud function verifies admin via Firebase Auth token
     const result = await updateStatus({
       ticketId,
       status,
-      adminPassword,
       ...additionalData
     });
     
@@ -1416,12 +1414,12 @@ export async function updateTicketStatus(ticketId, status, adminPassword, additi
  * @param {string} ticketId - Support ticket ID
  * @param {string} logId - ai_worker_logs document ID
  * @param {string} adminNotes - Optional admin notes
- * @param {string} adminPassword - Admin password
  */
-export async function closeSupportTicketFromWorkQueue(ticketId, logId, adminNotes, adminPassword) {
+export async function closeSupportTicketFromWorkQueue(ticketId, logId, adminNotes) {
   const functions = getFunctions();
   const closeTicket = httpsCallable(functions, 'closeSupportTicketFromWorkQueue');
-  const result = await closeTicket({ ticketId, logId, adminNotes, adminPassword });
+  // No password needed — cloud function verifies admin via Firebase Auth token
+  const result = await closeTicket({ ticketId, logId, adminNotes });
   if (!result.data?.success) {
     throw new Error(result.data?.message || 'Failed to close ticket');
   }
@@ -1695,10 +1693,9 @@ export async function deleteAllAdminMessagesForUser(userEmail) {
  * Create an admin message (admin only, via cloud function)
  * @param {string} userEmail - User's email
  * @param {string} message - Message content
- * @param {string} adminPassword - Admin password
  * @returns {Promise<string>} - The message ID
  */
-export async function createAdminMessage(userEmail, message, adminPassword) {
+export async function createAdminMessage(userEmail, message) {
   try {
     const functions = getFunctions();
     const createMessage = httpsCallable(functions, 'createAdminMessage');
@@ -1706,8 +1703,7 @@ export async function createAdminMessage(userEmail, message, adminPassword) {
     console.log('📨 Calling createAdminMessage function...');
     const result = await createMessage({
       userEmail: userEmail.toLowerCase(),
-      message: message.trim(),
-      adminPassword
+      message: message.trim()
     });
     
     console.log('📨 Function response:', result);

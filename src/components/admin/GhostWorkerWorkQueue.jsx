@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
-import { ADMIN_PASSWORD } from '../../context/AdminContext';
+// Admin password removed — cloud functions verify admin via Firebase Auth email token
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
@@ -468,8 +468,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
       await closeSupportTicketFromWorkQueue(
         selectedTicket.ticketId,
         selectedTicket.logId,
-        adminNotes,
-        ADMIN_PASSWORD
+        adminNotes
       );
 
       setWorkQueue(prev => prev.map(t => 

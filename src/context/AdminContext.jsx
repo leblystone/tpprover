@@ -31,7 +31,8 @@ import {
 } from '../utils/adminHelpers';
 import { generateId } from '../utils/string';
 
-export const ADMIN_PASSWORD = 'j&jm9102';
+// Admin password removed — cloud functions now verify admin via Firebase Auth email token.
+// No secrets in client code.
 
 const AdminContext = createContext(null);
 
@@ -425,7 +426,7 @@ export function AdminProvider({ children }) {
     if (!responseText?.trim()) return;
     setLoading((prev) => ({ ...prev, submitting: true }));
     try {
-      await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
+      await createAdminMessage(feedbackItem.userEmail, responseText.trim());
       await updateFeedback(feedbackItem.id, { status: 'reviewed' });
       await loadFeedback();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Admin message sent!', type: 'success' } }));
@@ -454,7 +455,7 @@ export function AdminProvider({ children }) {
   const handleUpdateTicketStatus = useCallback(async (ticketId, newStatus, additionalData = {}) => {
     setLoading((prev) => ({ ...prev, submitting: true }));
     try {
-      await updateTicketStatus(ticketId, newStatus, ADMIN_PASSWORD, additionalData);
+      await updateTicketStatus(ticketId, newStatus, additionalData);
       await loadTickets();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket status updated', type: 'success' } }));
     } catch (err) {
@@ -528,7 +529,6 @@ export function AdminProvider({ children }) {
     getTicketWithMessages,
     addTicketMessage,
     subscribeToTicketMessages,
-    ADMIN_PASSWORD,
   };
 
   return (

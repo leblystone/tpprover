@@ -47,9 +47,6 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       const functions = getFunctions();
       const adminGrantLifetimeAccess = httpsCallable(functions, 'adminGrantLifetimeAccess');
       
-      // Get admin password from localStorage (set when admin panel is authenticated)
-      const adminPassword = 'j&jm9102'; // Same password used for admin panel login
-      
       console.log('📧 Calling adminGrantLifetimeAccess with:', {
         email: email.trim(),
         userId: user ? (user.uid || user.id) : null,
@@ -57,8 +54,8 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         hasUser: !!user
       });
       
+      // No password needed — cloud function verifies admin via Firebase Auth token
       const grantResult = await adminGrantLifetimeAccess({
-        adminPassword,
         userId: user ? (user.uid || user.id) : null, // null if user doesn't exist - this is OK!
         email: email.trim(),
         reason: combinedReason,
