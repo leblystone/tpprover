@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { X, Apple, Share, Plus, Home } from 'lucide-react';
-import { isIOSBrowser, isIOSPWAInstalled } from '../../utils/platform';
+import { isNative, isIOSBrowser, isIOSPWAInstalled } from '../../utils/platform';
 
 /**
  * iOS PWA Install Prompt
- * Shows iOS users how to add the app to their home screen
- * Only appears on iOS Safari when not already installed
+ * Shows iOS Safari users how to add the app to their home screen (PWA).
+ * Never shows when running in the native iOS app (Capacitor/App Store).
  */
 export default function IOSInstallPrompt({ theme }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
 
   useEffect(() => {
-    // Only show if on iOS Safari and not already installed
+    // Never show when running in native iOS app (App Store) - user already has the app
+    if (isNative()) {
+      return;
+    }
+    // Only show if on iOS Safari (browser) and not already installed as PWA
     if (!isIOSBrowser() || isIOSPWAInstalled()) {
       return;
     }
