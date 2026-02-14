@@ -1068,31 +1068,26 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <TestTube size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>
-                  📦 Ready to track your inventory?
-                </h3>
-                <p className="text-base mb-4 max-w-md" style={{ color: theme.textLight }}>
-                  Your stockpile helps you:
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Hm? Stockpile seems empty.</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                  Add peptides to track quantities, link to protocols, and manage reconstitution.
                 </p>
-                <ul className="text-sm mb-6 space-y-1 text-left max-w-md" style={{ color: theme.textLight }}>
-                  <li>• Track peptide quantities and costs</li>
-                  <li>• Monitor inventory levels automatically</li>
-                  <li>• Link vials to active protocols</li>
-                  <li>• Calculate reconstitution ratios</li>
-                </ul>
                 {!isReadOnly && (
                   <button
+                    type="button"
                     onClick={() => setOpenAdd(true)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold transition-all hover:opacity-90 hover:scale-105"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                    style={{
+                      color: theme.primary,
+                      backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                      border: `1px solid ${theme.primary}40`,
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
                   >
-                    <PlusCircle size={20} />
                     Add Your First Peptide
+                    <ChevronDown size={14} />
                   </button>
                 )}
-                <p className="text-xs mt-4" style={{ color: theme.textLight }}>
-                  💡 Tip: Orders marked as "Delivered" automatically appear here!
-                </p>
               </div>
             ) : (
               <div>

@@ -6,6 +6,17 @@ import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
+
+/** Darken a hex color by blending with black (ratio 0–1, e.g. 0.15 = 15% darker) */
+function darkenHex(hex, ratio = 0.15) {
+    if (!hex || typeof hex !== 'string') return hex;
+    const clean = hex.replace(/^#/, '');
+    if (clean.length !== 6 && clean.length !== 8) return hex;
+    const r = Math.max(0, Math.round(parseInt(clean.slice(0, 2), 16) * (1 - ratio)));
+    const g = Math.max(0, Math.round(parseInt(clean.slice(2, 4), 16) * (1 - ratio)));
+    const b = Math.max(0, Math.round(parseInt(clean.slice(4, 6), 16) * (1 - ratio)));
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
 // Preferred display names to match Reconstitution UI exactly
 const penLabelOverrides = {
     '#f59e0b': 'Gold', // Amber -> Gold
@@ -77,7 +88,7 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
                     <span className="text-[10px] sm:text-xs font-medium text-gray-500">{timeLabel}</span>
                     <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
-                <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
+                <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={timeLabel} />
             </div>
         );
     };
@@ -85,7 +96,7 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     return (
         <div className="space-y-1.5 sm:space-y-2 relative">
             {otherTasks.length > 0 && (
-                <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
+                <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={null} />
             )}
             
             {showPMFirst ? (
@@ -105,28 +116,30 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     );
 }
 
-const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
+const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot }) => {
     const clickTimers = useRef({});
-    
+    const baseBg = theme.isDark ? '#1f2937' : theme.secondary;
+    const taskBg = timeSlot === 'PM' ? (theme.isDark ? darkenHex('#1f2937', 0.2) : darkenHex(theme.secondary || '#f3f4f6', 0.12)) : baseBg;
+
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>
             <ul className="space-y-1 sm:space-y-1.5">
                 {tasks.map(task => (
-                    <li key={task.id} className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg min-w-0" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
+                    <li key={task.id} className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg min-w-0" style={{ backgroundColor: taskBg }}>
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                     <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                         {task.name}
                                     </div>
-                                    {/* Time chip - moved to right of task name */}
+                                    {/* Time chip - PM chip darker to match PM row differentiation */}
                                     {task.time && (
                                         <div 
                                             className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
-                                                backgroundColor: task.completed ? '#9ca3af' : `${theme.primary}40`,
-                                                opacity: task.completed ? 0.6 : 0.8
+                                                backgroundColor: task.completed ? '#9ca3af' : (task.time === 'PM' ? darkenHex(theme.primary || '#7f9e95', 0.25) : `${theme.primary}70`),
+                                                opacity: task.completed ? 0.6 : 0.9
                                             }}
                                         >
                                             {task.time}

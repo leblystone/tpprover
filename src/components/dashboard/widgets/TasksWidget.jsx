@@ -252,110 +252,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
       </div>
         
         <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2">
-          <div className="space-y-1.5 sm:space-y-2 overflow-hidden">
-            {filteredTasks.map(task => (
-              <div key={task.id} className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg min-w-0" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
-                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
-                        {task.name}
-                      </div>
-                      {/* Time chip - moved to right of peptide name */}
-                      <div 
-                        className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
-                        style={{ 
-                          backgroundColor: task.completed ? '#9ca3af' : `${theme.primary}40`,
-                          opacity: task.completed ? 0.6 : 0.8
-                        }}
-                      >
-                        {task.time}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
-                  <div className="text-right">
-                    <div className="font-semibold text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
-                      {task.dose} {task.unit}
-                    </div>
-                  </div>
-                  {task.deliveryMethod === 'pen' && (
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                      <div 
-                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
-                        style={{ 
-                          background: task.completed ? '#d1d5db' : getChromeGradient(getResolvedPenColor(task.penColor)),
-                          opacity: task.completed ? 0.5 : 1
-                        }}
-                        title={`Pen Color: ${task.penColor || 'Default'}`}
-                      />
-                      {task.penType && (
-                        <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
-                          {task.penType.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex-shrink-0" style={{ opacity: task.completed ? 0.5 : 1 }}>
-                    <DeliveryIcon task={task} theme={theme} />
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      // Prevent blur events on mobile
-                      e.preventDefault();
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      // Prevent rapid-fire clicks (debounce)
-                      const taskKey = task.id || task.stableTaskId;
-                      const lastClick = clickTimers.current[taskKey];
-                      const now = Date.now();
-                      
-                      if (lastClick && (now - lastClick) < 300) {
-                        return; // Ignore clicks within 300ms
-                      }
-                      clickTimers.current[taskKey] = now;
-                      
-                      // Prevent action if injection site selector is already showing
-                      if (injectionTask) {
-                        return;
-                      }
-                      
-                      const deliveryMethod = task.deliveryMethod || task.delivery;
-                      const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
-                      
-                      // Only show injection site selector for incomplete injection tasks when tracking is enabled
-                      if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
-                        setInjectionTask(task);
-                      } else {
-                        // For completed tasks or non-injection tasks, toggle directly
-                        onToggle(task);
-                      }
-                    }}
-                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 cursor-pointer touch-manipulation`}
-                    style={{
-                      borderColor: task.completed ? theme.primary : theme.border,
-                      backgroundColor: task.completed ? theme.primary : 'transparent',
-                      borderRadius: '4px',
-                      WebkitTapHighlightColor: 'transparent'
-                    }}
-                    title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
-                  >
-                    {task.completed && (
-                      <Check size={10} className="sm:w-3 sm:h-3 text-white" style={{ strokeWidth: 3 }} />
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          
+          <TasksList
+            tasks={filteredTasks}
+            theme={theme}
+            onToggle={onToggle}
+            setInjectionTask={setInjectionTask}
+          />
         </div>
         
         <InjectionSiteSelector
@@ -363,13 +265,9 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
           task={injectionTask}
           onConfirm={(injectionSite) => {
             debugLog('💉 TasksWidget injection confirmed:', injectionSite, 'tasks');
-            // Close the selector first to prevent multiple clicks
             const taskToToggle = injectionTask;
             setInjectionTask(null);
-            // Then toggle the task completion
-            if (taskToToggle) {
-              onToggle(taskToToggle);
-            }
+            if (taskToToggle) onToggle(taskToToggle);
           }}
           onCancel={() => {
             debugLog('💉 TasksWidget injection cancelled', null, 'tasks');
