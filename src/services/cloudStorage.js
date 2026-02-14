@@ -44,7 +44,9 @@ function getUserDoc(userId, collection = COLLECTIONS.USER_DATA) {
 }
 
 /**
- * Deep clean data to remove undefined and null values recursively
+ * Deep clean data to remove undefined and null values recursively.
+ * CRITICAL: Preserves Firestore FieldValue sentinels (e.g. serverTimestamp())
+ * so Firestore can process them into real server-side values.
  */
 function deepCleanData(data) {
   if (data === null || data === undefined) {
@@ -56,6 +58,15 @@ function deepCleanData(data) {
   }
   
   if (typeof data === 'object') {
+    // CRITICAL: Preserve Firestore FieldValue sentinels (serverTimestamp(), etc.)
+    // These have isEqual method and _methodName — destructuring them creates plain objects
+    // that Firestore can't recognize, resulting in garbage stored instead of real timestamps.
+    if (typeof data.isEqual === 'function') return data; // Real FieldValue sentinel
+    if (data._methodName === 'serverTimestamp' || data.methodName === 'serverTimestamp') return data;
+    if (data.constructor && data.constructor.name === 'FieldValue') return data;
+    // Preserve Firestore Timestamp objects (have toMillis/toDate)
+    if (typeof data.toMillis === 'function' || typeof data.toDate === 'function') return data;
+    
     const cleaned = {};
     Object.keys(data).forEach(key => {
       const cleanedValue = deepCleanData(data[key]);

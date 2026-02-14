@@ -146,22 +146,25 @@ export async function migrateUserSettingsToCloud(saveToCloud) {
  *
  * This migration:
  * 1. Scans all localStorage keys for items with garbage updatedAt objects
- * 2. Replaces them with a far-past ISO timestamp ("2000-01-01T00:00:00.000Z")
- *    — deliberately old so that REAL edits (with valid timestamps) from any device win
- * 3. Runs synchronously before any cloud merge to prevent the cascade
+ * 2. Deletes the garbage updatedAt (sets to null) so getTimestamp() returns 0
+ * 3. When both local (0) and Firebase (0) have garbage, the merge tie-breaker
+ *    prefers SERVER — letting Firebase's canonical data win
+ * 4. validateOnLoad also fixes Firebase's garbage timestamps to fresh ISO strings,
+ *    so Firebase data wins outright (fresh ISO > null/0)
+ * 5. Runs synchronously before any cloud merge to prevent the cascade
+ *
+ * v2: Changed from far-past ISO ("2000-01-01") to null deletion.
+ *     Far-past was still > 0, causing local to beat Firebase's garbage (also 0).
  */
 export function cleanupGarbageTimestamps() {
-  const MIGRATION_KEY = 'garbageTimestampCleanup';
+  const MIGRATION_KEY = 'garbageTimestampCleanup_v2';
   const status = getMigrationStatus();
   
   if (status[MIGRATION_KEY]?.completed) {
     return { alreadyDone: true };
   }
   
-  console.log('🧹 [MIGRATION] Cleaning garbage serverTimestamp() sentinels from localStorage...');
-  
-  // Far-past timestamp: old enough that any real edit (ISO string) from any device wins
-  const FAR_PAST = '2000-01-01T00:00:00.000Z';
+  console.log('🧹 [MIGRATION v2] Cleaning garbage serverTimestamp() sentinels from localStorage...');
   
   // All localStorage keys that contain arrays of items with updatedAt
   const arrayKeys = [
@@ -207,14 +210,15 @@ export function cleanupGarbageTimestamps() {
     if (!item || typeof item !== 'object') return false;
     let cleaned = false;
     
-    // Check updatedAt
+    // Check updatedAt — delete garbage so getTimestamp() returns 0
+    // Firebase data (fixed by validateOnLoad to fresh ISO) will then win the merge
     if (isGarbageTimestamp(item.updatedAt)) {
-      item.updatedAt = FAR_PAST;
+      delete item.updatedAt;
       cleaned = true;
     }
     // Check createdAt
     if (isGarbageTimestamp(item.createdAt)) {
-      item.createdAt = FAR_PAST;
+      delete item.createdAt;
       cleaned = true;
     }
     
@@ -259,8 +263,8 @@ export function cleanupGarbageTimestamps() {
     }
   }
   
-  markMigrationComplete(MIGRATION_KEY, '1.0');
-  console.log(`🧹 [MIGRATION] Done! Cleaned ${totalCleaned} items with garbage timestamps`);
+  markMigrationComplete(MIGRATION_KEY, '2.0');
+  console.log(`🧹 [MIGRATION v2] Done! Cleaned ${totalCleaned} items with garbage timestamps`);
   return { cleaned: totalCleaned };
 }
 

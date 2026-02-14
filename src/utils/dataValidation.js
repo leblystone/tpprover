@@ -257,6 +257,29 @@ export function validateOnLoad(cloudData) {
         if (sanitized[key].length !== before) {
           console.warn(`⚠️ validateOnLoad: stripped ${before - sanitized[key].length} invalid entries from ${key}`);
         }
+        
+        // FIX: Convert garbage object timestamps from Firebase to fresh ISO strings.
+        // deepCleanData used to destroy serverTimestamp() sentinels, so Firestore stored
+        // them as plain objects like {"_methodName":"serverTimestamp"} instead of real
+        // Timestamps. These parse as 0 in merge comparisons, making Firebase data always
+        // lose. By giving them a fresh ISO timestamp on load, Firebase data can win merges
+        // against local data that also has garbage/old timestamps.
+        let fixedCount = 0;
+        sanitized[key] = sanitized[key].map(item => {
+          if (item && item.updatedAt && typeof item.updatedAt === 'object' && typeof item.updatedAt !== 'string') {
+            // Firestore Timestamp (has toMillis) → convert properly
+            if (typeof item.updatedAt.toMillis === 'function') {
+              return { ...item, updatedAt: new Date(item.updatedAt.toMillis()).toISOString() };
+            }
+            // Garbage serialized sentinel → give it a fresh timestamp so it can win merges
+            fixedCount++;
+            return { ...item, updatedAt: new Date().toISOString() };
+          }
+          return item;
+        });
+        if (fixedCount > 0) {
+          console.log(`🔧 validateOnLoad: fixed ${fixedCount} garbage timestamps in ${key}`);
+        }
       }
     }
   });
