@@ -65,9 +65,16 @@ const QuickActionsWidget = ({ widget, theme }) => {
             const isHovered = hoveredIndex === index;
             const isPressed = pressedIndex === index;
 
-            const circleBg = theme.isDark
-              ? (isHovered ? `${action.color}35` : `${action.color}20`)
-              : (isHovered ? `${action.color}25` : `${action.color}15`);
+            // Frosted glass (reference style): semi-transparent white, strong blur, clear outline, soft floating shadow
+            const glassBg = theme.isDark
+              ? (isHovered ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)')
+              : (isHovered ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.62)');
+            const glassBorder = theme.isDark
+              ? (isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
+              : (isHovered ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.08)');
+            const glassShadow = theme.isDark
+              ? (isHovered ? '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' : '0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)')
+              : (isHovered ? '0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)' : '0 4px 20px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.85)');
 
             return (
               <button
@@ -95,11 +102,11 @@ const QuickActionsWidget = ({ widget, theme }) => {
                   style={{
                     width: 56,
                     height: 56,
-                    backgroundColor: circleBg,
-                    border: `1.5px solid ${isHovered ? `${action.color}50` : `${action.color}30`}`,
-                    boxShadow: isHovered
-                      ? `0 6px 16px -4px ${action.color}40`
-                      : (theme.isDark ? '0 2px 8px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.08)'),
+                    backgroundColor: glassBg,
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: `1px solid ${glassBorder}`,
+                    boxShadow: glassShadow,
                     color: action.color
                   }}
                 >

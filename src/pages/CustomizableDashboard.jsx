@@ -867,8 +867,8 @@ export default function CustomizableDashboard() {
                   maxHeight = '280px';
               }
               
-              // Special case: hide widgets that should be conditionally shown
-              if (widget.type === 'pending_vendors' && (!pendingVendors || pendingVendors.length === 0)) {
+              // Pending Vendors widget was replaced by "Action Items" (DontForgetWidget) and no longer renders; skip so we don't show an empty card
+              if (widget.type === WIDGET_TYPES.PENDING_VENDORS) {
                 return null;
               }
 

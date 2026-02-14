@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { BookHeart, Plus, Edit, Trash2 } from 'lucide-react'
+import { BookHeart, Plus, Edit, Trash2, ChevronDown } from 'lucide-react'
 import BottomSheet from '../common/BottomSheet'
 import ConfirmationModal from '../ui/ConfirmationModal'
 import ModernTooltip from '../ui/ModernTooltip'
@@ -152,7 +152,27 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
       
       <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
         {list.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.textLight }}>No items in wishlist.</p>
+          <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0">
+            <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+              No items in wishlist
+            </p>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onTouchStart={(e) => e.preventDefault()}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(); }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+              style={{
+                color: theme.primary,
+                backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                border: `1px solid ${theme.primary}40`,
+                WebkitTapHighlightColor: 'transparent'
+              }}
+            >
+              Add to Wishlist
+              <ChevronDown size={14} />
+            </button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {list.map((it) => (
@@ -221,24 +241,25 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
       >
         <div className="space-y-4">
           {list.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15` }}>
-                <BookHeart size={32} style={{ color: theme.primary }} />
-              </div>
-              <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Wishlist Items</h3>
-              <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                Your wishlist is empty. Add items you're interested in researching to keep track of them.
+            <div className="flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
+              <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+                No items in wishlist
               </p>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onTouchStart={(e) => e.preventDefault()}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(); }}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] touch-manipulation"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff', WebkitTapHighlightColor: 'transparent' }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                style={{
+                  color: theme.primary,
+                  backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                  border: `1px solid ${theme.primary}40`,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
-                <Plus size={18} />
                 Add to Wishlist
+                <ChevronDown size={14} />
               </button>
             </div>
           ) : (

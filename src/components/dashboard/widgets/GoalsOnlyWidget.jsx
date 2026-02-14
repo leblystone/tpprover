@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit } from 'lucide-react';
+import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit, ChevronDown } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
@@ -11,7 +11,10 @@ import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 const GoalsOnlyWidget = ({ 
   widget, 
   theme, 
-  onGoalToggle
+  goals: goalsFromProps,
+  onGoalToggle,
+  onAddGoal,
+  onEditGoal
 }) => {
   const { maxItems = 4 } = widget.settings;
   const [showAddForm, setShowAddForm] = useState(false);
@@ -21,10 +24,15 @@ const GoalsOnlyWidget = ({
   const [showHistory, setShowHistory] = useState(false);
   const [archivedGoals, setArchivedGoals] = useState([]);
   
-  // Load goals from localStorage on mount
+  const usePropsGoals = goalsFromProps != null;
+  const goalsToShow = usePropsGoals ? goalsFromProps : goals;
+  const displayGoals = (goalsToShow || []).filter(g => !g.archived).slice(0, maxItems);
+  const completedCount = displayGoals.filter(g => g.completed).length;
+  
+  // Load goals from localStorage on mount (when not using props)
   useEffect(() => {
-    loadGoals();
-  }, []);
+    if (!usePropsGoals) loadGoals();
+  }, [usePropsGoals]);
 
   // Reload goals when modal opens to ensure fresh data
   useEffect(() => {
@@ -56,8 +64,8 @@ const GoalsOnlyWidget = ({
       let allGoals = allGoalsStr ? JSON.parse(allGoalsStr) : [];
       
       // Update active goals and merge with archived ones
-      const archivedGoals = allGoals.filter(g => g.archived);
-      const combinedGoals = [...updatedGoals, ...archivedGoals];
+      const archived = allGoals.filter(g => g.archived);
+      const combinedGoals = [...updatedGoals, ...archived];
       
       localStorage.setItem('tpprover_user_goals', JSON.stringify(combinedGoals));
       setGoals(updatedGoals);
@@ -66,9 +74,6 @@ const GoalsOnlyWidget = ({
       console.error('Failed to save goals:', error);
     }
   };
-  
-  const displayGoals = goals.slice(0, maxItems);
-  const completedCount = displayGoals.filter(goal => goal.completed).length;
 
   const handleAddGoal = () => {
     if (!newGoal.title.trim()) return;
@@ -90,6 +95,10 @@ const GoalsOnlyWidget = ({
   };
 
   const handleToggleGoal = (goalId) => {
+    if (usePropsGoals && onGoalToggle) {
+      onGoalToggle(goalId);
+      return;
+    }
     const updatedGoals = goals.map(goal =>
       goal.id === goalId ? prepareItemForSave({ ...goal, completed: !goal.completed }) : goal
     );
@@ -165,7 +174,7 @@ const GoalsOnlyWidget = ({
             <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} />
             <ModernTooltip text="Add" position="top">
               <button
-                onClick={() => setShowAddForm(true)}
+                onClick={() => (onAddGoal ? onAddGoal() : setShowAddForm(true))}
                 className="rounded-full flex items-center justify-center action-button-hover transition-colors"
                 style={{ 
                   color: '#ffffff',
@@ -190,9 +199,9 @@ const GoalsOnlyWidget = ({
         </div>
       </div>
       
-      <div className="flex-1 p-4 min-h-0">
-        {showAddForm ? (
-          /* Inline Add Form */
+      <div className="flex-1 p-2 sm:p-4 min-h-0 overflow-hidden flex flex-col">
+        {showAddForm && !onAddGoal ? (
+          /* Inline Add Form (when not using dashboard modal) */
           <div className="space-y-3">
             <input
               type="text"
@@ -251,11 +260,23 @@ const GoalsOnlyWidget = ({
           /* Goals List */
           <div className="h-full flex flex-col">
             {displayGoals.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <Flag size={32} className="mb-3 opacity-50" style={{ color: theme.textLight }} />
-                <p className="text-sm" style={{ color: theme.textLight }}>
+              <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden">
+                <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
                   No goals set yet
                 </p>
+                <button
+                  type="button"
+                  onClick={() => (onAddGoal ? onAddGoal() : setShowAddForm(true))}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                  style={{
+                    color: theme.primary,
+                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                    border: `1px solid ${theme.primary}40`
+                  }}
+                >
+                  Add a Goal
+                  <ChevronDown size={14} />
+                </button>
               </div>
             ) : (
               <>
@@ -320,11 +341,11 @@ const GoalsOnlyWidget = ({
                           }`}
                           style={{ color: theme.text }}
                         >
-                          {goal.title}
+                          {goal.title || goal.text}
                         </p>
-                        {goal.targetDate && (
+                        {(goal.targetDate || goal.dueDate) && (
                           <p className="text-xs opacity-60 truncate" style={{ color: theme.textLight }}>
-                            Due: {new Date(goal.targetDate).toLocaleDateString()}
+                            Due: {new Date((goal.targetDate || goal.dueDate)).toLocaleDateString()}
                           </p>
                         )}
                       </div>
@@ -390,7 +411,7 @@ const GoalsOnlyWidget = ({
                     View/Edit Goals
                   </h3>
                   <p className="text-sm opacity-90" style={{ color: theme.textOnPrimary }}>
-                    {goals.length} active, {archivedGoals.length} archived
+                    {(usePropsGoals ? (goalsFromProps || []).filter(g => !g.archived) : goals).length} active, {(usePropsGoals ? (goalsFromProps || []).filter(g => g.archived) : archivedGoals).length} archived
                   </p>
                 </div>
               </div>
@@ -406,13 +427,13 @@ const GoalsOnlyWidget = ({
             {/* Content */}
             <div className="p-6 max-h-[60vh] overflow-y-auto">
               {/* Active Goals */}
-              {goals.length > 0 ? (
+              {((usePropsGoals ? (goalsFromProps || []).filter(g => !g.archived) : goals)).length > 0 ? (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
                     Active Goals
                   </h4>
                   <div className="space-y-2">
-                    {goals.map((goal) => (
+                    {(usePropsGoals ? (goalsFromProps || []).filter(g => !g.archived) : goals).map((goal) => (
                       <div
                         key={goal.id}
                         className="p-3 rounded-lg border flex items-center justify-between"
@@ -441,38 +462,55 @@ const GoalsOnlyWidget = ({
                               }`}
                               style={{ color: theme.text }}
                             >
-                              {goal.title}
+                              {goal.title || goal.text}
                             </p>
-                            {goal.targetDate && (
+                            {(goal.targetDate || goal.dueDate) && (
                               <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
-                                Due: {new Date(goal.targetDate).toLocaleDateString()}
+                                Due: {new Date((goal.targetDate || goal.dueDate)).toLocaleDateString()}
                               </p>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1 ml-2">
-                          <button
-                            onClick={() => handleArchiveGoal(goal.id)}
-                            className="p-1.5 rounded transition-all hover:opacity-80"
-                            style={{ 
-                              backgroundColor: theme.primary + '20',
-                              color: theme.primary
-                            }}
-                            title="Archive"
-                          >
-                            <Archive size={14} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(goal.id)}
-                            className="p-1.5 rounded transition-all hover:opacity-80"
-                            style={{ 
-                              backgroundColor: '#ef4444' + '20',
-                              color: '#ef4444'
-                            }}
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {onEditGoal && (
+                            <button
+                              onClick={() => { onEditGoal(goal); setShowHistory(false); }}
+                              className="p-1.5 rounded transition-all hover:opacity-80"
+                              style={{ 
+                                backgroundColor: theme.primary + '20',
+                                color: theme.primary
+                              }}
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                          {!usePropsGoals && (
+                            <>
+                              <button
+                                onClick={() => handleArchiveGoal(goal.id)}
+                                className="p-1.5 rounded transition-all hover:opacity-80"
+                                style={{ 
+                                  backgroundColor: theme.primary + '20',
+                                  color: theme.primary
+                                }}
+                                title="Archive"
+                              >
+                                <Archive size={14} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(goal.id)}
+                                className="p-1.5 rounded transition-all hover:opacity-80"
+                                style={{ 
+                                  backgroundColor: '#ef4444' + '20',
+                                  color: '#ef4444'
+                                }}
+                                title="Delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -480,8 +518,8 @@ const GoalsOnlyWidget = ({
                 </div>
               ) : null}
 
-              {/* Archived Goals */}
-              {archivedGoals.length > 0 ? (
+              {/* Archived Goals (local storage only) */}
+              {(!usePropsGoals && archivedGoals.length > 0) ? (
                 <div>
                   <h4 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
                     Archived Goals
@@ -504,11 +542,11 @@ const GoalsOnlyWidget = ({
                             }`}
                             style={{ color: theme.text }}
                           >
-                            {goal.title}
+                            {goal.title || goal.text}
                           </p>
-                          {goal.targetDate && (
+                          {(goal.targetDate || goal.dueDate) && (
                             <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
-                              Due: {new Date(goal.targetDate).toLocaleDateString()}
+                              Due: {new Date((goal.targetDate || goal.dueDate)).toLocaleDateString()}
                             </p>
                           )}
                           {goal.archivedAt && (
@@ -548,7 +586,7 @@ const GoalsOnlyWidget = ({
               ) : null}
 
               {/* Empty State */}
-              {goals.length === 0 && archivedGoals.length === 0 ? (
+              {((usePropsGoals ? (goalsFromProps || []).filter(g => !g.archived) : goals).length === 0 && (!usePropsGoals ? archivedGoals : []).length === 0) ? (
                 <div className="text-center py-8">
                   <Edit size={48} className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
                   <h4 className="text-base lg:text-sm font-semibold mb-2" style={{ color: theme.text }}>

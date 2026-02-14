@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookHeart, Plus, Lock } from 'lucide-react';
+import { BookHeart, Plus, Lock, ChevronDown } from 'lucide-react';
 import Wishlist from '../Wishlist';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -46,10 +46,23 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, isReadOnly = f
               </ModernTooltip>
             </div>
           </h3>
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-center" style={{ color: theme.textLight }}>
-              No items in wishlist.
+          <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0">
+            <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+              No items in wishlist
             </p>
+            <button
+              type="button"
+              onClick={onAdd}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={{
+                color: theme.primary,
+                backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                border: `1px solid ${theme.primary}40`
+              }}
+            >
+              Add to Wishlist
+              <ChevronDown size={14} />
+            </button>
           </div>
         </div>
         

@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react'
  import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
-import AutoSaveIndicator from '../common/AutoSaveIndicator'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 
 function todayISO() {
@@ -18,14 +17,14 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
   const [form, setForm] = useState({ id: undefined, text: '', dueDate: todayISO(), completed: false })
   
   // Auto-save functionality
-  const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
+  const { markAsSubmitted } = useAutoSave(
     `goal_form_${goal?.id || 'new'}`,
     form,
     setForm
   )
   useEffect(() => {
     if (!open) return
-    if (goal) setForm({ id: goal.id, text: goal.text || '', dueDate: goal.dueDate || todayISO(), completed: !!goal.completed })
+    if (goal) setForm({ id: goal.id, text: goal.text || goal.title || '', dueDate: goal.dueDate || goal.targetDate || todayISO(), completed: !!goal.completed })
     else setForm({ id: undefined, text: '', dueDate: todayISO(), completed: false })
   }, [open, goal])
 
@@ -61,14 +60,6 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
             </div>
           </div>
         </div>
-        
-        {/* Auto-save indicator */}
-        <AutoSaveIndicator 
-          isSaving={isSaving} 
-          lastSaved={lastSaved} 
-          onClearForm={clearSavedData} 
-          theme={theme} 
-        />
         
         <TextInput label="Goal" value={form.text} onChange={v => setForm(prev => ({ ...prev, text: v }))} placeholder="Describe your goal" theme={theme} />
         <GlassmorphismDatePicker
