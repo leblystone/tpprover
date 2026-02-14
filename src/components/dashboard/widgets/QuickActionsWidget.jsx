@@ -11,7 +11,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
   const actions = [
     {
       icon: Calculator,
-      label: 'Calculator',
+      label: 'Peptide Calculator',
       color: theme.isDark ? '#0ea5e9' : theme.primary,
       description: 'New Recon',
       onClick: () => {
@@ -20,7 +20,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     },
     {
       icon: Package,
-      label: 'Add Order',
+      label: 'New\nOrder',
       color: theme.isDark ? '#f43f5e' : theme.primary,
       description: 'New Entry',
       onClick: () => {
@@ -29,7 +29,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     },
     {
       icon: Users,
-      label: 'Add Vendor',
+      label: 'New Vendor',
       color: theme.isDark ? '#f59e0b' : theme.primary,
       description: 'New Source',
       onClick: () => {
@@ -38,7 +38,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     },
     {
       icon: FlaskConical,
-      label: 'Add Protocol',
+      label: 'New Protocol',
       color: theme.isDark ? '#10b981' : theme.primary,
       description: 'New Research',
       onClick: () => {
@@ -52,38 +52,33 @@ const QuickActionsWidget = ({ widget, theme }) => {
       <div className={`px-4 py-2 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            Quick Actions
+            Shortcuts
             <Zap size={18} style={{ color: theme.primary }} className="opacity-80" />
           </h3>
           <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
         </div>
       </div>
       
-      <div className="flex-1 p-2">
-        <div className="grid grid-cols-2 grid-rows-2 gap-2 h-full">
+      <div className="flex-1 flex items-center justify-center px-3 py-1">
+        <div className="flex items-start justify-around w-full max-w-sm">
           {actions.map((action, index) => {
             const isHovered = hoveredIndex === index;
             const isPressed = pressedIndex === index;
-            
-            // Refined colors: visible but clean
-            const bgColor = theme.isDark 
-              ? (isHovered ? `${action.color}25` : `${action.color}10`)
-              : (isHovered ? `${action.color}15` : `${action.color}08`);
-            
-            const borderColor = theme.isDark
-              ? (isHovered ? `${action.color}50` : `${theme.text}08`)
-              : (isHovered ? `${action.color}30` : `${action.color}15`);
+
+            const circleBg = theme.isDark
+              ? (isHovered ? `${action.color}35` : `${action.color}20`)
+              : (isHovered ? `${action.color}25` : `${action.color}15`);
 
             return (
               <button
                 key={index}
+                type="button"
                 onClick={action.onClick}
-                className="relative flex flex-col items-center justify-center rounded-2xl transition-all duration-300 group overflow-hidden border"
-                style={{ 
-                  backgroundColor: bgColor,
-                  borderColor: borderColor,
-                  transform: isHovered ? 'translateY(-2px)' : (isPressed ? 'scale(0.96)' : 'none'),
-                  boxShadow: isHovered ? `0 8px 16px -4px ${action.color}20` : 'none'
+                className="flex flex-col items-center gap-2 cursor-pointer group"
+                style={{
+                  transform: isPressed ? 'scale(0.94)' : (isHovered ? 'translateY(-2px)' : 'none'),
+                  transition: 'transform 0.22s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.15s ease',
+                  opacity: isPressed ? 0.92 : 1
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => {
@@ -95,51 +90,40 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 onTouchStart={() => setPressedIndex(index)}
                 onTouchEnd={() => setPressedIndex(null)}
               >
-                {/* Decorative background icon - subtle and centered */}
-                <div 
-                  className="absolute inset-0 flex items-center justify-center opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 pointer-events-none"
-                  style={{ color: action.color }}
-                >
-                  <action.icon size={56} strokeWidth={1} />
-                </div>
-
-                <div 
-                  className="relative z-10 mb-1.5 p-1.5 rounded-xl transition-all duration-300"
-                  style={{ 
-                    backgroundColor: isHovered ? `${action.color}20` : 'transparent',
+                <div
+                  className="rounded-full flex items-center justify-center transition-all duration-200"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    backgroundColor: circleBg,
+                    border: `1.5px solid ${isHovered ? `${action.color}50` : `${action.color}30`}`,
+                    boxShadow: isHovered
+                      ? `0 6px 16px -4px ${action.color}40`
+                      : (theme.isDark ? '0 2px 8px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.08)'),
                     color: action.color
                   }}
                 >
-                  <action.icon 
-                    size={20} 
-                    className={`transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`}
-                    strokeWidth={2.5}
+                  <action.icon
+                    size={26}
+                    strokeWidth={2}
+                    className={`transition-transform duration-200 ${isHovered ? 'scale-110' : ''}`}
                   />
                 </div>
-                
-                <div className="flex flex-col items-center z-10 relative">
-                  <span 
-                    className="text-[10px] font-bold uppercase tracking-tight text-center leading-none mb-1 transition-colors duration-300"
-                    style={{ 
-                      color: isHovered ? action.color : theme.text,
-                      opacity: isHovered ? 1 : 0.9
-                    }}
-                  >
-                    {action.label}
-                  </span>
-                  <span 
-                    className="text-[8px] opacity-50 font-medium uppercase tracking-tighter"
-                    style={{ color: theme.text }}
-                  >
-                    {action.description}
-                  </span>
-                </div>
-
-                {/* Subtle indicator line */}
-                <div 
-                  className="absolute bottom-0 inset-x-0 h-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300"
-                  style={{ backgroundColor: action.color }}
-                />
+                <span
+                  className="text-[13px] font-semibold text-center leading-tight transition-colors duration-200 block break-words"
+                  style={{
+                    color: isHovered ? action.color : theme.text,
+                    opacity: isHovered ? 1 : 0.75,
+                    width: 72,
+                    minHeight: '2.5em',
+                    margin: '0 auto',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'pre-line'
+                  }}
+                >
+                  {action.label}
+                </span>
               </button>
             );
           })}

@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, X, FlaskConical, GitMerge } from 'lucide-react';
+import {
+  Lightbulb,
+  X,
+  FlaskConical,
+  GitMerge,
+  TestTube,
+  ClipboardList,
+  RefreshCw,
+  Droplets,
+  Truck,
+  LayoutDashboard,
+  Calendar,
+  MessageCircle,
+  Clock,
+  CheckCircle,
+  Calculator,
+  Ruler,
+  FileText
+} from 'lucide-react';
 import useLocalStorage from '../../utils/hooks';
 
 const DashboardTipsBanner = ({ theme }) => {
@@ -7,55 +25,23 @@ const DashboardTipsBanner = ({ theme }) => {
   const [isDismissed, setIsDismissed] = useLocalStorage('tpprover_dashboard_tips_dismissed', false);
   const [fadeIn, setFadeIn] = useState(true);
 
-  // Simplified tips for new users
+  // Simplified tips for new users (kept short for single-line display)
   const tips = [
-    {
-      text: 'Open up that fridge & start adding in your stockpile🧪'
-    },
-    {
-      text: 'Research data syncs across all devices📋'
-    },
-    {
-      text: 'Recon pulls from Stockpile & updates inventory!➖➕'
-    },
-    {
-      text: 'Click💧droplet icon to recon that vial!'
-    },
-    {
-      text: 'Add order tracking & receive dashboard updates!🚚'
-    },
-    {
-      text: 'Customize your dashboard experience↗️'
-    },
-    {
-      text: 'Add your protocols to start scheduling📆'
-    },
-    {
-      text: "We're in Beta!",
-      icon: FlaskConical
-    },
-    {
-      text: 'Tap vendor contact info - Telegram? Takes you there!'
-    },
-    {
-      text: "Accidentally entered 2 of the same? Merge em'",
-      icon: GitMerge
-    },
-    {
-      text: 'New protocol history timeline🕰️'
-    },
-    {
-      text: 'Orders auto update status when tracking shows delivered!✅'
-    },
-    {
-      text: 'Use unit conversion widget for quick mg to IU calculations!🧮'
-    },
-    {
-      text: 'mg? g? mcg? IU? tablets? measure correctly 📏'
-    },
-    {
-      text: 'Protocol Notes!📝Add during and final observations!'
-    }
+    { text: 'Open the fridge & add to your stockpile', icon: TestTube },
+    { text: 'Research data syncs across all devices', icon: ClipboardList },
+    { text: 'Recon pulls from Stockpile & updates inventory', icon: RefreshCw },
+    { text: 'Click the droplet to recon that vial!', icon: Droplets },
+    { text: 'Add order tracking for dashboard updates', icon: Truck },
+    { text: 'Customize your dashboard experience', icon: LayoutDashboard },
+    { text: 'Add protocols to start scheduling', icon: Calendar },
+    { text: "We're in Beta!", icon: FlaskConical },
+    { text: 'Tap vendor contact → Telegram takes you there!', icon: MessageCircle },
+    { text: "Two of the same? Merge em'", icon: GitMerge },
+    { text: 'New protocol history timeline', icon: Clock },
+    { text: 'Delivered tracking? Order status auto-updates!', icon: CheckCircle },
+    { text: 'Unit conversion widget: quick mg ↔ IU', icon: Calculator },
+    { text: 'mg? g? mcg? IU? Measure correctly', icon: Ruler },
+    { text: 'Protocol Notes: add during & final observations', icon: FileText }
   ];
 
   // Auto-rotate tips every 5 seconds

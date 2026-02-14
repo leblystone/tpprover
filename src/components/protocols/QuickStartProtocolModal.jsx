@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import VisualSchedulePreview from './VisualSchedulePreview';
-import { Zap, Calendar, Clock, Check, Loader2 } from 'lucide-react';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import { Clock, Check, Loader2 } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { generateId } from '../../utils/string';
 
@@ -188,7 +189,7 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                 </div>
             }
         >
-            <div className="space-y-4">
+            <div className="space-y-4 pb-6">
                 {/* Header with tip */}
                 <div className="text-xs text-center py-2 px-3 rounded-lg" style={{ 
                     backgroundColor: `${theme.info || theme.primary}10`,
@@ -270,26 +271,18 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                     </div>
                 </div>
 
-                {/* Start Date */}
+                {/* Start Date - use app calendar styling (GlassmorphismDatePicker) so iOS doesn't show native picker; keeps date field visible in modal */}
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2 ml-1" style={{ color: theme.text }}>
                         Start Date
                     </label>
-                    <div className="relative">
-                        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: theme.textLight }} />
-                        <input
-                            type="date"
-                            value={form.startDate}
-                            onChange={e => handleChange('startDate', e.target.value)}
-                            className="w-full pl-10 pr-3 py-3 rounded-lg outline-none transition-all"
-                            style={{
-                                border: `1px solid ${theme.isDark ? '#4b5563' : '#f0eee7'}`,
-                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                color: theme.isDark ? theme.text : '#181A18'
-                            }}
-                        />
-                    </div>
+                    <GlassmorphismDatePicker
+                        value={form.startDate}
+                        onChange={(v) => handleChange('startDate', v)}
+                        theme={theme}
+                        placeholder="Select start date"
+                        preferOpenAbove={true}
+                    />
                 </div>
 
                 {/* Schedule Preview */}

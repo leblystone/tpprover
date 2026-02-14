@@ -288,7 +288,7 @@ const ModernToastContainer = ({ theme }) => {
   };
   
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2 pointer-events-none max-w-sm w-full">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[10050] flex flex-col items-center gap-2 pointer-events-none max-w-sm w-full">
       {toasts.map((toast, index) => (
         <div
           key={toast.id}

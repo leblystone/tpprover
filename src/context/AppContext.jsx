@@ -1827,7 +1827,54 @@ export function AppProvider({ children }) {
             const sanitized = sanitizeForLocalStorage(data);
             localStorage.setItem(key, JSON.stringify(sanitized));
         } catch (error) {
-            console.error(`Error saving ${key} to localStorage`, error);
+            // Handle localStorage quota exceeded — critical for long-term users with lots of data
+            if (error instanceof DOMException && (
+                error.name === 'QuotaExceededError' ||
+                error.code === 22 || // Legacy browsers
+                error.code === 1014 // Firefox
+            )) {
+                console.error(`⚠️ localStorage QUOTA EXCEEDED saving ${key}. Attempting cleanup...`);
+                
+                // Try to free space by removing non-critical cached data
+                const cleanupKeys = [
+                    'tpprover_recovery_snapshot',     // Large snapshot, recoverable from cloud
+                    'tpprover_last_cloud_data',       // Cached cloud data
+                    'tpprover_demo_data_cleared',     // Flags
+                    'tpprover_demo_banner_dismissed',
+                    'tpprover_sample_data_cleared',
+                ];
+                let freedSpace = false;
+                for (const cleanupKey of cleanupKeys) {
+                    const item = localStorage.getItem(cleanupKey);
+                    if (item && item.length > 100) {
+                        localStorage.removeItem(cleanupKey);
+                        freedSpace = true;
+                    }
+                }
+                
+                // Retry the save after cleanup
+                if (freedSpace) {
+                    try {
+                        const sanitized = sanitizeForLocalStorage(data);
+                        localStorage.setItem(key, JSON.stringify(sanitized));
+                        console.log(`✅ Successfully saved ${key} after localStorage cleanup`);
+                        return;
+                    } catch (retryError) {
+                        // Still failing — notify the user
+                    }
+                }
+                
+                // If we still can't save, warn the user
+                window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: {
+                        message: 'Storage is full! Your data is safe in the cloud, but this device is running low on space. Try clearing your browser cache.',
+                        type: 'warning',
+                        duration: 8000
+                    }
+                }));
+            } else {
+                console.error(`Error saving ${key} to localStorage`, error);
+            }
         }
     };
 

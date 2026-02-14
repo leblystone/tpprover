@@ -272,7 +272,7 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
-    path: '/rover/:type/share/:encodedData',
+    path: '/share/:type/share/:encodedData',
     element: <Rover />,
     errorElement: <NotFound />,
   },

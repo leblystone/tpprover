@@ -7,7 +7,7 @@ const INTRO_SCREENS = [
     id: 1,
     title: 'Welcome to The Pep Planner',
     subtitle: 'Your research companion',
-    description: 'Built for the pep research community. Made by a researcher, for researchers.',
+    description: 'Made by a researcher, for researchers.',
     gradient: ['#1a1a1a', '#0a0a0a'], // Deep black
     accentColor: '#7F9E95', // Sage accent
     icon: FlaskConical,

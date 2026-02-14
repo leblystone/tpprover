@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "dev:mobile": "vite --host --port 3000",
     "build": "vite build",
     "preview": "vite preview --port 5173",
     "validate-version": "node scripts/validate-version.js",
@@ -16,6 +17,8 @@
     "mobile:build": "npm run build && npx cap sync",
     "mobile:android": "npm run mobile:build && npx cap run android",
     "mobile:ios": "npm run mobile:build && npx cap run ios",
+    "mobile:ios:pro": "npm run mobile:build && npx cap run ios --target 06D450A8-6E7A-4996-B28D-83D7C5801EB8",
+    "mobile:ios:live": "npx cap run ios --live-reload --target 06D450A8-6E7A-4996-B28D-83D7C5801EB8",
     "mobile:open:android": "npx cap open android",
     "mobile:open:ios": "npx cap open ios"
   },

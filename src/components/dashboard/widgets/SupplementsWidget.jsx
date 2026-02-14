@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Pill, Beaker, Edit, Lock, Pipette } from 'lucide-react';
+import { Plus, Pill, Beaker, Edit, Lock, Pipette, ChevronDown } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -114,19 +114,21 @@ const SupplementsWidget = ({
       <div className="flex-1 p-4 overflow-y-auto">
         {supplements.length === 0 ? (
           <div className="text-center py-8">
-            <div className="flex items-center justify-center mb-4">
-              <Pill size={24} style={{ color: theme.textLight }} />
-            </div>
             <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-              No supplements tracked yet
+              No supplement entries yet
             </p>
             <button
+              type="button"
               onClick={onAddSupplement}
-              className="px-4 py-2 rounded-lg font-medium action-button-hover"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={{
+                color: theme.primary,
+                backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                border: `1px solid ${theme.primary}40`
+              }}
             >
-              <Plus size={16} className="inline mr-2 icon-hover" />
-              <span className="text-hover">Add Supplement</span>
+              Add Supplement
+              <ChevronDown size={14} />
             </button>
           </div>
         ) : (

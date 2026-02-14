@@ -47,6 +47,8 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           tasks={props.tasks}
           onToggle={props.onTaskToggle}
+          onOpenQuickStart={props.onOpenQuickStart}
+          onOpenFullSetup={props.onOpenFullSetup}
         />
       );
       
@@ -128,7 +130,8 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
       return (
         <InventoryWidget 
           widget={widget} 
-          theme={theme} 
+          theme={theme}
+          onOpenStockpileAdd={props.onOpenStockpileAdd}
         />
       );
       
@@ -261,6 +264,8 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           protocols={props.protocols}
           onAddNote={props.onAddProtocolNote}
+          onOpenQuickStart={props.onOpenQuickStart}
+          onOpenFullSetup={props.onOpenFullSetup}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}
         />

@@ -1,8 +1,8 @@
 import React, { useRef, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { toPng } from 'html-to-image';
-import { Image, Copy, Check, Eye } from 'lucide-react';
-import { encodeShareData } from '../../utils/share';
+import { Image, Copy, Check, Eye, Download } from 'lucide-react';
+import { encodeShareData, SHARE_BASE_PATH } from '../../utils/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 
@@ -13,12 +13,14 @@ import SharedVendorCard from '../share/SharedVendorCard';
 export default function ShareModal({ open, onClose, theme, title, cardProps, shareData }) {
     const cardRef = useRef(null);
     const [copied, setCopied] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
 
     const getShareUrl = () => {
         const encodedData = encodeShareData(shareData);
         if (!encodedData) return '';
         const type = shareData.type || title.toLowerCase();
-        return `${window.location.origin}/rover/${type}/share/${encodedData}`;
+        return `${window.location.origin}${SHARE_BASE_PATH}/${type}/share/${encodedData}`;
     };
 
     const handleShareImage = async () => {
@@ -72,8 +74,8 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             // Check if Web Share API supports files
             const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
 
-            // Always use the new downloadImage function which handles mobile sharing properly
-            await downloadImage(dataUrl);
+            // Use same filename as Save so share sheet shows "Protocol Name Research mmddyy"
+            await downloadImage(dataUrl, getSaveFileName());
         } catch (err) {
             console.error('Error generating share image:', err);
             // Try a simpler approach for mobile
@@ -86,7 +88,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                     useCORS: false,
                     allowTaint: true
                 });
-                downloadImage(simpleDataUrl);
+                downloadImage(simpleDataUrl, getSaveFileName());
             } catch (simpleErr) {
                 console.error('Simplified image generation also failed:', simpleErr);
                 alert('Could not generate image. Please try copying the link instead.');
@@ -94,7 +96,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         }
     };
 
-    const downloadImage = async (dataUrl) => {
+    const downloadImage = async (dataUrl, preferredFileName) => {
         // Check if we're on mobile/Capacitor
         const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                         window.Capacitor || 
@@ -106,9 +108,9 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             try {
                 // Convert data URL to base64
                 const base64Data = dataUrl.split(',')[1];
+                const fileName = preferredFileName || `shared-card-${Date.now()}.png`;
                 
-                // Write file to device storage
-                const fileName = `shared-card-${Date.now()}.png`;
+                // Write file to device storage (Cache for Share flow so we can clean up)
                 const result = await Filesystem.writeFile({
                     path: fileName,
                     data: base64Data,
@@ -119,7 +121,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                 
                 // Share the file using native share
                 await Share.share({
-                    title: `Check out this ${title}`,
+                    title: title ? `Check out this ${title}` : 'Shared from The Pep Planner',
                     text: `Shared from The Pep Planner`,
                     url: result.uri,
                     dialogTitle: 'Share Image',
@@ -218,15 +220,136 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         }
     };
 
+    const copyToClipboard = (text) => {
+        if (navigator.clipboard?.writeText) {
+            return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+        }
+        return Promise.resolve(fallbackCopy(text));
+    };
+    const fallbackCopy = (text) => {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.setAttribute('readonly', '');
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        if (!ok) throw new Error('Copy failed');
+    };
+
     const handleCopyLink = () => {
         const url = getShareUrl();
-        navigator.clipboard.writeText(url).then(() => {
-            setCopied(true);
-            setTimeout(() => {
-                setCopied(false);
-                onClose();
-            }, 2000);
-        });
+        if (!url) return;
+        copyToClipboard(url)
+            .then(() => {
+                setCopied(true);
+                requestAnimationFrame(() => {
+                    window.dispatchEvent(new CustomEvent('tpp:toast', {
+                        detail: { message: 'Link copied to clipboard!', type: 'success' },
+                    }));
+                });
+                setTimeout(() => {
+                    setCopied(false);
+                    onClose();
+                }, 2000);
+            })
+            .catch((err) => {
+                console.error('Copy failed:', err);
+                window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: { message: 'Could not copy link. Try sharing instead.', type: 'error' },
+                }));
+            });
+    };
+
+    const getSaveFileName = () => {
+        const type = shareData?.type || title?.toLowerCase?.() || 'protocol';
+        const name = type === 'vendor'
+            ? (cardProps?.vendor?.name || 'Vendor')
+            : (cardProps?.item?.protocolName || cardProps?.item?.name || 'Protocol');
+        const safe = String(name).replace(/[/\\:*?"<>|]/g, '').trim() || 'Research';
+        const d = new Date();
+        const mmddyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`;
+        return `${safe} Research ${mmddyy}.png`;
+    };
+
+    // Folder name without spaces for better iOS/filesystem compatibility; display name for toasts
+    const SAVE_FOLDER = 'PepPlannerResearch';
+    const SAVE_FOLDER_DISPLAY = 'Pep Planner Research';
+
+    const handleSaveToDevice = async () => {
+        if (cardRef.current === null) return;
+        const node = cardRef.current;
+        setSaving(true);
+        try {
+            const rect = node.getBoundingClientRect();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            const dataUrl = await toPng(node, {
+                cacheBust: true,
+                width: rect.width,
+                height: rect.height,
+                pixelRatio: 2,
+                backgroundColor: '#ffffff',
+                style: { transform: 'scale(1)', transformOrigin: 'top left' },
+                skipFonts: false,
+                skipAutoScale: true,
+                useCORS: true,
+                allowTaint: true,
+                fontEmbedCSS: false,
+                filter: (n) => !(n.tagName === 'LINK' && n.href && n.href.includes('fonts.googleapis.com')),
+            });
+            const base64Data = dataUrl.split(',')[1];
+            const fileName = getSaveFileName();
+            const isCapacitor = window.Capacitor?.isNativePlatform?.() ?? !!window.Capacitor;
+            if (isCapacitor) {
+                try {
+                    await Filesystem.mkdir({ path: SAVE_FOLDER, directory: Directory.Documents, recursive: true });
+                } catch (e) {
+                    if (e?.message && !e.message.includes('exists')) throw e;
+                }
+                const { uri } = await Filesystem.writeFile({
+                    path: `${SAVE_FOLDER}/${fileName}`,
+                    data: base64Data,
+                    directory: Directory.Documents,
+                });
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2500);
+                window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: { message: `Saved to ${SAVE_FOLDER_DISPLAY}`, type: 'success' },
+                }));
+                try {
+                    await Share.share({
+                        title: title ? `Check out this ${title}` : 'Shared from The Pep Planner',
+                        text: 'Shared from The Pep Planner',
+                        url: uri,
+                        dialogTitle: 'Share image',
+                    });
+                } catch (shareErr) {
+                    console.warn('Share sheet failed after save (user cancel or platform):', shareErr);
+                    window.dispatchEvent(new CustomEvent('tpp:toast', {
+                        detail: { message: 'Saved. Use Share button to send it.', type: 'info' },
+                    }));
+                }
+            } else {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: { message: 'Image downloaded', type: 'success' },
+                }));
+            }
+        } catch (err) {
+            console.error('Error saving share card:', err);
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: { message: 'Could not save image. Try Share instead.', type: 'error' },
+            }));
+        } finally {
+            setSaving(false);
+        }
     };
 
     const ShareCard = useMemo(() => {
@@ -248,29 +371,44 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             theme={theme}
             variant="modern"
             footer={
-                <div className="flex w-full gap-3">
-                    <button 
-                        onClick={handleShareImage} 
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
-                        style={{ 
-                            backgroundColor: theme.primary, 
-                            color: theme.textOnPrimary || '#ffffff'
-                        }}
-                    >
-                        <Image size={18} />
-                        Share Image
-                    </button>
+                <div className="flex flex-col gap-1.5 w-full">
+                    <div className="flex w-full gap-1.5">
+                        <button 
+                            onClick={handleShareImage} 
+                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md" 
+                            style={{ 
+                                backgroundColor: theme.primary, 
+                                color: theme.textOnPrimary || '#ffffff'
+                            }}
+                        >
+                            <Image size={14} />
+                            Share
+                        </button>
+                        <button 
+                            onClick={handleSaveToDevice} 
+                            disabled={saving || saved}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60" 
+                            style={{ 
+                                borderColor: theme.primary, 
+                                backgroundColor: `${theme.primary}12`, 
+                                color: theme.primary 
+                            }}
+                        >
+                            <Download size={14} />
+                            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
+                        </button>
+                    </div>
                     <button 
                         onClick={handleCopyLink} 
                         disabled={copied} 
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
                         style={{ 
                             borderColor: copied ? theme.primary : theme.border, 
                             backgroundColor: copied ? `${theme.primary}15` : 'transparent', 
                             color: copied ? theme.primary : theme.text 
                         }}
                     >
-                        {copied ? <Check size={18} /> : <Copy size={18} />}
+                        {copied ? <Check size={14} /> : <Copy size={14} />}
                         {copied ? 'Copied!' : 'Copy Link'}
                     </button>
                 </div>
@@ -282,7 +420,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                     <div className="flex items-center gap-4 mb-4">
                         <Eye size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
+                            <h4 className="text-base font-semibold" style={{ color: theme.text }}>Preview</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>

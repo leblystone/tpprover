@@ -8,7 +8,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -38,7 +38,7 @@ import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
-import { encodeShareData } from '../utils/share';
+import { encodeShareData, SHARE_BASE_PATH } from '../utils/share';
 import { toPng } from 'html-to-image';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -102,6 +102,8 @@ export default function Protocols() {
   }, [showAddNoteForm]);
   const [notesHistoryEntryId, setNotesHistoryEntryId] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareSaved, setShareSaved] = useState(false);
   const shareCardRef = useRef(null);
   const [selectedHistoryEntryForManage, setSelectedHistoryEntryForManage] = useState(null);
   const [followUpProtocolForManage, setFollowUpProtocolForManage] = useState(null);
@@ -282,7 +284,7 @@ export default function Protocols() {
     };
     const encodedData = encodeShareData(shareData);
     if (!encodedData) return '';
-    return `${window.location.origin}/rover/protocol/share/${encodedData}`;
+    return `${window.location.origin}${SHARE_BASE_PATH}/protocol/share/${encodedData}`;
   };
 
   const handleShareImage = async () => {
@@ -330,7 +332,10 @@ export default function Protocols() {
       if (isMobile && window.Capacitor) {
         try {
           const base64Data = dataUrl.split(',')[1];
-          const fileName = `shared-card-${Date.now()}.png`;
+          const protocolName = (manageConfirm?.protocolName || manageConfirm?.name || 'Protocol').replace(/[/\\:*?"<>|]/g, '').trim() || 'Research';
+          const d = new Date();
+          const mmddyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`;
+          const fileName = `${protocolName} Research ${mmddyy}.png`;
           const result = await Filesystem.writeFile({
             path: fileName,
             data: base64Data,
@@ -386,17 +391,124 @@ export default function Protocols() {
     }
   };
 
+  const copyShareLinkToClipboard = (text) => {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(text).catch(() => fallbackCopyShareLink(text));
+    }
+    return Promise.resolve(fallbackCopyShareLink(text));
+  };
+  const fallbackCopyShareLink = (text) => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'absolute';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(el);
+    if (!ok) throw new Error('Copy failed');
+  };
+
   const handleCopyLink = () => {
     const url = getShareUrl();
-    navigator.clipboard.writeText(url).then(() => {
-      setShareCopied(true);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Link copied to clipboard!', type: 'success' } 
+    if (!url) return;
+    copyShareLinkToClipboard(url)
+      .then(() => {
+        setShareCopied(true);
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Link copied to clipboard!', type: 'success' },
+          }));
+        });
+        setTimeout(() => setShareCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Copy failed:', err);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: 'Could not copy link. Try Share instead.', type: 'error' },
+        }));
+      });
+  };
+
+  const SHARE_SAVE_FOLDER = 'PepPlannerResearch';
+  const SHARE_SAVE_FOLDER_DISPLAY = 'Pep Planner Research';
+
+  const handleSaveShareCardToDevice = async () => {
+    if (shareCardRef.current === null) return;
+    const node = shareCardRef.current;
+    setShareSaving(true);
+    try {
+      const rect = node.getBoundingClientRect();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        width: rect.width,
+        height: rect.height,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        style: { transform: 'scale(1)', transformOrigin: 'top left' },
+        skipFonts: false,
+        skipAutoScale: true,
+        useCORS: true,
+        allowTaint: true,
+        fontEmbedCSS: false,
+        filter: (n) => !(n.tagName === 'LINK' && n.href && n.href.includes('fonts.googleapis.com')),
+      });
+      const base64Data = dataUrl.split(',')[1];
+      const protocolName = (manageConfirm?.protocolName || manageConfirm?.name || 'Protocol').replace(/[/\\:*?"<>|]/g, '').trim() || 'Research';
+      const d = new Date();
+      const mmddyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`;
+      const fileName = `${protocolName} Research ${mmddyy}.png`;
+      const isCapacitor = window.Capacitor?.isNativePlatform?.() ?? !!window.Capacitor;
+      if (isCapacitor) {
+        try {
+          await Filesystem.mkdir({ path: SHARE_SAVE_FOLDER, directory: Directory.Documents, recursive: true });
+        } catch (e) {
+          if (e?.message && !e.message.includes('exists')) throw e;
+        }
+        const { uri } = await Filesystem.writeFile({
+          path: `${SHARE_SAVE_FOLDER}/${fileName}`,
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+        setShareSaved(true);
+        setTimeout(() => setShareSaved(false), 2500);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `Saved to ${SHARE_SAVE_FOLDER_DISPLAY}`, type: 'success' },
+        }));
+        try {
+          await Share.share({
+            title: 'Check out this Protocol',
+            text: 'Shared from The Pep Planner',
+            url: uri,
+            dialogTitle: 'Share image',
+          });
+        } catch (shareErr) {
+          console.warn('Share sheet failed after save:', shareErr);
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Saved. Use Share button to send it.', type: 'info' },
+          }));
+        }
+      } else {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: 'Image downloaded', type: 'success' },
+        }));
+      }
+    } catch (err) {
+      console.error('Error saving share card:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Could not save image. Try Share instead.', type: 'error' },
       }));
-      setTimeout(() => {
-        setShareCopied(false);
-      }, 2000);
-    });
+    } finally {
+      setShareSaving(false);
+    }
   };
 
   // History helper functions and data
@@ -2760,27 +2872,26 @@ export default function Protocols() {
                       </>
                     )}
 
-                    {/* Share Tab - Copy Link and Share Image */}
+                    {/* Share Tab - Copy Link, Share, Save (compact) */}
                     {manageTab === 'share' && (
                       <>
                         <button 
                           onClick={handleCopyLink} 
                           disabled={shareCopied} 
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all hover:scale-[1.02] active:scale-95" 
+                          className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-95" 
                           style={{ 
                             borderColor: shareCopied ? theme.primary : theme.border, 
                             backgroundColor: shareCopied ? `${theme.primary}15` : 'transparent', 
                             color: shareCopied ? theme.primary : theme.text,
-                            opacity: shareCopied ? 1 : 1,
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {shareCopied ? <Check size={16} /> : <Copy size={16} />}
+                          {shareCopied ? <Check size={12} /> : <Copy size={12} />}
                           {shareCopied ? 'Copied!' : 'Copy Link'}
                         </button>
                         <button 
                           onClick={handleShareImage} 
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" 
+                          className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-md hover:scale-[1.02] active:scale-95" 
                           style={{ 
                             backgroundColor: theme.primary, 
                             color: theme.textOnPrimary || '#ffffff',
@@ -2788,8 +2899,22 @@ export default function Protocols() {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          <Image size={16} />
+                          <Image size={12} />
                           Share
+                        </button>
+                        <button 
+                          onClick={handleSaveShareCardToDevice} 
+                          disabled={shareSaving || shareSaved}
+                          className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60" 
+                          style={{ 
+                            borderColor: theme.primary, 
+                            backgroundColor: `${theme.primary}12`,
+                            color: theme.primary,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <Download size={12} />
+                          {shareSaving ? 'Saving…' : shareSaved ? 'Saved!' : 'Save'}
                         </button>
                       </>
                     )}
@@ -3905,7 +4030,7 @@ export default function Protocols() {
           onClose={() => setIsShareModalOpen(false)}
           theme={theme}
           title="Protocol"
-          shareUrl={`${window.location.origin}/rover/protocols/${manageConfirm.id}`}
+          shareUrl={`${window.location.origin}${SHARE_BASE_PATH}/protocols/${manageConfirm.id}`}
           CardComponent={ProtocolCard}
           cardProps={{ item: manageConfirm, theme, isPublicView: true }}
           shareData={{ ...manageConfirm, type: 'protocol' }}

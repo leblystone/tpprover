@@ -3,7 +3,7 @@ import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
-import { validateBeforeSave, validateOnLoad } from '../utils/dataValidation';
+import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -69,6 +69,31 @@ function deepCleanData(data) {
   return data;
 }
 
+// Firestore maximum document size is 1MB (1,048,576 bytes)
+const FIRESTORE_DOC_SIZE_LIMIT = 1_048_576;
+// Warn threshold at 800KB (80% of limit) to give users advance notice
+const FIRESTORE_DOC_SIZE_WARN = 819_200;
+
+/**
+ * Estimate the size of a JavaScript object in bytes when serialized for Firestore.
+ * This is an approximation — actual Firestore encoding adds some overhead.
+ */
+function estimateDocSize(data) {
+  try {
+    // JSON.stringify is a reasonable approximation; Firestore encoding is similar
+    const json = JSON.stringify(data, (key, val) => {
+      // serverTimestamp() sentinels aren't serializable, estimate them as ~20 bytes
+      if (val && typeof val === 'object' && val.constructor && val.constructor.name === 'FieldValue') {
+        return '__TIMESTAMP__';
+      }
+      return val;
+    });
+    return json ? json.length : 0;
+  } catch {
+    return 0; // If we can't estimate, don't block the write
+  }
+}
+
 /**
  * Save user data to cloud storage
  * Uses Firestore serverTimestamp() for accurate cross-device sync
@@ -88,6 +113,26 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
       lastUpdated: serverTimestamp(), // ✅ Server-side timestamp
       version: APP_VERSION // ✅ Dynamic version from package.json
     };
+    
+    // SAFETY: Check estimated document size before writing
+    const estimatedSize = estimateDocSize(finalData);
+    if (estimatedSize > FIRESTORE_DOC_SIZE_LIMIT) {
+      console.error(`🚨 Document too large! Estimated ${(estimatedSize / 1024).toFixed(0)}KB exceeds Firestore 1MB limit. Save aborted.`);
+      // Dispatch user warning
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: {
+            message: 'Your data is approaching storage limits. Please export a backup and contact support.',
+            type: 'error',
+            duration: 10000
+          }
+        }));
+      }
+      return false;
+    }
+    if (estimatedSize > FIRESTORE_DOC_SIZE_WARN) {
+      console.warn(`⚠️ Document approaching size limit: ${(estimatedSize / 1024).toFixed(0)}KB / 1024KB`);
+    }
     
     await setDoc(userDoc, finalData, { merge: true });
     
@@ -721,6 +766,9 @@ export async function saveAppData(userId, appData, options = {}) {
       }
     }
     
+    // Apply retention limits to prevent unbounded growth before saving
+    dataToSave = applyRetentionLimits(dataToSave);
+
     return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
@@ -753,7 +801,9 @@ export async function saveAppData(userId, appData, options = {}) {
       fallbackData.injectionStats = appData.injectionStats || { global: { totalInjections: 0, sites: {}, lastInjection: null }, tasks: {} };
     }
 
-    return await saveUserData(userId, fallbackData, COLLECTIONS.USER_DATA);
+    // Apply retention limits even in fallback path
+    const prunedFallback = applyRetentionLimits(fallbackData);
+    return await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA);
   }
 }
 

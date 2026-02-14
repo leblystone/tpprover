@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { Package, ChevronsUp, ChevronsDown, ChevronDown } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -13,9 +13,17 @@ function useLocal(key, fallback) {
   }
 }
 
-const InventoryWidget = ({ widget, theme }) => {
+const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
   const navigate = useNavigate();
   const stockpile = useLocal('tpprover_stockpile', []);
+
+  const handleOpenAddSingle = () => {
+    if (onOpenStockpileAdd) {
+      onOpenStockpileAdd();
+    } else {
+      navigate('/app/stockpile', { state: { openAddSingle: true } });
+    }
+  };
   const terracottaColor = '#c87a5c';
   const darkerSageColor = '#5A7A5A';
 
@@ -75,10 +83,10 @@ const InventoryWidget = ({ widget, theme }) => {
   return (
     <div 
       className="h-full flex flex-col cursor-pointer widget-card-hover" 
-      onClick={handleClick}
+      onClick={stockpile.length > 0 ? handleClick : undefined}
       style={{ borderRadius: '12px' }}
     >
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Stockpile
@@ -92,11 +100,26 @@ const InventoryWidget = ({ widget, theme }) => {
       
       <div className="flex-1 p-3 overflow-y-auto">
         {stockpile.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Package size={24} style={{ color: theme.textLight }} className="mb-2" />
-            <p className="text-sm" style={{ color: theme.textLight }}>
-              No inventory tracked
+          <div
+            className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+              Inventory is empty!
             </p>
+            <button
+              type="button"
+              onClick={handleOpenAddSingle}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={{
+                color: theme.primary,
+                backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                border: `1px solid ${theme.primary}40`
+              }}
+            >
+              Add Your Stockpile
+              <ChevronDown size={14} />
+            </button>
           </div>
         ) : (
           <div className="space-y-3">

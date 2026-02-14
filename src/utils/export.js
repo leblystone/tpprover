@@ -16,7 +16,13 @@ const FIELD_ORDER = {
   calendar_note: ['date', 'note'],
   glossary: ['term', 'definition', 'category'],
   goal: ['title', 'targetDate', 'completed', 'createdAt', 'archived', 'archivedAt'],
-  protocol_history: ['protocolName', 'startDate', 'endDate', 'completionStatus', 'notes', 'followUpNotes']
+  protocol_history: ['protocolName', 'startDate', 'endDate', 'completionStatus', 'notes', 'followUpNotes'],
+  // Previously missing data types
+  wishlist_item: ['name', 'vendor', 'price', 'priority', 'notes', 'link'],
+  user_note: ['title', 'content', 'category', 'pinned'],
+  water_entry: ['date', 'glasses', 'goal', 'unit'],
+  task_entry: ['date', 'timeSlot', 'tasks'],
+  injection: ['date', 'peptide', 'site', 'dose', 'unit', 'notes']
 };
 
 // Fields to exclude from exports (backend/admin only) - all lowercase for comparison
@@ -184,6 +190,19 @@ export function exportUserDataToCSV(data, filename = null) {
     };
   });
 
+  // Convert object-keyed data to flat arrays for export
+  const waterTrackerArray = data.waterTracker && typeof data.waterTracker === 'object' && !Array.isArray(data.waterTracker)
+    ? Object.entries(data.waterTracker).map(([date, entry]) => ({ date, ...(typeof entry === 'object' ? entry : { glasses: entry }) }))
+    : [];
+
+  const taskCompletionArray = data.taskCompletion && typeof data.taskCompletion === 'object' && !Array.isArray(data.taskCompletion)
+    ? Object.entries(data.taskCompletion).map(([date, slots]) => ({ date, timeSlot: Object.keys(slots || {}).join(', '), tasks: JSON.stringify(slots) }))
+    : [];
+
+  const calendarDoneArray = data.calendarDone && typeof data.calendarDone === 'object' && !Array.isArray(data.calendarDone)
+    ? Object.entries(data.calendarDone).map(([date, slots]) => ({ date, timeSlot: Object.keys(slots || {}).join(', '), tasks: JSON.stringify(slots) }))
+    : [];
+
   // Export each data type in its own section with proper labels
   const dataTypes = [
     { key: 'protocols', label: 'Protocols', data: processedProtocols },
@@ -199,6 +218,13 @@ export function exportUserDataToCSV(data, filename = null) {
     { key: 'calendarNotes', label: 'Calendar Notes', data: calendarNotesArray },
     { key: 'goals', label: 'Goals', data: data.goals || [] },
     { key: 'glossary', label: 'Glossary', data: data.glossary || [] },
+    // Previously missing data types — now included for complete backup
+    { key: 'wishlist', label: 'Wishlist', data: data.wishlist || [] },
+    { key: 'userNotes', label: 'User Notes', data: data.userNotes || [] },
+    { key: 'injectionHistory', label: 'Injection History', data: data.injectionHistory || [] },
+    { key: 'waterTracker', label: 'Water Tracker', data: waterTrackerArray },
+    { key: 'taskCompletion', label: 'Task Completion', data: taskCompletionArray },
+    { key: 'calendarDone', label: 'Calendar Tasks Done', data: calendarDoneArray },
   ];
   
   dataTypes.forEach(({ key, label, data: items }) => {
@@ -217,6 +243,12 @@ export function exportUserDataToCSV(data, filename = null) {
                     key === 'calendarNotes' ? 'calendar_note' :
                     key === 'protocolHistory' ? 'protocol_history' :
                     key === 'goals' ? 'goal' :
+                    key === 'wishlist' ? 'wishlist_item' :
+                    key === 'userNotes' ? 'user_note' :
+                    key === 'waterTracker' ? 'water_entry' :
+                    key === 'taskCompletion' ? 'task_entry' :
+                    key === 'calendarDone' ? 'task_entry' :
+                    key === 'injectionHistory' ? 'injection' :
                     key.slice(0, -1); // Remove 's' from plural
     
     const firstItem = items[0];
@@ -398,6 +430,19 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
     return protocol;
   });
 
+  // Convert object-keyed data to flat arrays for PDF export
+  const waterTrackerArrayPDF = data.waterTracker && typeof data.waterTracker === 'object' && !Array.isArray(data.waterTracker)
+    ? Object.entries(data.waterTracker).map(([date, entry]) => ({ date, ...(typeof entry === 'object' ? entry : { glasses: entry }) }))
+    : [];
+
+  const taskCompletionArrayPDF = data.taskCompletion && typeof data.taskCompletion === 'object' && !Array.isArray(data.taskCompletion)
+    ? Object.entries(data.taskCompletion).map(([date, slots]) => ({ date, timeSlot: Object.keys(slots || {}).join(', '), tasks: JSON.stringify(slots) }))
+    : [];
+
+  const calendarDoneArrayPDF = data.calendarDone && typeof data.calendarDone === 'object' && !Array.isArray(data.calendarDone)
+    ? Object.entries(data.calendarDone).map(([date, slots]) => ({ date, timeSlot: Object.keys(slots || {}).join(', '), tasks: JSON.stringify(slots) }))
+    : [];
+
   const dataTypes = [
     { key: 'protocols', label: 'Protocols', data: processedProtocolsPDF },
     { key: 'protocolHistory', label: 'Protocol History', data: (data.protocolHistory || []).map(entry => {
@@ -430,6 +475,13 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
     { key: 'calendarNotes', label: 'Calendar Notes', data: calendarNotesArray },
     { key: 'goals', label: 'Goals', data: data.goals || [] },
     { key: 'glossary', label: 'Glossary', data: data.glossary || [] },
+    // Previously missing data types — now included for complete backup
+    { key: 'wishlist', label: 'Wishlist', data: data.wishlist || [] },
+    { key: 'userNotes', label: 'User Notes', data: data.userNotes || [] },
+    { key: 'injectionHistory', label: 'Injection History', data: data.injectionHistory || [] },
+    { key: 'waterTracker', label: 'Water Tracker', data: waterTrackerArrayPDF },
+    { key: 'taskCompletion', label: 'Task Completion', data: taskCompletionArrayPDF },
+    { key: 'calendarDone', label: 'Calendar Tasks Done', data: calendarDoneArrayPDF },
   ];
   
   dataTypes.forEach(({ key, label, data: items }) => {
@@ -459,6 +511,12 @@ export async function exportUserDataToPDF(data, filename = null, theme = null) {
                     key === 'calendarNotes' ? 'calendar_note' :
                     key === 'protocolHistory' ? 'protocol_history' :
                     key === 'goals' ? 'goal' :
+                    key === 'wishlist' ? 'wishlist_item' :
+                    key === 'userNotes' ? 'user_note' :
+                    key === 'waterTracker' ? 'water_entry' :
+                    key === 'taskCompletion' ? 'task_entry' :
+                    key === 'calendarDone' ? 'task_entry' :
+                    key === 'injectionHistory' ? 'injection' :
                     key.slice(0, -1);
     
     const firstItem = items[0];
@@ -673,7 +731,14 @@ function formatFieldName(field) {
     'calendarNotes': 'Calendar Notes',
     'scheduledBuys': 'Scheduled Buys',
     'reconHistory': 'Reconstitution History',
-    'reconItems': 'Reconstituted Items'
+    'reconItems': 'Reconstituted Items',
+    'userNotes': 'User Notes',
+    'waterTracker': 'Water Tracker',
+    'taskCompletion': 'Task Completion',
+    'calendarDone': 'Calendar Tasks Done',
+    'injectionHistory': 'Injection History',
+    'injectionStats': 'Injection Stats',
+    'timeSlot': 'Time Slot'
   };
   
   if (specialCases[field]) {

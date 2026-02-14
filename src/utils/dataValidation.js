@@ -298,3 +298,123 @@ export function safeParseLocalStorage(key, fallback) {
     return fallback;
   }
 }
+
+// ===== DATA RETENTION / PRUNING =====
+// Prevents unbounded growth of date-keyed objects and history arrays.
+
+/**
+ * Retention limits for various data types.
+ * These are generous limits — most users will never hit them.
+ * The goal is to prevent edge cases where years of data make
+ * localStorage or Firestore unusable.
+ */
+export const DATA_RETENTION_LIMITS = {
+  // Date-keyed objects: keep N most recent days
+  waterTracker: 365,       // 1 year of daily water tracking
+  taskCompletion: 365,     // 1 year of daily task data
+  calendarDone: 365,       // 1 year of calendar task data
+  // Arrays: keep N most recent items
+  protocolHistory: 500,    // 500 completed protocols
+  reconHistory: 1000,      // 1000 reconstitution records
+  orders: 1000,            // 1000 orders
+  // injectionHistory is already capped at 1000 in mergeInjectionHistory
+};
+
+/**
+ * Prune a date-keyed object to keep only the N most recent date entries.
+ * Date keys are expected to be in a parseable format (ISO, YYYY-MM-DD, etc.).
+ * @param {Object} dateObj - Object with date strings as keys
+ * @param {number} maxDays - Maximum number of date entries to keep
+ * @returns {Object} Pruned object with only the most recent entries
+ */
+export function pruneDateKeyedObject(dateObj, maxDays) {
+  if (!dateObj || typeof dateObj !== 'object') return dateObj;
+  
+  const entries = Object.entries(dateObj);
+  if (entries.length <= maxDays) return dateObj; // Nothing to prune
+  
+  // Sort by date key descending (newest first)
+  entries.sort((a, b) => {
+    const dateA = new Date(a[0]);
+    const dateB = new Date(b[0]);
+    // If dates are invalid, keep them at the end
+    if (isNaN(dateA.getTime())) return 1;
+    if (isNaN(dateB.getTime())) return -1;
+    return dateB.getTime() - dateA.getTime();
+  });
+  
+  // Keep only the most recent entries
+  const pruned = {};
+  const kept = entries.slice(0, maxDays);
+  kept.forEach(([key, value]) => {
+    pruned[key] = value;
+  });
+  
+  const removed = entries.length - kept.length;
+  if (removed > 0) {
+    console.log(`🧹 Pruned ${removed} old date entries (kept ${maxDays} most recent)`);
+  }
+  
+  return pruned;
+}
+
+/**
+ * Prune an array to keep only the N most recent items.
+ * Uses updatedAt or createdAt for sorting, falls back to array position.
+ * @param {Array} arr - Array of items
+ * @param {number} maxItems - Maximum number of items to keep
+ * @returns {Array} Pruned array
+ */
+export function pruneArray(arr, maxItems) {
+  if (!Array.isArray(arr) || arr.length <= maxItems) return arr;
+  
+  // Sort by timestamp descending (newest first)
+  const sorted = [...arr].sort((a, b) => {
+    const timeA = new Date(a?.updatedAt || a?.createdAt || a?.date || a?.startDate || 0).getTime();
+    const timeB = new Date(b?.updatedAt || b?.createdAt || b?.date || b?.startDate || 0).getTime();
+    if (isNaN(timeA)) return 1;
+    if (isNaN(timeB)) return -1;
+    return timeB - timeA;
+  });
+  
+  const removed = sorted.length - maxItems;
+  console.log(`🧹 Pruned ${removed} old items (kept ${maxItems} most recent)`);
+  
+  return sorted.slice(0, maxItems);
+}
+
+/**
+ * Apply retention limits to all data types before a cloud save.
+ * This is a safety net — it only removes the oldest data when limits are exceeded.
+ * @param {Object} data - The full app data object
+ * @returns {Object} Data with retention limits applied
+ */
+export function applyRetentionLimits(data) {
+  if (!data || typeof data !== 'object') return data;
+  
+  const result = { ...data };
+  
+  // Prune date-keyed objects
+  if (result.waterTracker && typeof result.waterTracker === 'object') {
+    result.waterTracker = pruneDateKeyedObject(result.waterTracker, DATA_RETENTION_LIMITS.waterTracker);
+  }
+  if (result.taskCompletion && typeof result.taskCompletion === 'object') {
+    result.taskCompletion = pruneDateKeyedObject(result.taskCompletion, DATA_RETENTION_LIMITS.taskCompletion);
+  }
+  if (result.calendarDone && typeof result.calendarDone === 'object') {
+    result.calendarDone = pruneDateKeyedObject(result.calendarDone, DATA_RETENTION_LIMITS.calendarDone);
+  }
+  
+  // Prune arrays
+  if (Array.isArray(result.protocolHistory)) {
+    result.protocolHistory = pruneArray(result.protocolHistory, DATA_RETENTION_LIMITS.protocolHistory);
+  }
+  if (Array.isArray(result.reconHistory)) {
+    result.reconHistory = pruneArray(result.reconHistory, DATA_RETENTION_LIMITS.reconHistory);
+  }
+  if (Array.isArray(result.orders)) {
+    result.orders = pruneArray(result.orders, DATA_RETENTION_LIMITS.orders);
+  }
+  
+  return result;
+}

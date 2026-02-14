@@ -32,6 +32,8 @@ import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
 import OCRImportModal from '../components/import/OCRImportModal';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal';
+import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal';
+import { saveProtocolHistoryEntry } from '../utils/protocolHistory';
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal';
 import GoalModal from '../components/research/GoalModal';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
@@ -39,6 +41,7 @@ import SupplementEditorModal from '../components/dashboard/SupplementEditorModal
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
+import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
@@ -63,7 +66,8 @@ export default function CustomizableDashboard() {
     setVendors,
     addVendor,
     protocols,
-    setProtocols, 
+    setProtocols,
+    addProtocol, 
     supplements, 
     addSupplement, 
     updateSupplement, 
@@ -73,6 +77,7 @@ export default function CustomizableDashboard() {
     reconHistory,
     calendarNotes,
     stockpile,
+    setStockpile,
     metrics,
     setMetrics
   } = useAppContext();
@@ -103,6 +108,7 @@ export default function CustomizableDashboard() {
   const [showNewVendor, setShowNewVendor] = useState(false);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showNewProtocol, setShowNewProtocol] = useState(false);
+  const [showQuickStartProtocol, setShowQuickStartProtocol] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
@@ -114,6 +120,7 @@ export default function CustomizableDashboard() {
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showStockpileAdd, setShowStockpileAdd] = useState(false);
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
   const [editingWishlistItem, setEditingWishlistItem] = useState(null);
   const [wishlist, setWishlist] = useState(() => {
@@ -905,6 +912,9 @@ export default function CustomizableDashboard() {
                       isReadOnly={isReadOnly}
                       onUpgrade={() => setShowUpgradeModal(true)}
                       onTaskToggle={handleTaskToggle}
+                      onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                      onOpenFullSetup={() => setShowNewProtocol(true)}
+                      onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
                       wishlist={wishlist}
@@ -1044,6 +1054,9 @@ export default function CustomizableDashboard() {
                         isReadOnly={isReadOnly}
                         onUpgrade={() => setShowUpgradeModal(true)}
                         onTaskToggle={handleTaskToggle}
+                      onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                      onOpenFullSetup={() => setShowNewProtocol(true)}
+                      onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                         onNewOrder={() => setShowNewOrder(true)}
                         onAddBuy={() => setShowAddBuyModal(true)}
                         onViewAllVendors={() => navigate('/app/vendors')}
@@ -1141,6 +1154,12 @@ export default function CustomizableDashboard() {
           setEditingVendor(null);
           setShowNewVendor(false);
         }}
+      />
+
+      <AddToStockpileBottomSheet
+        open={!!showStockpileAdd}
+        onClose={() => setShowStockpileAdd(false)}
+        theme={theme}
       />
 
       <OrderDetailsModal
@@ -1478,6 +1497,34 @@ export default function CustomizableDashboard() {
         }}
       />
 
+      <QuickStartProtocolModal
+        open={showQuickStartProtocol}
+        onClose={() => setShowQuickStartProtocol(false)}
+        theme={theme}
+        onSave={async (protocolData) => {
+          const finalProtocol = prepareItemForSave({ ...protocolData }, { isNew: true });
+          addProtocol(finalProtocol);
+          const now = new Date();
+          const historyEntry = {
+            id: generateId(),
+            protocolId: finalProtocol.id,
+            startDate: finalProtocol.startDate,
+            endDate: null,
+            status: 'active',
+            notes: [],
+            createdAt: now,
+            protocolData: {
+              protocolName: finalProtocol.protocolName,
+              peptides: finalProtocol.peptides || [],
+              linkedItems: finalProtocol.linkedItems || {}
+            }
+          };
+          saveProtocolHistoryEntry(historyEntry);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `${finalProtocol.protocolName} started successfully!`, type: 'success' } }));
+          setShowQuickStartProtocol(false);
+        }}
+      />
+
       <ProtocolEditorModal
         open={showNewProtocol}
         onClose={() => setShowNewProtocol(false)}
@@ -1485,9 +1532,10 @@ export default function CustomizableDashboard() {
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(protocol) => {
-          setProtocols(prev => [...prev, { ...protocol, id: generateId() }]);
+          const cleaned = prepareItemForSave({ id: generateId(), ...protocol, active: false, startDate: protocol.startDate || '' }, { isNew: true });
+          addProtocol(cleaned);
           setShowNewProtocol(false);
-          addToast('Protocol created', 'success');
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol created', type: 'success' } }));
         }}
       />
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Lock } from 'lucide-react';
+import { Truck, Lock, ChevronDown } from 'lucide-react';
 import UpcomingOrderCard from '../UpcomingOrderCard';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -9,7 +9,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
   if (!order) {
     return (
       <div className="relative h-full flex flex-col">
-        <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Incoming Orders
@@ -21,16 +21,22 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
           </div>
         </div>
         
-        <div className="flex-1 p-4 flex flex-col items-center justify-center">
-          <p className="text-sm mb-4 text-center" style={{ color: theme.textLight }}>
+        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden">
+          <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
             No active orders
           </p>
           <button
+            type="button"
             onClick={onNewOrder}
-            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            style={{
+              color: theme.primary,
+              backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+              border: `1px solid ${theme.primary}40`
+            }}
           >
-            <span className="text-hover">Add Order</span>
+            Add an Order
+            <ChevronDown size={14} />
           </button>
         </div>
         

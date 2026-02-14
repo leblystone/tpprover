@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Clock, FileText, RotateCw, Info } from 'lucide-react';
+import { Target, Clock, FileText, RotateCw, Info, TrendingUp, ArrowRight } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 
 // Modern theme colors - matching app aesthetic
@@ -111,26 +111,76 @@ export default function SharedProtocolCard({ item: p, theme }) {
                             Included Peptides
                         </div>
                         <div className="space-y-2">
-                            {p.peptides.map((peptide, index) => (
-                                <div 
-                                    key={peptide.id || index} 
-                                    className="p-2.5 rounded-xl bg-gray-50 flex justify-between items-center"
-                                >
-                                    <span className="text-xs font-bold" style={{ color: shareTheme.text }}>
-                                        {peptide.name || 'Unnamed Peptide'}
-                                    </span>
-                                    {peptide.dosage?.amount > 0 && (
-                                        <span className="text-[10px] font-semibold opacity-70" style={{ color: shareTheme.text }}>
-                                            {peptide.dosage.amount} {peptide.dosage.unit}
-                                            {peptide.frequency && (
-                                                <span className="ml-1 opacity-60">
-                                                    • {formatFrequency(peptide.frequency)}
+                            {p.peptides.map((peptide, index) => {
+                                const hasTitration = Array.isArray(peptide.titration) && peptide.titration.length > 0;
+                                return (
+                                    <div
+                                        key={peptide.id || index}
+                                        className="p-2.5 rounded-xl bg-gray-50"
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold" style={{ color: shareTheme.text }}>
+                                                {peptide.name || 'Unnamed Peptide'}
+                                            </span>
+                                            {!hasTitration && peptide.dosage?.amount > 0 && (
+                                                <span className="text-[10px] font-semibold opacity-70" style={{ color: shareTheme.text }}>
+                                                    {peptide.dosage.amount} {peptide.dosage.unit}
+                                                    {peptide.frequency && (
+                                                        <span className="ml-1 opacity-60">
+                                                            • {formatFrequency(peptide.frequency)}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             )}
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
+                                        </div>
+                                        {hasTitration && (
+                                            <div
+                                                className="mt-2 pt-2 border-t flex items-center gap-1 flex-wrap"
+                                                style={{ borderColor: `${shareTheme.border}80` }}
+                                            >
+                                                <div className="flex items-center gap-1 mb-1.5 w-full">
+                                                    <TrendingUp size={10} style={{ color: shareTheme.primary }} />
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: shareTheme.primary }}>
+                                                        Titration
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1 flex-wrap">
+                                                    {peptide.titration.map((phase, phaseIdx) => (
+                                                        <React.Fragment key={phaseIdx}>
+                                                            <div
+                                                                className="px-2 py-1 rounded text-[10px] font-medium"
+                                                                style={{
+                                                                    backgroundColor: `${shareTheme.primary}15`,
+                                                                    color: shareTheme.text,
+                                                                    border: `1px solid ${shareTheme.primary}30`
+                                                                }}
+                                                            >
+                                                                <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
+                                                                {(phase.durationCount && phase.durationUnit) && (
+                                                                    <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
+                                                                )}
+                                                            </div>
+                                                            {phaseIdx < peptide.titration.length - 1 && (
+                                                                <ArrowRight size={10} style={{ color: shareTheme.textLight, opacity: 0.5 }} />
+                                                            )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {hasTitration && peptide.frequency && (
+                                            <div className="text-[10px] opacity-60 mt-1" style={{ color: shareTheme.text }}>
+                                                {formatFrequency(peptide.frequency)}
+                                            </div>
+                                        )}
+                                        {!hasTitration && peptide.frequency && (
+                                            <div className="text-[10px] opacity-60 mt-1" style={{ color: shareTheme.text }}>
+                                                {formatFrequency(peptide.frequency)}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

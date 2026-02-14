@@ -216,7 +216,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                     <div className="text-base font-semibold" style={{ color: theme.text }}>
                       {lifetimeBase}
                     </div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • Every research tool included</div>
                   </div>
                 </div>
                 <button 

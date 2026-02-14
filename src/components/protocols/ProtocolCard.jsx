@@ -3,6 +3,7 @@ import { formatMMDDYYYY, parseDateString, normalizeToMidnight } from '../../util
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
+import { SHARE_BASE_PATH } from '../../utils/share';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
@@ -293,7 +294,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     onClose={() => setShareModalOpen(false)}
                     theme={theme}
                     title="Protocol"
-                    shareUrl={`${window.location.origin}/rover/protocols/${p.id}`}
+                    shareUrl={`${window.location.origin}${SHARE_BASE_PATH}/protocols/${p.id}`}
                     CardComponent={ProtocolCard}
                     cardProps={{ item: p, theme, isPublicView: true }}
                     shareData={{ ...p, type: 'protocol' }}
@@ -853,7 +854,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                 onClose={() => setShareModalOpen(false)}
                 theme={theme}
                 title="Protocol"
-                shareUrl={`${window.location.origin}/rover/protocols/${p.id}`}
+                shareUrl={`${window.location.origin}${SHARE_BASE_PATH}/protocols/${p.id}`}
                 CardComponent={ProtocolCard}
                 cardProps={{ item: p, theme, isPublicView: true }}
                 shareData={{ ...p, type: 'protocol' }}

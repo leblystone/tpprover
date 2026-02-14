@@ -124,12 +124,12 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Supplement Details (New Order modal style) */}
                 <div>
                     <div className="flex items-center gap-4 mb-4">
-                        <PillIcon size={32} style={{ color: theme.primary }} />
+                        <PillIcon size={28} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Supplement Details</h4>
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Supplement Details</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Name, Dosage & Dates
                                 </span>
                             </div>
@@ -182,12 +182,12 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Schedule (New Order modal style) */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <CalendarClock size={32} style={{ color: theme.primary }} />
+                        <CalendarClock size={28} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Schedule</h4>
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Schedule</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Time & Days
                                 </span>
                             </div>
@@ -243,12 +243,12 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Delivery Method (New Order modal style) */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <BadgeQuestionMark size={32} style={{ color: theme.primary }} />
+                        <BadgeQuestionMark size={28} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Oral, Injection or Powder
                                 </span>
                             </div>

@@ -1,0 +1,988 @@
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../../context/AppContext';
+import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
+import useAutoSave from '../../utils/useAutoSave';
+import BottomSheet from '../common/BottomSheet';
+import TextInput from '../common/inputs/TextInput';
+import VendorSuggestInput from '../vendors/VendorSuggestInput';
+import AutoSaveIndicator from '../common/AutoSaveIndicator';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import DocumentationUpload from '../common/DocumentationUpload';
+import ConfirmationModal from '../ui/ConfirmationModal';
+import { prepareItemForSave } from '../../utils/userDataSave';
+import { generateId } from '../../utils/string';
+import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
+
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade }) {
+  const { vendors, addVendor, setStockpile } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
+  const [isQuantityFocused, setIsQuantityFocused] = useState(false);
+  const [isPriceFocused, setIsPriceFocused] = useState(false);
+  const [isAmountUnitDropdownOpen, setIsAmountUnitDropdownOpen] = useState(false);
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
+  const [isPriceUnitDropdownOpen, setIsPriceUnitDropdownOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isSavingToStockpile, setIsSavingToStockpile] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+
+  const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
+    'tpprover_stockpile_form_draft',
+    form,
+    setForm,
+    2000,
+    async () => {}
+  );
+
+  const getPrimaryActionGradient = (saving) => {
+    const secondaryColor = theme?.secondary || '#d1d5db';
+    if (saving) return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+    return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+  };
+  const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+
+  const handleClose = () => {
+    setShowAdvanced(false);
+    const hasData = form && (form.name || form.mg || form.vendor || form.quantity);
+    if (hasData && !isSavingToStockpile) {
+      setShowCloseConfirmation(true);
+      return;
+    }
+    clearSavedData();
+    onClose();
+  };
+
+  const handleConfirmClose = () => {
+    clearSavedData();
+    setShowCloseConfirmation(false);
+    setShowAdvanced(false);
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isAmountUnitDropdownOpen && !isUnitDropdownOpen && !isPriceUnitDropdownOpen) return;
+    const handleClickOutside = (event) => {
+      const isClickInside = event.target.closest('[data-dropdown-container]');
+      if (!isClickInside) {
+        setIsAmountUnitDropdownOpen(false);
+        setIsUnitDropdownOpen(false);
+        setIsPriceUnitDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isAmountUnitDropdownOpen, isUnitDropdownOpen, isPriceUnitDropdownOpen]);
+
+  return (
+    <>
+      <ConfirmationModal
+        open={showCloseConfirmation}
+        onClose={() => setShowCloseConfirmation(false)}
+        onConfirm={handleConfirmClose}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmText="Close Without Saving"
+        cancelText="Cancel"
+        type="warning"
+        theme={theme}
+      />
+      <BottomSheet 
+        open={open} 
+        onClose={handleClose} 
+        title="Add to Stockpile" 
+        titleExtra={
+          <div className="flex items-center gap-2">
+            <AutoSaveIndicator 
+              isSaving={isSaving || isSavingToStockpile}
+              lastSaved={lastSaved}
+              theme={theme}
+              compact={true}
+              iconOnly={true}
+            />
+            {(isSaving || isSavingToStockpile) && (
+              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+                {isSavingToStockpile ? 'Saving...' : 'Auto-saving...'}
+              </span>
+            )}
+          </div>
+        }
+        theme={theme}
+        maxHeight="90vh" 
+        footer={(
+        <div className="w-full flex items-center justify-end gap-3">
+          <button 
+            onClick={async () => { 
+              try {
+                setIsSavingToStockpile(true);
+                setSaveError(null);
+                
+                if (isReadOnly) {
+                  onUpgrade && onUpgrade();
+                  return;
+                }
+                
+                // Validate required fields
+                if (!form.name || !form.name.trim()) {
+                  setSaveError('Peptide name is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
+                if (!form.mg || form.mg.trim() === '') {
+                  setSaveError('Amount is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
+                if (!form.quantity || form.quantity.trim() === '') {
+                  setSaveError('Quantity is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
+                // Auto-create new vendor if it doesn't exist
+                if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
+                    addVendor({ name: form.vendor, isStub: true });
+                }
+
+                const finalVendor = (vendors || []).find(v => v.name === form.vendor);
+                let itemToAdd = prepareItemForSave({ 
+                  ...form, 
+                  id: generateId(), 
+                  vendorId: finalVendor ? finalVendor.id : null
+                }, { isNew: true });
+                
+                // Convert kit to vials before saving
+                if (itemToAdd.unit === 'kit') {
+                    itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
+                    itemToAdd.unit = 'vial';
+                }
+
+                setStockpile(prev => [itemToAdd, ...prev]); 
+                markAsSubmitted(); // Clear auto-save data
+                
+                // Reset form first
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+                
+                // Reset advanced toggle for next entry
+                setShowAdvanced(false);
+                
+                // Show success notification
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                  detail: { 
+                    message: `✅ ${itemToAdd.name} added to stockpile!`, 
+                    type: 'success' 
+                  } 
+                }));
+                
+                // Reset saving state immediately
+                setIsSavingToStockpile(false);
+                
+                // Close modal - use requestAnimationFrame to ensure it happens after React state updates
+                requestAnimationFrame(() => {
+                  onClose();
+                });
+              } catch (error) {
+                console.error('❌ Failed to save stockpile item:', error);
+                setSaveError('Failed to save stockpile item. Please try again.');
+                setIsSavingToStockpile(false);
+              }
+            }} 
+            disabled={isSavingToStockpile || isReadOnly || !form.name?.trim() || !form.mg?.trim() || !form.quantity?.trim()}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap min-w-fit" 
+            style={{ 
+              background: getPrimaryActionGradient(isSavingToStockpile || isReadOnly),
+              color: (isSavingToStockpile || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+              border: 'none',
+              boxShadow: (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow
+            }}
+            onMouseEnter={(e) => {
+              if (isSavingToStockpile || isReadOnly) return;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToStockpile || isReadOnly);
+            }}
+            title={isReadOnly ? "Upgrade to save stockpile items" : "Save stockpile changes"}
+          >
+            {isSavingToStockpile ? 'Saving…' : (isReadOnly ? 'Save Changes (Upgrade Required)' : 'Save Changes')}
+          </button>
+        </div>
+      )}>
+        <div className="space-y-2">
+          {/* Error Display */}
+          {saveError && (
+            <div className="p-2 rounded-lg bg-red-50 border border-red-200">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm font-medium text-red-800">{saveError}</span>
+              </div>
+            </div>
+          )}
+          
+          {/* VIAL DETAILS Section Header */}
+          <div className="flex items-center gap-2 mb-1">
+            <TestTube size={28} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Amount & Quantity
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Main form */}
+          <div className="space-y-2">
+            <TextInput 
+              label="Peptide Name" 
+                value={form.name}
+              onChange={v => updateFormData({ name: v })} 
+              placeholder="e.g., BPC-157, Lipo-C" 
+              theme={theme}
+              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+              outlined={true}
+              customTextColor={theme.isDark ? null : "#181A18"}
+            />
+            {/* Amount & Quantity in two columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="relative">
+                <div 
+                  className="flex items-stretch rounded-lg"
+                  style={{ 
+                    border: `1px solid #f0eee7`,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                  }}
+                >
+                <input 
+                  type="text"
+                  id="amount-input"
+                  value={form.mg || ''} 
+                  onChange={e => updateFormData({ mg: e.target.value })} 
+                  onFocus={() => setIsAmountFocused(true)}
+                  onBlur={(e) => {
+                    setTimeout(() => {
+                      const relatedTarget = e.relatedTarget || document.activeElement
+                      const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                      if (!isClickingDropdown && !isAmountUnitDropdownOpen) {
+                        setIsAmountFocused(false)
+                      }
+                    }, 150)
+                  }}
+                  placeholder=" "
+                  className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: theme.isDark ? theme.text : '#181A18',
+                    border: 'none',
+                    paddingLeft: '12px',
+                    paddingRight: '8px'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  data-dropdown-container
+                  style={{ 
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    color: theme.isDark ? theme.text : '#181A18',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                  }}
+                >
+                  <span className="text-sm font-semibold">
+                    {(form.mgUnit || 'mg')}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <div 
+                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                  data-dropdown-container
+                  style={{
+                    maxHeight: isAmountUnitDropdownOpen ? '300px' : '0',
+                    opacity: isAmountUnitDropdownOpen ? 1 : 0,
+                    transform: isAmountUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isAmountUnitDropdownOpen ? 'auto' : 'none'
+                  }}
+                >
+                  <div 
+                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                      borderColor: theme.border,
+                      minWidth: '100px',
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                      {[
+                        { value: 'mg', label: 'mg' },
+                        { value: 'mL', label: 'mL' },
+                        { value: 'g', label: 'g' },
+                        { value: 'IU', label: 'IU' }
+                      ].map((option, optIdx) => (
+                        <React.Fragment key={option.value}>
+                          {optIdx > 0 && (
+                            <div 
+                              className="h-px mx-2"
+                              style={{ backgroundColor: theme.border }}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              updateFormData({ mgUnit: option.value });
+                              setIsAmountUnitDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                              e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              <label 
+                htmlFor="amount-input"
+                className="absolute pointer-events-none transition-all"
+                style={{
+                  fontSize: (isAmountFocused || (form.mg && form.mg.trim())) ? '0.75rem' : '0.9375rem',
+                  top: (isAmountFocused || (form.mg && form.mg.trim())) ? '-8px' : '14px',
+                  left: (isAmountFocused || (form.mg && form.mg.trim())) ? '12px' : '16px',
+                  padding: (isAmountFocused || (form.mg && form.mg.trim())) ? '0 4px' : '0',
+                  background: (isAmountFocused || (form.mg && form.mg.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  color: (isAmountFocused || (form.mg && form.mg.trim())) ? theme.primary : (theme.textLight || theme.text),
+                  fontWeight: 500
+                }}
+              >
+                Amount
+              </label>
+            </div>
+            <div className="relative">
+              <div 
+                className="flex items-stretch rounded-lg"
+                style={{ 
+                  border: `1px solid #f0eee7`,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                  backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                }}
+              >
+                <input 
+                  type="text"
+                  id="quantity-input"
+                  value={form.quantity || ''} 
+                  onChange={e => updateFormData({ quantity: e.target.value })} 
+                  onFocus={() => setIsQuantityFocused(true)}
+                  onBlur={(e) => {
+                    setTimeout(() => {
+                      const relatedTarget = e.relatedTarget || document.activeElement
+                      const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                      if (!isClickingDropdown && !isUnitDropdownOpen) {
+                        setIsQuantityFocused(false)
+                      }
+                    }, 150)
+                  }}
+                  placeholder=" "
+                  className="flex-1 px-3 py-2 outline-none min-w-0 rounded-l-lg"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: theme.isDark ? theme.text : '#181A18',
+                    border: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsUnitDropdownOpen(prev => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                  data-dropdown-container
+                  style={{ 
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    color: theme.isDark ? theme.text : '#181A18',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                  }}
+                >
+                  <span className="text-sm font-semibold">
+                    {(() => {
+                      const unit = (form.unit || 'vial').toLowerCase();
+                      const quantity = Number(form.quantity) || 1;
+                      if (unit === 'vial') {
+                        return quantity === 1 ? 'Vial' : 'Vials';
+                      } else if (unit === 'kit') {
+                        return quantity === 1 ? 'Kit' : 'Kits';
+                      } else if (unit === 'bottle') {
+                        return quantity === 1 ? 'Bottle' : 'Bottles';
+                      } else if (unit === 'tablets') {
+                        return 'Tablets';
+                      }
+                      return unit.charAt(0).toUpperCase() + unit.slice(1);
+                    })()}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <div 
+                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                  data-dropdown-container
+                  style={{
+                    maxHeight: isUnitDropdownOpen ? '300px' : '0',
+                    opacity: isUnitDropdownOpen ? 1 : 0,
+                    transform: isUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    pointerEvents: isUnitDropdownOpen ? 'auto' : 'none'
+                  }}
+                >
+                  <div 
+                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                      borderColor: theme.border,
+                      minWidth: '120px',
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                      {[
+                        { value: 'vial', label: 'Vial' },
+                        { value: 'kit', label: 'Kit' },
+                        { value: 'bottle', label: 'Bottle' },
+                        { value: 'tablets', label: 'Tablets' }
+                      ].map((option, optIdx) => (
+                        <React.Fragment key={option.value}>
+                          {optIdx > 0 && (
+                            <div 
+                              className="h-px mx-2"
+                              style={{ backgroundColor: theme.border }}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              updateFormData({ unit: option.value });
+                              setIsUnitDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                              e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = (form.unit || 'vial') === option.value ? theme.primary : theme.text;
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              <label 
+                htmlFor="quantity-input"
+                className="absolute pointer-events-none transition-all"
+                style={{
+                  fontSize: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '0.75rem' : '0.9375rem',
+                  top: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '-8px' : '14px',
+                  left: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '12px' : '16px',
+                  padding: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '0 4px' : '0',
+                  background: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  color: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? theme.primary : (theme.textLight || theme.text),
+                  fontWeight: 500
+                }}
+              >
+                Quantity
+              </label>
+            </div>
+            </div>
+          </div>
+          
+          <div className="relative">
+            <div 
+              className="flex items-stretch rounded-lg"
+              style={{ 
+                border: `1px solid #f0eee7`,
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+              }}
+            >
+              <input 
+                type="text"
+                id="price-input"
+                value={form.cost || ''} 
+                onChange={e => updateFormData({ cost: e.target.value })} 
+                onFocus={() => setIsPriceFocused(true)}
+                onBlur={(e) => {
+                  setTimeout(() => {
+                    const relatedTarget = e.relatedTarget || document.activeElement
+                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                    if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
+                      setIsPriceFocused(false)
+                    }
+                  }, 150)
+                }}
+                placeholder=" "
+                className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: theme.isDark ? theme.text : '#181A18',
+                  border: 'none',
+                  paddingLeft: '12px',
+                  paddingRight: '8px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                data-dropdown-container
+                style={{ 
+                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                  color: theme.isDark ? theme.text : '#181A18',
+                  minWidth: '100px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                }}
+              >
+                <span className="text-sm font-semibold">
+                  {(() => {
+                    const unit = (form.priceUnit || 'vial').toLowerCase();
+                    if (unit === 'vial') return 'Vial';
+                    if (unit === 'mg') return 'mg';
+                    if (unit === 'g') return 'g';
+                    if (unit === 'iu' || unit === 'IU') return 'IU';
+                    if (unit === 'tablet') return 'Tablet';
+                    return unit.charAt(0).toUpperCase() + unit.slice(1);
+                  })()}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div 
+                className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                data-dropdown-container
+                style={{
+                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
+                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
+                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
+                }}
+              >
+                <div 
+                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                  style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    minWidth: '120px',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                    {[
+                      { value: 'vial', label: 'Vial' },
+                      { value: 'mg', label: 'mg' },
+                      { value: 'g', label: 'g' },
+                      { value: 'iu', label: 'IU' },
+                      { value: 'tablet', label: 'Tablet' }
+                    ].map((option, optIdx) => (
+                      <React.Fragment key={option.value}>
+                        {optIdx > 0 && (
+                          <div 
+                            className="h-px mx-2"
+                            style={{ backgroundColor: theme.border }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            updateFormData({ priceUnit: option.value });
+                            setIsPriceUnitDropdownOpen(false);
+                          }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                              color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                              backgroundColor: 'transparent',
+                              WebkitTapHighlightColor: 'transparent'
+                            }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                            e.currentTarget.style.color = theme.primary;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                        </React.Fragment>
+                      ))}
+                  </div>
+                </div>
+            <label 
+              htmlFor="price-input"
+              className="absolute pointer-events-none transition-all"
+              style={{
+                fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
+                padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                fontWeight: 500
+              }}
+            >
+              Cost per ($)
+            </label>
+          </div>
+          </div>
+          
+          {/* ORDER DETAILS Section Header */}
+          <div className="flex items-center gap-2 mb-1">
+            <PackageOpen size={28} style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Purchase Information
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
+          
+          {/* Cost per - Moved under Order Details */}
+          <div className="relative">
+            <div 
+              className="flex items-stretch rounded-lg"
+              style={{ 
+                border: `1px solid #f0eee7`,
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+              }}
+            >
+              <input 
+                type="text"
+                id="price-input"
+                value={form.cost || ''} 
+                onChange={e => updateFormData({ cost: e.target.value })} 
+                onFocus={() => setIsPriceFocused(true)}
+                onBlur={(e) => {
+                  setTimeout(() => {
+                    const relatedTarget = e.relatedTarget || document.activeElement
+                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                    if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
+                      setIsPriceFocused(false)
+                    }
+                  }, 150)
+                }}
+                placeholder=" "
+                className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: theme.isDark ? theme.text : '#181A18',
+                  border: 'none',
+                  paddingLeft: '12px',
+                  paddingRight: '8px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                data-dropdown-container
+                style={{ 
+                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                  color: theme.isDark ? theme.text : '#181A18',
+                  minWidth: '100px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                }}
+              >
+                <span className="text-sm font-semibold">
+                  {(() => {
+                    const unit = (form.priceUnit || 'vial').toLowerCase();
+                    if (unit === 'vial') return 'Vial';
+                    if (unit === 'mg') return 'mg';
+                    if (unit === 'g') return 'g';
+                    if (unit === 'iu' || unit === 'IU') return 'IU';
+                    if (unit === 'tablet') return 'Tablet';
+                    return unit.charAt(0).toUpperCase() + unit.slice(1);
+                  })()}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div 
+                className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                data-dropdown-container
+                style={{
+                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
+                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
+                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
+                }}
+              >
+                <div 
+                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                  style={{
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    minWidth: '120px',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {[
+                    { value: 'vial', label: 'Vial' },
+                    { value: 'mg', label: 'mg' },
+                    { value: 'g', label: 'g' },
+                    { value: 'iu', label: 'IU' },
+                    { value: 'tablet', label: 'Tablet' }
+                  ].map((option, optIdx) => (
+                    <React.Fragment key={option.value}>
+                      {optIdx > 0 && (
+                        <div 
+                          className="h-px mx-2"
+                          style={{ backgroundColor: theme.border }}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          updateFormData({ priceUnit: option.value });
+                          setIsPriceUnitDropdownOpen(false);
+                        }}
+                          className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                          style={{
+                            color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                            backgroundColor: 'transparent',
+                            WebkitTapHighlightColor: 'transparent'
+                          }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                          e.currentTarget.style.color = theme.primary;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+            <label 
+              htmlFor="price-input"
+              className="absolute pointer-events-none transition-all"
+              style={{
+                fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
+                padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                fontWeight: 500
+              }}
+            >
+              Cost per ($)
+            </label>
+          </div>
+          </div>
+          
+          {/* Advanced Options Accordion - At the end, matching protocol modal style */}
+          <div className="rounded-lg border transition-all" style={{ 
+            borderColor: showAdvanced ? theme.primary + '40' : theme.border,
+            backgroundColor: showAdvanced ? theme.cardBackground : (theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)')
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                {showAdvanced ? (
+                  <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                ) : (
+                  <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm" style={{ color: theme.text }}>
+                    Advanced Options
+                  </div>
+                  {!showAdvanced && (
+                    <div className="text-xs mt-0.5 flex items-center gap-2 flex-wrap" style={{ color: theme.textLight }}>
+                      <span>Purity, Cap Color, Batch #, Date, Documentation</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Advanced Content - Collapsible */}
+            <div 
+              className="overflow-hidden transition-all duration-300 ease-in-out"
+              style={{
+                maxHeight: showAdvanced ? '1000px' : '0',
+                opacity: showAdvanced ? 1 : 0
+              }}
+            >
+              <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
+                <TextInput 
+                  label="Crimp / Cap Color" 
+                  value={form.capColor} 
+                  onChange={v => updateFormData({ capColor: v })} 
+                  placeholder="Black Crimp/Black Cap" 
+                  theme={theme} 
+                  uppercase={true} 
+                  outlined={true} 
+                  customTextColor={theme.isDark ? null : "#181A18"} 
+                  customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                />
+                
+                {/* Purity & Batch Number in two columns */}
+                <div className="grid grid-cols-2 gap-2">
+                  <TextInput 
+                    label="Purity %" 
+                    value={form.purity} 
+                    onChange={v => updateFormData({ purity: v })} 
+                    placeholder="e.g., 98 (default: 99%)" 
+                    theme={theme} 
+                    outlined={true} 
+                    customTextColor={theme.isDark ? null : "#181A18"} 
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  />
+                  <TextInput 
+                    label="Batch #" 
+                    value={form.batchNumber} 
+                    onChange={v => updateFormData({ batchNumber: v })} 
+                    placeholder="# XXX" 
+                    theme={theme} 
+                    uppercase={true} 
+                    outlined={true} 
+                    customTextColor={theme.isDark ? null : "#181A18"} 
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  />
+                </div>
+                
+                {/* Date Acquired */}
+                <GlassmorphismDatePicker
+                  value={form.date}
+                  onChange={(dateString) => updateFormData({ date: dateString })}
+                  theme={theme}
+                  placeholder="Date Acquired"
+                />
+                
+                {/* EXTRA DETAILS Section Header */}
+                <div className="flex items-center gap-2 mb-1">
+                  <ImageUp size={28} style={{ color: theme.primary }} />
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                    <div className="flex items-center gap-2 ml-1">
+                      <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                      <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                        Documentation
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Documentation Upload */}
+                <div className="mt-3">
+                  <DocumentationUpload
+                    documentation={form.documentation}
+                    onChange={(documentation) => updateFormData({ documentation })}
+                    theme={theme}
+                    title=""
+                    description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
+                    placeholder="Add photos, screenshots, or files that correlate with this peptide."
+                    allowImages={true}
+                    allowLinks={true}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+      </BottomSheet>
+    </>
+  );
+}

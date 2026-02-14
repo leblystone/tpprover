@@ -6,7 +6,7 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 const DROPDOWN_HEIGHT_COMPACT = 260;
 const DROPDOWN_HEIGHT_FULL = 320;
 
-export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false }) {
+export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false, preferOpenAbove = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
         if (value) {
@@ -196,15 +196,24 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     top = containerTop + 16;
                 }
             } else {
-                // On mobile, position below the button
-                top = buttonRect.bottom + 8;
-                if (top + calendarHeight > containerBottom - 16) {
-                    // Show above the button instead
-                    top = buttonRect.top - calendarHeight - 8;
-                    // If still off screen at top, position at bottom of container
-                    if (top < containerTop + 16) {
-                        top = containerBottom - calendarHeight - 16;
-                    }
+                // On mobile: prefer above when preferOpenAbove (e.g. in modals), else below
+                const spaceAbove = buttonRect.top - containerTop - 16;
+                const spaceBelow = containerBottom - buttonRect.bottom - 16;
+                const positionAbove = buttonRect.top - calendarHeight - 8;
+                const positionBelow = buttonRect.bottom + 8;
+
+                if (preferOpenAbove && spaceAbove >= calendarHeight + 8) {
+                    top = positionAbove;
+                } else if (!preferOpenAbove && spaceBelow >= calendarHeight + 8) {
+                    top = positionBelow;
+                } else if (spaceAbove >= calendarHeight + 8) {
+                    top = positionAbove;
+                } else if (spaceBelow >= calendarHeight + 8) {
+                    top = positionBelow;
+                } else {
+                    top = spaceAbove >= spaceBelow ? positionAbove : positionBelow;
+                    if (top < containerTop + 16) top = containerTop + 16;
+                    if (top + calendarHeight > containerBottom - 16) top = containerBottom - calendarHeight - 16;
                 }
             }
             
@@ -360,9 +369,20 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     }
 
     const calendarDropdown = createPortal(
-        <div
-            ref={dropdownRef}
-            className="fixed rounded-xl overflow-hidden transition-all duration-300 ease-in-out"
+        <>
+            {/* Invisible overlay: click outside calendar to close (reliable on touch) */}
+            <div
+                aria-hidden="true"
+                className="fixed inset-0"
+                style={{
+                    zIndex: 2147483646,
+                    pointerEvents: isOpen ? 'auto' : 'none'
+                }}
+                onClick={() => setIsOpen(false)}
+            />
+            <div
+                ref={dropdownRef}
+                className="fixed rounded-xl overflow-hidden transition-all duration-300 ease-in-out"
             style={{
                 backdropFilter: 'blur(24px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -557,7 +577,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     Clear
                 </button>
             </div>
-        </div>,
+        </div>
+        </>,
         document.body
     );
 

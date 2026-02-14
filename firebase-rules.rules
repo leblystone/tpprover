@@ -16,7 +16,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read: if isAdmin(); // Admin can read user data for analytics
-      allow read: if true; // TEMPORARY: Allow unauthenticated read for email checking during login
+      // Email checking during login uses fetchSignInMethodsForEmail (Auth SDK, not Firestore)
+      // so unauthenticated Firestore read is NOT needed. Removed open read rule.
+      allow read: if request.auth != null; // Authenticated users can query by email for account checks
       allow write: if isAdmin(); // Admin can write to update user subscriptions (lifetime access)
     }
     
@@ -28,19 +30,19 @@ service cloud.firestore {
     // Invite codes - read for validation during signup, admin can manage
     match /inviteCodes/{codeId} {
       allow read: if true; // Anyone can read for validation during signup
-      allow create, update, delete: if true; // Temporarily open for beta launch
+      allow create, update, delete: if isAdmin(); // Only admin can manage invite codes
     }
     
     // Email whitelist - read for validation during signup, admin can manage
     match /config/emailWhitelist {
       allow read: if true; // Anyone can read for validation during signup
-      allow write: if true; // Temporarily open for beta launch
+      allow write: if isAdmin(); // Only admin can manage email whitelist
     }
     
     // Announcements - all users can read, admin can manage
     match /announcements/{announcementId} {
       allow read: if true; // All users can read announcements
-      allow create, update, delete: if true; // Temporarily open for beta launch
+      allow create, update, delete: if isAdmin(); // Only admin can manage announcements
     }
     
     // Analytics - admin only for privacy
@@ -48,10 +50,10 @@ service cloud.firestore {
       allow read, write: if isAdmin(); // Only admin can access analytics
     }
     
-    // Feedback collection - users can submit, admin can read
+    // Feedback collection - users can submit, admin can read/manage
     match /feedback/{feedbackId} {
       allow create: if request.auth != null; // Authenticated users can submit feedback
-      allow read, update, delete: if true; // Temporarily open for beta launch - admin access
+      allow read, update, delete: if isAdmin(); // Only admin can read/manage feedback
     }
     
     // Support tickets - users can create and read their own, admin can read/write all
@@ -95,19 +97,19 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow read, update, delete: if request.auth != null && 
         request.auth.token.email == resource.data.userEmail;
-      allow create: if true; // Admin can create notifications for users
+      allow create: if isAdmin(); // Only admin can create notifications
     }
     
     // User notification settings - users can manage their own settings
     match /userNotificationSettings/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read, write: if request.auth != null; // Fallback for email-based auth
+      // Removed overly broad fallback rule that let any authenticated user read/write any user's settings
     }
     
     // Push notification subscriptions - users can manage their own subscriptions
     match /pushSubscriptions/{subscriptionId} {
       allow read, write: if request.auth != null;
-      allow create: if true; // Allow creation for PWA setup
+      // PWA push subscription creation requires authentication (removed unauthenticated create)
     }
     
     // ===== CLOUD STORAGE COLLECTIONS (CRITICAL SECURITY) =====
@@ -124,8 +126,24 @@ service cloud.firestore {
     }
     
     // User subscriptions - trial, paid plans
+    // SECURITY: Users can read their own subscription but writes are restricted.
+    // Cloud functions (Stripe webhooks via admin SDK) bypass these rules entirely.
+    // Client writes are allowed for trial setup etc, but cannot self-promote to 'active'
+    // or grant themselves lifetime access — only webhooks/admin can do that.
     match /userSubscriptions/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow create (initial trial setup) — but block hasLifetimeAccess: true
+      allow create: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.get('hasLifetimeAccess', false) == false
+        && request.resource.data.get('status', '') != 'active';
+      // Allow update — but cannot self-promote status to 'active' or grant lifetime access
+      allow update: if request.auth != null && request.auth.uid == userId
+        // Cannot grant self lifetime access (only admin SDK / webhooks can set this to true)
+        && (request.resource.data.get('hasLifetimeAccess', false) == false
+            || resource.data.get('hasLifetimeAccess', false) == true)
+        // Cannot set status to 'active' unless it was already 'active' (only webhooks activate)
+        && (request.resource.data.get('status', '') != 'active'
+            || resource.data.get('status', '') == 'active');
     }
     
     // User state - onboarding, demo flags

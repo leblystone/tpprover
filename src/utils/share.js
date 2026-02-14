@@ -1,5 +1,8 @@
 import { deflate, inflate } from 'pako';
 
+/** Base path for share links (public, no login). Was /rover during development. */
+export const SHARE_BASE_PATH = '/share';
+
 const EXPIRE_HOURS = 24;
 
 export function encodeShareData(data) {

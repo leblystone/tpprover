@@ -148,6 +148,26 @@ export default function Login() {
     // DISABLED: Intro screen disabled - go straight to login
     // Only show intro for testing with ?testIntro=true
     const [showIntro, setShowIntro] = useState(testIntro ? true : false);
+
+    // Lock body scroll on login/signup screen (fixes iOS scrollable login)
+    useEffect(() => {
+        if (showIntro) return; // intro has its own layout
+        const html = document.documentElement;
+        const body = document.body;
+        const prevHtmlOverflow = html.style.overflow;
+        const prevBodyOverflow = body.style.overflow;
+        const prevBodyPosition = body.style.position;
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.width = '100%';
+        return () => {
+            html.style.overflow = prevHtmlOverflow;
+            body.style.overflow = prevBodyOverflow;
+            body.style.position = prevBodyPosition;
+            body.style.width = '';
+        };
+    }, [showIntro]);
     
     const handleIntroComplete = () => {
         setShowIntro(false);
@@ -1457,27 +1477,18 @@ export default function Login() {
                     overflow: hidden !important;
                 }
             `}</style>
-            {/* Full-screen background wrapper - extends edge-to-edge */}
+            {/* Single fixed viewport: no document scroll on iOS (100dvh = dynamic viewport height) */}
             <div 
-                className="fixed inset-0"
+                className="fixed inset-0 flex flex-col items-center justify-center z-10 overflow-hidden"
                 style={{ 
                     backgroundColor: theme.background,
-                    zIndex: 0
-                }}
-            />
-            {/* Content container with safe area padding */}
-            <div 
-                className="relative min-h-screen flex flex-col items-center justify-center z-10" 
-                style={{ 
-                    // Top padding: base padding + safe area (for status bar/notch)
+                    // iOS: 100dvh avoids Safari address-bar quirk; fallbacks for older browsers
+                    height: '100dvh',
+                    minHeight: '-webkit-fill-available',
                     paddingTop: 'max(1rem, calc(1rem + var(--safe-area-top, env(safe-area-inset-top, 0px))))',
-                    // Bottom padding: base padding + safe area (for bottom navigation/home indicator)
-                    // Minimum 1rem, but adds extra space when browser UI is present
                     paddingBottom: 'max(1rem, calc(1rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))',
                     paddingLeft: '1rem',
                     paddingRight: '1rem',
-                    // Adjust min-height to account for safe areas so content doesn't get cut off
-                    minHeight: 'calc(100vh - var(--safe-area-top, env(safe-area-inset-top, 0px)) - var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))'
                 }}
             >
                 <div className="w-full max-w-md">

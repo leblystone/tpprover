@@ -105,6 +105,14 @@ export default function SettingsData() {
       metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
       goals: JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]'),
       protocolHistory: JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]'),
+      // Previously missing data types — now included for complete backup
+      wishlist: JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]'),
+      userNotes: JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]'),
+      waterTracker: JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'),
+      taskCompletion: JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}'),
+      calendarDone: JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}'),
+      injectionHistory: JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]'),
+      injectionStats: JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}'),
     };
   };
 
@@ -240,6 +248,16 @@ export default function SettingsData() {
       if (data.reconItems) localStorage.setItem('tpprover_recon_items', JSON.stringify(data.reconItems))
       if (data.reconHistory) localStorage.setItem('tpprover_recon_history', JSON.stringify(data.reconHistory))
       if (data.metrics) localStorage.setItem('tpprover_metrics', JSON.stringify(data.metrics))
+      // Previously missing from import — now included for complete restore
+      if (data.protocolHistory) localStorage.setItem('tpprover_protocol_history', JSON.stringify(data.protocolHistory))
+      if (data.goals) localStorage.setItem('tpprover_user_goals', JSON.stringify(data.goals))
+      if (data.wishlist) localStorage.setItem('tpprover_wishlist', JSON.stringify(data.wishlist))
+      if (data.userNotes) localStorage.setItem('tpprover_user_notes', JSON.stringify(data.userNotes))
+      if (data.waterTracker) localStorage.setItem('tpprover_water_tracker', JSON.stringify(data.waterTracker))
+      if (data.taskCompletion) localStorage.setItem('tpprover_task_completion', JSON.stringify(data.taskCompletion))
+      if (data.calendarDone) localStorage.setItem('tpprover_calendar_done', JSON.stringify(data.calendarDone))
+      if (data.injectionHistory) localStorage.setItem('tpprover_injection_history', JSON.stringify(data.injectionHistory))
+      if (data.injectionStats) localStorage.setItem('tpprover_injection_stats', JSON.stringify(data.injectionStats))
       
       const itemCounts = {
         protocols: data.protocols?.length || 0,
@@ -251,7 +269,15 @@ export default function SettingsData() {
         scheduledBuys: data.scheduledBuys?.length || 0,
         reconItems: data.reconItems?.length || 0,
         reconHistory: data.reconHistory?.length || 0,
-        metrics: data.metrics?.length || 0
+        metrics: data.metrics?.length || 0,
+        protocolHistory: data.protocolHistory?.length || 0,
+        goals: data.goals?.length || 0,
+        wishlist: data.wishlist?.length || 0,
+        userNotes: data.userNotes?.length || 0,
+        waterTracker: data.waterTracker ? Object.keys(data.waterTracker).length : 0,
+        taskCompletion: data.taskCompletion ? Object.keys(data.taskCompletion).length : 0,
+        calendarDone: data.calendarDone ? Object.keys(data.calendarDone).length : 0,
+        injectionHistory: data.injectionHistory?.length || 0,
       };
       
       const totalItems = Object.values(itemCounts).reduce((sum, count) => sum + count, 0);

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette } from 'lucide-react';
+import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette, ChevronDown, Zap, CheckCheck } from 'lucide-react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -60,9 +60,10 @@ const getResolvedPenColor = (penColor) => {
   return foundColor ? foundColor.hex : '#9ca3af';
 };
 
-const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
+  const [showStartOptions, setShowStartOptions] = useState(false);
   const clickTimers = useRef({});
   
   // Check if there are any injection tasks
@@ -138,10 +139,70 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </div>
         </div>
         
-        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center">
-          <p className="text-xs sm:text-sm text-center px-2" style={{ color: theme.textLight }}>
-            No research scheduled for today
-          </p>
+        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden">
+          {!showStartOptions ? (
+            <>
+              <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+                No research scheduled for today
+              </p>
+              <button
+                type="button"
+                onClick={() => (onOpenQuickStart || onOpenFullSetup) && setShowStartOptions(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                style={{
+                  color: theme.primary,
+                  backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                  border: `1px solid ${theme.primary}40`
+                }}
+              >
+                Let&apos;s Start
+                <ChevronDown size={14} />
+              </button>
+            </>
+          ) : (
+            <div className="w-full max-w-[260px] space-y-2 overflow-y-auto">
+              {onOpenQuickStart && (
+                <button
+                  type="button"
+                  onClick={() => { setShowStartOptions(false); onOpenQuickStart(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  style={{
+                    color: theme.text,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                    border: `1px solid ${theme.border}`
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
+                >
+                  <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm">Quick Start Protocol</div>
+                    <div className="text-[10px] opacity-60">30 sec, add details later</div>
+                  </div>
+                </button>
+              )}
+              {onOpenFullSetup && (
+                <button
+                  type="button"
+                  onClick={() => { setShowStartOptions(false); onOpenFullSetup(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  style={{
+                    color: theme.text,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                    border: `1px solid ${theme.border}`
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
+                >
+                  <CheckCheck size={18} style={{ color: theme.textLight }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm">Full Protocol Setup</div>
+                    <div className="text-[10px] opacity-60">Complete details</div>
+                  </div>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         
         <InjectionHistoryModal

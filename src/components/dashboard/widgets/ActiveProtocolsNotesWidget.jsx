@@ -1,10 +1,11 @@
-import React from 'react';
-import { FlaskConical, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { FlaskConical, Lock, ChevronDown, Zap, CheckCheck } from 'lucide-react';
 import ActiveProtocolsNotes from '../ActiveProtocolsNotes';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isReadOnly = false, onUpgrade }) => {
+const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpenQuickStart, onOpenFullSetup, isReadOnly = false, onUpgrade }) => {
+    const [showStartOptions, setShowStartOptions] = useState(false);
     // Filter active protocols
     const activeProtocols = protocols ? protocols.filter(p => {
         if (p?.active !== true) return false;
@@ -44,10 +45,70 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, isRea
                     </div>
                 </div>
                 
-                <div className="flex-1 p-4 flex flex-col items-center justify-center">
-                    <p className="text-sm text-center" style={{ color: theme.textLight }}>
-                        No active protocols
-                    </p>
+                <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden">
+                    {!showStartOptions ? (
+                        <>
+                            <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+                                No active protocols
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => (onOpenQuickStart || onOpenFullSetup) && setShowStartOptions(true)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                                style={{
+                                    color: theme.primary,
+                                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                                    border: `1px solid ${theme.primary}40`
+                                }}
+                            >
+                                Add a Protocol
+                                <ChevronDown size={14} />
+                            </button>
+                        </>
+                    ) : (
+                        <div className="w-full max-w-[260px] space-y-2 overflow-y-auto">
+                            {onOpenQuickStart && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowStartOptions(false); onOpenQuickStart(); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                                    style={{
+                                        color: theme.text,
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                                        border: `1px solid ${theme.border}`
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
+                                >
+                                    <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-sm">Quick Start Protocol</div>
+                                        <div className="text-[10px] opacity-60">30 sec, add details later</div>
+                                    </div>
+                                </button>
+                            )}
+                            {onOpenFullSetup && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowStartOptions(false); onOpenFullSetup(); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                                    style={{
+                                        color: theme.text,
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                                        border: `1px solid ${theme.border}`
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
+                                >
+                                    <CheckCheck size={18} style={{ color: theme.textLight }} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-sm">Full Protocol Setup</div>
+                                        <div className="text-[10px] opacity-60">Complete details</div>
+                                    </div>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 {/* Lockout Overlay */}
