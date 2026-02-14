@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
+import { FileText, Plus, Trash2, ChevronDown } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
-import { generateId } from '../../../utils/string';
-import { prepareItemForSave } from '../../../utils/userDataSave';
 import { recordDeletion } from '../../../utils/deletionTracking';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const NotesWidget = ({ widget, theme }) => {
+const NotesWidget = ({ widget, theme, protocols = [] }) => {
   const [userNotes, setUserNotes] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
-  const [newNote, setNewNote] = useState({ title: '', content: '' });
+  const [openNotesForAdd, setOpenNotesForAdd] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -38,46 +35,31 @@ const NotesWidget = ({ widget, theme }) => {
     }
   };
 
-  const handleAddNote = () => {
-    if (!newNote.content.trim()) return;
+  const openAddNoteSheet = () => {
+    setOpenNotesForAdd(true);
+    setShowNotesModal(true);
+  };
 
-    const note = prepareItemForSave(
-      {
-        title: newNote.title.trim() || 'Quick Note',
-        content: newNote.content.trim(),
-        createdAt: new Date().toISOString()
-      },
-      { isNew: true }
-    );
+  const handleViewAll = () => {
+    setOpenNotesForAdd(false);
+    setShowNotesModal(true);
+  };
 
-    const updatedNotes = [note, ...userNotes];
-    saveNotes(updatedNotes);
-    setNewNote({ title: '', content: '' });
-    setShowAddForm(false);
+  const handleCloseNotesSheet = () => {
+    setShowNotesModal(false);
+    setOpenNotesForAdd(false);
   };
 
   const handleDeleteNote = (e, noteId) => {
     e.stopPropagation();
     const noteToDelete = userNotes.find(note => note.id === noteId);
-    
-    // Record deletion with item snapshot for restore functionality
     if (noteToDelete) {
       recordDeletion('userNotes', noteId, noteToDelete);
     } else {
       recordDeletion('userNotes', noteId);
     }
-    
     const updatedNotes = userNotes.filter(note => note.id !== noteId);
     saveNotes(updatedNotes);
-  };
-
-  const handleViewAll = () => {
-    setShowNotesModal(true);
-  };
-
-  const handleCancel = () => {
-    setNewNote({ title: '', content: '' });
-    setShowAddForm(false);
   };
 
   // Show only the last 2 notes
@@ -93,73 +75,29 @@ const NotesWidget = ({ widget, theme }) => {
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); openAddNoteSheet(); }}
+              className="rounded-full flex items-center justify-center transition-colors touch-manipulation hover:opacity-90"
+              style={{
+                color: '#ffffff',
+                backgroundColor: theme.primary,
+                width: 28,
+                height: 28,
+                padding: 0,
+                border: 'none',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15)',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+              aria-label="Add note"
+            >
+              <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+            </button>
           </div>
         </div>
       </div>
       
       <div className="flex-1 p-4 flex flex-col min-h-0">
-        {showAddForm ? (
-          /* Add Note Form */
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="Note title (optional)"
-              value={newNote.title}
-              onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-all"
-              style={{ 
-                borderColor: theme.border, 
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.primary;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = theme.border;
-              }}
-            />
-            <textarea
-              placeholder="Write your note..."
-              value={newNote.content}
-              onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 transition-all"
-              rows="3"
-              style={{ 
-                borderColor: theme.border, 
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.primary;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = theme.border;
-              }}
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddNote}
-                disabled={!newNote.content.trim()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                <Save size={14} />
-                Save
-              </button>
-              <button
-                onClick={handleCancel}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ backgroundColor: theme.secondary, color: theme.text }}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Notes List or Empty State */
           <div className="flex-1 flex flex-col min-h-0">
             {recentNotes.length > 0 ? (
               <>
@@ -169,7 +107,7 @@ const NotesWidget = ({ widget, theme }) => {
                       key={note.id} 
                       className="group p-2 rounded-lg hover:shadow-sm transition-all duration-200 cursor-pointer" 
                       style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}
-                      onClick={() => setShowNotesModal(true)}
+                      onClick={handleViewAll}
                     >
                       <div className="flex items-start justify-between mb-1">
                         {note.title && note.title !== 'Quick Note' && (
@@ -194,65 +132,51 @@ const NotesWidget = ({ widget, theme }) => {
                     </div>
                   ))}
                 </div>
-                
-                {/* View More Button */}
-                {userNotes.length > 2 && (
-                  <button
-                    onClick={handleViewAll}
-                    className="w-full py-1.5 px-2 rounded-lg text-xs font-medium transition-colors mb-2 opacity-75 hover:opacity-100"
-                    style={{ color: theme.textLight, backgroundColor: theme.secondary + '20' }}
-                  >
-                    <Eye size={12} className="inline mr-1" />
-                    View More ({userNotes.length - 2} more)
-                  </button>
-                )}
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <FileText size={32} className="mb-3 opacity-50" style={{ color: theme.textLight }} />
-                <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+              <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0">
+                <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
                   No research notes yet
                 </p>
+                <button
+                  type="button"
+                  onClick={openAddNoteSheet}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                  style={{
+                    color: theme.primary,
+                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                    border: `1px solid ${theme.primary}40`
+                  }}
+                >
+                  Add Note
+                  <ChevronDown size={14} />
+                </button>
               </div>
             )}
-
-            {/* Action Buttons */}
-            <div className="space-y-2 flex-shrink-0">
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1"
-                style={{ 
-                  backgroundColor: theme.primary, 
-                  color: theme.textOnPrimary || '#ffffff',
-                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-              >
-                <Plus size={12} />
-                Add Note
-              </button>
-              
-              {userNotes.length > 0 && userNotes.length <= 2 && (
-                <button
-                  onClick={handleViewAll}
-                  className="w-full px-3 py-1 rounded text-xs font-medium transition-colors opacity-75 hover:opacity-100"
-                  style={{ color: theme.textLight }}
-                >
-                  <Eye size={12} className="inline mr-1" />
-                  View All ({userNotes.length})
-                </button>
-              )}
-            </div>
           </div>
-        )}
       </div>
 
-      {/* Notes Modal */}
+      {userNotes.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleViewAll(); }}
+          className="mt-3 text-sm text-center hover:underline transition-all duration-200 flex-shrink-0 cursor-pointer touch-manipulation px-4 pb-3"
+          style={{ color: theme.primary, WebkitTapHighlightColor: 'transparent' }}
+        >
+          View All
+        </button>
+      )}
+
+      {/* Notes Bottom Sheet */}
       <NotesModal 
         isOpen={showNotesModal}
-        onClose={() => setShowNotesModal(false)}
+        onClose={handleCloseNotesSheet}
         theme={theme}
         notes={userNotes}
         onNotesChange={saveNotes}
+        protocols={protocols}
+        initialShowAddForm={openNotesForAdd}
+        openedForAddOnly={openNotesForAdd}
       />
     </div>
   );
