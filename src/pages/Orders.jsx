@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
-import { PlusCircle, Package } from 'lucide-react'
+import { PlusCircle, Package, Filter } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import OrdersTipsBanner from '../components/orders/OrdersTipsBanner'
@@ -34,6 +34,7 @@ export default function Orders() {
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'delivered'
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	const [deletingOrderId, setDeletingOrderId] = useState(null);
 	
@@ -447,9 +448,16 @@ export default function Orders() {
 	const filteredOrdersByCategory = useMemo(() => {
 		return filteredOrders.filter(o => {
 			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
-			return orderCategory === activeTab;
+			if (orderCategory !== activeTab) return false;
+			
+			// Apply status filter
+			if (statusFilter === 'all') return true;
+			const orderStatus = (o.status || 'Order Placed').toLowerCase();
+			if (statusFilter === 'delivered') return orderStatus.includes('delivered');
+			if (statusFilter === 'active') return !orderStatus.includes('delivered');
+			return true;
 		})
-	}, [filteredOrders, activeTab]);
+	}, [filteredOrders, activeTab, statusFilter]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		if (!newOrder) {
@@ -688,9 +696,47 @@ export default function Orders() {
 		}
 	};
 
+	// Count orders by status for the current category
+	const statusCounts = useMemo(() => {
+		const categoryOrders = filteredOrders.filter(o => {
+			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
+			return orderCategory === activeTab;
+		});
+		const delivered = categoryOrders.filter(o => (o.status || '').toLowerCase().includes('delivered')).length;
+		return { all: categoryOrders.length, active: categoryOrders.length - delivered, delivered };
+	}, [filteredOrders, activeTab]);
+
 	return (
 		<section>
 			<OrdersTipsBanner theme={theme} />
+
+			{/* Status filter pills */}
+			{statusCounts.all > 0 && (
+				<div className="flex items-center gap-2 mt-4 px-1">
+					<Filter size={14} style={{ color: theme.textLight, opacity: 0.5 }} />
+					{[
+						{ value: 'all', label: 'All', count: statusCounts.all },
+						{ value: 'active', label: 'Active', count: statusCounts.active },
+						{ value: 'delivered', label: 'Delivered', count: statusCounts.delivered }
+					].map(opt => {
+						const isActive = statusFilter === opt.value;
+						return (
+							<button
+								key={opt.value}
+								onClick={() => setStatusFilter(opt.value)}
+								className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+								style={{
+									backgroundColor: isActive ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+									color: isActive ? (theme.textOnPrimary || '#fff') : theme.textLight,
+									border: `1px solid ${isActive ? theme.primary : 'transparent'}`
+								}}
+							>
+								{opt.label} {opt.count > 0 ? `(${opt.count})` : ''}
+							</button>
+						);
+					})}
+				</div>
+			)}
 
 			<div className="mt-6">
 				{activeTab === 'groupbuy' ? (

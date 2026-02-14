@@ -425,7 +425,6 @@ export default function Recon() {
                 const currentQty = Number(item.quantity) || 0;
                 const nextQty = Math.max(0, currentQty - usedQty);
 
-
                 if (nextQty === currentQty) {
                     return item;
                 }
@@ -445,23 +444,11 @@ export default function Recon() {
                     console.warn('Failed to append stock event after recon save:', error);
                 }
 
-                return { ...item, quantity: String(nextQty) };
+                // Keep item at quantity 0 (shows in "Out of Stock" tab) with proper timestamp
+                return prepareItemForSave({ ...item, quantity: String(nextQty) });
             });
 
-            // Remove items with 0 quantity
-            const filtered = updated.filter(item => {
-                const qty = Number(item.quantity) || 0;
-                if (qty === 0) {
-                    return false;
-                }
-                return true;
-            });
-
-            if (filtered.length !== updated.length) {
-                changed = true;
-            }
-
-            return changed ? filtered : prev;
+            return changed ? updated : prev;
         });
     }, [setStockpile, vendorMap]);
 

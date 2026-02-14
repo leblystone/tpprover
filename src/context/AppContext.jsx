@@ -210,14 +210,14 @@ export function AppProvider({ children }) {
             const savedProtocols = localStorage.getItem('tpprover_protocols');
             if (savedProtocols) setProtocols(migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols)));
 
-            const savedRecon = localStorage.getItem('tpprover_recon_items');
-            if (savedRecon) setReconItems(JSON.parse(savedRecon));
+            const savedRecon = safeParseLocalStorage('tpprover_recon_items', []);
+            if (savedRecon.length) setReconItems(savedRecon);
             
-            const savedReconHistory = localStorage.getItem('tpprover_recon_history');
-            if (savedReconHistory) setReconHistory(JSON.parse(savedReconHistory));
+            const savedReconHistory = safeParseLocalStorage('tpprover_recon_history', []);
+            if (savedReconHistory.length) setReconHistory(savedReconHistory);
             
-            const savedSupplements = localStorage.getItem('tpprover_supplements');
-            if (savedSupplements) setSupplements(JSON.parse(savedSupplements));
+            const savedSupplements = safeParseLocalStorage('tpprover_supplements', []);
+            if (savedSupplements.length) setSupplements(savedSupplements);
 
             const savedOrders = localStorage.getItem('tpprover_orders');
             if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
@@ -2346,6 +2346,33 @@ export function AppProvider({ children }) {
             if (vendorIdToRecord) {
                 recordDeletion('vendors', String(vendorIdToRecord), vendorToDelete);
             }
+            
+            // Clean up orphan vendorId references in orders and stockpile
+            // Keep the vendor name string so display isn't broken, just clear the dead vendorId
+            const deadVendorId = String(vendorIdToRecord);
+            const vendorName = vendorToDelete.name || '';
+            
+            setOrders(prev => {
+                const needsUpdate = prev.some(o => o.vendorId != null && String(o.vendorId) === deadVendorId);
+                if (!needsUpdate) return prev;
+                return prev.map(o => {
+                    if (o.vendorId != null && String(o.vendorId) === deadVendorId) {
+                        return prepareItemForSave({ ...o, vendorId: null, vendor: o.vendor || vendorName });
+                    }
+                    return o;
+                });
+            });
+            
+            setStockpile(prev => {
+                const needsUpdate = prev.some(s => s.vendorId != null && String(s.vendorId) === deadVendorId);
+                if (!needsUpdate) return prev;
+                return prev.map(s => {
+                    if (s.vendorId != null && String(s.vendorId) === deadVendorId) {
+                        return prepareItemForSave({ ...s, vendorId: null, vendor: s.vendor || vendorName });
+                    }
+                    return s;
+                });
+            });
         }
 
         setVendors(prev => {

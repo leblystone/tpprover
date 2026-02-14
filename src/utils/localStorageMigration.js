@@ -269,6 +269,77 @@ export function cleanupGarbageTimestamps() {
 }
 
 /**
+ * Ensure all array items in synced localStorage keys have id + updatedAt.
+ * Legacy entries without these fields get silently dropped during
+ * mergeWithTimestamps (which skips items without id). This migration
+ * patches them in-place so they survive cloud sync.
+ *
+ * Runs synchronously on startup before any cloud merge.
+ */
+export function ensureLegacyItemIds() {
+  const MIGRATION_KEY = 'legacyItemIds_v1';
+  const status = getMigrationStatus();
+  
+  if (status[MIGRATION_KEY]?.completed) {
+    return { alreadyDone: true };
+  }
+  
+  console.log('🔧 [MIGRATION] Ensuring all synced array items have id + updatedAt...');
+  
+  const arrayKeys = [
+    'tpprover_recon_history',
+    'tpprover_recon_items',
+    'tpprover_orders',
+    'tpprover_stockpile',
+    'tpprover_supplements',
+    'tpprover_vendors',
+    'tpprover_scheduled_buys',
+    'tpprover_user_notes',
+    'tpprover_user_goals'
+  ];
+  
+  let totalPatched = 0;
+  
+  arrayKeys.forEach(key => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const items = JSON.parse(raw);
+      if (!Array.isArray(items) || items.length === 0) return;
+      
+      let keyPatched = 0;
+      const fixed = items.map(item => {
+        if (!item || typeof item !== 'object') return item;
+        let patched = false;
+        const copy = { ...item };
+        if (!copy.id) {
+          copy.id = prepareItemForSave(copy).id;
+          patched = true;
+        }
+        if (!copy.updatedAt) {
+          copy.updatedAt = new Date().toISOString();
+          patched = true;
+        }
+        if (patched) keyPatched++;
+        return patched ? copy : item;
+      });
+      
+      if (keyPatched > 0) {
+        localStorage.setItem(key, JSON.stringify(fixed));
+        totalPatched += keyPatched;
+        console.log(`  🔧 ${key}: patched ${keyPatched} items`);
+      }
+    } catch (e) {
+      console.warn(`  ⚠️ Failed to patch ${key}:`, e);
+    }
+  });
+  
+  markMigrationComplete(MIGRATION_KEY, '1.0');
+  console.log(`🔧 [MIGRATION] Done! Patched ${totalPatched} legacy items with missing id/updatedAt`);
+  return { patched: totalPatched };
+}
+
+/**
  * Master migration function - runs all migrations in sequence
  * Call this once on login after user is authenticated
  * 
@@ -316,8 +387,9 @@ export async function runAllMigrations(context) {
     }
   };
   
-  // Run timestamp cleanup FIRST (synchronous, no cloud needed)
+  // Run synchronous migrations FIRST (no cloud needed)
   results.timestampCleanup = cleanupGarbageTimestamps();
+  results.legacyItemIds = ensureLegacyItemIds();
   
   // Run migrations in sequence
   results.protocolHistory = await migrateProtocolHistoryToCloud(saveToCloud);

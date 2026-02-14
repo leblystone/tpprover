@@ -8,7 +8,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Bell, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -1640,8 +1640,7 @@ export default function Protocols() {
                   </div>
                   <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Protocols Yet</h3>
                   <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                    Create a protocol to track supplement schedules, dosing cycles, and timing for research purposes. 
-                    Protocols help maintain consistency and track adherence to research plans.
+                    Create a protocol to track dosing, timing, and adherence.
                   </p>
                   {!isReadOnly && (
                     <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
@@ -1798,10 +1797,7 @@ export default function Protocols() {
                       <Clock size={32} style={{ color: theme.primary }} />
                     </div>
                     <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
-                    <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                      Track protocol completion history.
-                    </p>
-                    <p className="text-xs" style={{ color: theme.textLight }}>No completed protocols yet.</p>
+                    <p className="text-xs" style={{ color: theme.textLight }}>Complete a protocol first!</p>
                   </div>
                 );
               }
@@ -2015,21 +2011,6 @@ export default function Protocols() {
 
         {activeTab === 'reminders' && (
           <div className="space-y-4">
-            {/* Research Reminders Section Header */}
-            <div className="flex items-center gap-4 mb-3">
-              <Bell size={32} style={{ color: theme.primary }} />
-              <div className="flex flex-col gap-0.5">
-                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Research Reminders</h4>
-                <div className="flex items-center gap-2 ml-1">
-                  <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                    Notifications
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Reminders Cards Container - Two columns on desktop */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* AM Reminders Section */}
                 <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', border: `1px solid ${theme.border}` }}>
@@ -2445,13 +2426,9 @@ export default function Protocols() {
           
           // Create a history entry immediately since it's started (with minimal protocolData for history detail view)
           const historyEntry = {
-            id: generateId(),
             protocolId: finalProtocol.id,
+            protocolName: finalProtocol.protocolName,
             startDate: finalProtocol.startDate,
-            endDate: null,
-            status: 'active',
-            notes: [],
-            createdAt: now,
             protocolData: {
               protocolName: finalProtocol.protocolName,
               peptides: finalProtocol.peptides || [],
