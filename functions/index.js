@@ -819,14 +819,23 @@ exports.onOrderStatusChange = onDocumentUpdated('userdata/{userId}/orders/{order
     logger.info(`📦 Order status changed for user ${userId}: ${before.status} -> ${after.status}`);
     
     const orderId = event.params.orderId;
+    const peptideName = after.peptideName || after.name || after.items?.[0]?.name || 'your peptide';
+    
+    // Load template from Firestore (falls back to hardcoded defaults)
+    const template = await pushNotifications.getNotificationTemplate('orderStatusUpdate', {
+      peptideName,
+      status: after.status,
+      additionalMessage: ''
+    });
+    
     const notificationData = {
-      title: 'Order Status Update',
-      body: `Your order #${after.id || orderId} status changed to: ${after.status}`,
+      title: template.title,
+      body: template.body,
       orderId: orderId,
       status: after.status,
-      path: `/app/orders?orderId=${orderId}`, // Path for service worker navigation
-      clickAction: `https://thepepplanner.com/app/orders?orderId=${orderId}`, // Full URL for webpush
-      appUrl: `https://thepepplanner.com/app/orders?orderId=${orderId}` // Keep for backward compatibility
+      path: `/app/orders?orderId=${orderId}`,
+      clickAction: `https://thepepplanner.com/app/orders?orderId=${orderId}`,
+      appUrl: `https://thepepplanner.com/app/orders?orderId=${orderId}`
     };
 
     return pushNotifications.sendPushNotificationByType(userId, 'orderStatusUpdates', notificationData);
@@ -5241,6 +5250,267 @@ exports.updateAutoCleanupSettings = onCall(
 // NOTE: Auto-cleanup function removed - manual review is safer for user retention
 // Use admin panel auditing system to manually identify and remove suspicious accounts
 // If you need to delete a specific user, use Firebase Console or create a targeted admin function
+
+// ============================================================================
+// Scheduled Low Stock Alerts
+// Checks each user's stockpile data daily and sends a push notification
+// using the admin-editable 'lowStock' template from Firestore
+// ============================================================================
+exports.scheduledLowStockAlerts = onSchedule({
+  schedule: '0 14 * * *', // Daily at 2 PM UTC (~9-10 AM US)
+  timeZone: 'UTC',
+  secrets: []
+}, async (event) => {
+  logger.info('📦 Running scheduled low stock alert check...');
+  
+  try {
+    const pushNotifications = require('./pushNotifications');
+    const db = admin.firestore();
+    
+    // Get all users with push notifications enabled and lowStockAlerts enabled
+    const usersSnapshot = await db
+      .collection('users')
+      .where('notificationSettings.push', '==', true)
+      .where('notificationSettings.lowStockAlerts', '==', true)
+      .get();
+    
+    let checkedCount = 0;
+    let sentCount = 0;
+    let skippedCount = 0;
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      checkedCount++;
+      
+      try {
+        // Load user's stockpile data from userData collection
+        const userDataDoc = await db.collection('userData').doc(userId).get();
+        if (!userDataDoc.exists) continue;
+        
+        const userData = userDataDoc.data();
+        const stockpile = userData?.stockpile || [];
+        
+        if (stockpile.length === 0) continue;
+        
+        // Get user's low stock threshold from settings (default: 3)
+        const userSettings = userDoc.data()?.settings || {};
+        const threshold = userSettings?.orders?.lowStockThreshold || 3;
+        
+        // Find items running low
+        const lowStockItems = stockpile.filter(item => {
+          const quantity = Number(item.quantity) || 0;
+          return quantity <= threshold && quantity > 0;
+        });
+        
+        if (lowStockItems.length === 0) continue;
+        
+        // Use the first low-stock item for the template variables
+        const primaryItem = lowStockItems[0];
+        const template = await pushNotifications.getNotificationTemplate('lowStock', {
+          count: primaryItem.quantity || 1,
+          peptideName: primaryItem.name || 'your peptide'
+        });
+        
+        // If multiple items are low, adjust the body
+        let body = template.body;
+        if (lowStockItems.length > 1) {
+          body += ` (+ ${lowStockItems.length - 1} more item${lowStockItems.length > 2 ? 's' : ''})`;
+        }
+        
+        const notificationData = {
+          title: template.title,
+          body: body,
+          data: {
+            type: 'low_stock',
+            itemCount: lowStockItems.length,
+            path: template.actionUrl || '/app/stockpile',
+            clickAction: `https://thepepplanner.com${template.actionUrl || '/app/stockpile'}`,
+            appUrl: `https://thepepplanner.com${template.actionUrl || '/app/stockpile'}`
+          }
+        };
+        
+        const result = await pushNotifications.sendPushNotificationByType(userId, 'lowStockAlerts', notificationData);
+        if (result.success) {
+          sentCount++;
+        } else {
+          skippedCount++;
+        }
+      } catch (userError) {
+        logger.warn(`⚠️ Error checking low stock for user ${userId}:`, userError.message);
+        skippedCount++;
+      }
+    }
+    
+    logger.info(`✅ Low stock alerts complete: checked ${checkedCount}, sent ${sentCount}, skipped ${skippedCount}`);
+  } catch (error) {
+    logger.error('❌ Error in scheduled low stock alerts:', error);
+  }
+});
+
+// ============================================================================
+// Scheduled Cycle & Washout Reminders
+// Checks each user's protocols daily and sends push notifications for:
+// - washoutReminder: protocol ended X days ago, time for washout
+// - cycleReminder: next cycle starting in X days
+// - cycleEndReminder: current cycle ending in X days
+// Uses admin-editable templates from Firestore
+// ============================================================================
+exports.scheduledCycleReminders = onSchedule({
+  schedule: '0 13 * * *', // Daily at 1 PM UTC (~8-9 AM US)
+  timeZone: 'UTC',
+  secrets: []
+}, async (event) => {
+  logger.info('🔄 Running scheduled cycle & washout reminder check...');
+  
+  try {
+    const pushNotifications = require('./pushNotifications');
+    const db = admin.firestore();
+    
+    // Get all users with push notifications enabled
+    const usersSnapshot = await db
+      .collection('users')
+      .where('notificationSettings.push', '==', true)
+      .get();
+    
+    let checkedCount = 0;
+    let sentCount = 0;
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const userSettings = userDoc.data() || {};
+      const notificationSettings = userSettings.notificationSettings || {};
+      checkedCount++;
+      
+      try {
+        // Load user's protocol data
+        const userDataDoc = await db.collection('userData').doc(userId).get();
+        if (!userDataDoc.exists) continue;
+        
+        const userData = userDataDoc.data();
+        const protocols = userData?.protocols || [];
+        
+        if (protocols.length === 0) continue;
+        
+        // Get user timezone for correct "today"
+        const userTimezone = userSettings.settings?.region?.timeZone || 'America/New_York';
+        const now = new Date();
+        const userDateString = now.toLocaleString("en-US", {
+          timeZone: userTimezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const [month, day, year] = userDateString.split('/');
+        const today = new Date(year, month - 1, day);
+        today.setHours(0, 0, 0, 0);
+        
+        for (const protocol of protocols) {
+          if (!protocol.startDate) continue;
+          
+          const protocolName = protocol.protocolName || protocol.name || 'your protocol';
+          const startDate = new Date(protocol.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+          if (endDate) endDate.setHours(0, 0, 0, 0);
+          
+          // --- Washout Reminders (protocol ended recently) ---
+          if (notificationSettings.washoutReminders !== false && endDate) {
+            const daysSinceEnd = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+            
+            // Send washout reminder if protocol ended 1-3 days ago
+            if (daysSinceEnd >= 1 && daysSinceEnd <= 3) {
+              const template = await pushNotifications.getNotificationTemplate('washoutReminder', {
+                protocolName,
+                daysAgo: daysSinceEnd
+              });
+              
+              const result = await pushNotifications.sendPushNotificationByType(userId, 'washoutReminders', {
+                title: template.title,
+                body: template.body,
+                data: {
+                  type: 'washout_reminder',
+                  protocolName,
+                  path: template.actionUrl || '/app/protocols',
+                  clickAction: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`,
+                  appUrl: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`
+                }
+              });
+              if (result.success) sentCount++;
+            }
+          }
+          
+          // --- Cycle Reminders (for cycle-based protocols) ---
+          if (notificationSettings.cycleReminders !== false && protocol.peptides) {
+            for (const peptide of protocol.peptides) {
+              if (peptide.frequency?.type !== 'cycle') continue;
+              
+              const onDays = Number(peptide.frequency.onDays) || 0;
+              const offDays = Number(peptide.frequency.offDays) || 0;
+              const cycleLength = onDays + offDays;
+              
+              if (cycleLength <= 0) continue;
+              
+              const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+              if (daysSinceStart < 0) continue; // Protocol hasn't started yet
+              
+              const currentCycleDay = daysSinceStart % cycleLength;
+              
+              // Cycle ending soon (within 3 days of off period)
+              if (currentCycleDay >= onDays - 3 && currentCycleDay < onDays) {
+                const daysUntilOff = onDays - currentCycleDay;
+                const template = await pushNotifications.getNotificationTemplate('cycleEndReminder', {
+                  protocolName,
+                  daysUntil: daysUntilOff
+                });
+                
+                const result = await pushNotifications.sendPushNotificationByType(userId, 'cycleReminders', {
+                  title: template.title,
+                  body: template.body,
+                  data: {
+                    type: 'cycle_end_reminder',
+                    protocolName,
+                    path: template.actionUrl || '/app/protocols',
+                    clickAction: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`,
+                    appUrl: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`
+                  }
+                });
+                if (result.success) sentCount++;
+              }
+              
+              // Off period ending soon (next cycle starting within 3 days)
+              if (currentCycleDay >= onDays && currentCycleDay >= cycleLength - 3) {
+                const daysUntilNext = cycleLength - currentCycleDay;
+                const template = await pushNotifications.getNotificationTemplate('cycleReminder', {
+                  protocolName,
+                  daysUntil: daysUntilNext
+                });
+                
+                const result = await pushNotifications.sendPushNotificationByType(userId, 'cycleReminders', {
+                  title: template.title,
+                  body: template.body,
+                  data: {
+                    type: 'cycle_reminder',
+                    protocolName,
+                    path: template.actionUrl || '/app/protocols',
+                    clickAction: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`,
+                    appUrl: `https://thepepplanner.com${template.actionUrl || '/app/protocols'}`
+                  }
+                });
+                if (result.success) sentCount++;
+              }
+            }
+          }
+        }
+      } catch (userError) {
+        logger.warn(`⚠️ Error checking cycles for user ${userId}:`, userError.message);
+      }
+    }
+    
+    logger.info(`✅ Cycle reminders complete: checked ${checkedCount} users, sent ${sentCount} notifications`);
+  } catch (error) {
+    logger.error('❌ Error in scheduled cycle reminders:', error);
+  }
+});
 
 // Cleanup expired gifts (scheduled function)
 // Process email queue every hour

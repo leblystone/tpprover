@@ -5,8 +5,10 @@ import EmailTemplateManager from '../../components/admin/EmailTemplateManager';
 export default function AdminCommsEmails() {
   const { theme } = useOutletContext();
   return (
-    <div className="space-y-3">
-      <EmailTemplateManager theme={theme} />
+    <div className="space-y-4">
+      <div className="max-w-5xl mx-auto">
+        <EmailTemplateManager theme={theme} />
+      </div>
     </div>
   );
 }

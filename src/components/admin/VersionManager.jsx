@@ -72,26 +72,37 @@ export default function VersionManager({ theme }) {
   };
 
   const handleSave = async () => {
+    console.log('🚀 handleSave called!', config);
     try {
       setSaving(true);
+      console.log('💾 Starting save process...');
       
       // Validate version format
       const versionRegex = /^\d+\.\d+\.\d+$/;
       if (!versionRegex.test(config.latestVersion)) {
+        console.error('❌ Invalid latest version format:', config.latestVersion);
         setMessage({ type: 'error', text: 'Invalid version format. Use X.Y.Z (e.g., 1.0.4)' });
         return;
       }
       
       if (config.minimumVersion && !versionRegex.test(config.minimumVersion)) {
+        console.error('❌ Invalid minimum version format:', config.minimumVersion);
         setMessage({ type: 'error', text: 'Invalid minimum version format. Use X.Y.Z' });
         return;
       }
       
+      console.log('✅ Validation passed, saving to Firestore...');
+      
       // Save to Firestore
-      await setDoc(doc(db, 'appConfig', 'version'), {
+      const docRef = doc(db, 'appConfig', 'version');
+      console.log('📄 Document path:', docRef.path);
+      
+      await setDoc(docRef, {
         ...config,
         updatedAt: new Date().toISOString()
       });
+      
+      console.log('✅ Saved to Firestore successfully!');
       
       // Log to version update history
       try {
@@ -113,14 +124,17 @@ export default function VersionManager({ theme }) {
         // Don't fail the save if history logging fails
       }
       
+      console.log('🎉 All done! Showing success message...');
       setMessage({ type: 'success', text: 'Version config saved successfully!' });
       
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      console.error('Error saving version config:', error);
-      setMessage({ type: 'error', text: 'Failed to save version config' });
+      console.error('❌ Error saving version config:', error);
+      console.error('Error details:', error.message, error.code);
+      setMessage({ type: 'error', text: `Failed to save: ${error.message}` });
     } finally {
+      console.log('🏁 handleSave finished, setting saving to false');
       setSaving(false);
     }
   };
@@ -285,7 +299,7 @@ export default function VersionManager({ theme }) {
             }}
           />
           <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-            Users below this version will be <strong>REQUIRED</strong> to update (can't dismiss)
+            Users <strong>below</strong> this version will be <strong>REQUIRED</strong> to update (can't dismiss)
           </p>
         </div>
 
@@ -401,7 +415,7 @@ export default function VersionManager({ theme }) {
           {config.minimumVersion && (
             <p className="flex items-center gap-1" style={{ color: '#ef4444' }}>
               <Siren size={16} style={{ color: '#ef4444' }} />
-              Users on version {config.minimumVersion} or below will be REQUIRED to update
+              Users below version {config.minimumVersion} will be REQUIRED to update
             </p>
           )}
         </div>

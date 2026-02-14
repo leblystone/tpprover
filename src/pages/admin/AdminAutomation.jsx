@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Bot, Zap } from 'lucide-react';
+import { Bot, ClipboardList } from 'lucide-react';
 import AdminGhostWorker from './AdminGhostWorker';
-import AdminCommsTriggers from './AdminCommsTriggers';
+import GhostWorkerWorkQueue from '../../components/admin/GhostWorkerWorkQueue';
 import Tabs from '../../components/common/Tabs';
 
 export default function AdminAutomation() {
@@ -16,9 +16,9 @@ export default function AdminAutomation() {
       icon: Bot,
     },
     {
-      value: 'triggers',
-      label: 'Triggers',
-      icon: Zap,
+      value: 'work-queue',
+      label: 'Work Queue',
+      icon: ClipboardList,
     },
   ];
 
@@ -29,7 +29,7 @@ export default function AdminAutomation() {
           Automation
         </h1>
         <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-          Manage automated systems and triggers
+          AI-powered support automation and pending responses
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export default function AdminAutomation() {
       />
 
       {activeTab === 'ghost-worker' && <AdminGhostWorker />}
-      {activeTab === 'triggers' && <AdminCommsTriggers />}
+      {activeTab === 'work-queue' && <GhostWorkerWorkQueue theme={theme} />}
     </div>
   );
 }

@@ -5,8 +5,10 @@ import AgreementTracking from '../../components/admin/AgreementTracking';
 export default function AdminSettingsAgreements() {
   const { theme } = useOutletContext();
   return (
-    <div className="space-y-3">
-      <AgreementTracking theme={theme} />
+    <div className="space-y-4">
+      <div className="max-w-5xl mx-auto">
+        <AgreementTracking theme={theme} />
+      </div>
     </div>
   );
 }

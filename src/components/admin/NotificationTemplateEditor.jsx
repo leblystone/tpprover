@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send } from 'lucide-react';
+import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send, Server, Monitor } from 'lucide-react';
 import { 
   getAllTemplates, 
   saveNotificationTemplate, 
@@ -256,6 +256,20 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
     return descriptions[type] || 'Custom notification template';
   };
 
+  // Templates that are sent from the backend (Firebase Functions) — edits affect ALL users
+  const SERVER_SIDE_TEMPLATES = new Set([
+    'researchReminderAM',
+    'researchReminderPM',
+    'trialEnding',
+    'lowStock',
+    'orderStatusUpdate',
+    'washoutReminder',
+    'cycleReminder',
+    'cycleEndReminder'
+  ]);
+
+  const isServerSide = (type) => SERVER_SIDE_TEMPLATES.has(type);
+
   return (
     <>
       <Modal
@@ -306,6 +320,23 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
                     <span className="font-medium capitalize">
                       {type.replace(/([A-Z])/g, ' $1').trim()}
                     </span>
+                    {isServerSide(type) ? (
+                      <span 
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={{ backgroundColor: (theme.success || '#10b981') + '20', color: theme.success || '#10b981' }}
+                        title="Sent server-side via Firebase — edits affect ALL users"
+                      >
+                        <Server size={10} /> Server
+                      </span>
+                    ) : (
+                      <span 
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={{ backgroundColor: (theme.warning || '#f59e0b') + '20', color: theme.warning || '#f59e0b' }}
+                        title="Used client-side only — edits only affect this device"
+                      >
+                        <Monitor size={10} /> Client
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm opacity-75">
                     {getTemplateDescription(type)}
@@ -319,6 +350,22 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
           <div className="space-y-4">
             {selectedTemplate && editedTemplate ? (
               <>
+                {/* Server/Client info banner */}
+                {isServerSide(selectedTemplate) ? (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg" style={{ backgroundColor: (theme.success || '#10b981') + '10', border: `1px solid ${(theme.success || '#10b981')}30` }}>
+                    <Server size={14} className="flex-shrink-0 mt-0.5" style={{ color: theme.success || '#10b981' }} />
+                    <p className="text-xs" style={{ color: theme.success || '#10b981' }}>
+                      <strong>Server-side template</strong> — Changes saved here are read by Firebase Functions and affect push notifications sent to <strong>all users</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg" style={{ backgroundColor: (theme.warning || '#f59e0b') + '10', border: `1px solid ${(theme.warning || '#f59e0b')}30` }}>
+                    <Monitor size={14} className="flex-shrink-0 mt-0.5" style={{ color: theme.warning || '#f59e0b' }} />
+                    <p className="text-xs" style={{ color: theme.warning || '#f59e0b' }}>
+                      <strong>Client-side only</strong> — This template is only used for local browser notifications. It is not sent from the server. Changes only apply to this device.
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
                     Edit Template

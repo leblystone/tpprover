@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Edit, Trash2, Save, X, Bell, Clock, Users, Target, Send, 
-  Play, Pause, Calendar, Settings, AlertTriangle, CheckCircle, Copy
+  Play, Pause, Calendar, Settings, AlertTriangle, CheckCircle, Copy, Cloud, CloudOff, Loader2
 } from 'lucide-react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
 import adminNotificationService from '../../services/adminNotifications';
 import { generateId } from '../../utils/string';
+import { db } from '../../config/firebase';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 // Default triggered notification templates
 const DEFAULT_TRIGGERED_NOTIFICATIONS = {
@@ -240,34 +242,76 @@ const AUDIENCE_TYPES = [
   { value: 'custom', label: 'Custom Conditions' }
 ];
 
-export default function TriggeredNotificationManager({ theme }) {
-  const [notifications, setNotifications] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tpp_triggered_notifications');
-      if (saved) {
-        const savedNotifications = JSON.parse(saved);
-        // Merge with defaults to ensure new default notifications appear
-        return { ...DEFAULT_TRIGGERED_NOTIFICATIONS, ...savedNotifications };
-      }
-      return DEFAULT_TRIGGERED_NOTIFICATIONS;
-    } catch (error) {
-      console.error('Failed to load triggered notifications:', error);
-      return DEFAULT_TRIGGERED_NOTIFICATIONS;
-    }
-  });
+// Firestore document path for triggered notifications
+const TRIGGERED_NOTIFICATIONS_DOC = 'triggeredNotifications';
+const TRIGGERED_NOTIFICATIONS_COLLECTION = 'adminConfig';
 
+export default function TriggeredNotificationManager({ theme }) {
+  const [notifications, setNotifications] = useState(DEFAULT_TRIGGERED_NOTIFICATIONS);
   const [editingNotification, setEditingNotification] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
   const [testingId, setTestingId] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('loading'); // 'loading' | 'synced' | 'error'
 
-  // Save to localStorage whenever notifications change
+  // Load from Firestore on mount
   useEffect(() => {
+    loadFromFirestore();
+  }, []);
+
+  const loadFromFirestore = async () => {
+    setSyncStatus('loading');
     try {
-      localStorage.setItem('tpp_triggered_notifications', JSON.stringify(notifications));
+      const docRef = doc(db, TRIGGERED_NOTIFICATIONS_COLLECTION, TRIGGERED_NOTIFICATIONS_DOC);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const firestoreData = docSnap.data()?.notifications || {};
+        // Merge with defaults to ensure new default notifications appear
+        const merged = { ...DEFAULT_TRIGGERED_NOTIFICATIONS, ...firestoreData };
+        setNotifications(merged);
+        // Also update localStorage for the processor
+        localStorage.setItem('tpp_triggered_notifications', JSON.stringify(merged));
+      } else {
+        // First time: seed Firestore with defaults
+        await saveToFirestore(DEFAULT_TRIGGERED_NOTIFICATIONS);
+        setNotifications(DEFAULT_TRIGGERED_NOTIFICATIONS);
+        localStorage.setItem('tpp_triggered_notifications', JSON.stringify(DEFAULT_TRIGGERED_NOTIFICATIONS));
+      }
+      setSyncStatus('synced');
     } catch (error) {
-      console.error('Failed to save triggered notifications:', error);
+      console.error('Failed to load triggered notifications from Firestore:', error);
+      // Fallback to localStorage
+      try {
+        const saved = localStorage.getItem('tpp_triggered_notifications');
+        if (saved) {
+          const savedNotifications = JSON.parse(saved);
+          setNotifications({ ...DEFAULT_TRIGGERED_NOTIFICATIONS, ...savedNotifications });
+        }
+      } catch (e) {
+        console.error('Failed to load from localStorage fallback:', e);
+      }
+      setSyncStatus('error');
     }
-  }, [notifications]);
+  };
+
+  const saveToFirestore = async (data) => {
+    try {
+      const docRef = doc(db, TRIGGERED_NOTIFICATIONS_COLLECTION, TRIGGERED_NOTIFICATIONS_DOC);
+      await setDoc(docRef, {
+        notifications: data,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      
+      // Also keep localStorage in sync for the processor
+      localStorage.setItem('tpp_triggered_notifications', JSON.stringify(data));
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Failed to save triggered notifications to Firestore:', error);
+      // Still save to localStorage as fallback
+      localStorage.setItem('tpp_triggered_notifications', JSON.stringify(data));
+      setSyncStatus('error');
+    }
+  };
 
   const handleCreateNew = () => {
     const newId = `custom_${generateId()}`;
@@ -301,32 +345,33 @@ export default function TriggeredNotificationManager({ theme }) {
     setShowEditor(true);
   };
 
-  const handleSave = (updatedNotification) => {
-    setNotifications(prev => ({
-      ...prev,
+  const handleSave = async (updatedNotification) => {
+    const updated = {
+      ...notifications,
       [updatedNotification.id]: updatedNotification
-    }));
+    };
+    setNotifications(updated);
+    await saveToFirestore(updated);
     setShowEditor(false);
     setEditingNotification(null);
     
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
         type: 'success', 
-        message: 'Triggered notification saved successfully!' 
+        message: 'Triggered notification saved to Firestore!' 
       }
     }));
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this triggered notification?')) {
       return;
     }
     
-    setNotifications(prev => {
-      const updated = { ...prev };
-      delete updated[id];
-      return updated;
-    });
+    const updated = { ...notifications };
+    delete updated[id];
+    setNotifications(updated);
+    await saveToFirestore(updated);
     
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
@@ -336,14 +381,16 @@ export default function TriggeredNotificationManager({ theme }) {
     }));
   };
 
-  const handleToggleEnabled = (id) => {
-    setNotifications(prev => ({
-      ...prev,
+  const handleToggleEnabled = async (id) => {
+    const updated = {
+      ...notifications,
       [id]: {
-        ...prev[id],
-        enabled: !prev[id].enabled
+        ...notifications[id],
+        enabled: !notifications[id].enabled
       }
-    }));
+    };
+    setNotifications(updated);
+    await saveToFirestore(updated);
   };
 
   const handleTest = async (notification) => {
@@ -448,14 +495,33 @@ export default function TriggeredNotificationManager({ theme }) {
     <div className="space-y-3">
       {/* Header */}
       <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex-1">
-          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            <Bell size={20} />
-            Triggered Push Notifications
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-            Automate notifications based on user behavior, data conditions, and time triggers
-          </p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
+              <Bell size={20} />
+              Triggered Push Notifications
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+              Automate notifications based on user behavior, data conditions, and time triggers
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {syncStatus === 'loading' && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                <Loader2 size={12} className="animate-spin" /> Loading...
+              </span>
+            )}
+            {syncStatus === 'synced' && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: (theme.success || '#10b981') + '15', color: theme.success || '#10b981' }}>
+                <Cloud size={12} /> Synced to Firestore
+              </span>
+            )}
+            {syncStatus === 'error' && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full cursor-pointer" onClick={loadFromFirestore} style={{ backgroundColor: (theme.error || '#ef4444') + '15', color: theme.error || '#ef4444' }}>
+                <CloudOff size={12} /> Sync failed — click to retry
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -408,10 +408,13 @@ function AdminAuthenticatedLayout({
       </header>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
-        <div className="flex-1 p-3 lg:p-4">
-          <Suspense fallback={<div className="p-4" style={{ color: theme.textLight }}>Loading…</div>}>
-            <Outlet context={{ theme }} />
-          </Suspense>
+        <div className="flex-1 p-3 lg:p-6">
+          {/* Max-width container for desktop */}
+          <div className="mx-auto max-w-7xl w-full">
+            <Suspense fallback={<div className="p-4" style={{ color: theme.textLight }}>Loading…</div>}>
+              <Outlet context={{ theme }} />
+            </Suspense>
+          </div>
         </div>
       </main>
 
