@@ -7,6 +7,7 @@ import { prepareItemForSave } from '../utils/userDataSave'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
+import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
 import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
@@ -87,7 +88,7 @@ export default function Stockpile() {
 
   // Close manage row dropdowns when clicking outside
   useEffect(() => {
-    if (Object.values(manageRowDropdowns).every(v => !v.amountUnit && !v.unit)) return;
+    if (Object.values(manageRowDropdowns).every(v => !v.amountUnit && !v.unit && !v.priceUnit)) return;
     const handleClickOutside = (event) => {
       const isClickInside = event.target.closest('[data-dropdown-container]');
       if (!isClickInside) setManageRowDropdowns({});
@@ -282,8 +283,7 @@ export default function Stockpile() {
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : (o.vendor || 'Unknown');
         const mgNum = Number(item.mg) || 0;
         const quantity = Number(item.quantity) || 1;
-        const isKit = (item.unit || '').toLowerCase() === 'kit';
-        const vials = isKit ? quantity * 10 : quantity;
+        const vials = quantity * getUnitMultiplier(item.unit);
 
         // Create a unique key that includes the unit
         const groupKey = `${name}__${mgUnit}`;
@@ -347,7 +347,7 @@ export default function Stockpile() {
         return normalizedItemName === targetName
       }
       const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
-      if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
+      if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', priceUnit: 'vial', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
       setManageRows(rows)
     })
   }
@@ -383,11 +383,12 @@ export default function Stockpile() {
       // Add updated stockpile items
       const updatedStockItems = (newOrder.items || []).map(item => {
         const quantity = Number(item.quantity) || 1;
-        const isKit = (item.unit || '').toLowerCase() === 'kit';
-        const vialsPerItem = isKit ? 10 : 1;
+        const unitMult = getUnitMultiplier(item.unit);
+        const finalUnit = getBaseUnit(item.unit);
+        const totalUnits = quantity * unitMult;
         const price = Number(item.price) || 0;
         
-        let costPerVial;
+        let costPerUnit;
         if (includeShipping) {
           const shippingCost = parseFloat(newOrder.shippingCost) || 0;
           const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
@@ -398,9 +399,9 @@ export default function Stockpile() {
           const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
           const itemShippingShare = shippingCost * itemCostShare;
           const totalItemCost = (price * quantity) + itemShippingShare;
-          costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+          costPerUnit = totalUnits > 1 ? totalItemCost / totalUnits : totalItemCost;
         } else {
-          costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+          costPerUnit = totalUnits > 1 ? price / totalUnits : price;
         }
 
         return {
@@ -408,9 +409,9 @@ export default function Stockpile() {
           name: item.name || '',
           mg: item.mg || '',
           mgUnit: item.mgUnit || 'mg',
-          quantity: quantity * vialsPerItem,
-          unit: 'vial',
-          cost: costPerVial,
+          quantity: totalUnits,
+          unit: finalUnit,
+          cost: costPerUnit,
           costPerMg: item.costPerMg || '',
           vendor: newOrder.vendor || '',
           vendorId: newOrder.vendorId,
@@ -432,11 +433,12 @@ export default function Stockpile() {
 
       const newStockItems = (newOrder.items || []).map(item => {
         const quantity = Number(item.quantity) || 1;
-        const isKit = (item.unit || '').toLowerCase() === 'kit';
-        const vialsPerItem = isKit ? 10 : 1;
+        const unitMult = getUnitMultiplier(item.unit);
+        const finalUnit = getBaseUnit(item.unit);
+        const totalUnits = quantity * unitMult;
         const price = Number(item.price) || 0;
         
-        let costPerVial;
+        let costPerUnit;
         if (includeShipping) {
           const shippingCost = parseFloat(newOrder.shippingCost) || 0;
           const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
@@ -447,9 +449,9 @@ export default function Stockpile() {
           const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
           const itemShippingShare = shippingCost * itemCostShare;
           const totalItemCost = (price * quantity) + itemShippingShare;
-          costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+          costPerUnit = totalUnits > 1 ? totalItemCost / totalUnits : totalItemCost;
         } else {
-          costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+          costPerUnit = totalUnits > 1 ? price / totalUnits : price;
         }
 
         return {
@@ -457,9 +459,9 @@ export default function Stockpile() {
           name: item.name || '',
           mg: item.mg || '',
           mgUnit: item.mgUnit || 'mg',
-          quantity: quantity * vialsPerItem,
-          unit: 'vial',
-          cost: costPerVial,
+          quantity: totalUnits,
+          unit: finalUnit,
+          cost: costPerUnit,
           costPerMg: item.costPerMg || '',
           vendor: newOrder.vendor || '',
           vendorId: newOrder.vendorId,
@@ -516,7 +518,7 @@ export default function Stockpile() {
   }
   const addManageRow = () => {
     const newRowId = generateId();
-    setManageRows(prev => ([...prev, { id: newRowId, name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' }]));
+    setManageRows(prev => ([...prev, { id: newRowId, name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', priceUnit: 'vial', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' }]));
     // Auto-expand the new row and scroll into view smoothly
     setTimeout(() => {
       setExpandedManageRows(prev => ({ ...prev, [newRowId]: true }));
@@ -809,14 +811,11 @@ export default function Stockpile() {
     };
   }, [activeTab, isReadOnly])
   const saveManage = async () => {
-    // First, convert any "kit" entries in the temporary edit state back to "vial" for storage
+    // Convert any convertible units (e.g. kit→vial ×10) back to base unit for storage
     const convertedRows = manageRows.map(row => {
-      if (row.unit === 'kit') {
-        return {
-          ...row,
-          quantity: String((Number(row.quantity) || 0) * 10),
-          unit: 'vial'
-        };
+      if (isConvertibleUnit(row.unit)) {
+        const { quantity, unit } = convertForStorage(row.quantity, row.unit);
+        return { ...row, quantity: String(quantity), unit };
       }
       return row;
     });
@@ -1319,7 +1318,9 @@ export default function Stockpile() {
                               vendorId: item.vendorId || null,
                               cost: item.cost || '',
                               costPerMg: item.costPerMg || '',
+                              priceUnit: item.priceUnit || 'vial',
                               stockpileId: item.id,
+                              orderId: item.orderId || null,
                               quantity: item.quantity,
                               unit: item.unit,
                               quantityUsed: 1,
@@ -1676,8 +1677,25 @@ export default function Stockpile() {
                       {row.mg || '?'}{row.mgUnit || 'mg'}
                     </div>
                     <div className="text-xs font-bold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
-                      {row.quantity || '0'} {row.quantity === '1' ? 'vial' : 'vials'}
+                      {row.quantity || '0'} {getUnitLabel(row.unit, row.quantity)}
                     </div>
+                    {row.orderId && (
+                      <button
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: theme.primary + '15',
+                          color: theme.primary,
+                          border: `1px solid ${theme.primary}30`
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/app/orders`, { state: { openOrderId: row.orderId } });
+                        }}
+                        title="View source order"
+                      >
+                        Order
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1947,6 +1965,61 @@ export default function Stockpile() {
                     placeholder="e.g., Pharm..."
                     theme={theme}
                   />
+
+                  {/* Cost per ($) - show originally entered price when editing */}
+                  <div className="relative" data-dropdown-container>
+                    <div className="flex items-stretch rounded-lg" style={{ border: `1px solid ${theme.isDark ? '#4b5563' : '#f0eee7'}`, backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
+                      <input
+                        type="text"
+                        value={row.cost ?? ''}
+                        onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, cost: e.target.value } : r))}
+                        placeholder=" "
+                        className="flex-1 py-2 outline-none min-w-0 rounded-l-lg px-3"
+                        style={{ backgroundColor: 'transparent', color: theme.isDark ? theme.text : '#181A18', border: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], priceUnit: !prev[row.id]?.priceUnit } }))}
+                        onMouseDown={e => e.preventDefault()}
+                        className="flex items-center justify-between gap-2 px-3 py-2 flex-shrink-0 rounded-r-lg border-none outline-none"
+                        style={{ borderLeft: theme.isDark ? '1px solid #4b5563' : '1px solid #f0eee7', backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'), color: theme.isDark ? theme.text : '#181A18', minWidth: '72px' }}
+                      >
+                        <span className="text-sm font-semibold">
+                          {(() => {
+                            const u = (row.priceUnit || 'vial').toLowerCase();
+                            if (u === 'vial') return 'Vial';
+                            if (u === 'mg') return 'mg';
+                            if (u === 'g') return 'g';
+                            if (u === 'iu') return 'IU';
+                            if (u === 'tablet') return 'Tablet';
+                            return u.charAt(0).toUpperCase() + u.slice(1);
+                          })()}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                    {(manageRowDropdowns[row.id]?.priceUnit) && (
+                      <div className="absolute right-0 top-full z-[9999] mt-1 rounded-lg shadow-lg border overflow-hidden" data-dropdown-container style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border, minWidth: '88px', boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        {[{ value: 'vial', label: 'Vial' }, { value: 'mg', label: 'mg' }, { value: 'g', label: 'g' }, { value: 'iu', label: 'IU' }, { value: 'tablet', label: 'Tablet' }].map((option, optIdx) => (
+                          <React.Fragment key={option.value}>
+                            {optIdx > 0 && <div className="h-px mx-2" style={{ backgroundColor: theme.border }} />}
+                            <button
+                              type="button"
+                              onMouseDown={e => e.preventDefault()}
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, priceUnit: option.value } : r)); setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], priceUnit: false } })); }}
+                              className="w-full text-left px-3 py-2 text-sm"
+                              style={{ color: (row.priceUnit || 'vial') === option.value ? theme.primary : theme.text, backgroundColor: 'transparent' }}
+                            >
+                              {option.label}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
+                    <label className="absolute pointer-events-none text-[10px] font-medium uppercase tracking-wide opacity-60" style={{ left: '12px', top: '-8px', padding: '0 4px', background: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), color: theme.primary }}>
+                      Cost per ($)
+                    </label>
+                  </div>
 
                   {/* Purity & Batch Number in two columns */}
                   <div className="grid grid-cols-2 gap-2.5">

@@ -12,6 +12,7 @@ import DocumentationUpload from '../common/DocumentationUpload';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { generateId } from '../../utils/string';
+import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion';
 import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
 
 export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade }) {
@@ -132,7 +133,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 }
                 
                 if (!form.mg || form.mg.trim() === '') {
-                  setSaveError('Amount is required');
+                  setSaveError('Vial amount is required');
                   setIsSavingToStockpile(false);
                   return;
                 }
@@ -155,17 +156,18 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   vendorId: finalVendor ? finalVendor.id : null
                 }, { isNew: true });
                 
-                // Convert kit to vials before saving
-                if (itemToAdd.unit === 'kit') {
-                    itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
-                    itemToAdd.unit = 'vial';
+                // Convert convertible units (e.g. kit → vial ×10) before saving
+                if (isConvertibleUnit(itemToAdd.unit)) {
+                    const converted = convertForStorage(itemToAdd.quantity, itemToAdd.unit);
+                    itemToAdd.quantity = converted.quantity;
+                    itemToAdd.unit = converted.unit;
                 }
 
                 setStockpile(prev => [itemToAdd, ...prev]); 
                 markAsSubmitted(); // Clear auto-save data
                 
                 // Reset form first
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
                 
                 // Reset advanced toggle for next entry
                 setShowAdvanced(false);
@@ -230,11 +232,11 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
           <div className="flex items-center gap-2 mb-1">
             <TestTube size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Amount & Quantity
+                  Vial Amount & Quantity
                 </span>
               </div>
             </div>
@@ -252,9 +254,9 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
               outlined={true}
               customTextColor={theme.isDark ? null : "#181A18"}
             />
-            {/* Amount & Quantity in two columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="relative">
+            {/* Vial Amount & Quantity on same row */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative" data-dropdown-container>
                 <div 
                   className="flex items-stretch rounded-lg"
                   style={{ 
@@ -293,13 +295,12 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
                   onMouseDown={(e) => e.preventDefault()}
                   onTouchStart={(e) => e.preventDefault()}
-                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                  data-dropdown-container
+                  className="flex items-center justify-between gap-1 px-2 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                     color: theme.isDark ? theme.text : '#181A18',
-                    minWidth: '100px'
+                    minWidth: '48px'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
@@ -311,73 +312,67 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   <span className="text-sm font-semibold">
                     {(form.mgUnit || 'mg')}
                   </span>
-                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
+                </div>
+                {/* Dropdown panel: right-aligned, compact (mg/mL/g/IU) */}
                 <div 
-                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
+                  className="absolute right-0 top-full z-50 mt-1 rounded-lg shadow-lg border overflow-hidden transition-all duration-200"
                   data-dropdown-container
                   style={{
-                    maxHeight: isAmountUnitDropdownOpen ? '300px' : '0',
                     opacity: isAmountUnitDropdownOpen ? 1 : 0,
-                    transform: isAmountUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
-                    pointerEvents: isAmountUnitDropdownOpen ? 'auto' : 'none'
+                    visibility: isAmountUnitDropdownOpen ? 'visible' : 'hidden',
+                    pointerEvents: isAmountUnitDropdownOpen ? 'auto' : 'none',
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    minWidth: '52px',
+                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                   }}
                 >
-                  <div 
-                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                    style={{
-                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                      borderColor: theme.border,
-                      minWidth: '100px',
-                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                      {[
-                        { value: 'mg', label: 'mg' },
-                        { value: 'mL', label: 'mL' },
-                        { value: 'g', label: 'g' },
-                        { value: 'IU', label: 'IU' }
-                      ].map((option, optIdx) => (
-                        <React.Fragment key={option.value}>
-                          {optIdx > 0 && (
-                            <div 
-                              className="h-px mx-2"
-                              style={{ backgroundColor: theme.border }}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onTouchStart={(e) => e.preventDefault()}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              updateFormData({ mgUnit: option.value });
-                              setIsAmountUnitDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                            style={{
-                              color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
-                              backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                              e.currentTarget.style.color = theme.primary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
-                            }}
-                          >
-                            {option.label}
-                          </button>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
+                  {[
+                    { value: 'mg', label: 'mg' },
+                    { value: 'mL', label: 'mL' },
+                    { value: 'g', label: 'g' },
+                    { value: 'IU', label: 'IU' }
+                  ].map((option, optIdx) => (
+                    <React.Fragment key={option.value}>
+                      {optIdx > 0 && (
+                        <div 
+                          className="h-px mx-1.5"
+                          style={{ backgroundColor: theme.border }}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          updateFormData({ mgUnit: option.value });
+                          setIsAmountUnitDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-sm transition-all touch-manipulation"
+                        style={{
+                          color: (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                          backgroundColor: 'transparent',
+                          WebkitTapHighlightColor: 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                          e.currentTarget.style.color = theme.primary;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = (form.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    </React.Fragment>
+                  ))}
                 </div>
               <label 
                 htmlFor="amount-input"
@@ -392,10 +387,10 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   fontWeight: 500
                 }}
               >
-                Amount
+                Vial Amount
               </label>
             </div>
-            <div className="relative">
+            <div className="relative" data-dropdown-container>
               <div 
                 className="flex items-stretch rounded-lg"
                 style={{ 
@@ -432,13 +427,12 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   onClick={() => setIsUnitDropdownOpen(prev => !prev)}
                   onMouseDown={(e) => e.preventDefault()}
                   onTouchStart={(e) => e.preventDefault()}
-                  className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                  data-dropdown-container
+                  className="flex items-center justify-between gap-1 px-2 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   style={{ 
                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                     color: theme.isDark ? theme.text : '#181A18',
-                    minWidth: '100px'
+                    minWidth: '56px'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
@@ -447,7 +441,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold truncate max-w-[3.5rem]">
                     {(() => {
                       const unit = (form.unit || 'vial').toLowerCase();
                       const quantity = Number(form.quantity) || 1;
@@ -463,75 +457,69 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                       return unit.charAt(0).toUpperCase() + unit.slice(1);
                     })()}
                   </span>
-                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                <div 
-                  className="relative overflow-hidden transition-all duration-300 ease-in-out"
-                  data-dropdown-container
-                  style={{
-                    maxHeight: isUnitDropdownOpen ? '300px' : '0',
-                    opacity: isUnitDropdownOpen ? 1 : 0,
-                    transform: isUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
-                    pointerEvents: isUnitDropdownOpen ? 'auto' : 'none'
-                  }}
-                >
-                  <div 
-                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                    style={{
-                      backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                      borderColor: theme.border,
-                      minWidth: '120px',
-                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                      {[
-                        { value: 'vial', label: 'Vial' },
-                        { value: 'kit', label: 'Kit' },
-                        { value: 'bottle', label: 'Bottle' },
-                        { value: 'tablets', label: 'Tablets' }
-                      ].map((option, optIdx) => (
-                        <React.Fragment key={option.value}>
-                          {optIdx > 0 && (
-                            <div 
-                              className="h-px mx-2"
-                              style={{ backgroundColor: theme.border }}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onTouchStart={(e) => e.preventDefault()}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              updateFormData({ unit: option.value });
-                              setIsUnitDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                            style={{
-                              color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
-                              backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                              e.currentTarget.style.color = theme.primary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = (form.unit || 'vial') === option.value ? theme.primary : theme.text;
-                            }}
-                          >
-                            {option.label}
-                          </button>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              <label 
+              </div>
+              {/* Dropdown panel: right-aligned, compact */}
+              <div 
+                className="absolute right-0 top-full z-50 mt-1 rounded-lg shadow-lg border overflow-hidden transition-all duration-200"
+                data-dropdown-container
+                style={{
+                  opacity: isUnitDropdownOpen ? 1 : 0,
+                  visibility: isUnitDropdownOpen ? 'visible' : 'hidden',
+                  pointerEvents: isUnitDropdownOpen ? 'auto' : 'none',
+                  backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                  borderColor: theme.border,
+                  minWidth: '72px',
+                  boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                {[
+                  { value: 'vial', label: 'Vial' },
+                  { value: 'kit', label: 'Kit' },
+                  { value: 'bottle', label: 'Bottle' },
+                  { value: 'tablets', label: 'Tablets' }
+                ].map((option, optIdx) => (
+                  <React.Fragment key={option.value}>
+                    {optIdx > 0 && (
+                      <div 
+                        className="h-px mx-1.5"
+                        style={{ backgroundColor: theme.border }}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        updateFormData({ unit: option.value });
+                        setIsUnitDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-2 py-1.5 text-sm transition-all touch-manipulation"
+                      style={{
+                        color: (form.unit || 'vial') === option.value ? theme.primary : theme.text,
+                        backgroundColor: 'transparent',
+                        WebkitTapHighlightColor: 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                        e.currentTarget.style.color = theme.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = (form.unit || 'vial') === option.value ? theme.primary : theme.text;
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
+              <label
                 htmlFor="quantity-input"
                 className="absolute pointer-events-none transition-all"
                 style={{
@@ -550,157 +538,6 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
             </div>
           </div>
           
-          <div className="relative">
-            <div 
-              className="flex items-stretch rounded-lg"
-              style={{ 
-                border: `1px solid #f0eee7`,
-                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-              }}
-            >
-              <input 
-                type="text"
-                id="price-input"
-                value={form.cost || ''} 
-                onChange={e => updateFormData({ cost: e.target.value })} 
-                onFocus={() => setIsPriceFocused(true)}
-                onBlur={(e) => {
-                  setTimeout(() => {
-                    const relatedTarget = e.relatedTarget || document.activeElement
-                    const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
-                    if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
-                      setIsPriceFocused(false)
-                    }
-                  }, 150)
-                }}
-                placeholder=" "
-                className="flex-1 py-2 outline-none min-w-0 rounded-l-lg"
-                style={{
-                  backgroundColor: 'transparent',
-                  color: theme.isDark ? theme.text : '#181A18',
-                  border: 'none',
-                  paddingLeft: '12px',
-                  paddingRight: '8px'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                data-dropdown-container
-                style={{ 
-                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                  color: theme.isDark ? theme.text : '#181A18',
-                  minWidth: '100px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
-                }}
-              >
-                <span className="text-sm font-semibold">
-                  {(() => {
-                    const unit = (form.priceUnit || 'vial').toLowerCase();
-                    if (unit === 'vial') return 'Vial';
-                    if (unit === 'mg') return 'mg';
-                    if (unit === 'g') return 'g';
-                    if (unit === 'iu' || unit === 'IU') return 'IU';
-                    if (unit === 'tablet') return 'Tablet';
-                    return unit.charAt(0).toUpperCase() + unit.slice(1);
-                  })()}
-                </span>
-                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <div 
-                className="relative overflow-hidden transition-all duration-300 ease-in-out"
-                data-dropdown-container
-                style={{
-                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
-                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
-                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
-                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
-                }}
-              >
-                <div 
-                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                  style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                    borderColor: theme.border,
-                    minWidth: '120px',
-                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                  }}
-                >
-                    {[
-                      { value: 'vial', label: 'Vial' },
-                      { value: 'mg', label: 'mg' },
-                      { value: 'g', label: 'g' },
-                      { value: 'iu', label: 'IU' },
-                      { value: 'tablet', label: 'Tablet' }
-                    ].map((option, optIdx) => (
-                      <React.Fragment key={option.value}>
-                        {optIdx > 0 && (
-                          <div 
-                            className="h-px mx-2"
-                            style={{ backgroundColor: theme.border }}
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onTouchStart={(e) => e.preventDefault()}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            updateFormData({ priceUnit: option.value });
-                            setIsPriceUnitDropdownOpen(false);
-                          }}
-                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                            style={{
-                              color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
-                              backgroundColor: 'transparent',
-                              WebkitTapHighlightColor: 'transparent'
-                            }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                            e.currentTarget.style.color = theme.primary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                        </React.Fragment>
-                      ))}
-                  </div>
-                </div>
-            <label 
-              htmlFor="price-input"
-              className="absolute pointer-events-none transition-all"
-              style={{
-                fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
-                top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
-                left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
-                padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
-                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
-                fontWeight: 500
-              }}
-            >
-              Cost per ($)
-            </label>
-          </div>
-          </div>
-          
           {/* ORDER DETAILS Section Header */}
           <div className="flex items-center gap-2 mb-1">
             <PackageOpen size={28} style={{ color: theme.primary }} />
@@ -717,8 +554,8 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
           
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
           
-          {/* Cost per - Moved under Order Details */}
-          <div className="relative">
+          {/* Cost per - under Order Details */}
+          <div className="relative" data-dropdown-container>
             <div 
               className="flex items-stretch rounded-lg"
               style={{ 
@@ -757,13 +594,12 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 onClick={() => setIsPriceUnitDropdownOpen(prev => !prev)}
                 onMouseDown={(e) => e.preventDefault()}
                 onTouchStart={(e) => e.preventDefault()}
-                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                data-dropdown-container
+                className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                 style={{ 
                   borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                   backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                   color: theme.isDark ? theme.text : '#181A18',
-                  minWidth: '100px'
+                  minWidth: '72px'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
@@ -787,70 +623,66 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <div 
-                className="relative overflow-hidden transition-all duration-300 ease-in-out"
-                data-dropdown-container
-                style={{
-                  maxHeight: isPriceUnitDropdownOpen ? '300px' : '0',
-                  opacity: isPriceUnitDropdownOpen ? 1 : 0,
-                  transform: isPriceUnitDropdownOpen ? 'translateY(0)' : 'translateY(-10px)',
-                  pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none'
-                }}
-              >
-                <div 
-                  className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                  style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                    borderColor: theme.border,
-                    minWidth: '120px',
-                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  {[
-                    { value: 'vial', label: 'Vial' },
-                    { value: 'mg', label: 'mg' },
-                    { value: 'g', label: 'g' },
-                    { value: 'iu', label: 'IU' },
-                    { value: 'tablet', label: 'Tablet' }
-                  ].map((option, optIdx) => (
-                    <React.Fragment key={option.value}>
-                      {optIdx > 0 && (
-                        <div 
-                          className="h-px mx-2"
-                          style={{ backgroundColor: theme.border }}
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onTouchStart={(e) => e.preventDefault()}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          updateFormData({ priceUnit: option.value });
-                          setIsPriceUnitDropdownOpen(false);
-                        }}
-                          className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                          style={{
-                            color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
-                            backgroundColor: 'transparent',
-                            WebkitTapHighlightColor: 'transparent'
-                          }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                          e.currentTarget.style.color = theme.primary;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </div>
+            </div>
+            {/* Dropdown panel: right-aligned, compact width */}
+            <div 
+              className="absolute right-0 top-full z-50 mt-1 rounded-lg shadow-lg border overflow-hidden transition-all duration-200"
+              data-dropdown-container
+              style={{
+                opacity: isPriceUnitDropdownOpen ? 1 : 0,
+                visibility: isPriceUnitDropdownOpen ? 'visible' : 'hidden',
+                pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none',
+                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                borderColor: theme.border,
+                minWidth: '88px',
+                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              {[
+                { value: 'vial', label: 'Vial' },
+                { value: 'bottle', label: 'Bottle' },
+                { value: 'mg', label: 'mg' },
+                { value: 'g', label: 'g' },
+                { value: 'iu', label: 'IU' },
+                { value: 'tablet', label: 'Tablet' }
+              ].map((option, optIdx) => (
+                <React.Fragment key={option.value}>
+                  {optIdx > 0 && (
+                    <div 
+                      className="h-px mx-2"
+                      style={{ backgroundColor: theme.border }}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      updateFormData({ priceUnit: option.value });
+                      setIsPriceUnitDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                    style={{
+                      color: (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                      backgroundColor: 'transparent',
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                      e.currentTarget.style.color = theme.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = (form.priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
             <label 
               htmlFor="price-input"
               className="absolute pointer-events-none transition-all"
@@ -866,7 +698,6 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
             >
               Cost per ($)
             </label>
-          </div>
           </div>
           
           {/* Advanced Options Accordion - At the end, matching protocol modal style */}
@@ -906,7 +737,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 opacity: showAdvanced ? 1 : 0
               }}
             >
-              <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
+              <div className="px-3 pt-5 pb-3 border-t space-y-3" style={{ borderColor: theme.border }}>
                 <CrimpCapColorInput
                   value={form.capColor || ''}
                   onChange={v => updateFormData({ capColor: v })}

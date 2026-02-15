@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package } from 'lucide-react';
+import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package, Pill, FlaskConical } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
@@ -170,7 +170,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         <div>
                             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                             <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                {selectedVial ? `Linked: ${selectedVial.mg}mg from ${selectedVial.vendor}` : 'Linked'}
+                                {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -243,39 +243,26 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     {/* Delivery Method Editor for Linked Vials */}
                     <div className="mt-3">
                         <div className="grid grid-cols-3 gap-2">
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pipette')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Pipette size={14} /> Syringe
-                            </button>
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pen')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Pen size={14} /> Pen
-                            </button>
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'nasal')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Droplets size={14} /> Nasal
-                            </button>
+                            {[
+                                { key: 'pipette', label: 'Syringe', Icon: Pipette },
+                                { key: 'pen', label: 'Pen', Icon: Pen },
+                                { key: 'nasal', label: 'Nasal', Icon: Droplets },
+                                { key: 'oral', label: 'Oral', Icon: Pill },
+                                { key: 'topical', label: 'Topical', Icon: FlaskConical },
+                            ].map(({ key, label, Icon }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
+                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all"
+                                    style={{
+                                        backgroundColor: deliveryMethod.deliveryMethod === key ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                        color: deliveryMethod.deliveryMethod === key ? theme.textOnPrimary : theme.text,
+                                        borderColor: deliveryMethod.deliveryMethod === key ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Icon size={14} /> {label}
+                                </button>
+                            ))}
                         </div>
                         
                         {/* Administration Route for Syringe */}
@@ -527,39 +514,26 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     {/* Delivery Method Selection */}
                     <div>
                         <div className="grid grid-cols-3 gap-2">
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pipette')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Pipette size={14} /> Syringe
-                            </button>
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pen')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Pen size={14} /> Pen
-                            </button>
-                            <button 
-                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'nasal')}
-                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
-                                style={{
-                                    backgroundColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                    color: deliveryMethod.deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
-                                    borderColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : theme.border
-                                }}
-                            >
-                                <Droplets size={14} /> Nasal
-                            </button>
+                            {[
+                                { key: 'pipette', label: 'Syringe', Icon: Pipette },
+                                { key: 'pen', label: 'Pen', Icon: Pen },
+                                { key: 'nasal', label: 'Nasal', Icon: Droplets },
+                                { key: 'oral', label: 'Oral', Icon: Pill },
+                                { key: 'topical', label: 'Topical', Icon: FlaskConical },
+                            ].map(({ key, label, Icon }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
+                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all"
+                                    style={{
+                                        backgroundColor: deliveryMethod.deliveryMethod === key ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                        color: deliveryMethod.deliveryMethod === key ? theme.textOnPrimary : theme.text,
+                                        borderColor: deliveryMethod.deliveryMethod === key ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Icon size={14} /> {label}
+                                </button>
+                            ))}
                         </div>
                         
                         {/* Administration Route for Syringe */}

@@ -120,7 +120,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     <div>
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            {selectedVial ? `Linked: ${selectedVial.mg}mg from ${selectedVial.vendor}` : 'Linked'}
+                            {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
