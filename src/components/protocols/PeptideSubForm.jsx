@@ -696,14 +696,15 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     })}
                                 </div>
 
-                                {/* Per-peptide custom reminder time */}
-                                <div 
-                                    className="rounded-lg border p-2.5 space-y-2 transition-all"
-                                    style={{ 
-                                        borderColor: item.frequency?.customReminder ? theme.primary + '40' : theme.border + '60',
-                                        backgroundColor: item.frequency?.customReminder ? theme.primary + '08' : 'transparent'
-                                    }}
-                                >
+                                {/* Per-peptide custom reminder time - wrapper elevates z-index so time dropdown appears above card */}
+                                <div className="relative" style={{ zIndex: 10000 }}>
+                                    <div 
+                                        className="rounded-lg border p-2.5 space-y-2 transition-all"
+                                        style={{ 
+                                            borderColor: item.frequency?.customReminder ? theme.primary + '40' : theme.border + '60',
+                                            backgroundColor: item.frequency?.customReminder ? theme.primary + '08' : 'transparent'
+                                        }}
+                                    >
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -762,6 +763,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             />
                                         </div>
                                     )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

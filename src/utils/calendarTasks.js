@@ -75,10 +75,11 @@ function getEffectiveTitrationDays(protocol, peptide, targetDate) {
     return Math.max(0, daysElapsed);
 }
 
-// Convert phase duration to days
+// Convert phase duration to days (ongoing = 0 so last phase continues indefinitely)
 function getPhaseDurationInDays(phase) {
-    const durationCount = Number(phase.durationCount) || 0;
     const durationUnit = String(phase.durationUnit || 'day').toLowerCase();
+    if (durationUnit === 'ongoing') return 0;
+    const durationCount = Number(phase.durationCount) || 0;
     let phaseDays = durationCount;
     if (durationUnit.includes('week')) phaseDays = durationCount * 7;
     else if (durationUnit.includes('month')) phaseDays = durationCount * 30;

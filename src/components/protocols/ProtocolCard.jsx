@@ -32,8 +32,10 @@ const formatIndividualFrequency = (freq) => {
 
 const formatTitration = (titration) => {
     if (!Array.isArray(titration) || titration.length === 0) return null;
-    return titration.map(t => 
-        `${t.dose}${t.doseUnit} for ${t.durationCount} ${t.durationUnit}`
+    return titration.map(t =>
+        t.durationUnit === 'ongoing'
+            ? `${t.dose}${t.doseUnit} ongoing`
+            : `${t.dose}${t.doseUnit} for ${t.durationCount} ${t.durationUnit}`
     ).join(' → ');
 }
 
@@ -589,7 +591,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                             Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
                                                                         </span>
                                                                         {currentPhase.isHeld ? (
-                                                                            <span className="text-[10px] font-medium" style={{ color: theme.warning || '#f59e0b' }}>
+                                                                            <span className="text-[10px] font-medium" style={{ color: '#c87a5c' }}>
                                                                                 · HELD
                                                                             </span>
                                                                         ) : currentPhase.daysRemainingInPhase !== null ? (
@@ -639,13 +641,13 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                                 style={{
                                                                                     backgroundColor: currentPhase.isHeld 
                                                                                         ? `${theme.success || '#22c55e'}15`
-                                                                                        : `${theme.warning || '#f59e0b'}15`,
+                                                                                        : '#c87a5c28',
                                                                                     color: currentPhase.isHeld 
                                                                                         ? (theme.success || '#22c55e')
-                                                                                        : (theme.warning || '#f59e0b'),
+                                                                                        : '#c87a5c',
                                                                                     border: `1px solid ${currentPhase.isHeld 
                                                                                         ? (theme.success || '#22c55e') 
-                                                                                        : (theme.warning || '#f59e0b')}30`
+                                                                                        : '#c87a5c99'}`
                                                                                 }}
                                                                             >
                                                                                 {currentPhase.isHeld ? (

@@ -45,6 +45,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
 
     const doseUnits = ['mcg', 'mg', 'mL', 'IU', 'sprays'];
     const durationUnits = ['days', 'weeks'];
+    const steps = titration || [];
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -72,7 +73,10 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
     return (
         <div className="space-y-2">
             <div className="space-y-2">
-                {(titration || []).map((step, index) => (
+                {steps.map((step, index) => {
+                const isLastPhase = index === steps.length - 1;
+                const durationOptions = isLastPhase ? ['days', 'weeks', 'ongoing'] : durationUnits;
+                return (
                     <div key={index} className="px-3 py-2 rounded-lg" style={{backgroundColor: theme.cardBackground}}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-medium" style={{ color: theme.text }}>Phase {index + 1}</div>
@@ -233,8 +237,10 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                     <input 
                                         type="text"
                                         id={`duration-input-${index}`}
-                                        value={step.durationCount || ''}
+                                        value={step.durationUnit === 'ongoing' ? '' : (step.durationCount || '')}
                                         onChange={e => updateStep(index, 'durationCount', e.target.value)}
+                                        disabled={step.durationUnit === 'ongoing'}
+                                        placeholder={step.durationUnit === 'ongoing' ? '' : ' '}
                                         onFocus={() => setFocusedInputs(prev => ({ ...prev, [`duration-${index}`]: true }))}
                                         onBlur={(e) => {
                                             setTimeout(() => {
@@ -278,7 +284,11 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                         }}
                                     >
                                         <span className="text-sm font-semibold">
-                                            {(step.durationUnit || 'days') === 'days' ? 'day(s)' : 'week(s)'}
+                                            {step.durationUnit === 'ongoing'
+                                                ? 'Ongoing'
+                                                : (step.durationUnit || 'days') === 'days'
+                                                    ? 'day(s)'
+                                                    : 'week(s)'}
                                         </span>
                                         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -295,7 +305,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                                 }}
                                             >
-                                                {durationUnits.map((unit, idx) => (
+                                                {durationOptions.map((unit, idx) => (
                                                     <React.Fragment key={unit}>
                                                         {idx > 0 && (
                                                             <div 
@@ -310,7 +320,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 e.stopPropagation();
-                                                                updateStep(index, 'durationUnit', unit);
+                                                                if (unit === 'ongoing') {
+                                                                    const newTitration = [...titration];
+                                                                    newTitration[index] = { ...newTitration[index], durationUnit: 'ongoing', durationCount: '' };
+                                                                    onChange(newTitration);
+                                                                } else {
+                                                                    updateStep(index, 'durationUnit', unit);
+                                                                }
                                                                 toggleDurationUnitDropdown(index);
                                                             }}
                                                             className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
@@ -328,7 +344,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                                 e.currentTarget.style.color = (step.durationUnit || 'days') === unit ? theme.primary : theme.text;
                                                             }}
                                                         >
-                                                            {unit === 'days' ? 'day(s)' : 'week(s)'}
+                                                            {unit === 'ongoing' ? 'Ongoing' : unit === 'days' ? 'day(s)' : 'week(s)'}
                                                         </button>
                                                     </React.Fragment>
                                                 ))}
@@ -340,13 +356,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                     htmlFor={`duration-input-${index}`}
                                     className="absolute pointer-events-none transition-all"
                                     style={{
-                                        fontSize: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? '0.75rem' : '0.9375rem',
-                                        top: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? '-8px' : '14px',
-                                        left: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? '12px' : '16px',
-                                        right: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? '95px' : 'auto',
-                                        padding: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? '0 4px' : '0',
-                                        background: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                                        color: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                        fontSize: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0.75rem' : '0.9375rem',
+                                        top: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '-8px' : '14px',
+                                        left: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '12px' : '16px',
+                                        right: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '95px' : 'auto',
+                                        padding: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0 4px' : '0',
+                                        background: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                        color: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? theme.primary : (theme.textLight || theme.text),
                                         fontWeight: 500
                                     }}
                                 >
@@ -355,7 +371,8 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                             </div>
                         </div>
                     </div>
-                ))}
+                );
+                })}
             </div>
             <button 
                 type="button" 

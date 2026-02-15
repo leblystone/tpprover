@@ -156,9 +156,11 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                                                 }}
                                                             >
                                                                 <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
-                                                                {(phase.durationCount && phase.durationUnit) && (
+                                                                {(phase.durationUnit === 'ongoing') ? (
+                                                                    <span className="opacity-60"> · Ongoing</span>
+                                                                ) : (phase.durationCount && phase.durationUnit) ? (
                                                                     <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
-                                                                )}
+                                                                ) : null}
                                                             </div>
                                                             {phaseIdx < peptide.titration.length - 1 && (
                                                                 <ArrowRight size={10} style={{ color: shareTheme.textLight, opacity: 0.5 }} />

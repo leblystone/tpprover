@@ -246,7 +246,7 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                         Titration Schedule
                                     </span>
                                     {pep.currentPhaseInfo && (
-                                        <span className="text-[10px] font-medium ml-auto" style={{ color: pep.isHeld ? (theme.warning || '#f59e0b') : theme.textLight }}>
+                                        <span className="text-[10px] font-medium ml-auto" style={{ color: pep.isHeld ? '#c87a5c' : theme.textLight }}>
                                             {pep.isHeld ? (
                                                 <>Phase {pep.currentPhaseInfo.phaseIndex + 1}/{pep.currentPhaseInfo.totalPhases} · HELD</>
                                             ) : (
@@ -264,40 +264,54 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                     {pep.titration.map((phase, phaseIdx) => {
                                         const isCurrentPhase = pep.currentPhaseInfo?.phaseIndex === phaseIdx;
                                         const isCompletedPhase = pep.currentPhaseInfo && phaseIdx < pep.currentPhaseInfo.phaseIndex;
-                                        
+                                        const isNextPhase = !isCurrentPhase && !isCompletedPhase;
+                                        const isHoldPhase = isCurrentPhase && pep.isHeld;
+                                        const terracotta = '#c87a5c';
                                         return (
                                             <React.Fragment key={phaseIdx}>
                                                 <div 
                                                     className="px-2 py-1 rounded text-[10px] font-medium relative"
                                                     style={{ 
-                                                        backgroundColor: isCurrentPhase 
-                                                            ? (pep.isHeld ? `${theme.warning || '#f59e0b'}25` : `${theme.primary}30`)
+                                                        backgroundColor: isCurrentPhase && !pep.isHeld
+                                                            ? `${theme.primary}30`
                                                             : isCompletedPhase 
                                                                 ? `${theme.success || '#22c55e'}15`
-                                                                : `${theme.primary}08`,
+                                                                : isHoldPhase
+                                                                    ? `${terracotta}28`
+                                                                    : isNextPhase
+                                                                        ? `${theme.primary}08`
+                                                                        : `${theme.primary}08`,
                                                         color: isCompletedPhase 
                                                             ? (theme.success || '#22c55e')
-                                                            : (isCurrentPhase && pep.isHeld) 
-                                                                ? (theme.warning || '#f59e0b')
-                                                                : theme.text,
-                                                        border: isCurrentPhase 
-                                                            ? `2px solid ${pep.isHeld ? (theme.warning || '#f59e0b') : theme.primary}` 
+                                                            : isHoldPhase
+                                                                ? terracotta
+                                                                : isNextPhase
+                                                                    ? theme.text
+                                                                    : (isCurrentPhase ? theme.text : theme.text),
+                                                        border: isCurrentPhase && !pep.isHeld
+                                                            ? `2px solid ${theme.primary}` 
                                                             : isCompletedPhase
                                                                 ? `1px solid ${theme.success || '#22c55e'}40`
-                                                                : `1px solid ${theme.primary}15`,
-                                                        opacity: !isCurrentPhase && !isCompletedPhase ? 0.6 : 1
+                                                                : isHoldPhase
+                                                                    ? `1px solid ${terracotta}99`
+                                                                    : isNextPhase
+                                                                        ? `1px solid ${theme.primary}15`
+                                                                        : `1px solid ${theme.primary}15`,
+                                                        opacity: isHoldPhase || isCurrentPhase || isCompletedPhase ? 1 : 0.6
                                                     }}
                                                 >
                                                     {isCompletedPhase && (
                                                         <Check size={8} className="inline mr-0.5" style={{ color: theme.success || '#22c55e' }} />
                                                     )}
-                                                    {isCurrentPhase && pep.isHeld && (
-                                                        <Pause size={8} className="inline mr-0.5" style={{ color: theme.warning || '#f59e0b' }} />
+                                                    {isHoldPhase && (
+                                                        <Pause size={8} className="inline mr-0.5" style={{ color: terracotta }} />
                                                     )}
                                                     <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
-                                                    {(phase.durationCount && phase.durationUnit) && (
+                                                    {(phase.durationUnit === 'ongoing') ? (
+                                                        <span className="opacity-60"> · Ongoing</span>
+                                                    ) : (phase.durationCount && phase.durationUnit) ? (
                                                         <span className="opacity-60"> · {phase.durationCount} {phase.durationUnit}</span>
-                                                    )}
+                                                    ) : null}
                                                 </div>
                                                 {phaseIdx < pep.titration.length - 1 && (
                                                     <ArrowRight 
@@ -349,13 +363,13 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                             style={{
                                                 backgroundColor: pep.isHeld 
                                                     ? `${theme.success || '#22c55e'}15`
-                                                    : `${theme.warning || '#f59e0b'}15`,
+                                                    : '#c87a5c28',
                                                 color: pep.isHeld 
                                                     ? (theme.success || '#22c55e')
-                                                    : (theme.warning || '#f59e0b'),
+                                                    : '#c87a5c',
                                                 border: `1px solid ${pep.isHeld 
                                                     ? (theme.success || '#22c55e') 
-                                                    : (theme.warning || '#f59e0b')}30`
+                                                    : '#c87a5c99'}`
                                             }}
                                         >
                                             {pep.isHeld ? (
