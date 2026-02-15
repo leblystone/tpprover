@@ -22,7 +22,6 @@ export default function StockpileGroupCard({
   onViewOrder,
   onSendToRecon,
   onPreviewImage,
-  getUseByStatus,
   onViewDetails,
   onCompleteEntry
 }) {
@@ -166,7 +165,6 @@ export default function StockpileGroupCard({
                       onViewOrder={onViewOrder}
                       onSendToRecon={onSendToRecon}
                       onPreviewImage={onPreviewImage}
-                      getUseByStatus={getUseByStatus}
                       isLast={itemIdx === variant.items.length - 1}
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
@@ -216,13 +214,12 @@ export default function StockpileGroupCard({
  */
 function ItemStrip({ 
   item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
-  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, getUseByStatus, isLast,
+  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, isLast,
   openMenuId, setOpenMenuId, setItemToDelete
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const showActionMenu = openMenuId === item.id;
   const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor';
-  const useByStatus = item.useByDate ? getUseByStatus(item.useByDate) : null;
   const needsReview = item.notes?.includes('Added during protocol start') || item.notes?.includes('Added during protocol edit');
 
   return (
@@ -284,13 +281,6 @@ function ItemStrip({
               <Calendar size={12} />
               {new Date(item.date).toLocaleDateString(undefined, { month: 'numeric', year: '2-digit' })}
             </div>
-          )}
-          {useByStatus && (
-            <div 
-              className="w-1.5 h-1.5 rounded-full flex-shrink-0" 
-              style={{ backgroundColor: useByStatus.status === 'expired' ? '#ef4444' : useByStatus.status === 'expiring' ? '#f59e0b' : '#10b981' }}
-              title={`Use by: ${new Date(item.useByDate).toLocaleDateString()}`}
-            />
           )}
         </div>
 
@@ -362,7 +352,6 @@ function ItemStrip({
           <DataPoint icon={Percent} label="Purity" value={item.purity ? `${item.purity}%` : 'N/A'} theme={theme} />
           <DataPoint icon={Tag} label="Cap Color" value={item.capColor || 'N/A'} theme={theme} />
           <DataPoint icon={Hash} label="Batch #" value={item.batchNumber || 'N/A'} theme={theme} />
-          <DataPoint icon={Calendar} label="Use By" value={item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'} theme={theme} />
           {item.notes && (
             <div className={`col-span-2 mt-1 pt-2 border-t ${needsReview ? 'border-yellow-500/30' : 'border-black/5 dark:border-white/5'}`}>
               <div 

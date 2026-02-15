@@ -55,6 +55,7 @@ export default function Recon() {
     const [showCalculatorModal, setShowCalculatorModal] = useState(false)
     const [calculatorFormData, setCalculatorFormData] = useState(null)
     const [isSavingCalculator, setIsSavingCalculator] = useState(false)
+    const [calcSummary, setCalcSummary] = useState({ unitsPerDose: 0, dosesPerVial: 0, costPerDose: '' })
 
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
@@ -934,19 +935,39 @@ export default function Recon() {
 									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 										<Beaker size={32} style={{ color: theme.primary }} />
 									</div>
-									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Vials In Use</h3>
-									<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-										Add current reconstituted peptide vials to track dosages, delivery methods, and usage for research purposes. 
-										This helps manage inventory and calculate proper dosing.
+									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No vials in use</h3>
+									<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+										Add reconstituted vials to track dosages and delivery.
 									</p>
-									<button
-										onClick={() => setShowEditModal(true)}
-										className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-										style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-									>
-										<PlusCircle size={18} />
-										Add Your First Vial
-									</button>
+									<div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+										<button
+											type="button"
+											onClick={() => setShowCalculatorModal(true)}
+											className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 touch-manipulation"
+											style={{
+												backgroundColor: theme.primary,
+												color: theme.textOnPrimary || '#ffffff',
+												WebkitTapHighlightColor: 'transparent'
+											}}
+										>
+											<Calculator size={18} />
+											Peptide Calculator
+										</button>
+										<button
+											type="button"
+											onClick={() => setShowEditModal(true)}
+											className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 touch-manipulation"
+											style={{
+												backgroundColor: theme.isDark ? '#1f2937' : (theme.secondary || '#f3f4f6'),
+												color: theme.text,
+												border: `1px solid ${theme.border}`,
+												WebkitTapHighlightColor: 'transparent'
+											}}
+										>
+											Add Vial
+											<ChevronDown size={16} />
+										</button>
+									</div>
 								</div>
 							) : (
 								sortedItems.map(item => {
@@ -1316,10 +1337,9 @@ export default function Recon() {
 									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 										<History size={32} style={{ color: theme.primary }} />
 									</div>
-									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No History Yet</h3>
-									<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-										Your reconstitution history will appear here once you mark vials as finished. 
-										This helps you track past research usage patterns, vendors, and dosing information for future reference.
+									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No history yet</h3>
+									<p className="text-sm max-w-sm" style={{ color: theme.textLight }}>
+										Finished vials will appear here when you mark them as used.
 									</p>
 								</div>
 							) : (
@@ -2316,7 +2336,31 @@ export default function Recon() {
 				maxHeight="90vh"
 				seamlessContent={true}
 				footer={
-					<div className="w-full">
+					<div className="w-full space-y-2">
+						{/* Compact calculated results row */}
+						<div 
+							className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
+							style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '06', border: `1px solid ${theme.primary}10` }}
+						>
+							<div className="flex-1">
+								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
+								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
+									{typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
+								</div>
+							</div>
+							<div className="flex-1 border-x" style={{ borderColor: theme.primary + '15' }}>
+								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Doses/Vial</div>
+								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
+									{typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}
+								</div>
+							</div>
+							<div className="flex-1">
+								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Cost/Dose</div>
+								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
+									{calcSummary.costPerDose || '-'}
+								</div>
+							</div>
+						</div>
 						<button
 							type="button"
 							onClick={async () => {
@@ -2359,7 +2403,7 @@ export default function Recon() {
 								}
 							}}
 							disabled={isSavingCalculator || isReadOnly || !calculatorFormData}
-							className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+							className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
 							style={{
 								background: getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData),
 								color: (isSavingCalculator || isReadOnly || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
@@ -2378,9 +2422,14 @@ export default function Recon() {
 							}}
 							title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
 						>
-							<FilePlus size={18} />
+							<FilePlus size={16} />
 							{isSavingCalculator ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
 						</button>
+						{/* Research disclaimer - subtle inline text */}
+						<p className="text-[9px] text-center opacity-40 flex items-center justify-center gap-1" style={{ color: theme.text }}>
+							<Info size={10} className="opacity-60 flex-shrink-0" />
+							For research purposes only. Always verify calculations.
+						</p>
 					</div>
 				}
 			>
@@ -2396,6 +2445,13 @@ export default function Recon() {
 					formData={calculatorFormData}
 					setFormData={(newForm) => {
 						setCalculatorFormData(newForm);
+					}}
+					onCalcUpdate={(calc, costPerDose) => {
+						setCalcSummary({
+							unitsPerDose: calc?.unitsPerDose ?? 0,
+							dosesPerVial: calc?.dosesPerVial ?? 0,
+							costPerDose: costPerDose ?? ''
+						});
 					}}
 				/>
 			</BottomSheet>

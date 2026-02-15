@@ -13,7 +13,7 @@ import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, activeTab = 'domestic', isDeleting = false }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -88,19 +88,17 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setSaveAttempted(false);
       setSaveError(null);
       
-      // For new orders, default category to activeTab. For existing orders, preserve their category.
+      const defaultCat = defaultCategory ?? activeTab ?? 'domestic';
+      // For new orders, default category to defaultCategory/activeTab. For existing orders, preserve their category.
       if (!order) {
-        // New order: use activeTab as default category
-        initialData.category = activeTab;
-        initialData.type = activeTab;
+        initialData.category = defaultCat;
+        initialData.type = defaultCat;
       } else {
-        // Existing order: preserve category, but migrate type to category if needed
-      if (!initialData.category && !initialData.type) {
-          initialData.category = activeTab;
-          initialData.type = activeTab;
-      } else if (initialData.type && !initialData.category) {
-        // Migration: use 'type' as 'category' for consistency
-        initialData.category = initialData.type;
+        if (!initialData.category && !initialData.type) {
+          initialData.category = defaultCat;
+          initialData.type = defaultCat;
+        } else if (initialData.type && !initialData.category) {
+          initialData.category = initialData.type;
         }
       }
       
@@ -133,7 +131,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
     }
-  }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, activeTab]);
+  }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, defaultCategory, activeTab]);
 
   // Debug form changes
   useEffect(() => {

@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
-import { PlusCircle, Package, Filter } from 'lucide-react'
+import { PlusCircle, Package, ChevronDown } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
+import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import OrdersTipsBanner from '../components/orders/OrdersTipsBanner'
-import Tabs from '../components/common/Tabs'
 import ScheduledBuysPanel from '../components/orders/ScheduledBuysPanel'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
@@ -28,7 +28,7 @@ export default function Orders() {
 	const { firebaseUser } = useFirebase();
 	const location = useLocation()
 	const navigate = useNavigate()
-	const [activeTab, setActiveTab] = useState('domestic')
+	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [returnToStockpileIncoming, setReturnToStockpileIncoming] = useState(false)
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
@@ -194,8 +194,8 @@ export default function Orders() {
 	};
 
 	useEffect(() => {
-		if (location.state?.activeTab) {
-			setActiveTab(location.state.activeTab)
+		if (location.state?.categoryFilter) {
+			setCategoryFilter(location.state.categoryFilter);
 		}
 		if (location.state?.openOrderId) {
 			const orderToOpen = orders.find(o => o.id === location.state.openOrderId);
@@ -395,14 +395,8 @@ export default function Orders() {
 		};
 	}, []) // Empty deps - only run once on mount/unmount
 
-	// Set topbar tabs via custom event
+	// Orders: no category tabs in topbar; category is in-page filter. Single topbar "tab" so Add button still shows.
 	useEffect(() => {
-		const tabs = [
-			{ value: 'domestic', label: 'Domestic' },
-			{ value: 'international', label: 'International' },
-			{ value: 'groupbuy', label: 'Group Buy' }
-		];
-		
 		const handleAddClick = () => {
 			if (isReadOnly) {
 				setShowUpgradeModal(true);
@@ -410,28 +404,24 @@ export default function Orders() {
 			}
 			setShowAddModal(true);
 		};
-		
-		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
-			detail: { 
-				tabs, 
-				activeTab, 
-				onTabChange: setActiveTab,
+		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
+			detail: {
+				tabs: [{ value: 'orders', label: 'Orders' }],
+				activeTab: 'orders',
+				onTabChange: () => {},
 				onActionClick: handleAddClick,
 				actionDisabled: isReadOnly
-			} 
+			}
 		}));
-		
-		// Listen for topbar search events for page-specific search
 		const handleSearch = (e) => {
-			setSearchQuery(e.detail.query);
+			setSearchQuery(e.detail?.query ?? '');
 		};
 		window.addEventListener('tpp:orders-search', handleSearch);
-		
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:orders-search', handleSearch);
 		};
-	}, [activeTab, isReadOnly])
+	}, [isReadOnly])
 
 
 	const filteredOrders = useMemo(() => {
@@ -448,16 +438,15 @@ export default function Orders() {
 	const filteredOrdersByCategory = useMemo(() => {
 		return filteredOrders.filter(o => {
 			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
-			if (orderCategory !== activeTab) return false;
-			
+			if (categoryFilter !== 'all' && orderCategory !== categoryFilter) return false;
 			// Apply status filter
 			if (statusFilter === 'all') return true;
 			const orderStatus = (o.status || 'Order Placed').toLowerCase();
 			if (statusFilter === 'delivered') return orderStatus.includes('delivered');
 			if (statusFilter === 'active') return !orderStatus.includes('delivered');
 			return true;
-		})
-	}, [filteredOrders, activeTab, statusFilter]);
+		});
+	}, [filteredOrders, categoryFilter, statusFilter]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		if (!newOrder) {
@@ -696,50 +685,76 @@ export default function Orders() {
 		}
 	};
 
-	// Count orders by status for the current category
-	const statusCounts = useMemo(() => {
-		const categoryOrders = filteredOrders.filter(o => {
-			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
-			return orderCategory === activeTab;
+	// Count orders by category (for filter pills) and by status (for current filter view)
+	const categoryCounts = useMemo(() => {
+		const getCat = (o) => (o.category || o.type || 'domestic').toLowerCase();
+		let all = 0, domestic = 0, international = 0, groupbuy = 0;
+		filteredOrders.forEach(o => {
+			const c = getCat(o);
+			all++;
+			if (c === 'domestic') domestic++;
+			else if (c === 'international') international++;
+			else if (c === 'groupbuy') groupbuy++;
 		});
-		const delivered = categoryOrders.filter(o => (o.status || '').toLowerCase().includes('delivered')).length;
-		return { all: categoryOrders.length, active: categoryOrders.length - delivered, delivered };
-	}, [filteredOrders, activeTab]);
+		return { all, domestic, international, groupbuy };
+	}, [filteredOrders]);
+	// Status counts for current category only (so dropdown shows correct totals)
+	const ordersInCategory = useMemo(() => {
+		return filteredOrders.filter(o => {
+			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
+			return categoryFilter === 'all' || orderCategory === categoryFilter;
+		});
+	}, [filteredOrders, categoryFilter]);
+	const statusCounts = useMemo(() => {
+		const delivered = ordersInCategory.filter(o => (o.status || '').toLowerCase().includes('delivered')).length;
+		return { all: ordersInCategory.length, active: ordersInCategory.length - delivered, delivered };
+	}, [ordersInCategory]);
 
 	return (
 		<section>
 			<OrdersTipsBanner theme={theme} />
 
-			{/* Status filter pills */}
-			{statusCounts.all > 0 && (
-				<div className="flex items-center gap-2 mt-4 px-1">
-					<Filter size={14} style={{ color: theme.textLight, opacity: 0.5 }} />
-					{[
-						{ value: 'all', label: 'All', count: statusCounts.all },
-						{ value: 'active', label: 'Active', count: statusCounts.active },
-						{ value: 'delivered', label: 'Delivered', count: statusCounts.delivered }
-					].map(opt => {
-						const isActive = statusFilter === opt.value;
-						return (
-							<button
-								key={opt.value}
-								onClick={() => setStatusFilter(opt.value)}
-								className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-								style={{
-									backgroundColor: isActive ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
-									color: isActive ? (theme.textOnPrimary || '#fff') : theme.textLight,
-									border: `1px solid ${isActive ? theme.primary : 'transparent'}`
-								}}
-							>
-								{opt.label} {opt.count > 0 ? `(${opt.count})` : ''}
-							</button>
-						);
-					})}
+			{/* Filter dropdowns - same pattern as Stockpile */}
+			<div className="mb-6">
+				<div className="flex flex-wrap items-center gap-3">
+					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
+						<CustomDropdown
+							value={categoryFilter}
+							onChange={setCategoryFilter}
+							options={[
+								{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
+								{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
+								{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
+								{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Package size={16} style={{ color: theme.textLight }} /> }
+							]}
+							theme={theme}
+							placeholder="Filter orders..."
+							outlined={true}
+							customShadow={true}
+						/>
+					</div>
+					{ordersInCategory.length > 0 && (
+						<div className="flex-1 min-w-0" style={{ minWidth: '160px' }}>
+							<CustomDropdown
+								value={statusFilter}
+								onChange={setStatusFilter}
+								options={[
+									{ value: 'all', label: `All (${statusCounts.all})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
+									{ value: 'active', label: `Active (${statusCounts.active})`, icon: <Package size={16} style={{ color: theme.primary }} /> },
+									{ value: 'delivered', label: `Delivered (${statusCounts.delivered})`, icon: <Package size={16} style={{ color: theme.textLight }} /> }
+								]}
+								theme={theme}
+								placeholder="Status..."
+								outlined={true}
+								customShadow={true}
+							/>
+						</div>
+					)}
 				</div>
-			)}
+			</div>
 
 			<div className="mt-6">
-				{activeTab === 'groupbuy' ? (
+				{categoryFilter === 'groupbuy' ? (
 					<div>
 						{filteredOrdersByCategory.length > 0 ? (
 							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -780,19 +795,24 @@ export default function Orders() {
 								<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 									<Package size={32} style={{ color: theme.primary }} />
 								</div>
-								<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Group Buy Orders Yet</h3>
-								<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-									Track group buy orders separately to manage timing, coordination, and delivery. 
-									Group buys often have unique timelines and require special attention to order status and fulfillment dates.
+								<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No group buy orders yet</h3>
+								<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+									Track group buys and coordinate delivery.
 								</p>
 								{!isReadOnly && (
 									<button
+										type="button"
 										onClick={() => setShowAddModal(true)}
-										className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-										style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+										className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+										style={{
+											color: theme.primary,
+											backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+											border: `1px solid ${theme.primary}40`,
+											WebkitTapHighlightColor: 'transparent'
+										}}
 									>
-										<PlusCircle size={18} />
-										Add First Group Buy Order
+										Add Order
+										<ChevronDown size={14} />
 									</button>
 								)}
 							</div>
@@ -829,31 +849,28 @@ export default function Orders() {
 							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 								<Package size={32} style={{ color: theme.primary }} />
 							</div>
-							<h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>
-								📦 {activeTab === 'domestic' ? 'No Domestic Orders Yet' : 'No International Orders Yet'}
+							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+								{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
 							</h3>
-							<p className="text-base mb-4 max-w-md" style={{ color: theme.textLight }}>
-								Track your orders to:
+							<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+								{categoryFilter === 'all' ? 'Add orders to track shipping and move items to stockpile when delivered.' : 'Track shipping and add to stockpile when delivered.'}
 							</p>
-							<ul className="text-sm mb-6 space-y-1 text-left max-w-md" style={{ color: theme.textLight }}>
-								<li>• Monitor shipping status and delivery dates</li>
-								<li>• Automatically add items to stockpile when delivered</li>
-								<li>• Track costs and vendor information</li>
-								<li>• Attach receipts and documentation</li>
-							</ul>
 							{!isReadOnly && (
 								<button
+									type="button"
 									onClick={() => setShowAddModal(true)}
-									className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-									style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+									className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+									style={{
+										color: theme.primary,
+										backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+										border: `1px solid ${theme.primary}40`,
+										WebkitTapHighlightColor: 'transparent'
+									}}
 								>
-									<PlusCircle size={18} />
-									{activeTab === 'domestic' ? 'Add First Domestic Order' : 'Add First International Order'}
+									Add Order
+									<ChevronDown size={14} />
 								</button>
 							)}
-							<p className="text-xs mt-4" style={{ color: theme.textLight }}>
-								💡 Tip: Delivered orders automatically move to your Stockpile!
-							</p>
 						</div>
 					)
 				)}
@@ -873,11 +890,11 @@ export default function Orders() {
 				theme={theme}
 				order={editingOrder}
 				vendors={vendors}
-				activeTab={activeTab}
+				defaultCategory={categoryFilter === 'all' ? 'domestic' : categoryFilter}
 				isDeleting={deletingOrderId === editingOrder?.id}
 				onSave={(data) => {
 					console.log('📋 Orders page received data:', data);
-					console.log('📋 Current activeTab:', activeTab);
+					console.log('📋 Default category:', categoryFilter === 'all' ? 'domestic' : categoryFilter);
 					console.log('📋 Editing order:', editingOrder);
 					
 					// Auto-create new vendor if it doesn't exist (same logic as stockpile)
@@ -910,8 +927,7 @@ export default function Orders() {
 							return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
 						});
 					} else {
-						// Use 'category' field for consistency, fallback to activeTab for new orders
-						const category = data.category || activeTab;
+						const category = data.category || (categoryFilter === 'all' ? 'domestic' : categoryFilter);
 						const nextPublicNumber = getNextPublicOrderNumber(orders);
 						// Use prepareItemForSave with isNew flag for new orders
 						const newOrder = prepareItemForSave({ 

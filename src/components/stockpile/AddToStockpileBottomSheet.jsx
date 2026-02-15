@@ -5,6 +5,7 @@ import useAutoSave from '../../utils/useAutoSave';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
+import CrimpCapColorInput from './CrimpCapColorInput';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import DocumentationUpload from '../common/DocumentationUpload';
@@ -906,16 +907,12 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
               }}
             >
               <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: theme.border }}>
-                <TextInput 
-                  label="Crimp / Cap Color" 
-                  value={form.capColor} 
-                  onChange={v => updateFormData({ capColor: v })} 
-                  placeholder="Black Crimp/Black Cap" 
-                  theme={theme} 
-                  uppercase={true} 
-                  outlined={true} 
-                  customTextColor={theme.isDark ? null : "#181A18"} 
-                  customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                <CrimpCapColorInput
+                  value={form.capColor || ''}
+                  onChange={v => updateFormData({ capColor: v })}
+                  theme={theme}
+                  customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                  customTextColor={theme.isDark ? null : '#181A18'}
                 />
                 
                 {/* Purity & Batch Number in two columns */}

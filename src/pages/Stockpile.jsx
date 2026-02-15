@@ -34,6 +34,7 @@ import { syncOrderDocumentationToStockpile } from '../utils/documentationSync'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import BulkImportModal from '../components/stockpile/BulkImportModal'
 import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet'
+import CrimpCapColorInput from '../components/stockpile/CrimpCapColorInput'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -170,19 +171,6 @@ export default function Stockpile() {
         } 
       }));
     });
-  };
-  
-  // Helper function to check use by date status
-  const getUseByStatus = (useByDate) => {
-    if (!useByDate) return null;
-    const today = new Date();
-    const useBy = new Date(useByDate);
-    const daysDiff = Math.ceil((useBy - today) / (1000 * 60 * 60 * 24));
-    
-    if (daysDiff < 0) return { status: 'expired', color: 'text-red-600', bgColor: 'bg-red-50' };
-    if (daysDiff <= 7) return { status: 'expiring', color: 'text-orange-600', bgColor: 'bg-orange-50' };
-    if (daysDiff <= 30) return { status: 'warning', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
-    return null;
   };
   
   const filtered = useMemo(() => {
@@ -1084,7 +1072,7 @@ export default function Stockpile() {
                       WebkitTapHighlightColor: 'transparent'
                     }}
                   >
-                    Add Your First Peptide
+                    Add What You Have!
                     <ChevronDown size={14} />
                   </button>
                 )}
@@ -1249,21 +1237,19 @@ export default function Stockpile() {
                         vendorMap={vendorMap}
                         isReadOnly={isReadOnly}
                         onCardClick={() => {
-                          // Open view modal first
-                          setViewingGroup(g);
+                          if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          // Open manage directly (combined view + edit: total stock on top, chevron to expand/edit each vial)
+                          openManage(g.name);
                         }}
                         onViewDetails={() => {
                           if (isReadOnly) {
                             setShowUpgradeModal(true);
                             return;
                           }
-                          // Smooth transition: close view modal first, then open manage modal
-                          setIsTransitioning(true);
-                          setViewingGroup(null);
-                          setTimeout(() => {
-                            openManage(g.name);
-                            setIsTransitioning(false);
-                          }, 450);
+                          openManage(g.name);
                         }}
                         onMergeIndividualItem={handleMergeIndividualItem}
                         onDeleteItem={async (item) => {
@@ -1384,7 +1370,6 @@ export default function Stockpile() {
                           }
                         }}
                         onPreviewImage={setPreviewImage}
-                        getUseByStatus={getUseByStatus}
                         onCompleteEntry={(item) => {
                           // Pre-fill form with item data and open add modal
                           setForm({
@@ -1445,20 +1430,26 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <ShoppingCart size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
-                <p className="text-base mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Time to Stock Up!</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                  Orders that aren't delivered yet show here and move to On Hand when delivered.
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     window.history.pushState({}, '', '/app/orders?new=true');
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold transition-all hover:opacity-90 hover:scale-105"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                  style={{
+                    color: theme.primary,
+                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                    border: `1px solid ${theme.primary}40`,
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
                 >
-                  <PlusCircle size={20} />
-                  Place Your First Order
+                  Add Your First Order
+                  <ChevronDown size={14} />
                 </button>
               </div>
             ) : (
@@ -1497,7 +1488,7 @@ export default function Stockpile() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Out of Stock Items</h3>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>You're well stocked!</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
                   Items that have been depleted will appear here. You can restore them by adding new inventory.
                 </p>
@@ -1551,40 +1542,49 @@ export default function Stockpile() {
         }} 
         title={`${manageName || 'Manage'}`}
         onBack={() => { 
-          // Smooth transition: close manage modal first, then open view modal
-          const groupToView = groups.find(g => g.name === manageName);
-          setIsTransitioning(true);
+          // Close manage and return to stockpile list (no separate view modal)
           setManageName(null); 
           setManageRows([]); 
           setShowHistory(false); 
           clearManageSavedData();
-          // Wait for close animation before opening view modal
-          setTimeout(() => {
-            if (groupToView) {
-              setViewingGroup(groupToView);
-            }
-            setIsTransitioning(false);
-          }, 450);
         }}
-        titleExtra={
-          <button 
-            className="px-3 py-1.5 rounded-lg text-sm font-bold transition-all" 
-            style={{ 
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', 
-              border: `1px solid ${theme.border}`, 
-              color: theme.text
-            }} 
-            onClick={() => setShowHistory(v => !v)}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'}
-          >
-            {showHistory ? 'Hide History' : 'View History'}
-          </button>
-        }
+        titleExtra={manageRows.length > 0 && (() => {
+          const totalVials = manageRows.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
+          const totalMg = manageRows.reduce((sum, r) => {
+            const q = Number(r.quantity) || 0;
+            const mg = Number(r.mg) || 0;
+            return sum + q * mg;
+          }, 0);
+          const unit = manageRows[0]?.mgUnit || 'mg';
+          const value = totalMg > 0 ? totalMg : totalVials;
+          const unitLabel = totalMg > 0 ? unit : (totalVials === 1 ? 'vial' : 'vials');
+          return (
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black leading-none tracking-tight" style={{ color: theme.primary }}>{value}</span>
+                  <span className="text-sm font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>{unitLabel}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-start text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70 leading-tight" style={{ color: theme.text }}>Total</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70 leading-tight" style={{ color: theme.text }}>stock</span>
+              </div>
+            </div>
+          );
+        })()}
         theme={theme} 
         maxHeight="90vh"
         footer={(
-        <div className="w-full flex items-center justify-end px-2">
+        <div className="w-full flex items-center justify-between px-2">
+          <button 
+            type="button"
+            className="text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ color: theme.text }}
+            onClick={() => setShowHistory(v => !v)}
+          >
+            {showHistory ? 'Hide History' : 'View History'}
+          </button>
           <button 
             onClick={() => {
               if (isReadOnly) {
@@ -1909,16 +1909,12 @@ export default function Stockpile() {
                     />
                   </div>
 
-                  <TextInput 
-                    label="Crimp / Cap Color" 
-                    value={row.capColor || ''} 
-                    onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))} 
-                    placeholder="Black Crimp/Black Cap" 
-                    theme={theme} 
-                    uppercase={true} 
-                    outlined={true} 
-                    customTextColor={theme.isDark ? null : "#181A18"} 
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+                  <CrimpCapColorInput
+                    value={row.capColor || ''}
+                    onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
+                    theme={theme}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    customTextColor={theme.isDark ? null : '#181A18'}
                   />
 
                   {/* ORDER DETAILS Section Header */}
@@ -2081,32 +2077,34 @@ export default function Stockpile() {
           </div>
 
           {/* Add Vial Button */}
-          <button 
-            className="w-full px-4 py-3 rounded-xl text-base font-bold transition-all flex items-center justify-center gap-2 border" 
-            style={{ 
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-              borderColor: theme.border,
-              color: theme.primary
-            }} 
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)';
-              e.currentTarget.style.borderColor = theme.primary + '40';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
-              e.currentTarget.style.borderColor = theme.border;
-            }}
-            onClick={() => {
-              if (isReadOnly) {
-                setShowUpgradeModal(true);
-                return;
-              }
-              addManageRow();
-            }}
-          >
-            <PlusCircle size={18} strokeWidth={2.5} />
-            Add to Stock
-          </button>
+          <div className="flex justify-center">
+            <button 
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-base font-bold transition-all border" 
+              style={{ 
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                borderColor: theme.border,
+                color: theme.primary
+              }} 
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.borderColor = theme.primary + '40';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
+                e.currentTarget.style.borderColor = theme.border;
+              }}
+              onClick={() => {
+                if (isReadOnly) {
+                  setShowUpgradeModal(true);
+                  return;
+                }
+                addManageRow();
+              }}
+            >
+              Add to Stock
+              <ChevronDown size={18} strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
       </BottomSheet>
       
@@ -2385,28 +2383,6 @@ export default function Stockpile() {
                               </div>
                             </div>
 
-                            {item.useByDate && (() => {
-                              const useByStatus = getUseByStatus(item.useByDate);
-                              return (
-                                <div 
-                                  className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm"
-                                  style={{
-                                    backgroundColor: useByStatus?.status === 'expired' 
-                                      ? 'rgba(239, 68, 68, 0.15)'
-                                      : useByStatus?.status === 'expiring'
-                                      ? 'rgba(251, 191, 36, 0.15)'
-                                      : 'rgba(16, 185, 129, 0.12)',
-                                    color: useByStatus?.status === 'expired'
-                                      ? '#ef4444'
-                                      : useByStatus?.status === 'expiring'
-                                      ? '#f59e0b'
-                                      : '#10b981'
-                                  }}
-                                >
-                                  {useByStatus?.status === 'expired' ? 'Expired' : useByStatus?.status === 'expiring' ? 'Expiring' : 'Stable'}
-                                </div>
-                              );
-                            })()}
                           </div>
 
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
@@ -2421,10 +2397,6 @@ export default function Stockpile() {
                             <div className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Cap Color</span>
                               <span className="text-base font-bold" style={{ color: theme.text }}>{item.capColor || 'N/A'}</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>Exp. Date</span>
-                              <span className="text-base font-bold" style={{ color: theme.text }}>{item.useByDate ? new Date(item.useByDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                           </div>
 
@@ -2729,20 +2701,29 @@ export default function Stockpile() {
         theme={theme}
         onSave={async (itemsToAdd) => {
           try {
-            // Auto-create vendors
+            // Build vendor name -> id map (existing + new) so we don't lose vendorId when addVendor is async
+            const vendorNameToId = new Map();
+            (vendors || []).forEach(v => {
+              if (v?.name != null) vendorNameToId.set((v.name || '').trim().toLowerCase(), v.id);
+            });
             itemsToAdd.forEach(item => {
-              if (item.vendor && !vendors.some(v => v.name.toLowerCase() === item.vendor.toLowerCase())) {
-                addVendor({ name: item.vendor, isStub: true });
-              }
+              const name = (item.vendor || '').trim();
+              if (!name) return;
+              const key = name.toLowerCase();
+              if (vendorNameToId.has(key)) return;
+              const id = generateId();
+              vendorNameToId.set(key, id);
+              addVendor({ name, isStub: true, id });
             });
 
-            // Get vendor IDs and apply proper timestamps
+            // Resolve vendorId from map (works for existing and newly added vendors)
             const itemsWithVendorIds = itemsToAdd.map(item => {
-              const vendor = vendors.find(v => v.name === item.vendor);
+              const key = (item.vendor || '').trim().toLowerCase();
+              const vendorId = key ? (vendorNameToId.get(key) || null) : null;
               return prepareItemForSave(
                 {
                   ...item,
-                  vendorId: vendor ? vendor.id : null
+                  vendorId
                 },
                 { isNew: true }
               );

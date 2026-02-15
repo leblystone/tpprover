@@ -1996,8 +1996,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
 
-        {/* Step 3: Results - hidden when in modal (hideSaveButton); shown in modal footer instead */}
-        {!hideSaveButton && (
+        {/* Step 3: Results - always show so calculation is visible (in sidebar and in modal above footer) */}
         <div>
           <div className="my-3 border-t opacity-50" style={{ borderColor: theme.border }} />
           <div 
@@ -2043,7 +2042,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             </div>
           </div>
         </div>
-        )}
         
         {!hideSaveButton && onSave && (
         <div className="mt-3 sticky bottom-0 z-10" style={{ 
@@ -2182,6 +2180,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             Save as Draft
           </button>
         )}
+        {/* Research disclaimer - only show inline when NOT in modal (modal shows it in fixed footer) */}
+        {!hideSaveButton && (
         <div 
           className="p-3 rounded-2xl text-[10px] font-bold uppercase tracking-wider mt-4 text-center border transition-all duration-300" 
           style={{ 
@@ -2193,6 +2193,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           <Info size={14} className="inline mr-2 opacity-70" />
           For research purposes only. Always verify calculations with alternative methods.
         </div>
+        )}
       </div>
       
       {/* Lockout Overlay - Blur calculator when in read-only mode */}

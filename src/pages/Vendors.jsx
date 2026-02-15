@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { PlusCircle, Store, Globe, Users } from 'lucide-react'
+import { Store, Globe, Users, ChevronDown } from 'lucide-react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
+import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import { useAppContext } from '../context/AppContext'
-import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
@@ -18,9 +18,8 @@ export default function Vendors() {
 	const { vendors, addVendor, updateVendor, deleteVendor, setVendors } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
 	const [editingVendor, setEditingVendor] = useState(null)
-	const [activeTab, setActiveTab] = useLocalStorage('tpprover_vendors_tab', 'domestic')
+	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [showAddModal, setShowAddModal] = useState(false)
-	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 
@@ -39,20 +38,13 @@ export default function Vendors() {
 	// 	}
 	// }, [vendors.length]); // Only run when vendors are first loaded
 
-	// Topbar tab integration
+	// Topbar: single "Vendors" tab so Add button still shows; category is in-page filter
 	useEffect(() => {
-		const tabs = [
-			{ value: 'domestic', label: 'Domestic' },
-			{ value: 'international', label: 'International' },
-			{ value: 'groupbuy', label: 'Group Buy' }
-		];
-
-		// Dispatch event to set topbar tabs
 		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
 			detail: {
-				tabs,
-				activeTab,
-				onTabChange: setActiveTab,
+				tabs: [{ value: 'vendors', label: 'Vendors' }],
+				activeTab: 'vendors',
+				onTabChange: () => {},
 				onActionClick: () => {
 					if (isReadOnly) {
 						setShowUpgradeModal(true);
@@ -65,90 +57,117 @@ export default function Vendors() {
 				actionDisabled: isReadOnly
 			}
 		}));
-
-		// Listen for topbar search events for page-specific search
 		const handleSearch = (e) => {
-			setSearchQuery(e.detail.query);
+			setSearchQuery(e.detail?.query ?? '');
 		};
 		window.addEventListener('tpp:vendors-search', handleSearch);
-		
-		// Cleanup on unmount
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
-	}, [activeTab, isReadOnly]);
+	}, [isReadOnly]);
+
+	const categoryCounts = useMemo(() => {
+		const getType = (v) => (v.type || 'domestic').toLowerCase();
+		let all = 0, domestic = 0, international = 0, groupbuy = 0;
+		vendors.forEach(v => {
+			const t = getType(v);
+			all++;
+			if (t === 'domestic') domestic++;
+			else if (t === 'international') international++;
+			else if (t === 'groupbuy') groupbuy++;
+		});
+		return { all, domestic, international, groupbuy };
+	}, [vendors]);
 
 	const filteredVendors = useMemo(() => {
-		let filtered = vendors.filter(v => (v.type || 'domestic') === activeTab);
+		let filtered = vendors;
+		if (categoryFilter !== 'all') {
+			filtered = filtered.filter(v => (v.type || 'domestic').toLowerCase() === categoryFilter);
+		}
 		if (searchQuery) {
-			filtered = filtered.filter(v => 
+			filtered = filtered.filter(v =>
 				(v.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(v.contact1 || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(v.website || '').toLowerCase().includes(searchQuery.toLowerCase())
 			);
 		}
 		return filtered;
-	}, [vendors, activeTab, searchQuery]);
+	}, [vendors, categoryFilter, searchQuery]);
+
+	const vendorsInCategory = useMemo(() => {
+		if (categoryFilter === 'all') return vendors;
+		return vendors.filter(v => (v.type || 'domestic').toLowerCase() === categoryFilter);
+	}, [vendors, categoryFilter]);
+
+	const isEmptyCategory = vendorsInCategory.length === 0 && !searchQuery;
 
 	return (
 		<>
 			<VendorsTipsBanner theme={theme} />
-			
+
+			{/* Filter dropdown - same pattern as Stockpile / Orders */}
+			<div className="mb-6">
+				<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
+					<CustomDropdown
+						value={categoryFilter}
+						onChange={setCategoryFilter}
+						options={[
+							{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Store size={16} style={{ color: theme.textLight }} /> },
+							{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Store size={16} style={{ color: theme.textLight }} /> },
+							{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Globe size={16} style={{ color: theme.textLight }} /> },
+							{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Users size={16} style={{ color: theme.textLight }} /> }
+						]}
+						theme={theme}
+						placeholder="Filter vendors..."
+						outlined={true}
+						customShadow={true}
+					/>
+				</div>
+			</div>
+
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (
 					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
 						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-							{activeTab === 'domestic' ? (
-								<Store size={32} style={{ color: theme.primary }} />
-							) : activeTab === 'international' ? (
-								<Globe size={32} style={{ color: theme.primary }} />
-							) : (
-								<Users size={32} style={{ color: theme.primary }} />
-							)}
+							<Store size={32} style={{ color: theme.primary }} />
 						</div>
-						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Results Found</h3>
-						<p className="text-sm" style={{ color: theme.textLight }}>
-							No vendors match your search query.
-						</p>
+						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No results found</h3>
+						<p className="text-sm max-w-sm" style={{ color: theme.textLight }}>No vendors match your search.</p>
 					</div>
-				) : vendors.filter(v => (v.type || 'domestic') === activeTab).length === 0 ? (
+				) : isEmptyCategory ? (
 					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
 						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-							{activeTab === 'domestic' ? (
+							{categoryFilter === 'domestic' ? (
 								<Store size={32} style={{ color: theme.primary }} />
-							) : activeTab === 'international' ? (
+							) : categoryFilter === 'international' ? (
 								<Globe size={32} style={{ color: theme.primary }} />
-							) : (
+							) : categoryFilter === 'groupbuy' ? (
 								<Users size={32} style={{ color: theme.primary }} />
+							) : (
+								<Store size={32} style={{ color: theme.primary }} />
 							)}
 						</div>
 						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-							{activeTab === 'domestic' ? 'No Domestic Vendors Yet' : 
-							 activeTab === 'international' ? 'No International Vendors Yet' : 
-							 'No Group Buy Vendors Yet'}
+							{categoryFilter === 'all' ? 'No vendors yet' : categoryFilter === 'domestic' ? 'No domestic vendors yet' : categoryFilter === 'international' ? 'No international vendors yet' : 'No group buy vendors yet'}
 						</h3>
-						<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-							{activeTab === 'domestic' 
-								? 'Add domestic vendors to track contact information, payment methods, and order history for research purposes. Organize suppliers and maintain accessible records.'
-								: activeTab === 'international' 
-								? 'Add international vendors to manage overseas suppliers, shipping information, and customs details for research purposes. Track global supply chain management.'
-								: 'Add group buy vendors to organize collaborative purchasing efforts.'
-							}
+						<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+							{categoryFilter === 'all' ? 'Add vendors to track contact, payment, and order history.' : 'Add vendors to track contacts and orders.'}
 						</p>
 						{!isReadOnly && (
 							<button
-								onClick={() => {
-									setEditingVendor({});
-									setShowAddModal(true);
+								type="button"
+								onClick={() => { setEditingVendor({}); setShowAddModal(true); }}
+								className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+								style={{
+									color: theme.primary,
+									backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+									border: `1px solid ${theme.primary}40`,
+									WebkitTapHighlightColor: 'transparent'
 								}}
-								className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-								style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
 							>
-								<PlusCircle size={18} />
-								{activeTab === 'domestic' ? 'Add First Domestic Vendor' : 
-								 activeTab === 'international' ? 'Add First International Vendor' : 
-								 'Add First Group Buy Vendor'}
+								Add Vendor
+								<ChevronDown size={14} />
 							</button>
 						)}
 					</div>
@@ -198,7 +217,8 @@ export default function Vendors() {
 			onClose={() => { setShowAddModal(false); setEditingVendor(null) }}
 			theme={theme}
 			vendor={editingVendor}
-            activeTab={activeTab}
+			defaultCategory={categoryFilter === 'all' ? 'domestic' : categoryFilter}
+			activeTab={categoryFilter === 'all' ? 'domestic' : categoryFilter}
 		onSave={(data) => {
 			console.log('📝 Manual save triggered:', { editingVendor, data });
 			// Manual save: Always use addVendor which handles merge logic internally

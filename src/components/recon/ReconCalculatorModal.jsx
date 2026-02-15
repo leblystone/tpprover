@@ -5,7 +5,7 @@ import { useAppContext } from '../../context/AppContext'
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
-import { FilePlus } from 'lucide-react'
+import { FilePlus, Info } from 'lucide-react'
 import { penColors } from '../../utils/penColors'
 
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
@@ -257,34 +257,34 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       theme={theme}
       maxHeight="90vh"
       footer={
-        <div className="w-full space-y-3">
-          {/* Fixed calculated results row */}
+        <div className="w-full space-y-2">
+          {/* Compact calculated results row */}
           <div 
-            className="grid grid-cols-3 gap-2 text-center rounded-xl py-2.5 px-2"
-            style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '08', border: `1px solid ${theme.primary}15` }}
+            className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
+            style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '06', border: `1px solid ${theme.primary}10` }}
           >
-            <div className="space-y-0.5">
-              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Units/Dose</div>
-              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+            <div className="flex-1">
+              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
+              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
                 {typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
               </div>
             </div>
-            <div className="space-y-0.5 border-x" style={{ borderColor: theme.primary + '20' }}>
-              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
-              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+            <div className="flex-1 border-x" style={{ borderColor: theme.primary + '15' }}>
+              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Doses/Vial</div>
+              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
                 {typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}
               </div>
             </div>
-            <div className="space-y-0.5">
-              <div className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>Cost/Dose</div>
-              <div className="text-lg font-black leading-tight" style={{ color: theme.primary }}>
+            <div className="flex-1">
+              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Cost/Dose</div>
+              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
                 {calcSummary.costPerDose || '-'}
               </div>
             </div>
           </div>
           {/* Error Display */}
           {saveError && (
-            <div className="p-2.5 rounded-lg border" style={{ 
+            <div className="p-2 rounded-lg border" style={{ 
               backgroundColor: theme.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
               borderColor: theme.error || '#ef4444'
             }}>
@@ -298,7 +298,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
             type="button"
             onClick={handleSaveClick}
             disabled={isSavingToRecon || isReadOnly}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
             style={{
               background: getPrimaryActionGradient(isSavingToRecon || isReadOnly),
               color: (isSavingToRecon || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
@@ -317,9 +317,14 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
             }}
             title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
           >
-            <FilePlus size={18} />
+            <FilePlus size={16} />
             {isSavingToRecon ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
           </button>
+          {/* Research disclaimer - subtle inline text */}
+          <p className="text-[9px] text-center opacity-40 flex items-center justify-center gap-1" style={{ color: theme.text }}>
+            <Info size={10} className="opacity-60 flex-shrink-0" />
+            For research purposes only. Always verify calculations.
+          </p>
         </div>
       }
     >
