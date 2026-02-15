@@ -595,7 +595,7 @@ export default function Stockpile() {
           console.error('Failed to sync deleted item to cloud:', e);
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
             detail: { 
-              message: 'Item deleted locally but failed to sync to cloud', 
+              message: 'Item deleted here, but couldn\'t update your other devices yet.', 
               type: 'warning' 
             } 
           }));
@@ -1317,7 +1317,7 @@ export default function Stockpile() {
                                 console.error('Failed to sync deleted item to cloud:', e);
                                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
                                   detail: { 
-                                    message: 'Item deleted locally but failed to sync to cloud', 
+                                    message: 'Item deleted here, but couldn\'t update your other devices yet.', 
                                     type: 'warning' 
                                   } 
                                 }));
@@ -2664,7 +2664,7 @@ export default function Stockpile() {
                 console.error('Failed to sync deleted items to cloud:', e);
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
                   detail: { 
-                    message: 'Items deleted locally but failed to sync to cloud', 
+                    message: 'Items deleted here, but couldn\'t update your other devices yet.', 
                     type: 'warning' 
                   } 
                 }));

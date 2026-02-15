@@ -127,7 +127,7 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
       } catch (error) {
         console.error('Error parsing CSV:', error);
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Failed to parse CSV file. Please check the format.', type: 'error' } 
+          detail: { message: 'Couldn\'t read that file. Please make sure it\'s a valid CSV.', type: 'error' } 
         }));
       }
     };

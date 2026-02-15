@@ -113,6 +113,8 @@ export default function SettingsData() {
       calendarDone: JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}'),
       injectionHistory: JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]'),
       injectionStats: JSON.parse(localStorage.getItem('tpprover_injection_stats') || '{}'),
+      stockpileHistory: JSON.parse(localStorage.getItem('tpprover_stockpile_history') || '[]'),
+      deletionTracking: JSON.parse(localStorage.getItem('tpprover_deletion_tracking') || '{}'),
     };
   };
 
@@ -305,9 +307,29 @@ export default function SettingsData() {
     }
   }
 
+  const createPreDestructiveSnapshot = () => {
+    try {
+      const snapshot = {
+        data: getAllData(),
+        timestamp: new Date().toISOString(),
+        userId: firebaseUser?.uid || null,
+        reason: 'pre_destructive_operation'
+      };
+      localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(snapshot));
+      console.log('💾 Pre-destructive recovery snapshot saved');
+      return true;
+    } catch (e) {
+      console.error('Failed to save pre-destructive snapshot:', e);
+      return false;
+    }
+  }
+
   const clearAllData = () => {
     if (window.confirm("Are you sure you want to permanently delete ALL data? This will log you out and cannot be undone.")) {
       try {
+        // Create recovery snapshot BEFORE wiping (survives the clear since we only remove specific keys)
+        createPreDestructiveSnapshot();
+
         const allAppKeys = [
           'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
           'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics',
@@ -474,7 +496,7 @@ export default function SettingsData() {
         }, 0);
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
-            message: `Your research data has been recovered on this device (${itemCount} item${itemCount !== 1 ? 's' : ''}), but couldn't sync to your other devices. Your data is safe here.`, 
+            message: `Your research data has been recovered on this device (${itemCount} item${itemCount !== 1 ? 's' : ''}), but couldn't update your other devices yet. Your data is safe here.`, 
             type: 'warning',
             duration: 5000
           } 

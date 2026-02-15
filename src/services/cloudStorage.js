@@ -137,7 +137,7 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: {
-            message: 'Your data is approaching storage limits. Please export a backup and contact support.',
+            message: 'Your data is getting large. Please export a backup from Settings and contact support if needed.',
             type: 'error',
             duration: 10000
           }

@@ -144,7 +144,7 @@ export default function Orders() {
 						console.error('❌ Failed to sync deleted order to cloud after retry');
 						window.dispatchEvent(new CustomEvent('tpp:toast', {
 							detail: {
-								message: 'Order deleted locally, but sync failed. It may reappear. Please try again.',
+								message: 'Order deleted here, but couldn\'t update your other devices. It may reappear — please try again.',
 								type: 'error',
 								duration: 5000
 							}

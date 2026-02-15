@@ -1473,37 +1473,54 @@ export function AppProvider({ children }) {
                 isLoggingOutRef.current = true; // Prevent saveData/auto-sync from persisting empty state
                 setUser(null);
 
-                // Last-chance sync: push pins (taskCompletion/calendarDone) to cloud before clearing.
+                // Last-chance sync: push ALL user data to cloud before clearing.
                 // When the app logs out spontaneously we don't run the intentional logout flow, so
-                // we use the previous userId from localStorage and save any unsynced pins now.
+                // we use the previous userId from localStorage and save any unsynced data now.
                 try {
                     const prevUserRaw = localStorage.getItem('tpprover_user');
-                    const localTaskCompletion = safeParseLocalStorage('tpprover_task_completion', {});
-                    const localCalendarDone = safeParseLocalStorage('tpprover_calendar_done', {});
-                    const hasPins = (localTaskCompletion && Object.keys(localTaskCompletion).length > 0) ||
-                        (localCalendarDone && Object.keys(localCalendarDone).length > 0);
-                    if (prevUserRaw && hasPins) {
+                    if (prevUserRaw) {
                         const prevUser = JSON.parse(prevUserRaw);
                         const userId = prevUser?.uid || prevUser?.id;
                         if (userId) {
-                            const loaded = await Promise.race([
-                                loadAppData(userId),
-                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-                            ]).catch(() => null);
-                            const base = loaded || {};
+                            // Build full userData payload from localStorage (same as auto-sync)
                             const toSave = {
-                                ...base,
-                                taskCompletion: mergeTaskCompletion(localTaskCompletion, base.taskCompletion || {}),
-                                calendarDone: mergeTaskCompletion(localCalendarDone, base.calendarDone || {})
+                                protocols: safeParseLocalStorage('tpprover_protocols', []),
+                                reconItems: safeParseLocalStorage('tpprover_recon_items', []),
+                                reconHistory: safeParseLocalStorage('tpprover_recon_history', []),
+                                supplements: safeParseLocalStorage('tpprover_supplements', []),
+                                orders: safeParseLocalStorage('tpprover_orders', []),
+                                metrics: safeParseLocalStorage('tpprover_metrics', []),
+                                vendors: safeParseLocalStorage('tpprover_vendors', []),
+                                calendarNotes: safeParseLocalStorage('tpprover_calendar_notes', {}),
+                                stockpile: safeParseLocalStorage('tpprover_stockpile', []),
+                                scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
+                                taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
+                                calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                                protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
+                                wishlist: safeParseLocalStorage('tpprover_wishlist', []),
+                                userNotes: safeParseLocalStorage('tpprover_user_notes', []),
+                                userGoals: safeParseLocalStorage('tpprover_user_goals', []),
+                                waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
+                                injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
+                                injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
+                                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                                deletionTracking: getDeletionTracking()
                             };
-                            await Promise.race([
-                                saveAppData(userId, toSave, { skipMerge: true }),
-                                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
-                            ]).catch((err) => console.warn('Last-chance pin sync failed:', err));
+                            // Only sync if there's actual data (not all empty)
+                            const hasData = Object.values(toSave).some(v =>
+                                (Array.isArray(v) && v.length > 0) ||
+                                (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0)
+                            );
+                            if (hasData) {
+                                await Promise.race([
+                                    saveAppData(userId, toSave, { skipMerge: false }),
+                                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                                ]).catch((err) => console.warn('⚠️ Last-chance full sync failed:', err));
+                            }
                         }
                     }
                 } catch (e) {
-                    console.warn('Last-chance pin sync failed:', e);
+                    console.warn('⚠️ Last-chance full sync failed:', e);
                 }
 
                 // CRITICAL: Clear all auth-related data on logout
@@ -1598,19 +1615,30 @@ export function AppProvider({ children }) {
     }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
     // When wishlist, user notes, goals, or water tracker are updated (localStorage-only), trigger sync
+    // Also retry sync when browser comes back online after a failed sync
     useEffect(() => {
         const bumpSync = () => setWishlistSyncTrigger((n) => n + 1);
+        const handleOnline = () => {
+            // Only bump if there's a pending sync
+            const pending = localStorage.getItem('tpprover_sync_pending');
+            if (pending) {
+                console.log('🌐 Back online with pending sync — retrying...');
+                bumpSync();
+            }
+        };
         window.addEventListener('tpp:wishlist-updated', bumpSync);
         window.addEventListener('tpp:user-notes-updated', bumpSync);
         window.addEventListener('tpp:user-goals-updated', bumpSync);
         window.addEventListener('tpp:water-tracker-updated', bumpSync);
         window.addEventListener('tpp:stockpile-history-updated', bumpSync);
+        window.addEventListener('online', handleOnline);
         return () => {
             window.removeEventListener('tpp:wishlist-updated', bumpSync);
             window.removeEventListener('tpp:user-notes-updated', bumpSync);
             window.removeEventListener('tpp:user-goals-updated', bumpSync);
             window.removeEventListener('tpp:water-tracker-updated', bumpSync);
             window.removeEventListener('tpp:stockpile-history-updated', bumpSync);
+            window.removeEventListener('online', handleOnline);
         };
     }, []);
 
@@ -1732,11 +1760,25 @@ export function AppProvider({ children }) {
                     },
                     { type: 'auto-sync', userId, dataTypes: Object.keys(userData) }
                 ).then(() => {
+                    // Clear dirty flag on success
+                    try { localStorage.removeItem('tpprover_sync_pending'); } catch (e) {}
                     // Notify other tabs that data was saved
                     try { window.dispatchEvent(new Event('tpp:sync-complete')); } catch (e) {}
                 }).catch(error => {
                     // Already logged in the queue, just log final failure
                     console.error('❌ Auto-sync failed after retry:', error.message);
+                    // Set dirty flag so next app load retries the sync
+                    try { localStorage.setItem('tpprover_sync_pending', Date.now().toString()); } catch (e) {}
+                    // Notify user so they know data hasn't reached the cloud
+                    try {
+                        window.dispatchEvent(new CustomEvent('tpp:toast', {
+                            detail: {
+                                message: 'Couldn\'t reach your other devices right now. Your data is saved here and will update when possible.',
+                                type: 'warning',
+                                duration: 5000
+                            }
+                        }));
+                    } catch (e) { /* ignore toast dispatch errors */ }
                 });
                 
                 // Also sync to Firebase for backup (if user has password)
@@ -1894,7 +1936,7 @@ export function AppProvider({ children }) {
                 // If we still can't save, warn the user
                 window.dispatchEvent(new CustomEvent('tpp:toast', {
                     detail: {
-                        message: 'Storage is full! Your data is safe in the cloud, but this device is running low on space. Try clearing your browser cache.',
+                        message: 'This device is running low on storage. Your data is safely backed up. Try clearing some space on this device.',
                         type: 'warning',
                         duration: 8000
                     }
@@ -3226,14 +3268,14 @@ export function AppProvider({ children }) {
                 hasLoadedFromFirestoreRef.current = true;
                 console.log('✅ Initial Firestore load complete - auto-save now enabled');
                 
-                // CATCH-UP SYNC: Check if localStorage has newer data than what's in the cloud.
-                // This handles the case where the user made changes offline, the sync queue was lost
-                // (e.g., page reload while offline), and the data only exists in localStorage.
+                // CATCH-UP SYNC: Check if a previous sync failed (dirty flag) or if
+                // localStorage has newer data than what's in the cloud (e.g., offline edits).
                 try {
+                    const syncPending = localStorage.getItem('tpprover_sync_pending');
                     const localLastUpdate = parseInt(localStorage.getItem('tpprover_protocols_lastUpdate') || '0', 10);
-                    if (localLastUpdate > 0 && Date.now() - localLastUpdate < 60000) {
-                        // Local data was updated in the last 60 seconds - trigger a sync
-                        console.log('🔄 Catch-up sync: local data updated recently, triggering sync');
+                    const needsCatchUp = syncPending || (localLastUpdate > 0 && Date.now() - localLastUpdate < 60000);
+                    if (needsCatchUp) {
+                        console.log('🔄 Catch-up sync: pending sync detected, triggering full sync');
                         // Small delay to let the listener finish applying remote data first
                         setTimeout(() => {
                             if (!isLoggingOutRef.current) {
