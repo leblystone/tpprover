@@ -6,7 +6,7 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
+import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate }) {
@@ -2007,9 +2007,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
         {/* Step 3: Results - always show so calculation is visible (in sidebar and in modal above footer) */}
         <div>
-          <div className="my-3 border-t opacity-50" style={{ borderColor: theme.border }} />
+          <div className="my-2 border-t opacity-50" style={{ borderColor: theme.border }} />
           <div 
-            className={`rounded-2xl p-4 relative overflow-hidden group transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
+            className={`rounded-2xl p-4 pb-3 relative overflow-hidden group transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
             style={{ 
               backgroundColor: theme.isDark ? theme.background : theme.primary + '05',
               ...(compact ? { border: 'none', boxShadow: 'none' } : { border: `1px solid ${theme.primary}15` })
@@ -2042,7 +2042,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               </div>
             </div>
             
-            <div className="flex items-center justify-center gap-2 mt-2 opacity-50">
+            <div className="flex items-center justify-center gap-2 mt-1.5 opacity-50">
               <div className="h-px w-8 bg-current"></div>
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
                   {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : deliveryMethod === 'nasal' ? 'Nasal spray' : 'Topical application'}
@@ -2053,11 +2053,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         </div>
         
         {!hideSaveButton && onSave && (
-        <div className="mt-3 sticky bottom-0 z-10" style={{ 
-          // Add safe area padding for Android navigation bar when sticky
-          paddingBottom: `max(0px, var(--safe-area-bottom, 0px))`,
-          backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF'
-        }}>
+        <div className="mt-1 flex justify-center">
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -2106,14 +2102,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             onSave(dataToSave);
           }}
           type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl text-[14px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-xl active:scale-95 sticky bottom-0 z-10"
+          className="w-fit min-w-[160px] max-w-[220px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-[14px] font-bold uppercase tracking-[0.15em] transition-all duration-300 shadow-xl active:scale-95 sticky bottom-0 z-10 whitespace-nowrap"
           style={{ 
             background: getPrimaryActionGradient(false),
             color: theme?.textOnPrimary || '#ffffff',
             border: 'none',
-            boxShadow: `0 10px 20px -5px ${theme.primary}60`,
-            // Add safe area padding for Android navigation bar
-            marginBottom: `max(0px, var(--safe-area-bottom, 0px))`
+            boxShadow: `0 10px 20px -5px ${theme.primary}60`
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
@@ -2125,7 +2119,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             e.currentTarget.style.background = getPrimaryActionGradient(false);
           }}
         >
-          <FilePlus size={18} />
           Save Calculation
         </button>
         </div>
@@ -2192,15 +2185,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         {/* Research disclaimer - only show inline when NOT in modal (modal shows it in fixed footer) */}
         {!hideSaveButton && (
         <div 
-          className="p-3 rounded-2xl text-[10px] font-bold uppercase tracking-wider mt-4 text-center border transition-all duration-300" 
+          className="p-2.5 rounded-2xl text-[10px] font-medium uppercase tracking-wider mt-0.5 text-center border transition-all duration-300 opacity-90" 
           style={{ 
-            backgroundColor: theme.isDark ? '#2D2616' : '#FFFBEB', 
-            borderColor: theme.isDark ? '#4A3E1D' : '#FEF3C7', 
-            color: theme.isDark ? '#EAB308' : '#92400E' 
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', 
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
+            color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.textLight 
           }}
         >
-          <Info size={14} className="inline mr-2 opacity-70" />
-          For research purposes only. Always verify calculations with alternative methods.
+          For research purposes only.<br /><span className="text-[8px]">Always verify calculations with alternative methods.</span>
         </div>
         )}
       </div>

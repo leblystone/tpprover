@@ -51,7 +51,51 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
     const isSkipped = linkedVialId === 'skipped';
 
-    // Check for action states first (add/edit/select) - these take priority
+    // When a vial is already linked, show confirmation first (so we don't keep showing the search bar).
+    // Only let add/edit take priority so those forms stay open.
+    if (action !== 'add' && action !== 'edit' && linkedVialId && !isSkipped) {
+        const selectedVial = stockpile.find(item => item.id === linkedVialId);
+        const isNewlyAdded = selectedVial?.notes?.includes('Added during protocol start');
+        return (
+            <div className="p-3 rounded-md" style={{
+                backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
+                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                            {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        <CheckCircle className="h-5 w-5 flex-shrink-0" style={{ color: theme.primary }} />
+                        {isNewlyAdded && onEditVial && (
+                            <button onClick={() => {
+                                if (selectedVial) {
+                                    setQuickAddForm({
+                                        mg: selectedVial.mg || '',
+                                        quantity: selectedVial.quantity || '',
+                                        vendor: selectedVial.vendor || ''
+                                    });
+                                    setAction('edit');
+                                }
+                            }} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Edit</button>
+                        )}
+                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
+                    </div>
+                </div>
+                <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                    <span className="text-xs block mb-2" style={{ color: theme.textLight }}>Add another vial?</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => setAction('add')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
+                        <button onClick={() => setAction('select')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select from Stockpile</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (action === 'add' || action === 'edit') {
         const isEdit = action === 'edit';
         const selectedVial = stockpile.find(item => item.id === linkedVialId);
@@ -104,44 +148,6 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     emptyMessage="No stockpile entries found. Keep typing to refine your search."
                 />
                 <button onClick={() => setAction(null)} className="text-xs text-gray-500 mt-2 hover:underline">Cancel</button>
-            </div>
-        );
-    }
-
-    // Show linked vial view (only if not in edit mode)
-    if (linkedVialId && !isSkipped) {
-        const selectedVial = stockpile.find(item => item.id === linkedVialId);
-        const isNewlyAdded = selectedVial?.notes?.includes('Added during protocol start');
-        
-        return (
-            <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-            }}>
-                 <div className="flex items-center justify-between">
-                    <div>
-                        <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
-                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" style={{ color: theme.primary }} />
-                        {isNewlyAdded && onEditVial && (
-                            <button onClick={() => {
-                                if (selectedVial) {
-                                    setQuickAddForm({
-                                        mg: selectedVial.mg || '',
-                                        quantity: selectedVial.quantity || '',
-                                        vendor: selectedVial.vendor || ''
-                                    });
-                                    setAction('edit');
-                                }
-                            }} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Edit</button>
-                        )}
-                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
-                    </div>
-                </div>
             </div>
         );
     }
@@ -954,17 +960,24 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                     const peptideId = p.id || `peptide-${index}`;
                                                     const vialId = linkedData[peptideId]?.vialId;
                                                     const vial = stockpile.find(item => item.id === vialId);
-                                                    if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '', stockpileId: null, quantityUsed: 1 };
-                                                    const totalCost = Number(vial.cost) || 0;
+                                                    if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '', doseUnit: 'mcg', stockpileId: null, quantityUsed: 1 };
+                                                    // Cost per vial: stockpile stores cost per priceUnit; when priceUnit is 'vial', use as-is
+                                                    const vialPriceUnit = (vial.priceUnit || 'vial').toLowerCase();
+                                                    const rawCost = Number(vial.cost) || 0;
                                                     const quantity = Number(vial.quantity) || 1;
-                                                    const singleVialCost = quantity > 0 ? totalCost / quantity : 0;
+                                                    const singleVialCost = (vialPriceUnit === 'vial') ? rawCost : (quantity > 0 ? rawCost / quantity : 0);
+                                                    // Dose: use phase 1 (first titration) or fixed dosage; match unit (mcg, mg, IU, etc.)
+                                                    const firstPhase = p.titration?.[0];
+                                                    const doseAmount = firstPhase?.dose ?? p.dosage?.amount;
+                                                    const doseUnit = (firstPhase?.doseUnit || p.dosage?.unit || 'mcg').trim() || 'mcg';
+                                                    const doseStr = (doseAmount != null && doseAmount !== '') ? String(doseAmount) : '';
                                                     return {
                                                         id: peptideId, 
                                                         name: p.name, 
                                                         mg: vial.mg,
                                                         mgUnit: vial.mgUnit || 'mg',
-                                                        dose: p.dosage?.amount || '', 
-                                                        doseUnit: p.dosage?.unit || 'mcg',
+                                                        dose: doseStr, 
+                                                        doseUnit,
                                                         cost: singleVialCost, 
                                                         costPerMg: vial.costPerMg || '',
                                                         vendor: vial.vendor,
@@ -992,11 +1005,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         return lpId === p.id;
                                                     });
                                                     const peptideId = originalPrefill?.id || p.id;
-                                                    const vialId = linkedData[peptideId]?.vialId;
-                                                    const vial = stockpile.find(item => item.id === vialId);
-                                                    const totalCost = vial ? Number(vial.cost) || 0 : 0;
+                                                    const vial = stockpile.find(item => item.id === linkedData[peptideId]?.vialId);
+                                                    const vialPriceUnit = vial ? (vial.priceUnit || 'vial').toLowerCase() : 'vial';
+                                                    const rawCost = vial ? Number(vial.cost) || 0 : 0;
                                                     const quantity = vial ? Number(vial.quantity) || 1 : 1;
-                                                    const cost = quantity > 0 ? totalCost / quantity : 0;
+                                                    const cost = (vialPriceUnit === 'vial') ? rawCost : (quantity > 0 ? rawCost / quantity : 0);
                                                     return { 
                                                         ...p, 
                                                         cost, 
