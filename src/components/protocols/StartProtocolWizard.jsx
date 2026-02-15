@@ -30,7 +30,9 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                 const vendor = item.vendor || 'Vendor not set';
                 const quantity = Number(item.quantity) || 1;
                 const cost = Number(item.cost) || 0;
-                const costPerVial = quantity > 0 ? (cost / quantity) : 0;
+                const priceUnit = (item.priceUnit || 'vial').toLowerCase();
+                // Cost is stored as "cost per [priceUnit]" in stockpile (e.g. cost per vial). Only divide by quantity when it's total cost (legacy).
+                const costPerVial = (priceUnit === 'vial') ? cost : (quantity > 0 ? cost / quantity : 0);
                 const mgDisplay = item.mg ? `${item.mg}mg` : 'Amount not set';
                 const costDisplay = costPerVial ? `${formatCurrency(costPerVial)}/vial` : 'Cost not set';
 
@@ -165,19 +167,19 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
         );
     }
     
-    // Default view with choices
+    // Default view with choices — stacked layout so long peptide names don't cramp buttons
     return (
-        <div className="p-3 rounded-md flex items-center justify-between" style={{ 
+        <div className="p-3 rounded-md" style={{ 
             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
             boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
         }}>
-            <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
-            <div className="flex items-center gap-2">
+            <p className="font-semibold text-sm mb-3 break-words" style={{ color: theme.text }}>{peptide.name}</p>
+            <div className="flex flex-wrap items-center gap-2">
                 {!isSinglePeptide && (
-                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
                 )}
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial from Stockpile</button>
+                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
+                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 whitespace-nowrap" style={{ backgroundColor: theme.primary, color: '#ffffff' }} title="Select Vial from Stockpile">Select from Stockpile</button>
             </div>
         </div>
     );

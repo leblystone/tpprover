@@ -25,7 +25,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                 const vendor = item.vendor || 'Vendor not set';
                 const quantity = Number(item.quantity) || 1;
                 const cost = Number(item.cost) || 0;
-                const costPerVial = quantity > 0 ? (cost / quantity) : 0;
+                const priceUnit = (item.priceUnit || 'vial').toLowerCase();
+                // Cost is stored as "cost per [priceUnit]" in stockpile (e.g. cost per vial). Only divide by quantity when it's total cost (legacy).
+                const costPerVial = (priceUnit === 'vial') ? cost : (quantity > 0 ? cost / quantity : 0);
                 const mgDisplay = item.mg ? `${item.mg}mg` : 'Amount not set';
                 const costDisplay = costPerVial ? `${formatCurrency(costPerVial)}/vial` : 'Cost not set';
                 return {
