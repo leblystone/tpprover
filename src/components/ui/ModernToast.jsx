@@ -2,7 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Check, AlertTriangle, Info, X } from 'lucide-react';
 import { loadSettings } from '../../utils/settingsHelpers';
 
+/** Strip emoji from message so toast shows clean text with type-based icon only. */
+const stripEmoji = (text) => {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const ModernToast = ({ message, type, onClose, theme }) => {
+  const displayMessage = stripEmoji(message);
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -238,7 +248,7 @@ const ModernToast = ({ message, type, onClose, theme }) => {
                 className="text-sm font-medium leading-relaxed"
                 style={{ color: theme.text || '#1F2937' }}
               >
-                {message}
+                {displayMessage}
               </p>
             </div>
           </div>
