@@ -259,7 +259,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         mg: item.mg,
                         vendor: item.vendor,
                         prevQty: currentQty,
-                        nextQty
+                        nextQty,
+                        source: 'protocol'
                     });
                 } catch (error) {
                     console.warn('Failed to append stock event after protocol recon:', error);
@@ -408,7 +409,21 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             updated[peptideId] = { status: 'linked', vialId };
             return updated;
         });
-    }, []);
+
+        // Log linked_to_protocol event
+        const vial = stockpile.find(item => item.id === vialId);
+        if (vial) {
+            appendStockEvent({
+                type: 'linked_to_protocol',
+                name: vial.name,
+                mg: vial.mg,
+                vendor: vial.vendor,
+                stockpileId: vialId,
+                source: 'protocol',
+                protocolId: protocol?.id || null
+            });
+        }
+    }, [stockpile, protocol]);
 
     const handleUnlinkPeptide = (peptideId) => {
         setLinkedData(prev => {
@@ -953,7 +968,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         vendor: vial.vendor,
                                                         stockpileId: vial.id,
                                                         quantityUsed: 1,
-                                                        unit: vial.unit
+                                                        unit: vial.unit,
+                                                        orderId: vial.orderId || null,
+                                                        documentation: vial.documentation || []
                                                     };
                                                 }),
                                                 protocolName: protocol.protocolName,

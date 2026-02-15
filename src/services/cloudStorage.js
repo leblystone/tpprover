@@ -693,7 +693,7 @@ export async function saveAppData(userId, appData, options = {}) {
     const arrayFields = [
       'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-      'wishlist', 'userNotes', 'userGoals'
+      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
     ];
     // Object fields (pass through as-is)
     const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
@@ -750,7 +750,8 @@ export async function saveAppData(userId, appData, options = {}) {
         protocolHistory: 'protocolHistory',
         wishlist: 'wishlist',
         userNotes: 'userNotes',
-        userGoals: 'goals'   // deletion tracking key differs
+        userGoals: 'goals',   // deletion tracking key differs
+        stockpileHistory: 'stockpileHistory'
       };
 
       Object.entries(arrayMergeMap).forEach(([field, deletionKey]) => {
@@ -812,7 +813,7 @@ export async function saveAppData(userId, appData, options = {}) {
     const fallbackArrayFields = [
       'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-      'wishlist', 'userNotes', 'userGoals'
+      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
     ];
     const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
 

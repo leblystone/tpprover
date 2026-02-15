@@ -149,12 +149,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         // Use first peptide's vendorId if available
         const firstVendorId = prefill.peptides[0]?.vendorId || null;
         
+        // Collect documentation from all peptides' stockpile items
+        const allDocs = prefill.peptides.flatMap(p => p.documentation || []);
+        const firstOrderId = prefill.peptides.find(p => p.orderId)?.orderId || null;
+
         setForm(prev => ({
           ...(prev || {}),
           vendor: vendors,
           vendorId: firstVendorId,
           cost: prefill.cost || (totalCost > 0 ? totalCost.toString() : ''),
           dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
+          orderId: firstOrderId,
+          documentation: allDocs,
           peptides: prefill.peptides.map((pep, index) => ({ 
             ...pep, 
             id: pep.id || index + 1, 
@@ -189,6 +195,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           vendorId: prefill.vendorId || null, // Include vendorId from prefill
           cost: costValue,
           dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
+          orderId: prefill.orderId || null,
+          documentation: prefill.documentation || [],
           peptides: [p] 
         }));
       }
@@ -1047,6 +1055,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       >
                         {[
                           { value: 'vial', label: 'Vial' },
+                          { value: 'bottle', label: 'Bottle' },
                           { value: 'mg', label: 'mg' },
                           { value: 'g', label: 'g' },
                           { value: 'iu', label: 'IU' },

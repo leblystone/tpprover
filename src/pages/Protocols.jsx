@@ -23,6 +23,7 @@ import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import ProtocolsTipsBanner from '../components/protocols/ProtocolsTipsBanner';
 import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
 import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
+import EndProtocolAssessment from '../components/protocols/EndProtocolAssessment';
 import ShareModal from '../components/common/ShareModal';
 import ProtocolNotesModal from '../components/protocols/ProtocolNotesModal';
 import VisualSchedulePreview from '../components/protocols/VisualSchedulePreview';
@@ -32,7 +33,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, updateVialInActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
@@ -48,7 +49,7 @@ import { useRef, useMemo } from 'react';
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
-  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile } = useAppContext();
+  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
@@ -2567,13 +2568,19 @@ export default function Protocols() {
         }}
       />
 
-      <ProtocolFollowUpModal
+      <EndProtocolAssessment
         open={!!followUpProtocol}
         onClose={handleFollowUpClose}
         protocol={followUpProtocol}
         historyEntryId={followUpHistoryId}
         theme={theme}
-        onSave={handleFollowUpClose}
+        stockpile={stockpile}
+        setStockpile={setStockpile}
+        reconItems={reconItems}
+        setReconItems={setReconItems}
+        reconHistory={reconHistory}
+        setReconHistory={setReconHistory}
+        onComplete={handleFollowUpClose}
       />
 
       {/* Protocol Ended Confirmation Modal */}
@@ -2725,19 +2732,35 @@ export default function Protocols() {
                                                   protocolData: updatedProtocolData,
                                                   skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
                                               });
-                                              // Record linked vials in vialsAddedDuring only on Save (keeps protocol and history in sync)
+                                              // Sync linked vials to history: update existing vials + add new ones
+                                              const existingVialIds = (activeHistoryEntry.vials || []).map(v => v.vialId);
                                               Object.entries(linkedItems).forEach(([peptideId, item]) => {
                                                   if (item.status === 'linked' && item.vialId) {
                                                       const vial = stockpile.find(v => v.id === item.vialId);
                                                       if (vial) {
-                                                          addVialToActiveProtocol(manageConfirm.id, {
+                                                          const vialSnapshot = {
                                                               vialId: vial.id,
                                                               stockpileId: vial.id,
                                                               name: vial.name,
                                                               mg: vial.mg,
+                                                              mgUnit: vial.mgUnit || 'mg',
+                                                              unit: vial.unit || 'vial',
                                                               vendor: vial.vendor,
-                                                              cost: vial.cost || 0
-                                                          });
+                                                              cost: vial.cost || 0,
+                                                              orderId: vial.orderId || null,
+                                                              purchaseDate: vial.purchaseDate || null,
+                                                              documentation: vial.documentation || []
+                                                          };
+                                                          // Check if this peptide previously had a different vial
+                                                          const originalLinkedItems = activeHistoryEntry.protocolData?.linkedItems || {};
+                                                          const originalVialId = originalLinkedItems[peptideId]?.vialId;
+                                                          if (originalVialId && originalVialId !== item.vialId && existingVialIds.includes(originalVialId)) {
+                                                              // Vial was swapped — update the main vials array
+                                                              updateVialInActiveProtocol(manageConfirm.id, originalVialId, vialSnapshot);
+                                                          } else {
+                                                              // New vial or unchanged — add to vialsAddedDuring (deduplicates internally)
+                                                              addVialToActiveProtocol(manageConfirm.id, vialSnapshot);
+                                                          }
                                                       }
                                                   }
                                               });
@@ -3911,10 +3934,15 @@ export default function Protocols() {
                                 stockpileId: vial.id,
                                 name: vial.name,
                                 mg: vial.mg,
+                                mgUnit: vial.mgUnit || 'mg',
+                                unit: vial.unit || 'vial',
                                 vendor: vial.vendor,
                                 cost: vial.cost,
-                                reconstitutionDate: null, // Will be set from recon data if available
-                                deliveryMethod: item.deliveryMethod || null // Include delivery method if set
+                                orderId: vial.orderId || null,
+                                purchaseDate: vial.purchaseDate || null,
+                                documentation: vial.documentation || [],
+                                reconstitutionDate: null,
+                                deliveryMethod: item.deliveryMethod || null
                             });
                         }
                     }

@@ -242,7 +242,7 @@ export function validateOnLoad(cloudData) {
   const arrayFields = [
     'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
     'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-    'wishlist', 'userNotes', 'userGoals', 'injectionHistory'
+    'wishlist', 'userNotes', 'userGoals', 'injectionHistory', 'stockpileHistory'
   ];
   
   arrayFields.forEach(key => {
@@ -358,6 +358,7 @@ export const DATA_RETENTION_LIMITS = {
   protocolHistory: 500,    // 500 completed protocols
   reconHistory: 1000,      // 1000 reconstitution records
   orders: 1000,            // 1000 orders
+  stockpileHistory: 500,   // 500 stockpile event log entries
   // injectionHistory is already capped at 1000 in mergeInjectionHistory
 };
 
@@ -455,6 +456,9 @@ export function applyRetentionLimits(data) {
   }
   if (Array.isArray(result.orders)) {
     result.orders = pruneArray(result.orders, DATA_RETENTION_LIMITS.orders);
+  }
+  if (Array.isArray(result.stockpileHistory)) {
+    result.stockpileHistory = pruneArray(result.stockpileHistory, DATA_RETENTION_LIMITS.stockpileHistory);
   }
   
   return result;

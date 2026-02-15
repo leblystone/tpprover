@@ -474,6 +474,20 @@ export default function Stockpile() {
       // Sync documentation from order to stockpile items
       const stockItemsWithDocs = syncOrderDocumentationToStockpile(newOrder, newStockItems);
       setItems(prev => [...prev, ...stockItemsWithDocs]);
+
+      // Log creation events for each new stockpile item
+      stockItemsWithDocs.forEach(item => {
+        appendStockEvent({
+          type: 'created',
+          name: item.name,
+          mg: item.mg,
+          vendor: item.vendor,
+          quantity: item.quantity,
+          unit: item.unit || 'vial',
+          source: 'order',
+          orderId: newOrder.id
+        });
+      });
     } 
     // Status changed FROM Delivered: Remove items from stockpile.
     else if (wasDelivered && !isDelivered) {
@@ -541,6 +555,17 @@ export default function Stockpile() {
 
       // Record deletion with item snapshot for restore functionality
       recordDeletion('stockpile', itemToDelete.id, itemToDelete);
+
+      // Log deletion event
+      appendStockEvent({
+        type: 'deleted',
+        name: itemToDelete.name,
+        mg: itemToDelete.mg,
+        vendor: itemToDelete.vendorId ? (vendors.find(v => v.id === itemToDelete.vendorId)?.name || itemToDelete.vendor) : itemToDelete.vendor,
+        quantity: itemToDelete.quantity,
+        unit: itemToDelete.unit || 'vial',
+        source: 'manual'
+      });
       
       // Remove from manage rows
       setManageRows(prev => prev.filter(r => r.id !== id));
@@ -705,8 +730,10 @@ export default function Stockpile() {
       
       // Log the merge event
       appendStockEvent({
+        type: 'merge',
         name: `${mergeConfig.sourceGroup.name} + ${mergeConfig.targetGroup.name} → ${mergedName}`,
-        details: `Combined ${sourceItems.length + targetItems.length} peptide entries into single inventory`
+        details: `Combined ${sourceItems.length + targetItems.length} peptide entries into single inventory`,
+        source: 'manual'
       })
 
       // Show success toast
@@ -883,7 +910,7 @@ export default function Stockpile() {
         const prevQty = Number(b.quantity)||0
         const nextQty = Number(afterMatch?.quantity)||0
         if (prevQty > 0 && nextQty === 0) {
-          appendStockEvent({ type: 'out_of_stock', name: manageName, mg: b.mg, vendor: b.vendorId ? vendorMap[b.vendorId] : b.vendor, prevQty })
+          appendStockEvent({ type: 'out_of_stock', name: manageName, mg: b.mg, vendor: b.vendorId ? vendorMap[b.vendorId] : b.vendor, prevQty, source: 'manual' })
         }
       })
       // quantity changes
@@ -892,7 +919,16 @@ export default function Stockpile() {
         const prevQty = Number(beforeMatch?.quantity)||0
         const nextQty = Number(a.quantity)||0
         if (nextQty !== prevQty) {
-          appendStockEvent({ type: 'adjust', name: manageName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, prevQty, nextQty })
+          appendStockEvent({ type: 'adjust', name: manageName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, prevQty, nextQty, source: 'manual' })
+        }
+      })
+      // documentation changes
+      after.forEach(a => {
+        const beforeMatch = before.find(b => (b.id && b.id === a.id) || (String(b.mg) === String(a.mg) && (b.vendorId ? b.vendorId === a.vendorId : (b.vendor||'') === (a.vendor||''))))
+        const prevDocCount = (beforeMatch?.documentation || []).length
+        const nextDocCount = (a.documentation || []).length
+        if (nextDocCount > prevDocCount) {
+          appendStockEvent({ type: 'documentation_added', name: manageName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, docsAdded: nextDocCount - prevDocCount, source: 'manual' })
         }
       })
     } catch {}
@@ -1324,7 +1360,8 @@ export default function Stockpile() {
                               quantity: item.quantity,
                               unit: item.unit,
                               quantityUsed: 1,
-                              dateAcquired: item.date || ''
+                              dateAcquired: item.date || '',
+                              documentation: item.documentation || []
                             };
                             
                             // Save prefill data to localStorage

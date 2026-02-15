@@ -13,6 +13,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { generateId } from '../../utils/string';
 import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion';
+import { appendStockEvent } from '../../utils/stockHistory';
 import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
 
 export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade }) {
@@ -163,7 +164,19 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     itemToAdd.unit = converted.unit;
                 }
 
-                setStockpile(prev => [itemToAdd, ...prev]); 
+                setStockpile(prev => [itemToAdd, ...prev]);
+
+                // Log creation event
+                appendStockEvent({
+                  type: 'created',
+                  name: itemToAdd.name,
+                  mg: itemToAdd.mg,
+                  vendor: itemToAdd.vendor,
+                  quantity: itemToAdd.quantity,
+                  unit: itemToAdd.unit || 'vial',
+                  source: 'manual'
+                });
+
                 markAsSubmitted(); // Clear auto-save data
                 
                 // Reset form first

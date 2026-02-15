@@ -439,7 +439,8 @@ export default function Recon() {
                         mg: item.mg,
                         vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor,
                         prevQty: currentQty,
-                        nextQty
+                        nextQty,
+                        source: 'recon'
                     });
                 } catch (error) {
                     console.warn('Failed to append stock event after recon save:', error);
@@ -538,9 +539,11 @@ export default function Recon() {
             deliveryMethod: data.deliveryMethod,
             penColor: data.penColor,
             cost: data.cost,
-            date: new Date().toISOString(), // Reconstitution date - semantic field, not for conflict resolution
+            date: new Date().toISOString(),
             dateAcquired: data.dateAcquired || '',
-            peptides, // Include full peptides array with stockpileId
+            orderId: data.orderId || null,
+            documentation: data.documentation || [],
+            peptides,
             notes: ''
         }, { isNew: true });
 
@@ -1120,6 +1123,18 @@ export default function Recon() {
                                                     }
                                                     return null;
                                                 })()}
+                                                {item.leftover && (
+                                                    <div
+                                                        className="mt-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5"
+                                                        style={{
+                                                            backgroundColor: theme.isDark ? '#78350f' : '#fef3c7',
+                                                            color: theme.isDark ? '#fcd34d' : '#92400e',
+                                                            border: `1px solid ${theme.isDark ? '#92400e' : '#fcd34d'}`
+                                                        }}
+                                                    >
+                                                        Leftover{item.leftoverFromProtocol ? ` · ${item.leftoverFromProtocol}` : ''}
+                                                    </div>
+                                                )}
                                             </div>
                                             
                                             <div className="flex flex-col items-end gap-2 flex-shrink-0">

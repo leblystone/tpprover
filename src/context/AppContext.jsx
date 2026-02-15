@@ -725,6 +725,20 @@ export function AppProvider({ children }) {
                             localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
                         }
                         
+                        // Stockpile history - merge with timestamps (synced cross-device)
+                        const localStockpileHistory = localStorage.getItem('tpprover_stockpile_history');
+                        if (localStockpileHistory) {
+                            const mergedStockHistory = mergeWithTimestamps(
+                                JSON.parse(localStockpileHistory),
+                                cloudAppData.stockpileHistory || [],
+                                'stockpileHistory',
+                                mergedDeletionTracking.stockpileHistory
+                            );
+                            localStorage.setItem('tpprover_stockpile_history', JSON.stringify(mergedStockHistory));
+                        } else if (cloudAppData.stockpileHistory) {
+                            localStorage.setItem('tpprover_stockpile_history', JSON.stringify(cloudAppData.stockpileHistory));
+                        }
+                        
                         // Wishlist - merge with timestamps (synced cross-device)
                         const localWishlist = localStorage.getItem('tpprover_wishlist');
                         if (localWishlist) {
@@ -855,6 +869,10 @@ export function AppProvider({ children }) {
                         // Restore protocol history from cloud
                         if (cloudAppData.protocolHistory) {
                             localStorage.setItem('tpprover_protocol_history', JSON.stringify(cloudAppData.protocolHistory));
+                        }
+                        // Restore stockpile history from cloud
+                        if (cloudAppData.stockpileHistory && cloudAppData.stockpileHistory.length > 0) {
+                            localStorage.setItem('tpprover_stockpile_history', JSON.stringify(cloudAppData.stockpileHistory));
                         }
                         // Restore wishlist from cloud
                         if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
@@ -1534,6 +1552,7 @@ export function AppProvider({ children }) {
                 const userNotes = safeParseLocalStorage('tpprover_user_notes', []);
                 const userGoals = safeParseLocalStorage('tpprover_user_goals', []);
                 const waterTracker = safeParseLocalStorage('tpprover_water_tracker', {});
+                const stockpileHistory = safeParseLocalStorage('tpprover_stockpile_history', []);
                 const deletionTracking = getDeletionTracking();
                 
                 const userData = {
@@ -1542,7 +1561,7 @@ export function AppProvider({ children }) {
                     taskCompletion, calendarDone, protocolHistory,
                     injectionHistory, injectionStats,
                     wishlist, userNotes, userGoals, waterTracker,
-                    deletionTracking
+                    stockpileHistory, deletionTracking
                 };
                 
                 syncToFirebase(userData).catch(console.error);
@@ -1585,11 +1604,13 @@ export function AppProvider({ children }) {
         window.addEventListener('tpp:user-notes-updated', bumpSync);
         window.addEventListener('tpp:user-goals-updated', bumpSync);
         window.addEventListener('tpp:water-tracker-updated', bumpSync);
+        window.addEventListener('tpp:stockpile-history-updated', bumpSync);
         return () => {
             window.removeEventListener('tpp:wishlist-updated', bumpSync);
             window.removeEventListener('tpp:user-notes-updated', bumpSync);
             window.removeEventListener('tpp:user-goals-updated', bumpSync);
             window.removeEventListener('tpp:water-tracker-updated', bumpSync);
+            window.removeEventListener('tpp:stockpile-history-updated', bumpSync);
         };
     }, []);
 
@@ -1643,7 +1664,8 @@ export function AppProvider({ children }) {
                 userGoals: safeParseLocalStorage('tpprover_user_goals', []),
                 waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
                 injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
-                injectionStats: safeParseLocalStorage('tpprover_injection_stats', {})
+                injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
+                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', [])
             };
             
             // Only sync if we have some data to sync
@@ -2905,6 +2927,10 @@ export function AppProvider({ children }) {
                                     const filtered = freshData.protocolHistory.filter(h => !h.isMock);
                                     localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
                                 }
+                                // Restore stockpile history from cloud
+                                if (freshData.stockpileHistory) {
+                                    localStorage.setItem('tpprover_stockpile_history', JSON.stringify(freshData.stockpileHistory));
+                                }
                             }
                             
                             setTimeout(() => {
@@ -3141,6 +3167,17 @@ export function AppProvider({ children }) {
                                     ? freshData.protocolHistory.filter(h => !h.isMock)
                                     : freshData.protocolHistory;
                                 localStorage.setItem('tpprover_protocol_history', JSON.stringify(filtered));
+                            }
+                            // Merge stockpile history from cloud
+                            if (freshData.stockpileHistory) {
+                                const localStockHistory = safeParseLocalStorage('tpprover_stockpile_history', []);
+                                const mergedStockHistory = mergeWithTimestamps(
+                                    localStockHistory,
+                                    freshData.stockpileHistory || [],
+                                    'stockpileHistory',
+                                    getDeletionTracking().stockpileHistory
+                                );
+                                localStorage.setItem('tpprover_stockpile_history', JSON.stringify(mergedStockHistory));
                             }
                             // CRITICAL: Merge task completion data from cloud (needed for streak)
                             // Don't overwrite - merge to preserve any local completions
