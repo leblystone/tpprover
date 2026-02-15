@@ -50,7 +50,7 @@ export default function BottomNavigation({ theme }) {
   const menuItems = {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
-      { path: '/app/recon', label: 'Peptide Calculator', subtitle: 'Formerly Recon', icon: Calculator }
+      { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator }
     ],
     inventory: [
       { path: '/app/stockpile', label: 'Stockpile', icon: Package },
