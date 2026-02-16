@@ -163,6 +163,36 @@ export function findActiveProtocolHistoryEntry(protocolId) {
 }
 
 /**
+ * Update or replace a vial in the main vials array for an active protocol.
+ * Used when EditActiveProtocolVials swaps a linked vial so history stays in sync.
+ * @param {string} protocolId
+ * @param {string} oldVialId - The vialId being replaced (null to just add)
+ * @param {object} newVialData - Full vial snapshot
+ */
+export function updateVialInActiveProtocol(protocolId, oldVialId, newVialData) {
+    const activeEntry = findActiveProtocolHistoryEntry(protocolId);
+    if (!activeEntry) {
+        console.warn('No active protocol history entry found for:', protocolId);
+        return false;
+    }
+
+    let updatedVials = [...(activeEntry.vials || [])];
+
+    if (oldVialId) {
+        const idx = updatedVials.findIndex(v => v.vialId === oldVialId);
+        if (idx !== -1) {
+            updatedVials[idx] = { ...newVialData, replacedAt: getLocalTimestamp() };
+        } else {
+            updatedVials.push({ ...newVialData, addedDate: getLocalTimestamp() });
+        }
+    } else {
+        updatedVials.push({ ...newVialData, addedDate: getLocalTimestamp() });
+    }
+
+    return updateProtocolHistoryEntry(activeEntry.id, { vials: updatedVials });
+}
+
+/**
  * Add a vial to the vialsAddedDuring array for an active protocol
  * Prevents duplicate vials from being added multiple times
  */

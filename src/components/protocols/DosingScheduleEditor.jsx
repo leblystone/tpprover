@@ -251,7 +251,6 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                 }
                                             }, 150);
                                         }}
-                                        placeholder=" "
                                         className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
                                             backgroundColor: 'transparent',
