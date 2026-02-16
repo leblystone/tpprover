@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
 import ConfirmationModal from '../ui/ConfirmationModal';
+import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
 
 /**
  * StockpileGroupCard Component - Flattened Hierarchy Redesign
@@ -286,12 +287,12 @@ function ItemStrip({
 
         <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
           <div className="text-xs font-semibold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-            {item.quantity} {item.quantity === 1 ? 'vial' : 'vials'}
+            {item.quantity} {getUnitLabel(item.unit, item.quantity)}
           </div>
           
           {/* Action Row - Always visible on mobile, hover on desktop */}
           <div className={`flex items-center gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover/strip:opacity-100'}`}>
-            {!isUnknownGroup && (
+            {!isUnknownGroup && canReconstitute(item.unit) && (
               <button
                 onClick={(e) => { e.stopPropagation(); onSendToRecon(item, group); }}
                 className="p-1 rounded-full transition-colors"

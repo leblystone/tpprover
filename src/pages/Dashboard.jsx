@@ -609,7 +609,7 @@ export default function Dashboard() {
       <ViewContainer theme={theme} transparent noMinHeight>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-1 md:gap-2 mb-0 items-start">
           {/* Today's Research taking up 3/4 of the space */}
-          <div className="lg:col-span-3 p-2 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
+          <div className="lg:col-span-3 p-2 rounded-xl content-card" data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
                 <div className="flex items-center gap-2">

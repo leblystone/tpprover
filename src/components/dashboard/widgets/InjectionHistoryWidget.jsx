@@ -41,7 +41,7 @@ export default function InjectionHistoryWidget({ theme }) {
   // Check if injection site tracking is disabled
   if (!isInjectionSiteTrackingEnabled()) {
     return (
-      <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
+      <div className="h-full flex flex-col p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Pipette size={18} style={{ color: theme.primary }} />
@@ -68,7 +68,7 @@ export default function InjectionHistoryWidget({ theme }) {
 
   if (!history.length) {
     return (
-      <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
+      <div className="h-full flex flex-col p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Pipette size={18} style={{ color: theme.primary }} />
@@ -94,7 +94,7 @@ export default function InjectionHistoryWidget({ theme }) {
   }
 
   return (
-    <div className="h-full flex flex-col p-4 overflow-hidden" style={{ backgroundColor: theme.cardBackground }}>
+    <div className="h-full flex flex-col p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Pipette size={20} style={{ color: theme.primary }} />

@@ -138,7 +138,10 @@ const SupplementsWidget = ({
                <div 
                  key={supplement.id} 
                 className="p-3 rounded-lg supplement-card-hover" 
-                style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}
+                style={{ 
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)',
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'}`
+                }}
                >
                  <div className="flex items-start justify-between gap-3">
                    <div className="flex items-start gap-3 flex-1 min-w-0">

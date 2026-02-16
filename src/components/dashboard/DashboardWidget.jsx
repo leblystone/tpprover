@@ -99,14 +99,18 @@ const DashboardWidget = ({
 
   const isHidden = isCustomizing && !widget.enabled;
 
+  // Determine glass effect class based on widget type
+  const glassClass = widget.type === 'TASKS' 
+    ? 'glass-panel-depth' 
+    : 'glass-panel-minimal';
+
   return (
     <div
-      className={`dashboard-widget relative rounded-xl content-card shadow-xl transition-all duration-200 ${
+      className={`dashboard-widget relative rounded-xl ${glassClass} transition-all duration-200 ${
         isCustomizing && widget.enabled ? 'ring-2 ring-opacity-50 cursor-move' : ''
       } ${isDragging ? 'z-50 shadow-2xl' : 'widget-card-hover'}`}
       style={{
         ...widgetStyle,
-        backgroundColor: theme.cardBackground,
         fontFamily: 'Poppins, sans-serif',
         '--tw-ring-color': isCustomizing && widget.enabled ? theme.primary : theme.primary + '4D' // 30% opacity for hover
       }}

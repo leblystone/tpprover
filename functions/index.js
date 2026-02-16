@@ -5556,7 +5556,7 @@ exports.scheduledCycleReminders = onSchedule({
           const startDate = new Date(protocol.startDate);
           startDate.setHours(0, 0, 0, 0);
           const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
-          if (endDate) endDate.setHours(0, 0, 0, 0);
+          if (endDate) endDate.setHours(23, 59, 59, 999);
           
           // --- Washout Reminders (protocol ended recently) ---
           if (notificationSettings.washoutReminders !== false && endDate) {
@@ -5585,7 +5585,9 @@ exports.scheduledCycleReminders = onSchedule({
           }
           
           // --- Cycle Reminders (for cycle-based protocols) ---
-          if (notificationSettings.cycleReminders !== false && protocol.peptides) {
+          // Only for protocols ACTIVE today - skip ended protocols (prevents "rogue" notifications)
+          const isProtocolActiveToday = today >= startDate && (!endDate || today <= endDate);
+          if (isProtocolActiveToday && notificationSettings.cycleReminders !== false && protocol.peptides) {
             for (const peptide of protocol.peptides) {
               if (peptide.frequency?.type !== 'cycle') continue;
               

@@ -122,7 +122,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
       initialData.items = (initialData.items || []).map(item => ({
         ...item,
-        unit: item.unit === 'bottle' ? 'vial' : (item.unit || 'vial'),
+        unit: item.unit || 'vial',
         mgUnit: item.mgUnit || 'mg'
       }));
 

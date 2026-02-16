@@ -227,7 +227,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     if (activeProtocols.length === 0) {
         return (
-            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: 'transparent' }}>
                 <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
@@ -267,7 +267,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     return (
         <>
-            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: theme.white }}>
+            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: 'transparent' }}>
                 <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
                     <span className="flex items-center gap-2">
                         Active Research
@@ -311,7 +311,8 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                 className="p-3 lg:p-4 rounded-lg border transition-all hover:opacity-90"
                                 style={{ 
                                     borderColor: theme.border,
-                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)',
+                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'}`
                                 }}
                             >
                                 <div className="space-y-2 lg:space-y-3">

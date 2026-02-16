@@ -102,11 +102,12 @@ const QuickActionsWidget = ({ widget, theme }) => {
                   style={{
                     width: 56,
                     height: 56,
-                    backgroundColor: glassBg,
-                    backdropFilter: 'blur(16px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                    border: `1px solid ${glassBorder}`,
-                    boxShadow: glassShadow,
+                    // Use theme cardBackground but semi-transparent for "flat" look
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
+                    boxShadow: 'none', // Remove shadow to remove "box" feel
                     color: action.color
                   }}
                 >

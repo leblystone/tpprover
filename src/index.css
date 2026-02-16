@@ -72,8 +72,67 @@ html, body, #root {
 }
 
 /* Simple cards */
-.content-card { border-radius: 14px; }
+.content-card { 
+  border-radius: 14px;
+  background-color: transparent !important; /* Ensure content cards are transparent by default for glass effect */
+}
 .card-shadow { box-shadow: 0 10px 18px rgba(0,0,0,0.08); }
+
+/* Glassmorphism System */
+.glass-panel-minimal {
+  /* Nearly transparent background for "flat" look */
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  /* Stronger border to define the "imaginary outline" */
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: none !important;
+}
+
+.dark .glass-panel-minimal,
+[data-theme="softDark"] .glass-panel-minimal {
+  background: rgba(17, 24, 39, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+
+.glass-panel-depth {
+  /* distinct card look for Today's Research */
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6) !important;
+}
+
+.dark .glass-panel-depth,
+[data-theme="softDark"] .glass-panel-depth {
+  background: rgba(31, 41, 55, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.3), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Dashboard Background Pattern - Sleek Neutral Gradient */
+.dashboard-bg-pattern {
+  background-color: transparent;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(243, 244, 246, 0) 0%, rgba(229, 231, 235, 0.5) 100%);
+  background-attachment: fixed;
+}
+
+.dark .dashboard-bg-pattern {
+  background-color: transparent;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(31, 41, 55, 0.8) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(17, 24, 39, 0) 0%, rgba(0, 0, 0, 0.3) 100%);
+}
 
 /* Notification overlay - highest z-index */
 .notification-overlay {

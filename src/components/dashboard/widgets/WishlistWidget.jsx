@@ -13,7 +13,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, isReadOnly = f
   if (!displayItems || displayItems.length === 0) {
     return (
       <div className="h-full">
-        <div className="h-full flex flex-col p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
+        <div className="h-full flex flex-col p-4 rounded-xl content-card w-full">
           <h3 className="text-base font-bold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
             <span className="flex items-center gap-2">
               Wishlist

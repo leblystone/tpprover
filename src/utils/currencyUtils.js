@@ -1,6 +1,7 @@
 /**
  * Currency formatting utilities for international users
  */
+import { getUnitMultiplier } from './unitConversion';
 
 // Currency configuration
 const CURRENCY_CONFIG = {
@@ -175,7 +176,7 @@ export function renderCostPerMg(order, currencyCode = null) {
     const totalMg = order.items.reduce((sum, item) => {
       const mgPerVial = Number(item.mg) || 0;
       const qty = Math.max(1, Number(item.quantity) || 1);
-      const unitMult = String(item.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
+      const unitMult = getUnitMultiplier(item.unit);
       return sum + (mgPerVial * qty * unitMult);
     }, 0);
     
@@ -189,7 +190,7 @@ export function renderCostPerMg(order, currencyCode = null) {
   const c = Number(order?.cost);
   const mgPerVial = Number(order?.mg);
   const qty = Math.max(1, Number(order?.quantity) || 1);
-  const unitMult = String(order?.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
+  const unitMult = getUnitMultiplier(order?.unit);
   const totalMg = (mgPerVial > 0 ? mgPerVial : NaN) * qty * unitMult;
   
   if (isNaN(c) || isNaN(totalMg) || totalMg <= 0) return '—';

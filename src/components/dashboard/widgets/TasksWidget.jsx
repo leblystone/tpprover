@@ -60,6 +60,30 @@ const getResolvedPenColor = (penColor) => {
   return foundColor ? foundColor.hex : '#9ca3af';
 };
 
+const BookmarkRibbon = ({ theme }) => (
+  <div 
+    className="absolute -top-1 right-16 w-6 h-10 pointer-events-none hidden sm:block"
+    style={{ 
+      zIndex: 1,
+      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))'
+    }}
+  >
+    <div 
+      className="w-full h-full"
+      style={{
+        backgroundColor: theme.primary,
+        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)',
+      }}
+    >
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-transparent" />
+        <div className="absolute inset-0 opacity-20" style={{ 
+            backgroundImage: 'radial-gradient(circle at center, white 1px, transparent 1px)',
+            backgroundSize: '3px 3px'
+        }} />
+    </div>
+  </div>
+);
+
 const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
@@ -105,12 +129,21 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
   // If no tasks, show compact empty state
   if (filteredTasks.length === 0) {
     return (
-      <div className="h-full flex flex-col">
-        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className="h-full flex flex-col relative">
+        <BookmarkRibbon theme={theme} />
+        <div className={`px-4 py-3 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ 
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)', 
+          background: theme.isDark 
+            ? `linear-gradient(135deg, ${theme.primary}30, rgba(255,255,255,0.05))` 
+            : `linear-gradient(135deg, ${theme.primary}15, rgba(255,255,255,0.6))`,
+          backdropFilter: 'blur(8px)'
+        }}>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
+            <h3 className="text-xl font-bold flex items-center gap-2 truncate tracking-tight" style={{ color: theme.text }}>
               Today's Research
-              <CheckSquare size={16} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
+              <div className="p-1 rounded-md" style={{ background: theme.primary, color: '#fff' }}>
+                <CheckSquare size={16} className="sm:w-4 sm:h-4 flex-shrink-0" />
+              </div>
             </h3>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
@@ -217,11 +250,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
   // If few tasks, show compact layout with modernized display
   if (filteredTasks.length <= 3) {
     return (
-      <div className="h-full flex flex-col overflow-hidden">
-      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className="h-full flex flex-col overflow-hidden relative">
+      <BookmarkRibbon theme={theme} />
+      <div className={`px-4 py-3 flex-shrink-0 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border, background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-bold truncate" style={{ color: theme.text }}>
+          <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             Today's Research
+            <CheckSquare size={16} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
@@ -246,7 +281,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                 </button>
               </ModernTooltip>
             )}
-            <CheckSquare size={16} className="sm:w-5 sm:h-5" style={{ color: theme.primary }} />
           </div>
         </div>
       </div>
@@ -288,10 +322,11 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
 
   // Default full layout for many tasks
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+    <div className="h-full flex flex-col overflow-hidden relative">
+      <BookmarkRibbon theme={theme} />
+      <div className={`px-4 py-3 flex-shrink-0 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border, background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
+          <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             {widget.title}
             <CheckSquare size={16} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>

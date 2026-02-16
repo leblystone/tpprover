@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, BookAlert, Siren } from 'lucide-react';
+import { getUnitMultiplier } from '../../utils/unitConversion';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
     const [isNameFocused, setIsNameFocused] = useState(false);
@@ -57,7 +58,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
         const price = parseFloat(item.price) || 0;
         const amount = Number(item.mg) || 0;
         const quantity = Math.max(1, Number(item.quantity) || 1);
-        const unitMult = String(item.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
+        const unitMult = getUnitMultiplier(item.unit);
         const mgUnit = (item.mgUnit || 'mg').toLowerCase();
         
         // Get the label based on unit (always show appropriate label)

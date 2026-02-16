@@ -96,7 +96,7 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
             </span>
           </div>
         </div>
-        <div className="p-2 rounded border text-center" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="p-2 rounded border text-center" style={{ borderColor: theme.border }}>
           <TrendingUp size={18} className="mx-auto mb-1 opacity-50" style={{ color: theme.textLight }} />
           <p className="text-[10px]" style={{ color: theme.textLight }}>
             No data for the last 7 days
@@ -174,7 +174,7 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
       </div>
 
       {/* Chart */}
-      <div className="p-1.5 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="p-1.5 rounded border" style={{ borderColor: theme.border }}>
         <svg width="100%" height={chartHeight + labelHeight} viewBox={`0 0 ${chartWidth} ${chartHeight + labelHeight}`}>
           {/* Grid lines */}
           {[0, 0.5, 1].map(ratio => (
@@ -443,7 +443,7 @@ const MetricsWidget = ({
                 </div>
                 
                 {/* Most Recent Entry Card */}
-                <div className="p-2 rounded flex-1 min-h-0 flex flex-col" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}>
+                <div className="p-2 rounded flex-1 min-h-0 flex flex-col" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
                   {/* Date */}
                   <div className="flex items-center gap-1 mb-1.5">
                     <Calendar size={8} style={{ color: theme.primary }} />

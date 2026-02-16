@@ -587,7 +587,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
             {/* Section: Order History */}
             <div className="pb-4">
-              <VendorOrderHistory vendorName={form.name} theme={theme} />
+              <VendorOrderHistory vendorName={form.name} vendorId={vendor?.id} theme={theme} />
             </div>
           </>
         )}
@@ -696,10 +696,13 @@ function createEmptyVendor() {
   }
 }
 
-function VendorOrderHistory({ vendorName, theme }) {
+function VendorOrderHistory({ vendorName, vendorId, theme }) {
   let orders = []
   try { orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]') } catch {}
-  const history = orders.filter(o => (o.vendor || '').toLowerCase() === (vendorName || '').toLowerCase())
+  const history = orders.filter(o => {
+    if (vendorId && o.vendorId) return o.vendorId === vendorId;
+    return (o.vendor || '').toLowerCase() === (vendorName || '').toLowerCase();
+  })
   
   if (history.length === 0) {
     return (

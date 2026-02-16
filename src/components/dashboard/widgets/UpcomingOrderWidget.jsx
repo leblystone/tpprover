@@ -72,7 +72,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
 
   // If there's an order, show with consistent header
   return (
-    <div className="relative h-full flex flex-col rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
+    <div className="relative h-full flex flex-col rounded-xl content-card">
       {/* Consistent Header */}
       <div className="px-4 py-3 border-b rounded-t-xl" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">

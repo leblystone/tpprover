@@ -16,6 +16,15 @@ export function checkCycleReminders(protocols = []) {
     today.setHours(0, 0, 0, 0);
     
     protocols.forEach(protocol => {
+      // Only consider protocols that are currently active (today within start-end range)
+      // Prevents reminders for ended protocols that are still in user data
+      const startDate = protocol.startDate ? new Date(protocol.startDate) : null;
+      const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+      startDate?.setHours(0, 0, 0, 0);
+      endDate?.setHours(23, 59, 59, 999);
+      const isActiveToday = startDate && today >= startDate && (!endDate || today <= endDate);
+      if (!isActiveToday) return;
+
       // Check for cycle-based protocols
       if (protocol.peptides && Array.isArray(protocol.peptides)) {
         protocol.peptides.forEach(peptide => {

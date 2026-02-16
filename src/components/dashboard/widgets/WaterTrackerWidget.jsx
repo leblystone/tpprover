@@ -457,7 +457,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
               <div className="relative">
                 <div className="p-4 rounded-xl border" style={{ 
                   borderColor: theme.border, 
-                  backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+                  backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)' 
                 }}>
                   <div className="h-64 relative">
                     <svg width="100%" height="100%" viewBox="0 0 400 256" className="rounded-lg">
@@ -598,7 +598,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             ) : (
               <div className="p-8 rounded-xl border text-center" style={{ 
                 borderColor: theme.border, 
-                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)' 
               }}>
                 <Droplets size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
                 <p className="text-sm" style={{ color: theme.textLight }}>
@@ -709,7 +709,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             ) : (
               <div className="p-8 rounded-xl border text-center" style={{ 
                 borderColor: theme.border, 
-                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)' 
               }}>
                 <Calendar size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
                 <p className="text-sm" style={{ color: theme.textLight }}>

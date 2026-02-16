@@ -6,7 +6,7 @@
 const { onCall } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { stripe } = require('./stripe');
 
 const FieldValue = admin.firestore.FieldValue;
 const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || null;

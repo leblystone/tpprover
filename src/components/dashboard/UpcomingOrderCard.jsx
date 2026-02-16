@@ -206,7 +206,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
     <div 
       className={`${hideHeader ? 'p-3' : 'p-4'} w-full h-full flex flex-col transition-all min-h-0 rounded-xl content-card`} 
       style={{ 
-        backgroundColor: theme.cardBackground, 
+        backgroundColor: 'transparent', 
         borderColor: theme.border,
         cursor: currentOrder?.id ? 'pointer' : 'default'
       }}

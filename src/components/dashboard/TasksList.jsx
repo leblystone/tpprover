@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Pill, Check, Info, PenTool, Beaker, Pipette } from 'lucide-react';
+import { Pill, Check, Info, PenTool, Beaker, Pipette, Sun, Moon } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -85,8 +85,12 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
         return (
             <div>
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                    <span className="text-[10px] sm:text-xs font-medium text-gray-500">{timeLabel}</span>
-                    <div className="flex-1 h-px bg-gray-200"></div>
+                    <div className="flex-1 h-px" style={{ backgroundColor: theme.accent }}></div>
+                    {timeLabel === 'AM' 
+                        ? <Sun size={14} className="sm:w-4 sm:h-4 flex-shrink-0" fill={theme.primary} style={{ color: theme.primary }} /> 
+                        : <Moon size={14} className="sm:w-4 sm:h-4 flex-shrink-0" fill={theme.primaryDark} style={{ color: theme.primaryDark }} />
+                    }
+                    <div className="flex-1 h-px" style={{ backgroundColor: theme.accent }}></div>
                 </div>
                 <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={timeLabel} />
             </div>
@@ -118,8 +122,10 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
 
 const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot }) => {
     const clickTimers = useRef({});
-    const baseBg = theme.isDark ? '#1f2937' : theme.secondary;
-    const taskBg = timeSlot === 'PM' ? (theme.isDark ? darkenHex('#1f2937', 0.2) : darkenHex(theme.secondary || '#f3f4f6', 0.12)) : baseBg;
+    // Use semi-transparent backgrounds for glass effect
+    const baseBg = theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.5)';
+    const pmBg = theme.isDark ? 'rgba(17, 24, 39, 0.6)' : 'rgba(243, 244, 246, 0.7)';
+    const taskBg = timeSlot === 'PM' ? pmBg : baseBg;
 
     if (!tasks || tasks.length === 0) return null;
     return (
@@ -130,7 +136,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                    <div className={`font-bold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                         {task.name}
                                     </div>
                                     {/* Time chip - PM chip darker to match PM row differentiation */}
@@ -138,8 +144,8 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                         <div 
                                             className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
-                                                backgroundColor: task.completed ? '#9ca3af' : (task.time === 'PM' ? darkenHex(theme.primary || '#7f9e95', 0.25) : `${theme.primary}70`),
-                                                opacity: task.completed ? 0.6 : 0.9
+                                                backgroundColor: task.completed ? '#9ca3af' : (task.time === 'PM' ? theme.primaryDark : `${theme.primary}B0`),
+                                                opacity: task.completed ? 0.6 : 1
                                             }}
                                         >
                                             {task.time}
@@ -151,7 +157,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                         
                         <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
                             <div className="text-right">
-                                <div className="font-semibold text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                     {task.dose}{task.unit ? ` ${task.unit}` : ''}
                                 </div>
                             </div>
@@ -211,7 +217,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                 }}
                                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
                                 style={{
-                                    borderColor: task.completed ? theme.primary : theme.border,
+                                    borderColor: task.completed ? theme.primary : theme.primaryLight,
                                     backgroundColor: task.completed ? theme.primary : 'transparent',
                                     borderRadius: '4px',
                                     minWidth: '20px',
