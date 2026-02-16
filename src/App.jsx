@@ -501,44 +501,56 @@ function App() {
   return (
     <div className="h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden" style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
-      <div className="flex-1 flex flex-col lg:ml-24 min-w-0 w-full max-w-full overflow-x-hidden" style={{
-        boxSizing: 'border-box',
-        // Add padding for mobile status bar - only for native apps (not PWA/web)
-        paddingTop: Capacitor.isNativePlatform() && window.innerWidth < 1024 ? 'var(--safe-area-top, 0px)' : '0px'
-      }}>
-        <Topbar 
-          theme={theme} 
-          onMenuClick={() => setMobileMenuOpen(true)}
-          onDashboardCustomize={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
-            // Dispatch custom event for dashboard customize
-            window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
-          } : undefined}
-          onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
-            // Dispatch custom event for dashboard settings
-            window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
-          } : undefined}
-          isCustomizing={false} // This will be managed by the dashboard component
-          tabs={topbarTabs?.tabs}
-          activeTab={topbarTabs?.activeTab}
-          onTabChange={topbarTabs?.onTabChange}
-          onActionClick={topbarTabs?.onActionClick}
-          actionDisabled={topbarTabs?.actionDisabled}
-          autoSaveIndicator={topbarAutoSave}
-          showSampleData={showDemoBanner}
-        />
-               <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0 w-full max-w-full" style={{ backgroundColor: theme.background, color: theme.text, minWidth: 0, boxSizing: 'border-box' }}>
-          <Suspense fallback={<div className="p-8">Loading...</div>}>
-            <SubscriptionGuard>
-              <Outlet context={{ theme, installPrompt }} />
-            </SubscriptionGuard>
-          </Suspense>
-        </main>
-        
-        {/* Bottom Navigation - Mobile & Tablet Only - Only show on protected /app routes */}
-        {location.pathname.startsWith('/app') && (
-          <BottomNavigation theme={theme} />
-        )}
-      </div>
+        <div className="relative flex-1 flex flex-col min-w-0 w-full max-w-full overflow-hidden" style={{
+          boxSizing: 'border-box',
+        }}>
+          <div className="absolute top-0 left-0 right-0 z-30">
+            <Topbar 
+              theme={theme} 
+              onMenuClick={() => setMobileMenuOpen(true)}
+              onDashboardCustomize={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
+                // Dispatch custom event for dashboard customize
+                window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
+              } : undefined}
+              onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
+                // Dispatch custom event for dashboard settings
+                window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
+              } : undefined}
+              isCustomizing={false} // This will be managed by the dashboard component
+              tabs={topbarTabs?.tabs}
+              activeTab={topbarTabs?.activeTab}
+              onTabChange={topbarTabs?.onTabChange}
+              onActionClick={topbarTabs?.onActionClick}
+              actionDisabled={topbarTabs?.actionDisabled}
+              autoSaveIndicator={topbarAutoSave}
+              showSampleData={showDemoBanner}
+            />
+          </div>
+
+          <main className="flex-1 overflow-y-auto overflow-x-hidden main-content min-h-0 w-full max-w-full relative" 
+            style={{ 
+              background: (location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}88 30%, ${theme.primary}55 55%, ${theme.primaryLight}88 75%, ${theme.accent} 100%)` : theme.background, 
+              color: theme.text, 
+              minWidth: 0, 
+              boxSizing: 'border-box',
+              paddingTop: Capacitor.isNativePlatform() && window.innerWidth < 1024 ? 'calc(3.5rem + var(--safe-area-top, 0px))' : '3.5rem',
+              paddingBottom: location.pathname.startsWith('/app') ? '4.5rem' : '0'
+            }}>
+            
+            <Suspense fallback={<div className="p-8">Loading...</div>}>
+              <SubscriptionGuard>
+                <Outlet context={{ theme, installPrompt }} />
+              </SubscriptionGuard>
+            </Suspense>
+          </main>
+          
+          {/* Bottom Navigation - Mobile & Tablet Only - Only show on protected /app routes */}
+          {location.pathname.startsWith('/app') && (
+            <div className="absolute bottom-0 left-0 right-0 z-30">
+              <BottomNavigation theme={theme} />
+            </div>
+          )}
+        </div>
       <MobileNav 
         theme={theme} 
         open={mobileMenuOpen} 

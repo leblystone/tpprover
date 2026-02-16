@@ -131,13 +131,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
     return (
       <div className="h-full flex flex-col relative">
         <BookmarkRibbon theme={theme} />
-        <div className={`px-4 py-3 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ 
-          borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)', 
-          background: theme.isDark 
-            ? `linear-gradient(135deg, ${theme.primary}30, rgba(255,255,255,0.05))` 
-            : `linear-gradient(135deg, ${theme.primary}15, rgba(255,255,255,0.6))`,
-          backdropFilter: 'blur(8px)'
-        }}>
+      <div className={`px-4 py-3 relative z-10 widget-separator`} style={{ 
+        borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)', 
+        background: theme.isDark 
+          ? `linear-gradient(135deg, ${theme.primary}30, rgba(255,255,255,0.05))` 
+          : `linear-gradient(135deg, ${theme.primary}15, rgba(255,255,255,0.6))`,
+        backdropFilter: 'blur(8px)'
+      }}>
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-xl font-bold flex items-center gap-2 truncate tracking-tight" style={{ color: theme.text }}>
               Today's Research
@@ -252,7 +252,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
     return (
       <div className="h-full flex flex-col overflow-hidden relative">
       <BookmarkRibbon theme={theme} />
-      <div className={`px-4 py-3 flex-shrink-0 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border, background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
+      <div className={`px-4 py-3 flex-shrink-0 relative z-10 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)', background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             Today's Research
@@ -324,7 +324,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
       <BookmarkRibbon theme={theme} />
-      <div className={`px-4 py-3 flex-shrink-0 relative z-10 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border, background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
+      <div className={`px-4 py-3 flex-shrink-0 relative z-10 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)', background: theme.isDark ? `linear-gradient(135deg, ${theme.primary}15, transparent)` : `linear-gradient(135deg, ${theme.primary}08, ${theme.primary}03)` }}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             {widget.title}

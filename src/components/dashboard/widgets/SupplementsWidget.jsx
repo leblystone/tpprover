@@ -76,7 +76,7 @@ const SupplementsWidget = ({
 
   return (
     <div className="relative h-full flex flex-col">
-      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className={`px-4 py-3 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Supplements
@@ -132,15 +132,24 @@ const SupplementsWidget = ({
             </button>
           </div>
         ) : (
-                     <div className="space-y-3">
-             {supplements.map(supplement => {
+                     <div className="space-y-1.5">
+             {supplements.map((supplement, index) => {
+               const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : [];
+               const isPMOnly = schedule.includes('PM') && !schedule.includes('AM');
+               const isAMPM = schedule.includes('AM') && schedule.includes('PM');
+               
                return (
                <div 
                  key={supplement.id} 
-                className="p-3 rounded-lg supplement-card-hover" 
+                className="py-2.5 px-3 transition-all duration-200" 
                 style={{ 
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)',
-                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'}`
+                  backgroundColor: 'transparent',
+                  borderLeft: isPMOnly
+                    ? `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+                    : `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                  boxShadow: index < supplements.length - 1 
+                    ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
+                    : 'none'
                 }}
                >
                  <div className="flex items-start justify-between gap-3">
@@ -172,18 +181,18 @@ const SupplementsWidget = ({
                           <div>
                             {/* AM/PM chips */}
                             <div className="flex gap-1 mb-0.5">
-                              {Array.isArray(supplement.schedule) && supplement.schedule.includes('AM') && (
+                              {schedule.includes('AM') && (
                                 <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
-                                  backgroundColor: theme.primary, 
+                                  backgroundColor: `${theme.primary}B0`, 
                                   color: '#ffffff',
                                   fontSize: '10px'
                                 }}>
                                   AM
                                 </div>
                               )}
-                              {Array.isArray(supplement.schedule) && supplement.schedule.includes('PM') && (
+                              {schedule.includes('PM') && (
                                 <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
-                                  backgroundColor: theme.primary, 
+                                  backgroundColor: theme.primaryDark || theme.primary, 
                                   color: '#ffffff',
                                   fontSize: '10px'
                                 }}>

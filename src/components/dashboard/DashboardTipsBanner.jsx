@@ -66,11 +66,11 @@ const DashboardTipsBanner = ({ theme }) => {
 
   return (
     <div 
-      className="w-full px-3 sm:px-4 lg:px-6 py-2 border-b flex items-center justify-between gap-2 sm:gap-3 transition-all"
+      className="w-full px-3 sm:px-4 lg:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 transition-all glass-panel-minimal rounded-lg"
       style={{ 
-        backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
-        borderColor: theme.border,
+        borderColor: 'transparent',
         borderTop: 'none',
+        borderBottom: 'none',
         maxWidth: '97%',
         margin: '0.25rem auto 0 auto',
         boxSizing: 'border-box'

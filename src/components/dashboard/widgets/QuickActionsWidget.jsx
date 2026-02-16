@@ -13,6 +13,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
       icon: Calculator,
       label: 'Peptide Calculator',
       color: theme.isDark ? '#0ea5e9' : theme.primary,
+      buttonBg: '#6B7F77',
       description: 'New Recon',
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openRecon'));
@@ -22,6 +23,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
       icon: Package,
       label: 'New\nOrder',
       color: theme.isDark ? '#f43f5e' : theme.primary,
+      buttonBg: '#566D64',
       description: 'New Entry',
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openOrder'));
@@ -31,6 +33,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
       icon: Users,
       label: 'New Vendor',
       color: theme.isDark ? '#f59e0b' : theme.primary,
+      buttonBg: '#445952',
       description: 'New Source',
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openVendor'));
@@ -40,6 +43,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
       icon: FlaskConical,
       label: 'New Protocol',
       color: theme.isDark ? '#10b981' : theme.primary,
+      buttonBg: '#3B4240',
       description: 'New Research',
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openProtocol'));
@@ -49,7 +53,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className={`px-4 py-2 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+      <div className={`px-4 py-1.5 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Shortcuts
@@ -59,7 +63,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 flex items-center justify-center px-3 py-1">
+      <div className="flex-1 flex items-center justify-center px-3 py-0">
         <div className="flex items-start justify-around w-full max-w-sm">
           {actions.map((action, index) => {
             const isHovered = hoveredIndex === index;
@@ -81,7 +85,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 key={index}
                 type="button"
                 onClick={action.onClick}
-                className="flex flex-col items-center gap-2 cursor-pointer group"
+                className="flex flex-col items-center gap-1 cursor-pointer group"
                 style={{
                   transform: isPressed ? 'scale(0.94)' : (isHovered ? 'translateY(-2px)' : 'none'),
                   transition: 'transform 0.22s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.15s ease',
@@ -100,19 +104,16 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 <div
                   className="rounded-full flex items-center justify-center transition-all duration-200"
                   style={{
-                    width: 56,
-                    height: 56,
-                    // Use theme cardBackground but semi-transparent for "flat" look
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)'}`,
-                    boxShadow: 'none', // Remove shadow to remove "box" feel
-                    color: action.color
+                    width: 58,
+                    height: 58,
+                    color: 'white',
+                    backgroundColor: action.buttonBg,
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.10)'
                   }}
                 >
                   <action.icon
-                    size={26}
+                    size={28}
                     strokeWidth={2}
                     className={`transition-transform duration-200 ${isHovered ? 'scale-110' : ''}`}
                   />

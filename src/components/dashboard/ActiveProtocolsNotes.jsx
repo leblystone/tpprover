@@ -169,6 +169,22 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
         }
         return null; // Don't show "Duration not set" - it's not essential info
     };
+    
+    // Get total days from duration
+    const getTotalDays = (protocol) => {
+        if (protocol.duration?.noEnd) return null;
+        if (!protocol.duration?.count || !protocol.duration?.unit) return null;
+        
+        const count = protocol.duration.count;
+        const unit = protocol.duration.unit.toLowerCase();
+        
+        if (unit.includes('day')) return count;
+        if (unit.includes('week')) return count * 7;
+        if (unit.includes('month')) return count * 30;
+        if (unit.includes('year')) return count * 365;
+        
+        return null;
+    };
 
     // Get delivery method icon for protocol
     const getDeliveryMethodIcon = (protocol) => {
@@ -228,7 +244,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     if (activeProtocols.length === 0) {
         return (
             <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: 'transparent' }}>
-                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }}>
                     <span className="flex items-center gap-2">
                         Active Research
                         <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
@@ -268,39 +284,19 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     return (
         <>
             <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: 'transparent' }}>
-                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }}>
                     <span className="flex items-center gap-2">
                         Active Research
                         <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
                     </span>
-                    <div className="flex items-center gap-2">
-                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
-                        <button
-                            type="button"
-                            onClick={() => navigate('/app/protocols')}
-                            className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                            style={{
-                                color: '#ffffff',
-                                backgroundColor: theme.primary,
-                                width: '28px',
-                                height: '28px',
-                                padding: 0,
-                                border: 'none',
-                                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                            aria-label="View all protocols"
-                        >
-                            <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
-                        </button>
-                    </div>
+                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                 </h3>
                 
-                <div className="flex-1 overflow-y-auto min-h-0 space-y-3 lg:space-y-4">
-                    {protocolsWithNotes.map((protocol) => {
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 relative">
+                    {protocolsWithNotes.map((protocol, index) => {
                         const protocolName = protocol.name || protocol.protocolName || 'Unnamed Protocol';
                         const duration = formatDuration(protocol);
+                        const totalDays = getTotalDays(protocol);
                         const daysActive = getDaysActive(protocol);
                         const startDate = protocol.startDate ? formatMMDDYYYY(new Date(protocol.startDate)) : null;
                         const deliveryIcon = getDeliveryMethodIcon(protocol);
@@ -308,50 +304,66 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                         return (
                             <div 
                                 key={protocol.id} 
-                                className="p-3 lg:p-4 rounded-lg border transition-all hover:opacity-90"
+                                className="py-2 lg:py-3 px-3 transition-all duration-200"
                                 style={{ 
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)',
-                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'}`
+                                    backgroundColor: 'transparent',
+                                    borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                                    boxShadow: index < protocolsWithNotes.length - 1 
+                                        ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
+                                        : 'none'
                                 }}
                             >
-                                <div className="space-y-2 lg:space-y-3">
-                                    {/* Protocol Header */}
-                                    <div className="flex items-center justify-between gap-2 lg:gap-3">
-                                        <div className="flex items-center gap-2 lg:gap-2.5 flex-1 min-w-0">
-                                            {deliveryIcon}
-                                            <div className="font-semibold text-sm lg:text-base truncate" style={{ color: theme.text }}>
-                                                {protocolName}
+                                <div>
+                                    {/* Protocol row: left = name + details, right = day + add note */}
+                                    <div className="flex items-start justify-between gap-2 lg:gap-3">
+                                        <div className="flex gap-2 lg:gap-2.5 flex-1 min-w-0">
+                                            <div className="flex-shrink-0 mt-0.5">{deliveryIcon}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-sm lg:text-base truncate" style={{ color: theme.text }}>
+                                                    {protocolName}
+                                                </div>
+                                                {startDate && (
+                                                    <div className="flex items-center gap-1 text-xs lg:text-sm" style={{ color: theme.textLight }}>
+                                                        <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                        {startDate}
+                                                    </div>
+                                                )}
+                                                {formatPeptidesList(protocol) && (
+                                                    <div className="flex items-center gap-1 text-xs lg:text-sm" style={{ color: theme.textLight }}>
+                                                        <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                        {formatPeptidesList(protocol)}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        {daysActive !== null && (
-                                            <span className="flex items-center gap-1 text-xs lg:text-sm flex-shrink-0" style={{ color: theme.textLight }}>
-                                                <Clock size={11} className="lg:w-3.5 lg:h-3.5" />
-                                                Day {daysActive}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Protocol Details */}
-                                    <div className="flex flex-wrap items-center gap-2 lg:gap-3 text-xs lg:text-sm" style={{ color: theme.textLight }}>
-                                        {startDate && (
-                                            <span className="flex items-center gap-1 whitespace-nowrap">
-                                                <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                {startDate}
-                                            </span>
-                                        )}
-                                        {duration && (
-                                            <span className="flex items-center gap-1 whitespace-nowrap">
-                                                <Clock size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                {duration}
-                                            </span>
-                                        )}
-                                        {formatPeptidesList(protocol) && (
-                                            <span className="flex items-center gap-1 whitespace-nowrap">
-                                                <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
-                                                {formatPeptidesList(protocol)}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                            {daysActive !== null && (
+                                                <div className="text-right">
+                                                    <div className="flex items-center justify-end gap-1 text-xs lg:text-sm whitespace-nowrap" style={{ color: theme.textLight }}>
+                                                        <Clock size={11} className="lg:w-3.5 lg:h-3.5" />
+                                                        {totalDays ? `Day ${daysActive} of ${totalDays}` : `Day ${daysActive}`}
+                                                    </div>
+                                                    {duration && totalDays && (
+                                                        <div className="text-xs mt-0.5 text-right" style={{ color: theme.textLight, opacity: 0.7 }}>
+                                                            {totalDays - daysActive} days left
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddNoteClick(protocol);
+                                                }}
+                                                className="text-xs lg:text-sm font-medium transition-opacity hover:opacity-70 flex items-center gap-1 whitespace-nowrap"
+                                                style={{ 
+                                                    color: theme.primary
+                                                }}
+                                            >
+                                                <Plus size={12} strokeWidth={2.5} />
+                                                Add note
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Latest Note Preview */}
@@ -382,26 +394,21 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                             )}
                                         </div>
                                     )}
-
-                                    {/* Add Note Button - Moved to bottom */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAddNoteClick(protocol);
-                                        }}
-                                        className="w-full mt-2 lg:mt-3 px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 lg:gap-2 hover:opacity-90"
-                                        style={{ 
-                                            backgroundColor: theme.primary,
-                                            color: '#ffffff'
-                                        }}
-                                    >
-                                        <Plus size={12} className="lg:w-3.5 lg:h-3.5" strokeWidth={2.5} />
-                                        Add Note
-                                    </button>
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+                
+                {/* View All link at bottom */}
+                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                    <button
+                        onClick={() => navigate('/app/protocols')}
+                        className="text-xs lg:text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{ color: theme.primary }}
+                    >
+                        View All
+                    </button>
                 </div>
             </div>
 

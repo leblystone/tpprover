@@ -15,7 +15,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, onOpenBuy, isReadOnly 
   if (!limitedBuys || limitedBuys.length === 0) {
     return (
       <div className="relative h-full flex flex-col">
-        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
+        <div className={`px-4 py-3 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Upcoming Buys

@@ -80,18 +80,13 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     const showPMFirst = currentHour >= 14 || currentHour < 2; // 2 PM (14:00) to 1:59 AM
     
 
-    const renderTimeSection = (tasks, timeLabel) => {
+    const renderTimeSection = (tasks, timeLabel, isSecondSection) => {
         if (tasks.length === 0) return null;
         return (
             <div>
-                <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                    <div className="flex-1 h-px" style={{ backgroundColor: theme.accent }}></div>
-                    {timeLabel === 'AM' 
-                        ? <Sun size={14} className="sm:w-4 sm:h-4 flex-shrink-0" fill={theme.primary} style={{ color: theme.primary }} /> 
-                        : <Moon size={14} className="sm:w-4 sm:h-4 flex-shrink-0" fill={theme.primaryDark} style={{ color: theme.primaryDark }} />
-                    }
-                    <div className="flex-1 h-px" style={{ backgroundColor: theme.accent }}></div>
-                </div>
+                {isSecondSection && (
+                    <div className="widget-separator" style={{ marginBottom: '0.5rem', paddingBottom: '0.25rem' }}></div>
+                )}
                 <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={timeLabel} />
             </div>
         );
@@ -106,14 +101,14 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
             {showPMFirst ? (
                 // PM first (2:00 PM to 1:59 AM)
                 <>
-                    {renderTimeSection(pmTasks, 'PM')}
-                    {renderTimeSection(amTasks, 'AM')}
+                    {renderTimeSection(pmTasks, 'PM', false)}
+                    {renderTimeSection(amTasks, 'AM', pmTasks.length > 0)}
                 </>
             ) : (
                 // AM first (2:00 AM to 1:59 PM)
                 <>
-                    {renderTimeSection(amTasks, 'AM')}
-                    {renderTimeSection(pmTasks, 'PM')}
+                    {renderTimeSection(amTasks, 'AM', false)}
+                    {renderTimeSection(pmTasks, 'PM', amTasks.length > 0)}
                 </>
             )}
         </div>
@@ -122,17 +117,25 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
 
 const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot }) => {
     const clickTimers = useRef({});
-    // Use semi-transparent backgrounds for glass effect
-    const baseBg = theme.isDark ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.5)';
-    const pmBg = theme.isDark ? 'rgba(17, 24, 39, 0.6)' : 'rgba(243, 244, 246, 0.7)';
-    const taskBg = timeSlot === 'PM' ? pmBg : baseBg;
 
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>
-            <ul className="space-y-1 sm:space-y-1.5">
-                {tasks.map(task => (
-                    <li key={task.id} className="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-lg min-w-0" style={{ backgroundColor: taskBg }}>
+            <ul className="space-y-1.5">
+                {tasks.map((task, index) => (
+                    <li 
+                        key={task.id} 
+                        className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" 
+                        style={{ 
+                            backgroundColor: 'transparent',
+                            borderLeft: timeSlot === 'PM'
+                                ? `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+                                : `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                            boxShadow: index < tasks.length - 1 
+                                ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
+                                : 'none'
+                        }}
+                    >
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -217,8 +220,12 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                 }}
                                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
                                 style={{
-                                    borderColor: task.completed ? theme.primary : theme.primaryLight,
-                                    backgroundColor: task.completed ? theme.primary : 'transparent',
+                                    borderColor: task.completed 
+                                        ? (timeSlot === 'PM' ? (theme.primaryDark || '#3d5a4c') : theme.primary) 
+                                        : `${theme.primaryLight}60`,
+                                    backgroundColor: task.completed 
+                                        ? (timeSlot === 'PM' ? (theme.primaryDark || '#3d5a4c') : theme.primary) 
+                                        : 'transparent',
                                     borderRadius: '4px',
                                     minWidth: '20px',
                                     minHeight: '20px',

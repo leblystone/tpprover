@@ -112,16 +112,15 @@ export default function InjectionSiteSelector({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4"
-      style={{ zIndex: 9999 }}
+      className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center p-4"
+      style={{ zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
       onClick={handleCancel}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 flex flex-col max-h-[85vh] overflow-hidden"
-        style={{ backgroundColor: theme.cardBackground }}
+        className="glass-modal rounded-lg shadow-xl max-w-sm w-full mx-4 flex flex-col max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between flex-shrink-0 p-4 pb-2 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between flex-shrink-0 p-4 pb-2 widget-separator">
           <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
             Injection site for {taskName}?
           </h4>
@@ -243,11 +242,21 @@ export default function InjectionSiteSelector({
                 value={customSite}
                 onChange={(e) => setCustomSite(e.target.value)}
                 placeholder="Enter site..."
-                className="w-full p-2 rounded border text-xs"
+                className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:ring-2 focus:ring-opacity-50"
                 style={{ 
-                  borderColor: theme.border, 
-                  backgroundColor: theme.background,
-                  color: theme.text 
+                  borderColor: theme.border,
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(127, 158, 149, 0.2)'}`,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255, 255, 255, 0.8)',
+                  color: theme.text,
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = theme.primary;
+                  e.target.style.boxShadow = `0 0 0 3px ${theme.primary}20`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(127, 158, 149, 0.2)';
+                  e.target.style.boxShadow = 'none';
                 }}
                 autoFocus
               />
@@ -257,7 +266,7 @@ export default function InjectionSiteSelector({
         </div>
 
         {/* Sticky footer: action buttons always visible */}
-        <div className="flex-shrink-0 flex gap-2 p-4 pt-2 border-t" style={{ borderColor: theme.border }}>
+        <div className="flex-shrink-0 flex gap-2 p-4 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(127, 158, 149, 0.08)' }}>
           <button
             onClick={handleSkip}
             className="flex-1 px-3 py-2 rounded text-xs font-medium border transition-all hover:opacity-80"

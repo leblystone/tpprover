@@ -352,15 +352,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   return (
     <>
       <header 
-        className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header" 
+        className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header glass-bar" 
         style={{ 
           paddingTop: isNative ? '0.375rem' : '0.5rem',
           paddingBottom: '0.5rem',
           minHeight: '3rem',
           borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-          background: theme.isDark 
-            ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
-            : 'linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%)',
           boxShadow: theme.isDark
             ? '0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
             : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)'

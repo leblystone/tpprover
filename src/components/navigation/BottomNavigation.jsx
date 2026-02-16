@@ -538,11 +538,8 @@ export default function BottomNavigation({ theme }) {
 
       {/* Bottom Navigation Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-xl"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] glass-bar"
         style={{
-          background: theme.isDark 
-            ? 'linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%)'
-            : 'linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%)',
           borderTop: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
           // Use comprehensive safe area variable (includes Android detection via visualViewport API)
           // This ensures bottom nav doesn't overlap Android navigation bar (edge-to-edge display support)
@@ -754,13 +751,7 @@ export default function BottomNavigation({ theme }) {
         </div>
       </nav>
 
-      {/* Bottom padding spacer for content */}
-      <div
-        className="lg:hidden"
-        style={{
-          height: 'calc(4rem + max(env(safe-area-inset-bottom, 0px), 0px))'
-        }}
-      />
+      {/* Bottom padding spacer for content removed - handled by main padding in App.jsx */}
 
       {/* Animations */}
       <style>{`

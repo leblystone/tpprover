@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CRITICAL: Remove iOS/browser tap highlights and outlines globally */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+}
+
+*:focus {
+  outline: 0 !important;
+  outline: none !important;
+}
+
 html, body, #root {
   height: 100%;
 }
@@ -80,58 +91,132 @@ html, body, #root {
 
 /* Glassmorphism System */
 .glass-panel-minimal {
-  /* Nearly transparent background for "flat" look */
-  background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  /* Stronger border to define the "imaginary outline" */
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: none !important;
+  /* Better balance: readable + glass effect */
+  background: rgba(255, 255, 255, 0.60) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Glass effect for Bars */
+.glass-bar {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark .glass-bar {
+  background: rgba(26, 29, 26, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Shortcuts Buttons - Solid Dark Sage Grey */
+.glass-button-raised {
+  background: #3B4240 !important; /* Warm dark sage grey - no blue tint */
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button-raised:hover {
+  background: #454D4A !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Modal Glass Panel - More opaque to avoid dark edge blur */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12), 
+    0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark .glass-modal,
+[data-theme="softDark"] .glass-modal {
+  background: rgba(40, 46, 42, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), 
+    0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Define a subtle, elegant separator for glass widgets with fade effect */
+.widget-separator {
+  position: relative;
+  border-bottom: none !important; /* Remove solid border */
+}
+
+.widget-separator::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(
+    to right, 
+    transparent 0%, 
+    rgba(127, 158, 149, 0.15) 20%, 
+    rgba(127, 158, 149, 0.25) 50%, 
+    rgba(127, 158, 149, 0.15) 80%, 
+    transparent 100%
+  );
+}
+
+.dark .widget-separator::after {
+  background: linear-gradient(
+    to right, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.08) 20%, 
+    rgba(255, 255, 255, 0.12) 50%, 
+    rgba(255, 255, 255, 0.08) 80%, 
+    transparent 100%
+  );
 }
 
 .dark .glass-panel-minimal,
 [data-theme="softDark"] .glass-panel-minimal {
-  background: rgba(17, 24, 39, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: none !important;
+  background: rgba(26, 29, 26, 0.70) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 .glass-panel-depth {
-  /* distinct card look for Today's Research */
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  /* Today's Research - distinct centerpiece */
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: none !important;
   box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-    0 10px 10px -5px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6) !important;
+    0 8px 20px rgba(0, 0, 0, 0.05), 
+    0 2px 6px rgba(0, 0, 0, 0.03) !important;
 }
 
 .dark .glass-panel-depth,
 [data-theme="softDark"] .glass-panel-depth {
-  background: rgba(31, 41, 55, 0.75) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(40, 46, 42, 0.80) !important;
+  border: none !important;
   box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.3), 
-    0 10px 10px -5px rgba(0, 0, 0, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    0 8px 20px rgba(0, 0, 0, 0.2), 
+    0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Dashboard Background Pattern - Sleek Neutral Gradient */
+/* Dashboard Background Pattern - Solid Sage Green-Grey */
 .dashboard-bg-pattern {
-  background-color: transparent;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8) 0%, transparent 70%),
-    linear-gradient(180deg, rgba(243, 244, 246, 0) 0%, rgba(229, 231, 235, 0.5) 100%);
+  background: #d4d8d4;
   background-attachment: fixed;
 }
 
 .dark .dashboard-bg-pattern {
-  background-color: transparent;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(31, 41, 55, 0.8) 0%, transparent 70%),
-    linear-gradient(180deg, rgba(17, 24, 39, 0) 0%, rgba(0, 0, 0, 0.3) 100%);
+  background: #1a1d1a;
+  background-attachment: fixed;
 }
 
 /* Notification overlay - highest z-index */
@@ -288,14 +373,18 @@ html, body, #root {
   transform: translateY(-1px);
 }
 
-/* Widget-specific hover effects */
+/* Widget-specific hover/press effects */
 .widget-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .widget-card-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  opacity: 0.95;
+}
+
+.widget-card-hover:active {
+  opacity: 0.88;
+  transform: scale(0.99);
 }
 
 .task-checkbox-hover {
@@ -560,4 +649,38 @@ body .grecaptcha-badge,
 [class*="dashboard"],
 [class*="widget"] {
   font-family: 'Poppins', system-ui, -apple-system, sans-serif !important;
+}
+
+/* AGGRESSIVE: Remove ALL outlines from dashboard area */
+[class*="dashboard"] *:focus,
+[class*="dashboard"] *:active,
+[class*="dashboard"] *:focus-visible,
+.dashboard-grid *:focus,
+.dashboard-grid *:active {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove default focus/active outline from dashboard widgets */
+.dashboard-widget,
+.dashboard-widget:focus,
+.dashboard-widget:active,
+.dashboard-widget:focus-within,
+.dashboard-widget *:focus,
+.dashboard-widget *:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.dashboard-widget:focus-visible {
+  outline: none !important;
+}
+
+/* Ensure dashboard grid items don't get outlines */
+.dashboard-grid > *,
+.dashboard-grid > *:focus,
+.dashboard-grid > *:active {
+  outline: none !important;
 }
