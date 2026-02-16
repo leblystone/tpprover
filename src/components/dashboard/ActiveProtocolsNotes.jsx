@@ -357,7 +357,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 }}
                                                 className="text-xs lg:text-sm font-medium transition-opacity hover:opacity-70 flex items-center gap-1 whitespace-nowrap"
                                                 style={{ 
-                                                    color: theme.primary
+                                                    color: theme.isDark ? '#c87a5c' : theme.primary
                                                 }}
                                             >
                                                 <Plus size={12} strokeWidth={2.5} />

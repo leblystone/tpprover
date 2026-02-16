@@ -27,11 +27,11 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
   const terracottaColor = '#c87a5c';
   const darkerSageColor = '#5A7A5A';
 
-  // Calculate top 3 well stocked (grouped by peptide name, total mg on hand)
-  const topWellStocked = useMemo(() => {
-    if (!stockpile || stockpile.length === 0) return [];
+  // Group all stockpile items by peptide name, then split into well-stocked vs running-low
+  const { topWellStocked, lowestItems } = useMemo(() => {
+    if (!stockpile || stockpile.length === 0) return { topWellStocked: [], lowestItems: [] };
     
-    // Group by peptide name and calculate total mg
+    // Group by peptide name — sum total mg and total quantity
     const grouped = new Map();
     stockpile.forEach(item => {
       const name = item.name || 'Unknown';
@@ -40,40 +40,28 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
       const totalMg = mg * quantity;
       
       if (!grouped.has(name)) {
-        grouped.set(name, { name, totalMg: 0 });
+        grouped.set(name, { name, totalMg: 0, totalQty: 0 });
       }
       const group = grouped.get(name);
       group.totalMg += totalMg;
+      group.totalQty += quantity;
     });
     
-    // Sort by total mg descending and take top 3
-    return Array.from(grouped.values())
-      .sort((a, b) => b.totalMg - a.totalMg)
-      .slice(0, 3);
-  }, [stockpile]);
-
-  // Calculate lowest 2 items (sorted by quantity, showing individual items)
-  // Exclude out of stock items (quantity = 0) and items with quantity <= 1
-  const lowestItems = useMemo(() => {
-    if (!stockpile || stockpile.length === 0) return [];
+    // Sort by total quantity descending (most vials = most stocked)
+    const sorted = Array.from(grouped.values())
+      .filter(g => g.totalQty > 0)
+      .sort((a, b) => b.totalQty - a.totalQty);
     
-    // Filter to only include items with quantity > 1, then sort by quantity ascending and take lowest 2
-    return [...stockpile]
-      .filter(item => {
-        const quantity = Number(item.quantity) || 0;
-        return quantity > 1;
-      })
-      .sort((a, b) => {
-        const qtyA = Number(a.quantity) || 0;
-        const qtyB = Number(b.quantity) || 0;
-        return qtyA - qtyB;
-      })
-      .slice(0, 2)
-      .map(item => ({
-        name: item.name || 'Unknown',
-        mg: Number(item.mg) || 0,
-        quantity: Number(item.quantity) || 0
-      }));
+    // If 3 or fewer groups, everything is "well stocked"
+    if (sorted.length <= 3) {
+      return { topWellStocked: sorted, lowestItems: [] };
+    }
+    
+    // Top 3 = well stocked, remaining bottom 2 = running low (guaranteed no overlap)
+    const well = sorted.slice(0, 3);
+    const low = sorted.slice(Math.max(3, sorted.length - 2)).sort((a, b) => a.totalQty - b.totalQty);
+    
+    return { topWellStocked: well, lowestItems: low };
   }, [stockpile]);
 
   const handleClick = () => {
@@ -134,13 +122,17 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
               {topWellStocked.length === 0 ? (
                 <p className="text-xs" style={{ color: theme.textLight }}>No well stocked items</p>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {topWellStocked.map((item, idx) => (
                     <li 
                       key={`${item.name}-${idx}`}
-                      className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
+                      className="flex items-center justify-between py-2 px-3 text-xs transition-all duration-200"
                       style={{ 
-                        backgroundColor: idx % 2 === 0 ? theme.secondary : theme.background 
+                        backgroundColor: 'transparent',
+                        borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : darkerSageColor + '40'}`,
+                        boxShadow: idx < topWellStocked.length - 1
+                          ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                          : 'none'
                       }}
                     >
                       <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
@@ -166,20 +158,24 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
               {lowestItems.length === 0 ? (
                 <p className="text-xs" style={{ color: theme.textLight }}>No items found</p>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {lowestItems.map((item, idx) => (
                     <li 
-                      key={`${item.name}-${item.mg}-${idx}`}
-                      className="flex items-center justify-between py-1 px-1.5 rounded text-xs"
+                      key={`${item.name}-${idx}`}
+                      className="flex items-center justify-between py-2 px-3 text-xs transition-all duration-200"
                       style={{ 
-                        backgroundColor: idx % 2 === 0 ? theme.secondary : theme.background 
+                        backgroundColor: 'transparent',
+                        borderLeft: `3px solid ${theme.isDark ? 'rgba(200, 122, 92, 0.35)' : terracottaColor + '40'}`,
+                        boxShadow: idx < lowestItems.length - 1
+                          ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                          : 'none'
                       }}
                     >
                       <span className="font-medium truncate flex-1" style={{ color: theme.text }}>
                         {item.name}
                       </span>
                       <span className="font-semibold ml-2 whitespace-nowrap" style={{ color: terracottaColor }}>
-                        {item.mg} mg
+                        {item.totalMg.toLocaleString()} mg
                       </span>
                     </li>
                   ))}
