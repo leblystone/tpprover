@@ -237,6 +237,11 @@ const DEFAULT_TEMPLATES = {
     title: "⏰ Trial Ending Soon",
     body: "Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!",
     actionUrl: "/app/account"
+  },
+  titrationDoseChange: {
+    title: "📈 Dose Change Today!",
+    body: "Your {peptideName} dose changes today: {oldDose} → {newDose}. Check your protocol for details.",
+    actionUrl: "/app/protocols"
   }
 };
 

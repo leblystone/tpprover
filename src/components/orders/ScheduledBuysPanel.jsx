@@ -90,7 +90,7 @@ export default function ScheduledBuysPanel({ theme }) {
     };
 
     return (
-        <div className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, fontFamily: 'Poppins, sans-serif' }}>
+        <div className="rounded-2xl p-4 shadow-sm glass-panel-minimal" style={{ fontFamily: 'Poppins, sans-serif' }}>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col gap-0.5">
                     <h2 className="text-base font-bold uppercase tracking-wider" style={{ color: theme.text }}>Scheduled Buys</h2>

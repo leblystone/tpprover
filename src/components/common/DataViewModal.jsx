@@ -668,7 +668,7 @@ function ProtocolDetailModal({ open, onClose, protocol, theme }) {
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>
+          <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>
             {protocol.protocolName || protocol.name || 'Unnamed Protocol'}
           </h3>
         </div>
@@ -734,7 +734,7 @@ function ProtocolDetailModal({ open, onClose, protocol, theme }) {
         {/* Peptides */}
         {protocol.peptides && protocol.peptides.length > 0 && (
           <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
-            <h4 className="text-xs font-bold mb-3 uppercase tracking-wide" style={{ color: theme.primaryDark }}>
+            <h4 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: theme.primaryDark }}>
               Peptides ({protocol.peptides.length})
             </h4>
             <div className="space-y-2">
@@ -820,7 +820,7 @@ function StockpileDetailModal({ open, onClose, stockpile, theme }) {
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>
+          <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>
             {stockpile.name || 'Stockpile Item'}
           </h3>
         </div>
@@ -925,7 +925,7 @@ function OrderDetailModal({ open, onClose, order, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Order Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{order.item || 'Order'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{order.item || 'Order'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {order.vendor && <DetailField label="Vendor" value={order.vendor} theme={theme} />}
           {order.status && <DetailField label="Status" value={order.status} theme={theme} />}
@@ -947,7 +947,7 @@ function VendorDetailModal({ open, onClose, vendor, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Vendor Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{vendor.name}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{vendor.name}</h3>
         <div className="grid grid-cols-2 gap-3">
           {vendor.type && <DetailField label="Type" value={vendor.type} theme={theme} />}
           {vendor.website && <DetailField label="Website" value={vendor.website} theme={theme} />}
@@ -968,7 +968,7 @@ function SupplementDetailModal({ open, onClose, supplement, theme }) {
   return (
     <BottomSheet open={open} onClose={onClose} onBack={onClose} title="Supplement Details" theme={theme} maxHeight="90vh">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{supplement?.name}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{supplement?.name}</h3>
         <div className="grid grid-cols-2 gap-3">
           {supplement?.type && <DetailField label="Type" value={supplement.type} theme={theme} />}
           {supplement?.brand && <DetailField label="Brand" value={supplement.brand} theme={theme} />}
@@ -987,7 +987,7 @@ function ReconHistoryDetailModal({ open, onClose, reconHistory, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Reconstitution History Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{reconHistory.name || reconHistory.peptide || 'Reconstitution'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{reconHistory.name || reconHistory.peptide || 'Reconstitution'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {reconHistory.date && <DetailField label="Date" value={new Date(reconHistory.date).toLocaleDateString()} theme={theme} />}
           {reconHistory.reconItem && <DetailField label="Recon Item" value={reconHistory.reconItem} theme={theme} />}
@@ -1004,7 +1004,7 @@ function MetricDetailModal({ open, onClose, metric, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Metric Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{metric.name || 'Metric'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{metric.name || 'Metric'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {metric.date && <DetailField label="Date" value={new Date(metric.date).toLocaleDateString()} theme={theme} />}
           {metric.value !== undefined && <DetailField label="Value" value={`${metric.value} ${metric.unit || ''}`} theme={theme} />}
@@ -1020,7 +1020,7 @@ function ScheduledBuyDetailModal({ open, onClose, scheduledBuy, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Scheduled Buy Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{scheduledBuy.item || 'Scheduled Buy'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{scheduledBuy.item || 'Scheduled Buy'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {scheduledBuy.vendor && <DetailField label="Vendor" value={scheduledBuy.vendor} theme={theme} />}
           {scheduledBuy.scheduledDate && <DetailField label="Scheduled Date" value={new Date(scheduledBuy.scheduledDate).toLocaleDateString()} theme={theme} />}
@@ -1038,7 +1038,7 @@ function CalendarNoteDetailModal({ open, onClose, calendarNote, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Calendar Note Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>
           {calendarNote.date ? new Date(calendarNote.date).toLocaleDateString() : 'Note'}
         </h3>
         {calendarNote.note && (
@@ -1058,7 +1058,7 @@ function GoalDetailModal({ open, onClose, goal, theme }) {
     <Modal open={open} onClose={onClose} onBack={onClose} title="Goal Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold" style={{ color: theme.primaryDark }}>{goal.title || 'Goal'}</h3>
+          <h3 className="text-base font-semibold" style={{ color: theme.primaryDark }}>{goal.title || 'Goal'}</h3>
           {goal.completed && (
             <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
               Completed
@@ -1081,7 +1081,7 @@ function ProtocolHistoryDetailModal({ open, onClose, protocolHistory, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Protocol History Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{protocolHistory.protocolName || 'Protocol History'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{protocolHistory.protocolName || 'Protocol History'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {protocolHistory.startDate && <DetailField label="Start Date" value={new Date(protocolHistory.startDate).toLocaleDateString()} theme={theme} />}
           {protocolHistory.endDate && <DetailField label="End Date" value={new Date(protocolHistory.endDate).toLocaleDateString()} theme={theme} />}
@@ -1120,7 +1120,7 @@ function GlossaryDetailModal({ open, onClose, glossary, theme }) {
   return (
     <Modal open={open} onClose={onClose} onBack={onClose} title="Glossary Entry Details" theme={theme} maxWidth="max-w-xl">
       <div className="space-y-4">
-        <h3 className="text-base font-bold mb-3" style={{ color: theme.primaryDark }}>{glossary.term || 'Term'}</h3>
+        <h3 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>{glossary.term || 'Term'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {glossary.category && <DetailField label="Category" value={glossary.category} theme={theme} />}
         </div>

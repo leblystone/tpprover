@@ -9,7 +9,7 @@ import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -324,6 +324,8 @@ export default function Stockpile() {
   const [manageRows, setManageRows] = useState([])
   const [isSavingManage, setIsSavingManage] = useState(false)
   const [outOfStockModalName, setOutOfStockModalName] = useState(null)
+  const [editedManageName, setEditedManageName] = useState(null)
+  const [isEditingName, setIsEditingName] = useState(false)
   
   // Auto-save functionality for manage modal
   const { isSaving: isManageSaving, lastSaved: lastManageSaved, clearSavedData: clearManageSavedData, markAsSubmitted: markManageSubmitted, updateFormData: updateManageData } = useAutoSave(
@@ -336,6 +338,8 @@ export default function Stockpile() {
   const openManage = (peptideName) => {
     // Set name first to open modal immediately
     setManageName(peptideName)
+    setEditedManageName(peptideName)
+    setIsEditingName(false)
     // Load rows asynchronously to prevent blocking UI
     requestAnimationFrame(() => {
       // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
@@ -838,6 +842,23 @@ export default function Stockpile() {
     };
   }, [activeTab, isReadOnly])
   const saveManage = async () => {
+    // Determine the final name (supports rename)
+    const finalName = (editedManageName && editedManageName.trim()) ? editedManageName.trim() : manageName || 'Unknown';
+    
+    // Check for name collision: if renamed, ensure no existing group already uses that name
+    if (finalName !== manageName) {
+      const matchesNewName = (items || []).some(i => {
+        const n = (i.name || '').trim();
+        return n.toLowerCase() === finalName.toLowerCase() && n.toLowerCase() !== (manageName || '').toLowerCase();
+      });
+      if (matchesNewName) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `A group named "${finalName}" already exists. Use Merge instead, or pick a different name.`, type: 'error' }
+        }));
+        return;
+      }
+    }
+
     // Convert any convertible units (e.g. kit→vial ×10) back to base unit for storage
     const convertedRows = manageRows.map(row => {
       if (isConvertibleUnit(row.unit)) {
@@ -861,8 +882,8 @@ export default function Stockpile() {
       (String(r.quantity || '').trim() !== '') ||
       (r.vendor != null && String(r.vendor).trim() !== '')
     );
-    // Ensure every saved row has name = manageName so the card never disappears from draft/state bugs
-    const cleanedWithName = cleaned.map(r => ({ ...r, name: (r.name && String(r.name).trim()) || manageName || 'Unknown' }));
+    // Ensure every saved row has name = finalName (supports rename) so the card never disappears
+    const cleanedWithName = cleaned.map(r => ({ ...r, name: finalName }));
     
     // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
     const matchesManageName = (itemName) => {
@@ -910,16 +931,20 @@ export default function Stockpile() {
         const prevQty = Number(b.quantity)||0
         const nextQty = Number(afterMatch?.quantity)||0
         if (prevQty > 0 && nextQty === 0) {
-          appendStockEvent({ type: 'out_of_stock', name: manageName, mg: b.mg, vendor: b.vendorId ? vendorMap[b.vendorId] : b.vendor, prevQty, source: 'manual' })
+          appendStockEvent({ type: 'out_of_stock', name: finalName, mg: b.mg, vendor: b.vendorId ? vendorMap[b.vendorId] : b.vendor, prevQty, source: 'manual' })
         }
       })
+      // rename event
+      if (finalName !== manageName) {
+        appendStockEvent({ type: 'rename', name: finalName, previousName: manageName, source: 'manual' })
+      }
       // quantity changes
       after.forEach(a => {
         const beforeMatch = before.find(b => String(b.mg) === String(a.mg) && (b.vendorId ? b.vendorId === a.vendorId : (b.vendor||'') === (a.vendor||'')))
         const prevQty = Number(beforeMatch?.quantity)||0
         const nextQty = Number(a.quantity)||0
         if (nextQty !== prevQty) {
-          appendStockEvent({ type: 'adjust', name: manageName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, prevQty, nextQty, source: 'manual' })
+          appendStockEvent({ type: 'adjust', name: finalName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, prevQty, nextQty, source: 'manual' })
         }
       })
       // documentation changes
@@ -928,7 +953,7 @@ export default function Stockpile() {
         const prevDocCount = (beforeMatch?.documentation || []).length
         const nextDocCount = (a.documentation || []).length
         if (nextDocCount > prevDocCount) {
-          appendStockEvent({ type: 'documentation_added', name: manageName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, docsAdded: nextDocCount - prevDocCount, source: 'manual' })
+          appendStockEvent({ type: 'documentation_added', name: finalName, mg: a.mg, vendor: a.vendorId ? vendorMap[a.vendorId] : a.vendor, docsAdded: nextDocCount - prevDocCount, source: 'manual' })
         }
       })
     } catch {}
@@ -967,12 +992,16 @@ export default function Stockpile() {
       markManageSubmitted();
       setManageName(null);
       setManageRows([]);
+      setEditedManageName(null);
+      setIsEditingName(false);
     } catch (error) {
       console.error('❌ Error syncing stockpile to cloud:', error);
       // Don't show "could not save" — data is saved locally; sync failure is on our side, auto-sync will retry.
       markManageSubmitted();
       setManageName(null);
       setManageRows([]);
+      setEditedManageName(null);
+      setIsEditingName(false);
     } finally {
       setIsSavingManage(false);
     }
@@ -1017,7 +1046,7 @@ export default function Stockpile() {
   }, [isReadOnly]);
 
   return (
-    <section className="space-y-4">
+    <section className="page-bg space-y-4">
       <StockpileTipsBanner theme={theme} />
       
       {/* Add to Stockpile Dropdown Menu */}
@@ -1167,7 +1196,7 @@ export default function Stockpile() {
                         className="w-full px-4 py-3.5 pr-10 text-sm border rounded-xl transition-all"
                         style={{
                           borderColor: theme.border,
-                          backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme?.cardBackground || '#fff'),
                           color: theme.isDark ? theme.text : '#181A18',
                           boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.1)',
                           width: '100%',
@@ -1576,14 +1605,18 @@ export default function Stockpile() {
           setManageName(null); 
           setManageRows([]); 
           setShowHistory(false); 
+          setEditedManageName(null);
+          setIsEditingName(false);
           clearManageSavedData(); 
         }} 
-        title={`${manageName || 'Manage'}`}
+        title={`${editedManageName || manageName || 'Manage'}`}
         onBack={() => { 
           // Close manage and return to stockpile list (no separate view modal)
           setManageName(null); 
           setManageRows([]); 
           setShowHistory(false); 
+          setEditedManageName(null);
+          setIsEditingName(false);
           clearManageSavedData();
         }}
         titleExtra={manageRows.length > 0 && (() => {
@@ -1644,6 +1677,82 @@ export default function Stockpile() {
         </div>
       )}>
         <div className="space-y-4">
+          {/* Rename Section - right aligned */}
+          <div className="flex justify-end">
+            {isEditingName ? (
+              <div className="flex items-center gap-2 rounded-xl border w-full max-w-sm ml-auto py-3 pl-3 pr-4 overflow-visible" style={{
+                borderColor: theme.primary + '40',
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'
+              }}>
+                <Pencil size={16} style={{ color: theme.primary, flexShrink: 0 }} />
+                <input
+                  autoFocus
+                  type="text"
+                  value={editedManageName || ''}
+                  onChange={(e) => setEditedManageName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && editedManageName?.trim()) {
+                      setIsEditingName(false);
+                    }
+                    if (e.key === 'Escape') {
+                      setEditedManageName(manageName);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  className="flex-1 min-w-0 bg-transparent text-base font-semibold outline-none"
+                  style={{ color: theme.text }}
+                  placeholder="Enter new name..."
+                />
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      if (editedManageName?.trim()) {
+                        setIsEditingName(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                    style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                  >
+                    <Check size={16} strokeWidth={2.5} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditedManageName(manageName);
+                      setIsEditingName(false);
+                    }}
+                    className="p-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.textLight }}
+                  >
+                    <X size={16} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (isReadOnly) {
+                    setShowUpgradeModal(true);
+                    return;
+                  }
+                  setIsEditingName(true);
+                }}
+                className="flex items-center gap-2 text-sm font-medium transition-all hover:opacity-80 active:scale-[0.98]"
+                style={{ color: theme.primary }}
+              >
+                <Pencil size={14} />
+                <span>Rename</span>
+                {editedManageName && editedManageName !== manageName && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                    backgroundColor: theme.primary + '15',
+                    color: theme.primary
+                  }}>
+                    {manageName} → {editedManageName}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+
           {showHistory && (
             <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
               borderColor: theme.border,
@@ -1802,7 +1911,7 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2">
                     <TestTube size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+                      <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                         <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
@@ -1819,9 +1928,9 @@ export default function Stockpile() {
                       <div 
                         className="flex items-stretch rounded-lg"
                         style={{ 
-                          border: `1px solid ${(manageRowDropdowns[row.id]?.amountFocused || false) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                          border: `1px solid ${(manageRowDropdowns[row.id]?.amountFocused || false) ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
                           boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                          backgroundColor: theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff')
                         }}
                       >
                         <input 
@@ -1857,16 +1966,16 @@ export default function Stockpile() {
                           className="flex items-center justify-between gap-3 px-3 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                           data-dropdown-container
                           style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.secondary || '#f9fafb'),
                             color: theme.isDark ? theme.text : '#181A18',
                             minWidth: '100px'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.secondary || '#f9fafb');
                           }}
                         >
                           <span className="text-sm font-semibold">
@@ -1886,7 +1995,7 @@ export default function Stockpile() {
                             top: '100%',
                             right: '0',
                             marginTop: '4px',
-                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                            backgroundColor: theme.isDark ? theme.cardBackground : (theme?.cardBackground || '#fff'),
                             borderColor: theme.border,
                             minWidth: '100px',
                             boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -1944,7 +2053,7 @@ export default function Stockpile() {
                           top: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '-8px' : '14px',
                           left: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '12px' : '16px',
                           padding: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? '0 4px' : '0',
-                          background: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          background: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? (theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff')) : 'transparent',
                           color: ((manageRowDropdowns[row.id]?.amountFocused) || (row.mg && row.mg.trim())) ? theme.primary : (theme.textLight || theme.text),
                           fontWeight: 500
                         }}
@@ -1976,7 +2085,7 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2">
                     <PackageOpen size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
+                      <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Order Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                         <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
@@ -2005,7 +2114,7 @@ export default function Stockpile() {
 
                   {/* Cost per ($) - show originally entered price when editing */}
                   <div className="relative" data-dropdown-container>
-                    <div className="flex items-stretch rounded-lg" style={{ border: `1px solid ${theme.isDark ? '#4b5563' : '#f0eee7'}`, backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
+                    <div className="flex items-stretch rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, backgroundColor: theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff'), boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
                       <input
                         type="text"
                         value={row.cost ?? ''}
@@ -2019,7 +2128,7 @@ export default function Stockpile() {
                         onClick={() => setManageRowDropdowns(prev => ({ ...prev, [row.id]: { ...prev[row.id], priceUnit: !prev[row.id]?.priceUnit } }))}
                         onMouseDown={e => e.preventDefault()}
                         className="flex items-center justify-between gap-2 px-3 py-2 flex-shrink-0 rounded-r-lg border-none outline-none"
-                        style={{ borderLeft: theme.isDark ? '1px solid #4b5563' : '1px solid #f0eee7', backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'), color: theme.isDark ? theme.text : '#181A18', minWidth: '72px' }}
+                        style={{ borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.secondary || '#f9fafb'), color: theme.isDark ? theme.text : '#181A18', minWidth: '72px' }}
                       >
                         <span className="text-sm font-semibold">
                           {(() => {
@@ -2036,7 +2145,7 @@ export default function Stockpile() {
                       </button>
                     </div>
                     {(manageRowDropdowns[row.id]?.priceUnit) && (
-                      <div className="absolute right-0 top-full z-[9999] mt-1 rounded-lg shadow-lg border overflow-hidden" data-dropdown-container style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border, minWidth: '88px', boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)' }}>
+                      <div className="absolute right-0 top-full z-[9999] mt-1 rounded-lg shadow-lg border overflow-hidden" data-dropdown-container style={{ backgroundColor: theme.isDark ? theme.cardBackground : (theme?.cardBackground || '#fff'), borderColor: theme.border, minWidth: '88px', boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)' }}>
                         {[{ value: 'vial', label: 'Vial' }, { value: 'mg', label: 'mg' }, { value: 'g', label: 'g' }, { value: 'iu', label: 'IU' }, { value: 'tablet', label: 'Tablet' }].map((option, optIdx) => (
                           <React.Fragment key={option.value}>
                             {optIdx > 0 && <div className="h-px mx-2" style={{ backgroundColor: theme.border }} />}
@@ -2053,7 +2162,7 @@ export default function Stockpile() {
                         ))}
                       </div>
                     )}
-                    <label className="absolute pointer-events-none text-[10px] font-medium uppercase tracking-wide opacity-60" style={{ left: '12px', top: '-8px', padding: '0 4px', background: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), color: theme.primary }}>
+                    <label className="absolute pointer-events-none text-[10px] font-medium uppercase tracking-wide opacity-60" style={{ left: '12px', top: '-8px', padding: '0 4px', background: theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff'), color: theme.primary }}>
                       Cost per ($)
                     </label>
                   </div>
@@ -2095,7 +2204,7 @@ export default function Stockpile() {
                   <div className="flex items-center gap-3 mb-2">
                     <ImageUp size={26} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5">
-                      <h4 className="text-base font-bold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
+                      <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                         <span className="text-[10px] font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
@@ -2164,7 +2273,7 @@ export default function Stockpile() {
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <Beaker size={14} style={{ color: '#8ca68c' }} />
-                          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
+                          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
                             {isHistory ? 'Reconstitution (Finished)' : 'Reconstitution'}
                           </span>
                           <span style={{ color: '#8ca68c', marginLeft: 'auto', fontSize: '11px', fontWeight: 600 }}>
@@ -2172,9 +2281,9 @@ export default function Stockpile() {
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-xs" style={{ color: theme.textLight }}>
-                          {reconDate && <span>📅 {reconDate}</span>}
-                          <span>💊 {totalMg}{reconEntry.mgUnit || 'mg'}</span>
-                          <span>💧 {water} mL</span>
+                          {reconDate && <span className="flex items-center gap-1"><Calendar size={12} /> {reconDate}</span>}
+                          <span className="flex items-center gap-1"><Pill size={12} /> {totalMg}{reconEntry.mgUnit || 'mg'}</span>
+                          <span className="flex items-center gap-1"><Droplet size={12} /> {water} mL</span>
                         </div>
                       </div>
                     );
@@ -2439,7 +2548,7 @@ export default function Stockpile() {
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker size={18} style={{ color: '#8ca68c' }} />
-                <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: theme.text }}>Research Vials</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-wide" style={{ color: theme.text }}>Research Vials</h4>
               </div>
               
               {Object.values(viewingGroup.variants)
@@ -2472,8 +2581,8 @@ export default function Stockpile() {
                           key={item.id}
                           className="p-3 rounded-xl border transition-all hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                           style={{ 
-                            backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                            borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'
+                            backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : (theme?.cardBackground || '#fff'),
+                            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
                           }}
                         >
                           <div className="flex items-center justify-between mb-3">
@@ -2522,8 +2631,8 @@ export default function Stockpile() {
                                 <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: (item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.text }} />
                                 <div className="flex-1">
                                   {(item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) && (
-                                    <div className="font-semibold mb-1 text-sm" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
-                                      ⚠️ Needs Review
+                                    <div className="font-semibold mb-1 text-sm flex items-center gap-1" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
+                                      <AlertTriangle size={14} /> Needs Review
                                     </div>
                                   )}
                                   <p className={`text-sm leading-relaxed ${(item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? 'font-normal' : 'italic opacity-70 font-normal'}`} style={{ color: (item.notes.includes('Added during protocol start') || item.notes.includes('Added during protocol edit')) ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.text }}>{item.notes}</p>
@@ -2579,7 +2688,7 @@ export default function Stockpile() {
                               >
                                 <div className="flex items-center gap-2 mb-1.5">
                                   <Beaker size={14} style={{ color: '#8ca68c' }} />
-                                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
+                                  <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#8ca68c' }}>
                                     {isHistory ? 'Reconstitution (Finished)' : 'Reconstitution'}
                                   </span>
                                   <span style={{ color: '#8ca68c', marginLeft: 'auto', fontSize: '11px', fontWeight: 600 }}>
@@ -2587,9 +2696,9 @@ export default function Stockpile() {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs" style={{ color: theme.textLight }}>
-                                  {reconDate && <span>📅 {reconDate}</span>}
-                                  <span>💊 {totalMg}{reconEntry.mgUnit || 'mg'}</span>
-                                  <span>💧 {water} mL</span>
+                                  {reconDate && <span className="flex items-center gap-1"><Calendar size={12} /> {reconDate}</span>}
+                                  <span className="flex items-center gap-1"><Pill size={12} /> {totalMg}{reconEntry.mgUnit || 'mg'}</span>
+                                  <span className="flex items-center gap-1"><Droplet size={12} /> {water} mL</span>
                                 </div>
                               </div>
                             );

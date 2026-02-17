@@ -103,10 +103,10 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
 
   return (
     <Modal open={open} onClose={onClose} title={`Day • ${title}`} theme={theme} footer={(
-      <>
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => onSave?.(text)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
-      </>
+      <div className="flex items-center w-full">
+        <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
+        <button onClick={() => onSave?.(text)} className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }}>Save</button>
+      </div>
     )}>
       <div className="space-y-4" data-dayview-modal>
         
@@ -229,7 +229,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
                 <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>Buys</div>
                 <ul className="text-xs space-y-1">
                   {dayDetails.buys.map((b, idx) => (
-                    <li key={`b-${idx}`} className="flex items-center justify-between rounded border px-2 py-1" style={{ borderColor: theme?.border }}>
+                    <li key={`b-${idx}`} className="flex items-center justify-between rounded px-2 py-1" style={{ border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
                       <span>{b.peptide} {b.mg ? `(${b.mg} mg)` : ''} • {b.vendor}</span>
                       <span className="status-inactive">{b.group ? 'Group Buy' : b.status}</span>
                     </li>
@@ -238,22 +238,21 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
               </div>
             )}
             {dayDetails.protocols.length === 0 && dayDetails.supplements.length === 0 && dayDetails.buys.length === 0 && (
-              <div className="text-xs text-gray-500">Nothing scheduled.</div>
+              <div className="text-xs" style={{ color: theme?.textLight || theme?.text }}>Nothing scheduled.</div>
             )}
           </div>
         </div>
         <div>
           <div className="text-xs mb-1" style={{ color: theme?.textLight }}>Notes</div>
           <textarea 
-            className="w-full h-24 p-3 rounded-lg border text-sm resize-none" 
+            className="w-full h-24 p-3 rounded-lg text-sm resize-none" 
             value={text} 
             onChange={(e) => setText(e.target.value)} 
             placeholder="Add daily notes, outcomes, etc." 
             style={{ 
-              borderColor: theme?.border,
-              backgroundColor: theme?.secondary,
+              border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+              backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
               color: theme?.text,
-              '::placeholder': { color: theme?.textLight }
             }} 
           />
         </div>

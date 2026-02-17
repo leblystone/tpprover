@@ -50,7 +50,7 @@ const OrdersHelpPanel = ({ theme }) => {
 
   return (
     <div className="mb-6 flex justify-center">
-      <div className="w-full max-w-4xl rounded-xl border-2 p-4 md:p-6 shadow-lg" style={{ backgroundColor: theme.cardBackground, borderColor: theme.primary + '20' }}>
+      <div className="w-full max-w-4xl rounded-xl p-4 md:p-6 shadow-lg glass-panel-minimal" style={{ borderColor: theme.primary + '20' }}>
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg" style={{ backgroundColor: theme.primary + '15' }}>

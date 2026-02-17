@@ -711,7 +711,7 @@ export default function Orders() {
 	}, [ordersInCategory]);
 
 	return (
-		<section>
+		<section className="page-bg">
 			<OrdersTipsBanner theme={theme} />
 
 			{/* Filter dropdowns - same pattern as Stockpile */}
@@ -791,11 +791,11 @@ export default function Orders() {
 						)}
 							</div>
 						) : (
-							<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-								<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-									<Package size={32} style={{ color: theme.primary }} />
-								</div>
-								<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No group buy orders yet</h3>
+						<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
+							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+								<Package size={32} style={{ color: theme.primary }} />
+							</div>
+							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No group buy orders yet</h3>
 								<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
 									Track group buys and coordinate delivery.
 								</p>
@@ -845,12 +845,12 @@ export default function Orders() {
 							vendors={vendors}
 						/>
 					) : (
-						<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-								<Package size={32} style={{ color: theme.primary }} />
-							</div>
-							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-								{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
+					<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
+						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+							<Package size={32} style={{ color: theme.primary }} />
+						</div>
+						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+							{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
 							</h3>
 							<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
 								{categoryFilter === 'all' ? 'Add orders to track shipping and move items to stockpile when delivered.' : 'Track shipping and add to stockpile when delivered.'}

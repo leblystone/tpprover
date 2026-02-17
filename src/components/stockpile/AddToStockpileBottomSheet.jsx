@@ -233,10 +233,10 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
         <div className="space-y-2">
           {/* Error Display */}
           {saveError && (
-            <div className="p-2 rounded-lg bg-red-50 border border-red-200">
+            <div className="p-2 rounded-lg border" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)', borderColor: theme.isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="text-sm font-medium text-red-800">{saveError}</span>
+                <span className="text-sm font-medium" style={{ color: theme.isDark ? '#fca5a5' : '#991b1b' }}>{saveError}</span>
               </div>
             </div>
           )}
@@ -273,9 +273,9 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 <div 
                   className="flex items-stretch rounded-lg"
                   style={{ 
-                    border: `1px solid #f0eee7`,
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7'}`,
                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')
                   }}
                 >
                 <input 
@@ -310,16 +310,16 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   onTouchStart={(e) => e.preventDefault()}
                   className="flex items-center justify-between gap-1 px-2 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   style={{ 
-                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.12)' : `1px solid #f0eee7`,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb'),
                     color: theme.isDark ? theme.text : '#181A18',
                     minWidth: '48px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : '#f3f4f6';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
                   <span className="text-sm font-semibold">
@@ -338,7 +338,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     opacity: isAmountUnitDropdownOpen ? 1 : 0,
                     visibility: isAmountUnitDropdownOpen ? 'visible' : 'hidden',
                     pointerEvents: isAmountUnitDropdownOpen ? 'auto' : 'none',
-                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    backgroundColor: theme.isDark ? 'rgba(30,40,55,0.98)' : '#ffffff',
                     borderColor: theme.border,
                     minWidth: '52px',
                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -395,7 +395,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   top: (isAmountFocused || (form.mg && form.mg.trim())) ? '-8px' : '14px',
                   left: (isAmountFocused || (form.mg && form.mg.trim())) ? '12px' : '16px',
                   padding: (isAmountFocused || (form.mg && form.mg.trim())) ? '0 4px' : '0',
-                  background: (isAmountFocused || (form.mg && form.mg.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  background: (isAmountFocused || (form.mg && form.mg.trim())) ? (theme.isDark ? (theme.cardBackground || 'rgba(15,23,42,1)') : (theme.inputBackground || '#fff')) : 'transparent',
                   color: (isAmountFocused || (form.mg && form.mg.trim())) ? theme.primary : (theme.textLight || theme.text),
                   fontWeight: 500
                 }}
@@ -407,9 +407,9 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
               <div 
                 className="flex items-stretch rounded-lg"
                 style={{ 
-                  border: `1px solid #f0eee7`,
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7'}`,
                   boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                  backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')
                 }}
               >
                 <input 
@@ -442,16 +442,16 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   onTouchStart={(e) => e.preventDefault()}
                   className="flex items-center justify-between gap-1 px-2 py-2 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                   style={{ 
-                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                    borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.12)' : `1px solid #f0eee7`,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb'),
                     color: theme.isDark ? theme.text : '#181A18',
                     minWidth: '56px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : '#f3f4f6';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb');
                   }}
                 >
                   <span className="text-sm font-semibold truncate max-w-[3.5rem]">
@@ -483,7 +483,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   opacity: isUnitDropdownOpen ? 1 : 0,
                   visibility: isUnitDropdownOpen ? 'visible' : 'hidden',
                   pointerEvents: isUnitDropdownOpen ? 'auto' : 'none',
-                  backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: theme.isDark ? 'rgba(30,40,55,0.98)' : '#ffffff',
                   borderColor: theme.border,
                   minWidth: '72px',
                   boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -540,7 +540,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                   top: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '-8px' : '14px',
                   left: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '12px' : '16px',
                   padding: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '0 4px' : '0',
-                  background: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  background: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? (theme.isDark ? (theme.cardBackground || 'rgba(15,23,42,1)') : (theme.inputBackground || '#fff')) : 'transparent',
                   color: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? theme.primary : (theme.textLight || theme.text),
                   fontWeight: 500
                 }}
@@ -572,9 +572,9 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
             <div 
               className="flex items-stretch rounded-lg"
               style={{ 
-                border: `1px solid #f0eee7`,
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7'}`,
                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')
               }}
             >
               <input 
@@ -609,16 +609,16 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 onTouchStart={(e) => e.preventDefault()}
                 className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                 style={{ 
-                  borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                  backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                  borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.12)' : `1px solid #f0eee7`,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb'),
                   color: theme.isDark ? theme.text : '#181A18',
                   minWidth: '72px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : '#f3f4f6';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                  e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.cardBackground || '#f9fafb');
                 }}
               >
                 <span className="text-sm font-semibold">
@@ -645,7 +645,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 opacity: isPriceUnitDropdownOpen ? 1 : 0,
                 visibility: isPriceUnitDropdownOpen ? 'visible' : 'hidden',
                 pointerEvents: isPriceUnitDropdownOpen ? 'auto' : 'none',
-                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                backgroundColor: theme.isDark ? 'rgba(30,40,55,0.98)' : '#ffffff',
                 borderColor: theme.border,
                 minWidth: '88px',
                 boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -704,7 +704,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
                 left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
                 padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
-                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? (theme.cardBackground || 'rgba(15,23,42,1)') : (theme.inputBackground || '#fff')) : 'transparent',
                 color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
                 fontWeight: 500
               }}

@@ -33,9 +33,8 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
         return (
           <div 
             key={o.id} 
-            className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-xl p-4" 
+            className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-xl p-4 glass-panel-minimal" 
             style={{ 
-              backgroundColor: theme.cardBackground,
               fontFamily: 'Poppins, sans-serif',
               border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
             }}

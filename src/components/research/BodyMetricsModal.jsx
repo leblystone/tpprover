@@ -50,7 +50,7 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
         <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: theme.text }}>{label}</label>
             <div className="flex rounded-lg p-0.5 gap-0.5" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
             }}>
                 {options.map((option) => {
@@ -62,9 +62,9 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
                             type="button"
                             onClick={() => onChange(option.value)}
                             className={`flex-1 flex items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                isSelected ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200'
+                                isSelected ? 'text-white shadow-sm' : ''
                             }`}
-                            style={isSelected ? { backgroundColor: color || theme.primary } : {}}
+                            style={isSelected ? { backgroundColor: color || theme.primary } : { color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}
                         >
                             <IconComponent size={14} />
                             <span className="text-[10px] hidden sm:inline">{option.label}</span>
@@ -196,7 +196,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
             <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Physical</h4>
             <div className="flex items-center gap-2 ml-1">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                 Body Measurements
               </span>
             </div>
@@ -234,7 +234,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
             <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Wellness</h4>
             <div className="flex items-center gap-2 ml-1">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                 Subjective Bio-Markers
               </span>
             </div>

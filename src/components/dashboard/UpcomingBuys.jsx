@@ -2,6 +2,50 @@ import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
 import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins, ChevronDown } from 'lucide-react'
+
+const getSmartBuyDateLabel = (openDate, closeDate) => {
+  if (!openDate && !closeDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const open = openDate ? new Date(openDate) : null;
+  if (open) open.setHours(0, 0, 0, 0);
+  const close = closeDate ? new Date(closeDate) : null;
+  if (close) close.setHours(0, 0, 0, 0);
+
+  // If there's a close date and it's passed: ended
+  if (close && today > close) return { label: 'Ended', status: 'ended' };
+
+  // If open date has passed (and no close date, or close date is still in future): live now
+  if (open && today >= open) return { label: 'Live now', status: 'live' };
+
+  // Open date is in the future
+  if (open) {
+    const diffDays = Math.round((open.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 2) return { label: 'Soon', status: 'soon' };
+    if (diffDays > 14) return { label: `Opens in ${Math.round(diffDays / 7)}w`, status: 'onTrack' };
+    return { label: `Opens in ${diffDays}d`, status: 'onTrack' };
+  }
+
+  // Only close date, no open date, and close is in the future
+  if (close) {
+    const diffDays = Math.round((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 2) return { label: 'Closing soon', status: 'soon' };
+    return { label: `Closes in ${diffDays}d`, status: 'onTrack' };
+  }
+
+  return null;
+};
+
+const getBuyDateColor = (status, isDark) => {
+  switch (status) {
+    case 'ended': return isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+    case 'live': return isDark ? 'rgba(160, 180, 153, 0.9)' : '#5f7f76';
+    case 'soon': return isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
+    case 'onTrack':
+    default: return undefined;
+  }
+};
 import BottomSheet from '../common/BottomSheet'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
@@ -258,7 +302,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
 
   return (
     <div className="rounded-xl content-card">
-      <div className="px-3 py-2 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-3 py-2 border-b" style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Upcoming Buys
@@ -311,24 +355,69 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
         {list.length === 0 ? (
           <p className="text-xs py-2" style={{ color: theme.textLight }}>No planned purchases.</p>
         ) : (
-          <ul className="space-y-1.5">
-            {list.map((it) => (
-              <li 
-                key={it.id} 
-                onClick={() => handleItemClick(it)}
-                className="flex items-center justify-between p-1.5 rounded cursor-pointer transition-colors hover:bg-gray-50" 
-              >
-                <div>
-                  <div className="font-medium text-xs">{it.item || it.name || it.peptideName || 'Untitled Group Buy'}</div>
-                  <div className="text-xs" style={{ color: theme.textLight }}>
-                    {it.openDate && formatMMDDYYYY(it.openDate)}
-                    {!it.openDate && it.date && formatMMDDYYYY(it.date)}
-                    {it.participants && ` • ${it.participants}`}
+          <div className="space-y-0">
+            {list.map((it, index) => {
+              const dateInfo = getSmartBuyDateLabel(it.openDate || it.date, it.closeDate);
+              const dateColor = dateInfo ? (getBuyDateColor(dateInfo.status, theme.isDark) || theme.textLight) : theme.textLight;
+              const isEnded = dateInfo?.status === 'ended';
+              const mutedColor = theme.isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+              return (
+                <div 
+                  key={it.id} 
+                  onClick={() => handleItemClick(it)}
+                  className="flex items-center gap-2 py-2.5 px-3 cursor-pointer transition-all duration-200"
+                  style={{
+                    borderLeft: `3px solid ${isEnded
+                      ? (theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)')
+                      : (theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40')}`,
+                    boxShadow: index < list.length - 1
+                      ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                      : 'none'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-xs truncate" style={{ color: isEnded ? mutedColor : theme.text }}>
+                      {it.item || it.name || it.peptideName || 'Untitled Group Buy'}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {it.participants && (
+                        <span className="text-xs truncate" style={{ color: isEnded ? mutedColor : theme.textLight }}>{it.participants}</span>
+                      )}
+                      {it.participants && it.price && (
+                        <span className="text-xs" style={{ color: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }}>·</span>
+                      )}
+                      {it.price && (
+                        <span className="text-xs" style={{ color: isEnded ? mutedColor : theme.textLight }}>${it.price}</span>
+                      )}
+                    </div>
                   </div>
+                  {dateInfo && (
+                    <span 
+                      className="flex-shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ 
+                        color: dateInfo.status === 'ended'
+                          ? (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
+                          : dateInfo.status === 'live'
+                            ? '#ffffff'
+                            : dateColor,
+                        backgroundColor: dateInfo.status === 'live'
+                          ? (theme.isDark ? 'rgba(160, 180, 153, 0.7)' : '#5f7f76')
+                          : dateInfo.status === 'soon'
+                            ? (theme.isDark ? 'rgba(217, 167, 60, 0.15)' : '#d9770612')
+                            : dateInfo.status === 'ended'
+                              ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')
+                              : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)')
+                      }}
+                    >
+                      {dateInfo.label}
+                    </span>
+                  )}
                 </div>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         )}
         
         {list.length > 0 && (

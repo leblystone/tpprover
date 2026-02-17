@@ -49,10 +49,10 @@ export default function StackEditorModal({ open, onClose, theme, protocols = [],
 
   return (
     <Modal open={open} onClose={onClose} title="New Stack" theme={theme} maxWidth="max-w-2xl" footer={(
-      <>
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => onSave?.({ name, protocolIds: selectedIds, items: collectItems(), mixType })} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
-      </>
+      <div className="flex items-center w-full">
+        <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
+        <button onClick={() => onSave?.({ name, protocolIds: selectedIds, items: collectItems(), mixType })} className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }}>Save</button>
+      </div>
     )}>
       <div className="space-y-4">
         <TextInput label="Stack Name" value={name} onChange={setName} placeholder="e.g., AM Boost" theme={theme} />
@@ -61,25 +61,25 @@ export default function StackEditorModal({ open, onClose, theme, protocols = [],
           <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Include Peptides</div>
           <div className="mb-2 flex flex-wrap gap-2">
             {chips.map(c => (
-              <span key={`${c.type}-${c.id}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: theme?.white, border: `1px solid ${theme?.border}` }}>
+              <span key={`${c.type}-${c.id}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs" style={{ backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : theme?.cardBackground, border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme?.text }}>
                 {c.label}
-                <button className="text-gray-500 hover:text-gray-700" onClick={() => removeChip(c)}>×</button>
+                <button className="hover:opacity-70" style={{ color: theme?.textLight }} onClick={() => removeChip(c)}>×</button>
               </span>
             ))}
           </div>
           <div className="relative">
             <input
               className="w-full p-2 rounded border text-sm"
-              style={{ borderColor: theme?.border }}
+              style={{ borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: 'transparent', color: theme?.text }}
               placeholder="Type a protocol name or peptide..."
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEntryFromQuery(query) } }}
             />
             {suggestions.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" style={{ borderColor: theme?.border }}>
+              <div className="absolute z-10 mt-1 w-full rounded-md border shadow" style={{ borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme?.isDark ? 'rgba(30,30,40,0.95)' : '#ffffff' }}>
                 {suggestions.map(p => (
-                  <button key={p.id} type="button" className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => addEntryFromQuery(p.name)}>
+                  <button key={p.id} type="button" className="w-full text-left px-3 py-2 transition-colors" style={{ color: theme?.text }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} onClick={() => addEntryFromQuery(p.name)}>
                     {p.name}
                   </button>
                 ))}
@@ -90,9 +90,9 @@ export default function StackEditorModal({ open, onClose, theme, protocols = [],
 
         <div>
           <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Mixing</div>
-          <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+          <div className="inline-flex rounded-full p-1 shadow-inner" style={{ backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
             {['separate','blended'].map(opt => (
-              <button key={opt} type="button" onClick={() => setMixType(opt)} className={`px-3 py-1.5 text-xs font-semibold rounded-full ${mixType === opt ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={mixType === opt ? { backgroundColor: theme?.primary } : {}}>
+              <button key={opt} type="button" onClick={() => setMixType(opt)} className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors`} style={mixType === opt ? { backgroundColor: theme?.primary, color: '#ffffff' } : { color: theme?.textLight }}>
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
               </button>
             ))}

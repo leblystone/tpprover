@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard, Zap, Bug, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard, Zap, Bug, CheckCircle, XCircle, Loader2, Wrench } from 'lucide-react'
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore, getLocalTimezone } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
@@ -388,7 +388,7 @@ export default function SettingsNotifications() {
 
 
   return (
-    <section className="max-w-xl mx-auto space-y-4 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
@@ -402,20 +402,20 @@ export default function SettingsNotifications() {
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Notifications</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
               Alerts & Communication
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Notification Settings */}
       <div className="space-y-4">
         {/* Master Control */}
         <div 
-          className="px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
-          style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+          className="content-section px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
+          style={{ borderColor: 'transparent' }}
         >
           <SettingToggle 
             checked={settings.notifications.push ?? false} 
@@ -432,14 +432,14 @@ export default function SettingsNotifications() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <FlaskConical size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Protocol & Research
             </h4>
           </div>
 
           <div 
-            className="px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.notifications.researchReminders} 
@@ -471,17 +471,17 @@ export default function SettingsNotifications() {
           {/* Reminder Time Settings */}
           {settings.notifications.researchReminders && (
             <div 
-              className="p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
-              style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+              className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
+              style={{ borderColor: 'transparent' }}
             >
               <div className="flex items-start gap-2 mb-1">
                 <Bell size={14} className="mt-0.5" style={{ color: theme.primary }} />
                 <div className="flex-1">
-                  <h5 className="text-xs font-bold mb-0.5" style={{ color: theme.text }}>
+                  <h5 className="text-xs font-semibold mb-0.5" style={{ color: theme.text }}>
                     Daily Reminder Times
                   </h5>
                   <p className="text-[10px] leading-relaxed opacity-60" style={{ color: theme.text }}>
-                    Set when you'd like to receive your daily research reminders. Changes sync across all pages.
+                    Default reminder times for all scheduled tasks. Peptides with a custom reminder time (set in Protocol settings) will use their own time instead.
                   </p>
                 </div>
               </div>
@@ -535,6 +535,10 @@ export default function SettingsNotifications() {
                   </label>
                 </div>
               </div>
+
+              <p className="text-[9px] leading-relaxed opacity-45 pt-1 px-0.5" style={{ color: theme.text }}>
+                Supplements always use these times. Peptides with custom reminders are excluded from the global AM/PM notification.
+              </p>
             </div>
           )}
         </div>
@@ -543,14 +547,14 @@ export default function SettingsNotifications() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Package size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Orders & Stock
             </h4>
           </div>
 
           <div 
-            className="px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.notifications?.lowStockAlerts ?? true} 
@@ -584,14 +588,14 @@ export default function SettingsNotifications() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <CreditCard size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Subscription & Billing
             </h4>
           </div>
 
           <div 
-            className="px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 py-1 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.notifications?.billing ?? true} 
@@ -610,14 +614,14 @@ export default function SettingsNotifications() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <Zap size={14} style={{ color: theme.primary }} />
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Test & Diagnostics
               </h4>
             </div>
 
             <div 
-              className="p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
-              style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+              className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
+              style={{ borderColor: 'transparent' }}
             >
               {/* Send Test Notification */}
               <div className="flex items-center gap-3">
@@ -678,9 +682,9 @@ export default function SettingsNotifications() {
               {diagState.open && diagState.data && (
                 <div 
                   className="rounded-xl border p-3 space-y-2 text-[11px] font-mono"
-                  style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#0f172a' : '#f8fafc' }}
+                  style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)' }}
                 >
-                  <div className="text-xs font-bold font-sans mb-2" style={{ color: theme.text }}>
+                  <div className="text-xs font-semibold font-sans mb-2" style={{ color: theme.text }}>
                     Notification Diagnostics
                   </div>
                   
@@ -706,7 +710,7 @@ export default function SettingsNotifications() {
                               className="w-full py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-[0.98]"
                               style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
                             >
-                              {testState.loading ? '⏳ Registering...' : '🔧 Fix: Re-register FCM Token'}
+                              {testState.loading ? <><Loader2 size={11} className="animate-spin inline mr-1" /> Registering...</> : <><Wrench size={11} className="inline mr-1" /> Fix: Re-register FCM Token</>}
                             </button>
                           )}
                           <DiagRow label="Push Enabled" value={diagState.data.firestore.pushEnabled ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.pushEnabled} />
@@ -765,7 +769,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <Bell size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
-        <div className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>
+        <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>
           {label}
         </div>
         <div className="text-xs opacity-60" style={{ color: theme.text }}>

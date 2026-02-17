@@ -394,7 +394,7 @@ export default function Recon() {
 			{
 				value: 'draft',
 				label: `Draft Vials (${draftCount})`,
-				icon: <XCircle size={16} style={{ color: '#6b7280' }} />
+				icon: <XCircle size={16} style={{ color: theme.textLight }} />
 			}
 		];
 	}, [reconItems, theme.textLight, theme.primary]);
@@ -897,6 +897,7 @@ export default function Recon() {
 
 	return (
 		<>
+			<div className="page-bg">
 			<ReconTipsBanner theme={theme} />
 			
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -961,7 +962,7 @@ export default function Recon() {
 											onClick={() => setShowEditModal(true)}
 											className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 touch-manipulation"
 											style={{
-												backgroundColor: theme.isDark ? '#1f2937' : (theme.secondary || '#f3f4f6'),
+												backgroundColor: theme.secondary || theme.cardBackground,
 												color: theme.text,
 												border: `1px solid ${theme.border}`,
 												WebkitTapHighlightColor: 'transparent'
@@ -1026,11 +1027,10 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
-										className={`rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
+										className={`content-section rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
 										style={{ 
-											backgroundColor: theme.cardBackground,
 											fontFamily: 'Poppins, sans-serif',
-											border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+											border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
 										}}
 										onClick={item.isDraft ? () => {
 											// Open calculator tab with draft data
@@ -1272,7 +1272,7 @@ export default function Recon() {
                                         </div>
 
                                         {/* Footer */}
-                                        <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                        <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                                             <button 
                                                 className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
                                                 onClick={(e) => {
@@ -1360,7 +1360,7 @@ export default function Recon() {
 							) : (
 								<div className="space-y-3">
 									{showHistoryFilters && (
-										<div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+										<div className="content-section p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
 											<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 												<TextInput label="Peptide" placeholder="Filter by peptide" value={historyFilters.peptide} onChange={v => setHistoryFilters(f => ({ ...f, peptide: v }))} theme={theme} />
 												<TextInput label="Vendor" placeholder="Filter by vendor" value={historyFilters.vendor} onChange={v => setHistoryFilters(f => ({ ...f, vendor: v }))} theme={theme} />
@@ -1374,11 +1374,10 @@ export default function Recon() {
                                         return (
                                             <div
                                                 key={`h-${item.id}`}
-                                                className={`rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
+                                                className={`content-section rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
                                                 style={{ 
-                                                    backgroundColor: theme.cardBackground,
                                                     fontFamily: 'Poppins, sans-serif',
-                                                    border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+                                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                                                 }}
                                                 onClick={() => setViewItem(item)}
                                             >
@@ -1452,7 +1451,7 @@ export default function Recon() {
                                                 </div>
 
                                                 {/* Footer */}
-                                                <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+                                                <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                                                     <button 
                                                         className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
                                                         onClick={(e) => {
@@ -1493,6 +1492,7 @@ export default function Recon() {
 						</div>
 					)}
 				</div>
+			</div>
 			</div>
 
             <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'Add Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
@@ -1542,12 +1542,12 @@ export default function Recon() {
                     <div className="flex items-center gap-4 mb-2">
                         <TestTube size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>
+                            <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>
                                 Vial Details
                             </h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Dosage Setup
                                 </span>
                             </div>
@@ -1584,9 +1584,9 @@ export default function Recon() {
                             <div 
                                 className="flex items-stretch rounded-lg"
                                 style={{ 
-                                    border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                    border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
                                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                    backgroundColor: theme.isDark ? theme.background : (theme.inputBackground || theme.cardBackground)
                                 }}
                             >
                                 <input
@@ -1622,16 +1622,16 @@ export default function Recon() {
                                     className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                     data-dropdown-container
                                     style={{ 
-                                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                        borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                                        backgroundColor: theme.isDark ? theme.secondary : (theme.cardBackground || '#f9fafb'),
                                         color: theme.isDark ? theme.text : '#181A18',
                                         minWidth: '80px'
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? theme.secondary : (theme.cardBackground || '#f9fafb');
                                     }}
                                 >
                                     <span className="text-sm font-semibold">
@@ -1646,7 +1646,7 @@ export default function Recon() {
                                         <div 
                                             className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                                             style={{
-                                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                backgroundColor: theme.cardBackground,
                                                 borderColor: theme.border,
                                                 minWidth: '100px',
                                                 boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -1708,7 +1708,7 @@ export default function Recon() {
                                     left: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '12px' : '16px',
                                     right: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '90px' : 'auto',
                                     padding: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? '0 4px' : '0',
-                                    background: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    background: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? (theme.isDark ? theme.background : (theme.inputBackground || theme.cardBackground)) : 'transparent',
                                     color: (isAmountFocused || (getEditingMg() && String(getEditingMg()).trim())) ? theme.primary : (theme.textLight || theme.text),
                                     fontWeight: 500
                                 }}
@@ -1735,9 +1735,9 @@ export default function Recon() {
                             <div 
                                 className="flex items-stretch rounded-lg"
                                 style={{ 
-                                    border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                    border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
                                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                    backgroundColor: theme.isDark ? theme.background : (theme.inputBackground || theme.cardBackground)
                                 }}
                             >
                                 <input
@@ -1773,16 +1773,16 @@ export default function Recon() {
                                     className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                     data-dropdown-container
                                     style={{ 
-                                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                        borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                                        backgroundColor: theme.isDark ? theme.secondary : (theme.cardBackground || '#f9fafb'),
                                         color: theme.isDark ? theme.text : '#181A18',
                                         minWidth: '80px'
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? theme.secondary : (theme.cardBackground || '#f9fafb');
                                     }}
                                 >
                                     <span className="text-sm font-semibold">
@@ -1797,7 +1797,7 @@ export default function Recon() {
                                         <div 
                                             className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                                                 style={{
-                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    backgroundColor: theme.cardBackground,
                                                     borderColor: theme.border,
                                                     minWidth: '100px',
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -1860,7 +1860,7 @@ export default function Recon() {
                                     left: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '12px' : '16px',
                                     right: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '90px' : 'auto',
                                     padding: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? '0 4px' : '0',
-                                    background: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    background: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? (theme.isDark ? theme.background : (theme.inputBackground || theme.cardBackground)) : 'transparent',
                                     color: (isDoseFocused || (getEditingDose() && String(getEditingDose()).trim())) ? theme.primary : (theme.textLight || theme.text),
                                     fontWeight: 500
                                 }}
@@ -1887,10 +1887,10 @@ export default function Recon() {
                     <div className="flex items-center gap-4 mb-3 pt-1">
                         <Droplets size={32} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-lg font-bold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
+                            <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Administration
                                 </span>
                             </div>
@@ -1898,7 +1898,7 @@ export default function Recon() {
                     </div>
 
                     <div>
-                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.secondary || theme.cardBackground }}>
                             <button 
                                 onClick={() => {
                                     // Batch updates: change delivery method and revert sprays to mcg if needed
@@ -1916,7 +1916,7 @@ export default function Recon() {
                                 style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                     if ((editingItem?.deliveryMethod || 'pipette') !== 'pipette') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
@@ -1944,7 +1944,7 @@ export default function Recon() {
                                 style={editingItem?.deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                     if (editingItem?.deliveryMethod !== 'pen') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
@@ -1972,7 +1972,7 @@ export default function Recon() {
                                 style={editingItem?.deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                     if (editingItem?.deliveryMethod !== 'nasal') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
@@ -1999,7 +1999,7 @@ export default function Recon() {
                                 style={editingItem?.deliveryMethod === 'topical' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                     if (editingItem?.deliveryMethod !== 'topical') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
@@ -2016,7 +2016,7 @@ export default function Recon() {
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-md" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
+                                        backgroundColor: theme.secondary || theme.cardBackground,
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                     }}
                                 >
@@ -2030,7 +2030,7 @@ export default function Recon() {
                                         style={(editingItem?.administrationRoute || 'SubQ') === 'SubQ' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                         onMouseEnter={(e) => {
                                             if ((editingItem?.administrationRoute || 'SubQ') !== 'SubQ') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
@@ -2051,7 +2051,7 @@ export default function Recon() {
                                         style={editingItem?.administrationRoute === 'IM' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                         onMouseEnter={(e) => {
                                             if (editingItem?.administrationRoute !== 'IM') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
@@ -2072,7 +2072,7 @@ export default function Recon() {
                                         style={editingItem?.administrationRoute === 'IV' ? { backgroundColor: theme.primary } : { color: theme.text }}
                                         onMouseEnter={(e) => {
                                             if (editingItem?.administrationRoute !== 'IV') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
@@ -2129,7 +2129,7 @@ export default function Recon() {
                                             <div 
                                                 className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
                                             style={{
-                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    backgroundColor: theme.cardBackground,
                                                 borderColor: theme.border,
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                                 }}

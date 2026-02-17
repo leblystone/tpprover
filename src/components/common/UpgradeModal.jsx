@@ -57,7 +57,8 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
         <div className="flex justify-center w-full">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all"
+            className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.isDark ? '#e5e7eb' : '#374151' }}
           >
             Maybe Later
           </button>
@@ -66,7 +67,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
     >
       <div className="p-2">
         {/* Info about data access */}
-        <div className="text-left bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+        <div className="text-left rounded-lg p-3 mb-4 border" style={{ backgroundColor: theme.isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', borderColor: theme.isDark ? 'rgba(59,130,246,0.2)' : '#bfdbfe' }}>
           <p className="text-xs font-medium mb-1" style={{ color: '#1E40AF' }}>
             You can still:
           </p>
@@ -84,7 +85,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
                 <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18.5L5.5 22L7 15L2 10L9 9L12 2Z"/>
               </svg>
             </div>
-            <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+            <div className="text-lg font-semibold" style={{ color: '#344E41' }}>
               Founders Offer
             </div>
           </div>
@@ -103,7 +104,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
         <div className="mt-6 space-y-4">
           {/* Android compliance: Show text message instead of payment buttons */}
           {isAndroid() ? (
-            <div className="p-4 rounded-lg text-center text-sm" style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+            <div className="p-4 rounded-lg text-center text-sm" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6', color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
               {getAndroidSubscriptionMessage()}
             </div>
           ) : (
@@ -112,13 +113,13 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
               <div className="grid grid-cols-2 gap-3">
                 {/* Monthly Plan */}
                 <div 
-                  className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
-                  style={{ borderColor: '#D4D7CD' }}
+                  className="relative rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                  style={{ borderColor: '#D4D7CD', backgroundColor: theme.isDark ? '#1f2937' : '#ffffff' }}
                   onClick={handleUpgradeClick}
                 >
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                <h3 className="text-base font-semibold" style={{ color: '#344E41' }}>Monthly</h3>
                 <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: '#344E41' }}>
                   {discountActive ? (
                     <>
@@ -148,8 +149,8 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
 
             {/* Annual Plan */}
             <div 
-              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
-              style={{ borderColor: '#D4D7CD' }}
+              className="relative rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              style={{ borderColor: '#D4D7CD', backgroundColor: theme.isDark ? '#1f2937' : '#ffffff' }}
               onClick={handleUpgradeClick}
             >
               {/* Popular Badge */}
@@ -161,7 +162,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
 
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                <h3 className="text-base font-semibold" style={{ color: '#344E41' }}>Annual</h3>
                 <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: '#344E41' }}>
                   {discountActive ? (
                     <>
@@ -192,8 +193,8 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
           
           {/* Lifetime plan in compact single column */}
           <div 
-            className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
-            style={{ borderColor: '#D4D7CD' }}
+            className="relative rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
+            style={{ borderColor: '#D4D7CD', backgroundColor: theme.isDark ? '#1f2937' : '#ffffff' }}
             onClick={handleUpgradeClick}
           >
             {/* Limited Time Badge */}
@@ -208,7 +209,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
                   <Crown size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-bold text-base" style={{ color: '#344E41' }}>Lifetime Access</div>
+                  <div className="font-semibold text-base" style={{ color: '#344E41' }}>Lifetime Access</div>
                   <div className="text-sm flex items-center gap-2" style={{ color: '#5C7659' }}>
                     {discountActive ? (
                       <>

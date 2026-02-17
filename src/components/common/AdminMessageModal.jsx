@@ -42,7 +42,7 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
                 <MessageCircleReply size={24} style={{ color: theme.primary || theme.text }} />
               </div>
               <div>
-                <h2 className="text-xl font-bold" style={{ color: theme.text }}>Personal Message</h2>
+                <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Personal Message</h2>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -144,8 +144,8 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
             backgroundColor: theme.cardBackground 
           }}
         >
-          <div className="flex items-center gap-2 text-xs md:text-sm text-center justify-center" style={{ color: '#9CA3AF' }}>
-            <CheckCircle2 size={14} className="md:w-4 md:h-4" style={{ color: '#9CA3AF' }} />
+          <div className="flex items-center gap-2 text-xs md:text-sm text-center justify-center" style={{ color: theme.textLight || '#9CA3AF' }}>
+            <CheckCircle2 size={14} className="md:w-4 md:h-4" style={{ color: theme.textLight || '#9CA3AF' }} />
             <span>This message will remain visible for 24 hours after opened.</span>
           </div>
         </div>

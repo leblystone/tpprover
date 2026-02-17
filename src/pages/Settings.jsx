@@ -42,7 +42,7 @@ export default function Settings() {
   ]
 
   return (
-    <section className="max-w-xl mx-auto space-y-4 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
@@ -52,13 +52,13 @@ export default function Settings() {
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Settings</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
               Environment Configuration
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Navigation Sections */}
       <div className="space-y-3">
@@ -69,9 +69,8 @@ export default function Settings() {
               key={index}
               type="button"
               onClick={() => navigate(section.path)}
-              className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              className="content-section group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
               style={{
-                backgroundColor: theme.cardBackground,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
               }}
             >

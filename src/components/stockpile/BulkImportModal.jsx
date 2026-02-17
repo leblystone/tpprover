@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { generateId } from '../../utils/string';
-import { PlusCircle, X, FileText, Clipboard, Upload } from 'lucide-react';
+import { PlusCircle, X, FileText, Clipboard, Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function BulkImportModal({ open, onClose, theme, onSave }) {
   const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'paste' | 'csv'
@@ -179,11 +179,11 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
         <div className="w-full space-y-3">
           {/* Validation Message - Centered */}
           <div className="text-center">
-            <div className="text-sm" style={{ color: theme.textLight }}>
+            <div className="text-sm flex items-center justify-center gap-1.5" style={{ color: theme.textLight }}>
               {validRows.length > 0 ? (
-                <span>✅ {validRows.length} vial{validRows.length !== 1 ? 's' : ''} will be added</span>
+                <><CheckCircle size={14} style={{ color: '#10b981' }} /> <span>{validRows.length} vial{validRows.length !== 1 ? 's' : ''} will be added</span></>
               ) : (
-                <span>⚠️ No valid entries yet</span>
+                <><AlertTriangle size={14} style={{ color: '#f59e0b' }} /> <span>No valid entries yet</span></>
               )}
             </div>
           </div>
@@ -302,8 +302,8 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
                         placeholder="e.g., Semaglutide"
                         className="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all"
                         style={{
-                          backgroundColor: theme.inputBackground || (theme.isDark ? '#1f2937' : '#fff'),
-                          borderColor: theme.border,
+                          backgroundColor: theme.inputBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff'),
+                          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                           color: theme.text
                         }}
                       />
@@ -316,8 +316,8 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
                         placeholder="10"
                         className="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all"
                         style={{
-                          backgroundColor: theme.inputBackground || (theme.isDark ? '#1f2937' : '#fff'),
-                          borderColor: theme.border,
+                          backgroundColor: theme.inputBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff'),
+                          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                           color: theme.text
                         }}
                       />
@@ -330,8 +330,8 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
                         placeholder="2"
                         className="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all"
                         style={{
-                          backgroundColor: theme.inputBackground || (theme.isDark ? '#1f2937' : '#fff'),
-                          borderColor: theme.border,
+                          backgroundColor: theme.inputBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff'),
+                          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                           color: theme.text
                         }}
                       />
@@ -344,7 +344,7 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
                         placeholder="Vendor"
                         className="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all"
                         style={{
-                          backgroundColor: theme.inputBackground || (theme.isDark ? '#1f2937' : '#fff'),
+                          backgroundColor: theme.inputBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff'),
                           borderColor: theme.border,
                           color: theme.text
                         }}
@@ -410,8 +410,8 @@ export default function BulkImportModal({ open, onClose, theme, onSave }) {
                 className="w-full px-3 py-2 rounded-lg border font-mono text-sm outline-none resize-none"
                 rows={8}
                 style={{
-                  backgroundColor: theme.inputBackground || (theme.isDark ? '#1f2937' : '#fff'),
-                  borderColor: theme.border,
+                  backgroundColor: theme.inputBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff'),
+                  borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                   color: theme.text
                 }}
               />

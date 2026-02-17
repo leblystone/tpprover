@@ -41,7 +41,7 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
                 {/* Success Message */}
                 <div className="space-y-4">
                     <h3 
-                        className="text-xl font-bold"
+                        className="text-xl font-semibold"
                         style={{ color: theme.primaryDark }}
                     >
                         {title || "Success!"}

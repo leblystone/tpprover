@@ -101,18 +101,20 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
           <div className="flex-1 flex flex-col min-h-0">
             {recentNotes.length > 0 ? (
               <>
-                <div className="flex-1 space-y-0 mb-3 overflow-y-auto min-h-0">
+                <div className="flex-1 space-y-1.5 mb-3 overflow-y-auto min-h-0">
                   {recentNotes.map((note, index) => (
                     <div
                       key={note.id}
-                      className={index > 0 ? 'pt-3 mt-3 border-t' : ''}
-                      style={index > 0 ? { borderColor: theme.border } : {}}
+                      className="group py-2.5 px-3 transition-all duration-200 cursor-pointer"
+                      style={{
+                        backgroundColor: 'transparent',
+                        borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                        boxShadow: index < recentNotes.length - 1
+                          ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                          : 'none'
+                      }}
+                      onClick={handleViewAll}
                     >
-                      <div 
-                        className="group p-2 rounded-lg hover:shadow-sm transition-all duration-200 cursor-pointer" 
-                        style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}
-                        onClick={handleViewAll}
-                      >
                       <div className="flex items-start justify-between mb-1">
                         {note.title && note.title !== 'Quick Note' && (
                           <h4 className="font-medium text-xs line-clamp-1" style={{ color: theme.text }}>
@@ -133,7 +135,6 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
                       <div className="text-xs" style={{ color: theme.textLight }}>
                         {new Date(note.createdAt).toLocaleDateString()}
                       </div>
-                    </div>
                     </div>
                   ))}
                 </div>

@@ -29,7 +29,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
   const monthAbbr = currentDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   
   return (
-    <div className="flex flex-col items-center mb-2">
+    <div className="flex flex-col items-center mb-2 flex-shrink-0">
       {/* Modern Clock-Style Date Display with Navigation Arrows */}
       <div className="flex items-center gap-2 w-full max-w-md justify-center">
         {/* Previous Button */}

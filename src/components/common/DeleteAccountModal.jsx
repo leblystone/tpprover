@@ -189,7 +189,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
             <Loader size={48} className="animate-spin" style={{ color: theme?.primary }} />
           </div>
           <div>
-            <h3 className="text-xl font-bold mb-2" style={{ color: theme?.primaryDark }}>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: theme?.primaryDark }}>
               Submitting Request...
             </h3>
             <p className="text-sm" style={{ color: theme?.text }}>
@@ -209,7 +209,7 @@ export default function DeleteAccountModal({ open, onClose, theme }) {
           >
             <AlertTriangle size={20} style={{ color: '#dc2626', flexShrink: 0 }} />
             <div>
-              <h3 className="font-bold text-sm mb-0.5" style={{ color: '#dc2626' }}>
+              <h3 className="font-semibold text-sm mb-0.5" style={{ color: '#dc2626' }}>
                 Account Deletion Request
               </h3>
               <p className="text-xs" style={{ color: theme?.textLight }}>

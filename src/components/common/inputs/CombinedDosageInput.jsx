@@ -58,9 +58,11 @@ export default function CombinedDosageInput({
                 <div 
                     className="flex items-stretch rounded-lg"
                     style={{ 
-                        border: `1px solid ${isFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                        border: `1px solid ${isFocused 
+                            ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
+                            : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7')}`,
                         boxShadow: customShadow || (theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'),
-                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                        backgroundColor: theme.isDark ? (theme.cardBackground || '#222831') : (theme.inputBackground || '#fff')
                     }}
                 >
                     {/* Amount Input */}
@@ -102,16 +104,16 @@ export default function CombinedDosageInput({
                         className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                         data-dropdown-container
                         style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.cardBackground || '#f9fafb'),
                             color: theme.isDark ? theme.text : '#181A18',
                             minWidth: '80px'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.cardBackground || '#f9fafb');
                         }}
                     >
                         <span className="text-sm font-semibold">
@@ -127,7 +129,7 @@ export default function CombinedDosageInput({
                                 className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                                 style={{
                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                    borderColor: theme.border,
+                                    borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                                     minWidth: '100px',
                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                 }}
@@ -137,7 +139,7 @@ export default function CombinedDosageInput({
                                         {idx > 0 && (
                                             <div 
                                                 className="h-px mx-2"
-                                                style={{ backgroundColor: theme.border }}
+                                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }}
                                             />
                                         )}
                                         <button
@@ -152,17 +154,17 @@ export default function CombinedDosageInput({
                                             }}
                                             className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                             style={{
-                                                color: currentUnit === unit ? theme.primary : theme.text,
+                                                color: currentUnit === unit ? (theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary) : theme.text,
                                                 backgroundColor: 'transparent',
                                                 WebkitTapHighlightColor: 'transparent'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                e.currentTarget.style.color = theme.primary;
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.primaryLight || `${theme.primary}20`);
+                                                e.currentTarget.style.color = theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary;
                                             }}
                                             onMouseLeave={(e) => {
                                                 e.currentTarget.style.backgroundColor = 'transparent';
-                                                e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
+                                                e.currentTarget.style.color = currentUnit === unit ? (theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary) : theme.text;
                                             }}
                             >
                                 {(unit === 'iu' || unit === 'IU') ? 'IU' : unit}
@@ -182,8 +184,8 @@ export default function CombinedDosageInput({
                         top: (isFocused || (value?.amount && String(value.amount).trim())) ? '-8px' : '14px',
                         left: (isFocused || (value?.amount && String(value.amount).trim())) ? '12px' : '16px',
                         padding: (isFocused || (value?.amount && String(value.amount).trim())) ? '0 4px' : '0',
-                        background: (isFocused || (value?.amount && String(value.amount).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                        color: (isFocused || (value?.amount && String(value.amount).trim())) ? theme.primary : (theme.textLight || theme.text),
+                        background: (isFocused || (value?.amount && String(value.amount).trim())) ? (theme.isDark ? (theme.cardBackground || '#222831') : (theme.inputBackground || '#fff')) : 'transparent',
+                        color: (isFocused || (value?.amount && String(value.amount).trim())) ? (theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary) : (theme.textLight || theme.text),
                         fontWeight: 500
                     }}
                 >
@@ -251,7 +253,7 @@ export default function CombinedDosageInput({
                             className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                             style={{
                                 backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                borderColor: theme.border,
+                                borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                                 minWidth: '100px',
                                 boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                             }}
@@ -261,7 +263,7 @@ export default function CombinedDosageInput({
                                     {idx > 0 && (
                                         <div 
                                             className="h-px mx-2"
-                                            style={{ backgroundColor: theme.border }}
+                                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }}
                                         />
                                     )}
                                     <button
@@ -276,17 +278,17 @@ export default function CombinedDosageInput({
                                         }}
                                         className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                         style={{
-                                            color: currentUnit === unit ? theme.primary : theme.text,
+                                            color: currentUnit === unit ? (theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary) : theme.text,
                                             backgroundColor: 'transparent',
                                             WebkitTapHighlightColor: 'transparent'
                                         }}
                                         onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                            e.currentTarget.style.color = theme.primary;
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : (theme.primaryLight || `${theme.primary}20`);
+                                            e.currentTarget.style.color = theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary;
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.backgroundColor = 'transparent';
-                                            e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
+                                            e.currentTarget.style.color = currentUnit === unit ? (theme.isDark ? 'rgba(255,255,255,0.9)' : theme.primary) : theme.text;
                                         }}
                         >
                             {unit === 'iu' ? 'IU' : unit}

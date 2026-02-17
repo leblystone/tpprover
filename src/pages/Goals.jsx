@@ -16,7 +16,7 @@ export default function Goals() {
   const pct = Math.round((completed / total) * 100)
 
   return (
-    <section>
+    <section className="page-bg">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Goals</h1>
         <div className="flex items-center gap-2">
@@ -35,21 +35,21 @@ export default function Goals() {
         </div>
       </div>
 
-      <div className="rounded-lg border p-6 content-card shadow-sm mb-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="content-section p-6 mb-6" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="text-sm mb-2" style={{ color: theme.text }}>Overall progress</div>
-        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
           <div className="h-3 rounded-full" style={{ width: `${pct}%`, backgroundColor: theme.primary }} />
         </div>
         <div className="text-xs mt-1" style={{ color: theme.textLight }}>{completed} of {goals.length || 0} completed ({pct}%)</div>
       </div>
 
-      <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="content-section p-6" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         {goals.length === 0 ? (
           <div className="text-sm" style={{ color: theme.textLight }}>No goals yet. Use "New Goal" to create your first one.</div>
         ) : (
           <ul className="space-y-2">
             {goals.map(g => (
-              <li key={g.id} className="flex items-start justify-between p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
+              <li key={g.id} className="flex items-start justify-between p-2 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}>
                 <div className="flex items-start gap-2">
                   <button
                     onClick={() => setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: !x.completed } : x))}

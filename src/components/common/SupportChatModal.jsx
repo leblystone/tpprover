@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw } from 'lucide-react';
+import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw, Camera, Lightbulb } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { reopenTicket } from '../../services/firebase';
@@ -259,8 +259,8 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                                 loading="lazy"
                               />
                             </a>
-                            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                              📸 Screenshot {idx + 1} • Click to open
+                            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: theme.textLight }}>
+                              <Camera size={10} /> Screenshot {idx + 1} • Click to open
                             </p>
                           </div>
                         ))}
@@ -361,8 +361,8 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                   )}
                 </button>
               </div>
-              <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-                💡 You'll receive a notification when the admin responds
+              <p className="text-xs mt-2 flex items-center gap-1" style={{ color: theme.textLight }}>
+                <Lightbulb size={12} /> You'll receive a notification when the admin responds
               </p>
             </>
           )}

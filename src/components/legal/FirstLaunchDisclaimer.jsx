@@ -48,7 +48,7 @@ export default function FirstLaunchDisclaimer({ open, onAccept }) {
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle className="w-8 h-8 text-red-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
                             This application is a research tool. It is NOT for human use.
                         </h3>
                     </div>
@@ -78,7 +78,7 @@ export default function FirstLaunchDisclaimer({ open, onAccept }) {
                 <div className="p-6 border-t border-gray-200 bg-gray-50">
                     <button
                         onClick={handleAccept}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 text-lg"
+                        className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors duration-200 text-lg"
                     >
                         I Understand and Agree
                     </button>

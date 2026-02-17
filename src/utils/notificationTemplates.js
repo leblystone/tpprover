@@ -70,6 +70,12 @@ const DEFAULT_TEMPLATES = {
     body: "Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!",
     actionText: "View Subscription",
     actionUrl: "/app/account"
+  },
+  titrationDoseChange: {
+    title: "📈 Dose Change Today!",
+    body: "Your {peptideName} dose changes today: {oldDose} → {newDose}. Check your protocol for details.",
+    actionText: "View Protocol",
+    actionUrl: "/app/protocols"
   }
 };
 

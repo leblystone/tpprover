@@ -129,8 +129,8 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                         style={{ 
                             backgroundColor: 'transparent',
                             borderLeft: timeSlot === 'PM'
-                                ? `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
-                                : `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                                ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+                                : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`,
                             boxShadow: index < tasks.length - 1 
                                 ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
                                 : 'none'
@@ -139,7 +139,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <div className={`font-bold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2' : ''}`} style={{ color: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
                                         {task.name}
                                     </div>
                                     {/* Time chip - PM chip darker to match PM row differentiation */}
@@ -147,7 +147,12 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                         <div 
                                             className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
-                                                backgroundColor: task.completed ? '#9ca3af' : (task.time === 'PM' ? theme.primaryDark : `${theme.primary}B0`),
+                                                backgroundColor: task.completed 
+                                                    ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') 
+                                                    : (task.time === 'PM' 
+                                                        ? (theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primaryDark) 
+                                                        : (theme.isDark ? 'rgba(107, 127, 101, 0.7)' : `${theme.primary}B0`)),
+                                                color: (task.time === 'PM' && theme.isDark && !task.completed) ? '#1a2020' : '#ffffff',
                                                 opacity: task.completed ? 0.6 : 1
                                             }}
                                         >
@@ -158,9 +163,9 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                             </div>
                         </div>
                         
-                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
+                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${task.completed ? 'line-through decoration-2' : ''}`} style={{ color: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : undefined }}>
                             <div className="text-right">
-                                <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
                                     {task.dose}{task.unit ? ` ${task.unit}` : ''}
                                 </div>
                             </div>
@@ -169,15 +174,16 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                             {task.penColor && (
                                 <div className="flex items-center gap-0.5 sm:gap-1">
                                     <div 
-                                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
+                                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shadow-sm flex-shrink-0" 
                                         style={{ 
-                                            background: task.completed ? '#d1d5db' : getChromeGradient(getResolvedPenColor(task.penColor)),
+                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`,
+                                            background: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.15)' : '#d1d5db') : getChromeGradient(getResolvedPenColor(task.penColor)),
                                             opacity: task.completed ? 0.5 : 1
                                         }}
                                         title={`Pen Color: ${task.penColor || 'Default'}`}
                                     />
                                     {task.penType && (
-                                        <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
+                                        <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.textLight }}>
                                             {task.penType.toUpperCase()}
                                         </span>
                                     )}
@@ -221,10 +227,14 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
                                 style={{
                                     borderColor: task.completed 
-                                        ? (timeSlot === 'PM' ? (theme.primaryDark || '#3d5a4c') : theme.primary) 
+                                        ? (timeSlot === 'PM' 
+                                            ? (theme.isDark ? '#a0b499' : (theme.primaryDark || '#3d5a4c')) 
+                                            : (theme.isDark ? '#6b7f65' : theme.primary)) 
                                         : `${theme.primaryLight}60`,
                                     backgroundColor: task.completed 
-                                        ? (timeSlot === 'PM' ? (theme.primaryDark || '#3d5a4c') : theme.primary) 
+                                        ? (timeSlot === 'PM' 
+                                            ? (theme.isDark ? '#a0b499' : (theme.primaryDark || '#3d5a4c')) 
+                                            : (theme.isDark ? '#6b7f65' : theme.primary)) 
                                         : 'transparent',
                                     borderRadius: '4px',
                                     minWidth: '20px',

@@ -92,20 +92,20 @@ export default function Announcements() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="page-bg space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Announcements</h1>
         <p className="text-sm" style={{ color: theme.textLight }}>Updates from the team. React to posts to share your feedback.</p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {['All', 'New Feature', 'Improvement', 'Community', 'General'].map(cat => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}
             className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors`}
             style={{ 
-              backgroundColor: filter === cat ? theme.primary : 'transparent', 
+              backgroundColor: filter === cat ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'), 
               color: filter === cat ? theme.textOnPrimary : theme.text 
             }}
           >
@@ -116,7 +116,7 @@ export default function Announcements() {
 
       <div className="space-y-4">
         {filteredPosts.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="content-section text-center py-12 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
             <Megaphone size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
             <h3 className="text-lg font-medium mb-2" style={{ color: theme.text }}>No announcements yet</h3>
             <p className="text-sm" style={{ color: theme.textLight }}>Check back later for updates from the team!</p>
@@ -124,10 +124,10 @@ export default function Announcements() {
         ) : (
           filteredPosts.map(p => {
           const CatIcon = categoryStyles[p.category]?.icon || Megaphone
-          const catColor = categoryStyles[p.category]?.color || '#6b7280'
-          const catBg = categoryStyles[p.category]?.bg || '#f9fafb'
+          const catColor = categoryStyles[p.category]?.color || theme.textLight
+          const catBg = categoryStyles[p.category]?.bg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)')
           return (
-            <div key={p.id} className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div key={p.id} className="content-section rounded-xl shadow-sm" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
               <div className="p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: catBg, color: catColor }}>
@@ -139,12 +139,12 @@ export default function Announcements() {
                 <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{p.title}</h3>
                 <div className="text-sm mt-1 whitespace-pre-wrap" style={{ color: theme.textLight }}>{p.body}</div>
               </div>
-              <div className="px-5 py-3 border-t" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
+              <div className="px-5 py-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
                 <div className="flex items-center gap-2">
                   {['👍','🎉','💡','❗'].map(e => (
-                    <button key={e} className="px-3 py-1.5 rounded-full border text-sm hover:border-gray-400 transition-colors" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} onClick={() => reactTo(p.id, e)}>
+                    <button key={e} className="px-3 py-1.5 rounded-full border text-sm transition-colors" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }} onClick={() => reactTo(p.id, e)}>
                       <span className="text-lg align-middle">{e}</span>
-                      <span className="ml-1.5 text-xs font-semibold">{(reactions[p.id]||{})[e]||0}</span>
+                      <span className="ml-1.5 text-xs font-semibold" style={{ color: theme.text }}>{(reactions[p.id]||{})[e]||0}</span>
                     </button>
                   ))}
                 </div>

@@ -354,7 +354,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         <div className="p-2 rounded-full" style={{ backgroundColor: theme.background }}>
                             <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
                         </div>
-                        <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>
+                        <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
                             {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : 'Support'}
                         </h2>
                     </div>
@@ -516,8 +516,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
                                         style={{
                                             borderColor: theme.border,
-                                            backgroundColor: '#ffffff',
-                                            color: '#1e293b'
+                                            backgroundColor: theme.isDark ? '#1e293b' : '#ffffff',
+                                            color: theme.text
                                         }}
                                         placeholder={ticketType === 'suggestion' ? "I'd love to see..." : "Describe your question or issue..."}
                                     />
@@ -534,8 +534,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                 className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
                                                 style={{
                                                     borderColor: theme.border,
-                                                    backgroundColor: '#ffffff',
-                                                    color: '#1e293b'
+                                                    backgroundColor: theme.isDark ? '#1e293b' : '#ffffff',
+                                                    color: theme.text
                                                 }}
                                             >
                                                 <input
@@ -547,7 +547,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                     className="hidden"
                                                 />
                                                 <Camera size={18} style={{ color: theme.primary }} />
-                                                <span className="text-sm" style={{ color: '#64748b' }}>
+                                                <span className="text-sm" style={{ color: theme.textLight }}>
                                                     {selectedImages.length >= 5 
                                                         ? 'Maximum 5 images reached' 
                                                         : 'Choose images (max 5MB each, up to 5 images)'}

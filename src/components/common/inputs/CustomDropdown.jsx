@@ -63,7 +63,9 @@ export default function CustomDropdown({
                 }}
                 className={`w-full ${outlined ? 'px-4 py-3.5' : 'px-3 py-2'} text-sm border ${outlined ? 'rounded-xl' : 'rounded-md'} flex items-center justify-between transition-all duration-200 touch-manipulation ${outlined ? 'hover:shadow-md' : 'hover:border-gray-400'} overflow-hidden`}
                 style={{
-                    borderColor: isOpen ? theme.primary : theme.border,
+                    borderColor: isOpen 
+                        ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
+                        : (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border),
                     backgroundColor: outlined ? (theme.isDark ? '#1f2937' : '#ffffff') : theme.cardBackground,
                     color: value ? (outlined && !theme.isDark ? '#181A18' : theme.text) : theme.textLight,
                     WebkitTapHighlightColor: 'transparent',
@@ -71,14 +73,14 @@ export default function CustomDropdown({
                     boxShadow: outlined && customShadow 
                         ? (isOpen 
                             ? (theme.isDark 
-                                ? `0 0 0 2px ${theme.primary}40, 0 4px 12px rgba(0,0,0,0.5)` 
+                                ? `0 0 0 2px rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.5)` 
                                 : `0 0 0 2px ${theme.primary}20, 0 4px 12px rgba(0,0,0,0.15)`)
                             : (theme.isDark 
                                 ? '0 2px 8px rgba(0,0,0,0.4)' 
                                 : '0 1px 3px rgba(0,0,0,0.1)'))
                         : (isOpen && outlined
                             ? (theme.isDark 
-                                ? `0 0 0 2px ${theme.primary}40, 0 2px 8px rgba(0,0,0,0.4)` 
+                                ? `0 0 0 2px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)` 
                                 : `0 0 0 2px ${theme.primaryLight}, 0 1px 3px rgba(0,0,0,0.1)`)
                             : 'none')
                 }}
@@ -90,7 +92,7 @@ export default function CustomDropdown({
                 <ChevronDown 
                     size={18} 
                     className={`transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
-                    style={{ color: isOpen ? theme.primary : theme.textLight }}
+                    style={{ color: isOpen ? (theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary) : theme.textLight }}
                 />
             </button>
 
@@ -108,7 +110,7 @@ export default function CustomDropdown({
                 <div 
                     className="py-2 border rounded-xl shadow-xl overflow-x-hidden"
                     style={{ 
-                        borderColor: theme.border,
+                        borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                         backgroundColor: theme.cardBackground,
                         boxShadow: theme.isDark 
                             ? '0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)' 
@@ -148,7 +150,7 @@ export default function CustomDropdown({
                                     }}
                                     className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
                                     style={{
-                                        backgroundColor: isSelected ? theme.primary + '15' : 'transparent',
+                                        backgroundColor: isSelected ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '15') : 'transparent',
                                         color: theme.text,
                                         WebkitTapHighlightColor: 'transparent',
                                         borderRadius: '0.5rem',
@@ -160,7 +162,7 @@ export default function CustomDropdown({
                                         <span className="truncate">{option.label}</span>
                                     </span>
                                     {isSelected && (
-                                        <Check size={18} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                        <Check size={18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary }} className="flex-shrink-0" />
                                     )}
                                 </button>
                             );

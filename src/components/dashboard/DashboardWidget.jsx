@@ -113,7 +113,9 @@ const DashboardWidget = ({
         ...widgetStyle,
         fontFamily: 'Poppins, sans-serif',
         border: 'none',
-        outline: 'none'
+        outline: 'none',
+        overflow: 'hidden',
+        borderRadius: '12px'
       }}
       tabIndex={-1}
       onFocus={(e) => e.currentTarget.style.outline = 'none'}

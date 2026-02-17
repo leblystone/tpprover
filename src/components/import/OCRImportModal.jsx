@@ -1,4 +1,5 @@
  import React, { useMemo, useState } from 'react'
+ import { Lightbulb } from 'lucide-react'
  import Modal from '../common/Modal'
  import { generateId } from '../../utils/string'
  import { getLocalDateString } from '../../utils/date'
@@ -110,10 +111,10 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
 
   return (
     <Modal open={open} onClose={handleClose} title="Import your pep data" theme={theme} footer={(
-      <>
-        <button className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }} onClick={handleClose}>Close</button>
-        <button className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }} disabled={!parsed} onClick={save}>Save for Review</button>
-      </>
+      <div className="flex items-center w-full">
+        <button className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }} onClick={handleClose}>Close</button>
+        <button className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }} disabled={!parsed} onClick={save}>Save for Review</button>
+      </div>
     )}>
       <div className="space-y-3">
         <div className="text-sm" style={{ color: theme?.text }}>
@@ -130,7 +131,7 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
         </label>
         {text && (
           <div>
-            <div className="text-xs text-gray-500 mb-1">Preview (.txt)</div>
+            <div className="text-xs mb-1" style={{ color: theme?.textLight }}>Preview (.txt)</div>
             <pre className="p-2 rounded border overflow-auto max-h-40 text-xs" style={{ borderColor: theme?.border }}>{text}</pre>
           </div>
         )}
@@ -156,8 +157,8 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
                   <option value="calendar">Calendar Notes</option>
                 </select>
                 {parsed.suggestedType && parsed.suggestedType !== targetType && (
-                  <p className="text-xs mt-1" style={{ color: theme?.info }}>
-                    💡 Suggested: {parsed.suggestedType} (based on detected content)
+                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: theme?.info }}>
+                    <Lightbulb size={12} /> Suggested: {parsed.suggestedType} (based on detected content)
                   </p>
                 )}
               </div>

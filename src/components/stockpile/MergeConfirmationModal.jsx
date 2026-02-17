@@ -66,13 +66,13 @@ export default function MergeConfirmationModal({
           
           <div className="flex items-center gap-2">
             {/* Source Group */}
-            <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: '#d4d0c5', backgroundColor: '#f0eee7' }}>
+            <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Package size={12} style={{ color: '#8b8678' }} />
-                <span className="font-semibold text-xs" style={{ color: '#6b6659' }}>From</span>
+                <Package size={12} style={{ color: theme.textLight || theme.text }} />
+                <span className="font-semibold text-xs" style={{ color: theme.textLight || theme.text }}>From</span>
               </div>
-              <div className="font-medium text-sm mb-1" style={{ color: '#4a4639' }}>{sourceGroup.name}</div>
-              <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: '#6b6659' }}>
+              <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>{sourceGroup.name}</div>
+              <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: theme.textLight || theme.text }}>
                 <div className="flex items-center gap-1">
                   <Beaker size={10} />
                   {sourceGroup.totalMg} {sourceGroup.unit || 'mg'}
@@ -87,13 +87,13 @@ export default function MergeConfirmationModal({
             </div>
 
             {/* Target Group */}
-            <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: '#a8a298', backgroundColor: '#d4d0c5' }}>
+            <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Package size={12} style={{ color: '#6b6659' }} />
-                <span className="font-semibold text-xs" style={{ color: '#4a4639' }}>Into</span>
+                <Package size={12} style={{ color: theme.textLight || theme.text }} />
+                <span className="font-semibold text-xs" style={{ color: theme.text }}>Into</span>
               </div>
-              <div className="font-medium text-sm mb-1" style={{ color: '#2d2a22' }}>{targetGroup.name}</div>
-              <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: '#4a4639' }}>
+              <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>{targetGroup.name}</div>
+              <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: theme.textLight || theme.text }}>
                 <div className="flex items-center gap-1">
                   <Beaker size={10} />
                   {targetGroup.totalMg} {targetGroup.unit || 'mg'}
@@ -216,9 +216,9 @@ export default function MergeConfirmationModal({
         {/* Warning */}
         <div className="flex items-center justify-center">
           <div className="flex items-center gap-2 p-2 rounded-lg border" 
-               style={{ borderColor: '#f59e0b', backgroundColor: '#fef3c7' }}>
-            <AlertTriangle size={18} className="text-amber-600 flex-shrink-0" />
-            <p className="text-xs text-amber-800 font-semibold" style={{ hyphens: 'none', wordBreak: 'normal' }}>
+               style={{ borderColor: theme.isDark ? 'rgba(245,158,11,0.4)' : '#f59e0b', backgroundColor: theme.isDark ? 'rgba(245,158,11,0.1)' : '#fef3c7' }}>
+            <AlertTriangle size={18} style={{ color: theme.isDark ? '#fbbf24' : '#d97706' }} className="flex-shrink-0" />
+            <p className="text-xs font-semibold" style={{ color: theme.isDark ? '#fbbf24' : '#92400e', hyphens: 'none', wordBreak: 'normal' }}>
               This action cannot be undone.
             </p>
           </div>

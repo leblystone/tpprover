@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, Sun, Moon, X } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -278,106 +278,172 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     }
 
     return (
-      <div key={date.toISOString()} data-day-key={dayKey} className="w-full rounded border" style={{ borderColor: isToday ? theme.primary : theme.accent }}>
-        <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: isToday ? theme.primary : theme.accent, backgroundColor: isToday ? theme.primary : theme.accent }}>
-          <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : (theme.isDark ? '#29303b' : theme.primaryDark) }}>{isToday ? 'Today' : dayOfWeek}{allTasksCompleted && <span title="All tasks done">✓</span>}</span>
-          <span 
-            className={`font-bold text-lg flex items-center justify-center rounded-full w-8 h-8`}
-            style={{
-                backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : (theme.isDark ? '#1f2937' : theme.secondary),
-                color: isToday ? theme.textOnPrimary : (theme.isDark ? theme.text : theme.primaryDark),
-            }}
-          >
-            {date.getDate()}
-          </span>
-        </div>
-        <div className="p-2 space-y-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-2">
-                {/* AM Slot */}
-                <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="text-xs font-semibold" style={{ color: theme.textLight }}>AM</div>
-                        {dayScheduled?.bySlot?.AM && (dayScheduled.bySlot.AM.peptides?.length > 0 || dayScheduled.bySlot.AM.supplements?.length > 0) && (
-                            <MarkAllButton
-                                date={date}
-                                timeSlot="AM"
-                                scheduled={dayScheduled.bySlot.AM}
-                                theme={theme}
-                                onMarkAllDone={onMarkAllDone}
-                                calendarBump={calendarBump}
-                            />
-                        )}
-                    </div>
-                    <SlotContent 
-                        scheduled={dayScheduled?.bySlot?.AM} 
-                        theme={theme} 
-                        date={date}
-                        timeSlot="AM"
-                        onTaskToggle={onTaskToggle}
-                    />
-                </div>
-
-                {/* Separator and PM Slot */}
-                <div className="mt-2 border-t pt-2 sm:mt-0 sm:border-t-0 sm:border-l sm:pl-2" style={{ borderColor: theme.border }}>
-                    <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
-                        <div className="flex items-center justify-between mb-1">
-                            <div className="text-xs font-semibold" style={{ color: theme.textLight }}>PM</div>
-                            {dayScheduled?.bySlot?.PM && (dayScheduled.bySlot.PM.peptides?.length > 0 || dayScheduled.bySlot.PM.supplements?.length > 0) && (
-                                <MarkAllButton
-                                    date={date}
-                                    timeSlot="PM"
-                                    scheduled={dayScheduled.bySlot.PM}
-                                    theme={theme}
-                                    onMarkAllDone={onMarkAllDone}
-                                    calendarBump={calendarBump}
-                                />
-                            )}
-                        </div>
-                        <SlotContent 
-                            scheduled={dayScheduled?.bySlot?.PM} 
-                            theme={theme} 
-                            date={date}
-                            timeSlot="PM"
-                            onTaskToggle={onTaskToggle}
-                        />
-                    </div>
-                </div>
+      <div key={date.toISOString()} data-day-key={dayKey} className="w-full rounded-2xl overflow-hidden"
+        style={{
+          background: isToday 
+            ? (theme.isDark 
+                ? `linear-gradient(135deg, rgba(62, 68, 80, 0.98), rgba(50, 56, 66, 0.99))`
+                : `linear-gradient(180deg, ${theme.accent}F8 0%, rgba(255,255,255,0.97) 30%, rgba(255,255,255,0.95) 100%)`)
+            : (theme.isDark 
+                ? 'linear-gradient(135deg, rgba(50, 55, 65, 0.7), rgba(42, 47, 56, 0.75))'
+                : `linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.55) 100%)`),
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: isToday 
+            ? `1.5px solid ${theme.isDark ? theme.primary + '40' : theme.primary + '35'}`
+            : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+          boxShadow: isToday 
+            ? (theme.isDark 
+                ? `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${theme.primary}15` 
+                : `0 4px 20px ${theme.primary}18, 0 0 0 1px ${theme.primary}10`)
+            : (theme.isDark 
+                ? '0 2px 8px rgba(0,0,0,0.15)' 
+                : '0 2px 8px rgba(0,0,0,0.04)'),
+          opacity: isToday ? 1 : 0.85,
+        }}
+      >
+        {/* Header - gradient style matching DayModal */}
+        <div className="px-3 py-2.5 flex-shrink-0" style={{ 
+          borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : theme.primary + '15'}`,
+          background: isToday 
+            ? (theme.isDark 
+                ? `linear-gradient(135deg, ${theme.primary}25, rgba(255,255,255,0.04))` 
+                : `linear-gradient(135deg, ${theme.primary}28, ${theme.primaryLight}18, transparent)`)
+            : (theme.isDark 
+                ? `linear-gradient(135deg, rgba(255,255,255,0.03), transparent)` 
+                : `linear-gradient(135deg, rgba(0,0,0,0.02), transparent)`),
+        }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className={`tracking-tight ${isToday ? 'text-sm font-bold' : 'text-xs font-semibold'}`} style={{ color: isToday ? theme.text : theme.textLight }}>
+                {isToday ? 'Today' : dayOfWeek}
+              </h3>
+              {allTasksCompleted && (
+                <CheckCircle size={14} style={{ color: theme.success || '#4CAF50' }} strokeWidth={2.5} />
+              )}
             </div>
+            <span 
+              className={`font-bold flex items-center justify-center rounded-full ${isToday ? 'text-sm w-7 h-7' : 'text-xs w-6 h-6'}`}
+              style={{
+                backgroundColor: isToday ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                color: isToday ? (theme.textOnPrimary || '#ffffff') : theme.textLight,
+                boxShadow: isToday ? '0 2px 6px rgba(0,0,0,0.15)' : 'none'
+              }}
+            >
+              {date.getDate()}
+            </span>
+          </div>
+        </div>
 
-            {/* Goals Section */}
-            {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
-                <div className="mt-2 p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : theme.secondary + '40' }}>
-                    <div className="text-xs font-semibold mb-1" style={{ color: theme.text }}>Goals</div>
-                    <div className="space-y-1">
-                        {dayScheduled.goals.map((g, i) => (
-                            <div key={`goal-${i}`} className="flex items-center gap-2 text-xs">
-                                {g.completed ? 
-                                    <CheckCircle size={12} style={{ color: theme.success }} /> :
-                                    <Target size={12} style={{ color: theme.warning }} />
-                                }
-                                <span className={`flex-1 truncate ${g.completed ? 'line-through' : ''}`} 
-                                      style={{ color: g.completed ? theme.textLight : theme.text }}>
-                                    {g.text}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+        {/* Content */}
+        <div className="px-2.5 py-2 space-y-0.5">
+          {/* AM Section */}
+          <div>
+            <div className="flex items-center justify-between mb-0.5 px-1">
+              <div className="flex items-center gap-1.5">
+                <Sun size={11} style={{ color: theme.isDark ? 'rgba(160, 180, 153, 0.6)' : theme.primary }} />
+                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Morning</span>
+              </div>
+              {dayScheduled?.bySlot?.AM && (dayScheduled.bySlot.AM.peptides?.length > 0 || dayScheduled.bySlot.AM.supplements?.length > 0) && (
+                <MarkAllButton
+                  date={date}
+                  timeSlot="AM"
+                  scheduled={dayScheduled.bySlot.AM}
+                  theme={theme}
+                  onMarkAllDone={onMarkAllDone}
+                  calendarBump={calendarBump}
+                />
+              )}
+            </div>
+            <SlotContent 
+              scheduled={dayScheduled?.bySlot?.AM} 
+              theme={theme} 
+              date={date}
+              timeSlot="AM"
+              onTaskToggle={onTaskToggle}
+            />
+          </div>
+
+          {/* Faded separator between AM/PM */}
+          <div className="widget-separator" style={{ marginBottom: '0.15rem', paddingBottom: '0.1rem' }} />
+
+          {/* PM Section */}
+          <div>
+            <div className="flex items-center justify-between mb-0.5 px-1">
+              <div className="flex items-center gap-1.5">
+                <Moon size={11} style={{ color: theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primaryDark }} />
+                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Evening</span>
+              </div>
+              {dayScheduled?.bySlot?.PM && (dayScheduled.bySlot.PM.peptides?.length > 0 || dayScheduled.bySlot.PM.supplements?.length > 0) && (
+                <MarkAllButton
+                  date={date}
+                  timeSlot="PM"
+                  scheduled={dayScheduled.bySlot.PM}
+                  theme={theme}
+                  onMarkAllDone={onMarkAllDone}
+                  calendarBump={calendarBump}
+                />
+              )}
+            </div>
+            <SlotContent 
+              scheduled={dayScheduled?.bySlot?.PM} 
+              theme={theme} 
+              date={date}
+              timeSlot="PM"
+              onTaskToggle={onTaskToggle}
+            />
+          </div>
+
+          {/* Goals Section */}
+          {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
+            <>
+              <div className="widget-separator" style={{ marginTop: '0.15rem', marginBottom: '0.15rem' }} />
+              <div>
+                <div className="flex items-center gap-1.5 mb-1 px-1">
+                  <Target size={12} style={{ color: theme.primary }} />
+                  <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Goals</span>
                 </div>
-            )}
+                <div className="space-y-1">
+                  {dayScheduled.goals.map((g, i) => (
+                    <div key={`goal-${i}`} className="flex items-center gap-2 text-xs py-1 px-2"
+                      style={{
+                        borderLeft: `3px solid ${g.completed ? (theme.success || '#4CAF50') + '60' : theme.primary + '40'}`,
+                      }}
+                    >
+                      {g.completed ? 
+                        <CheckCircle size={12} style={{ color: theme.success }} /> :
+                        <Target size={12} style={{ color: theme.warning }} />
+                      }
+                      <span className={`flex-1 truncate ${g.completed ? 'line-through' : ''}`} 
+                            style={{ color: g.completed ? theme.textLight : theme.text }}>
+                        {g.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
-          <div className="mt-1">
-            <div className="flex justify-end items-center text-xs font-semibold">
-              <button onClick={() => onNotesClick(date)} className="p-1 rounded transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                <Edit size={14} />
+          {/* Notes Section */}
+          <div className="widget-separator" style={{ marginTop: '0.15rem', marginBottom: '0.15rem' }} />
+          <div>
+            <div className="flex justify-between items-center mb-0.5 px-1">
+              <div className="flex items-center gap-1.5">
+                <FileText size={11} style={{ color: theme.primary }} />
+                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Notes</span>
+              </div>
+              <button onClick={() => onNotesClick(date)} className="p-1 rounded-lg transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                <Edit size={13} />
               </button>
             </div>
             {dayNotesText && (
               <div 
                 onClick={() => onNotesClick(date)}
-                className="p-2 rounded-md border text-xs cursor-pointer mt-1 hover:opacity-90"
+                className="py-1.5 px-2.5 rounded-lg text-xs cursor-pointer hover:opacity-90"
                 style={{ 
-                  backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                  borderColor: theme.border,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                  borderLeft: `3px solid ${theme.primary}40`,
                   color: theme.text
                 }}
                 title="View or edit notes"
@@ -388,16 +454,16 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-1.5 space-y-1">
                 {protocolNotes.map((note) => (
                   <div
                     key={note.id}
-                    className="flex items-center gap-1.5 p-1.5 rounded text-xs cursor-pointer hover:opacity-90 transition-all"
+                    className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs cursor-pointer hover:opacity-90 transition-all"
                     style={{
                       backgroundColor: note.type === 'follow_up' 
-                        ? (theme.isDark ? '#3c4e3a' : '#e6f7f0')
-                        : (theme.isDark ? '#374151' : '#f3f4f6'),
-                      border: `1px solid ${note.type === 'follow_up' ? theme.primary : theme.border}`,
+                        ? (theme.isDark ? 'rgba(60, 78, 58, 0.5)' : '#e6f7f0')
+                        : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)'),
+                      border: `1px solid ${note.type === 'follow_up' ? theme.primary + '40' : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
                       color: theme.text
                     }}
                     title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
@@ -416,7 +482,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </span>
                     )}
                     {note.type === 'during' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.border, color: theme.text }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.border, color: theme.text }}>
                         MID-CYCLE NOTE
                       </span>
                     )}
@@ -428,10 +494,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
           
           {/* Group Buys - expandable chip */}
           {groupBuyInfo && groupBuysEnabled && (
-            <div className="mt-2">
+            <div className="mt-1">
               <button
-                className="w-full p-1 rounded text-center hover:opacity-80 transition-all cursor-pointer"
-                style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}
+                className="w-full p-1.5 rounded-lg text-center hover:opacity-80 transition-all cursor-pointer"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   const isExpanded = expandedGroupBuy === dayKey;
@@ -439,10 +505,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     setExpandedGroupBuy(null);
                     setExpandedGroupBuyData(null);
                   } else {
-                    // Find full group buy data
                     let fullData = null;
                     
-                    // Try to find in scheduledBuys
                     if (groupBuyInfo.item) {
                       fullData = (scheduledBuys || []).find(buy => {
                         const buyItem = buy.item || buy.name || '';
@@ -450,7 +514,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       });
                     }
                     
-                    // If not found, check orders
                     if (!fullData) {
                       try {
                         const rawOrders = localStorage.getItem('tpprover_orders');
@@ -463,7 +526,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         });
                         
                         if (orderMatch) {
-                          // Include all fields from the order, preserving everything
                           fullData = {
                             item: (orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item',
                             vendor: orderMatch.vendor || '',
@@ -473,9 +535,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                             location: orderMatch.location || '',
                             participants: orderMatch.group?.participants || '',
                             notes: orderMatch.group?.notes || orderMatch.notes || '',
-                            // Include any other fields from the order
                             ...orderMatch,
-                            // Override with group-specific data if available
                             ...(orderMatch.group || {})
                           };
                         }
@@ -484,8 +544,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       }
                     }
                     
-                    // Use full data if found, otherwise use the basic info
-                    // Spread all properties to ensure we don't miss any fields
                     const groupBuyData = fullData ? { ...fullData } : {
                       item: groupBuyInfo.item || groupBuyInfo.name?.replace('Group Buy For: ', '') || 'Unknown Item',
                       vendor: groupBuyInfo.vendor || '',
@@ -495,7 +553,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       location: groupBuyInfo.location || '',
                       participants: groupBuyInfo.participants || '',
                       notes: groupBuyInfo.notes || '',
-                      // Include any other fields from groupBuyInfo
                       ...groupBuyInfo
                     };
                     
@@ -534,15 +591,12 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 }}
               >
                 {expandedGroupBuy === dayKey && expandedGroupBuyData && (
-                  <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? '#111827' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                  {/* Item Name */}
-                  <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
+                  <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}` }}>
+                  <div className="pb-2" style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
                     <p className="font-semibold text-sm" style={{ color: theme.text }}>{expandedGroupBuyData.item || 'Unknown Item'}</p>
                   </div>
                   
-                  {/* Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {/* Host */}
                     {expandedGroupBuyData.vendor && (
                       <div className="flex items-start gap-2">
                         <Building size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -553,7 +607,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </div>
                     )}
 
-                    {/* Price */}
                     {expandedGroupBuyData.price && (
                       <div className="flex items-start gap-2">
                         <DollarSign size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -564,7 +617,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </div>
                     )}
 
-                    {/* Open Date */}
                     {expandedGroupBuyData.openDate && (
                       <div className="flex items-start gap-2">
                         <Calendar size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -575,7 +627,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </div>
                     )}
 
-                    {/* Close Date */}
                     {expandedGroupBuyData.closeDate && (
                       <div className="flex items-start gap-2">
                         <Calendar size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -586,7 +637,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </div>
                     )}
 
-                    {/* Platform */}
                     {expandedGroupBuyData.location && (
                       <div className="flex items-start gap-2">
                         <MapPin size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -597,7 +647,6 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       </div>
                     )}
 
-                    {/* Participants */}
                     {expandedGroupBuyData.participants && (
                       <div className="flex items-start gap-2">
                         <Users size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
@@ -609,8 +658,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     )}
                   </div>
 
-                  {/* Notes - Always show section, even if empty */}
-                  <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+                  <div className="pt-2" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
                     <div className="flex items-center gap-2 mb-1">
                       <FileText size={14} style={{ color: theme.textLight }} />
                       <div className="text-[10px] font-semibold" style={{ color: theme.textLight }}>Notes</div>
@@ -625,14 +673,13 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             </div>
           )}
           
-            {dayScheduled?.washout?.length > 0 && (
-                <div className="p-1 rounded text-center mt-2" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
-                    <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
-                        Washout: {dayScheduled.washout.join(', ')}
-                    </span>
-                </div>
-            )}
-            {/* Removed duplicate footer group buy banner */}
+          {dayScheduled?.washout?.length > 0 && (
+            <div className="p-1.5 rounded-lg text-center mt-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
+              <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
+                Washout: {dayScheduled.washout.join(', ')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -648,7 +695,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid grid-cols-1 gap-3">
         {days.map(renderDay)}
       </div>
       

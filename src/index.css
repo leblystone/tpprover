@@ -87,12 +87,18 @@ html, body, #root {
   border-radius: 14px;
   background-color: transparent !important; /* Ensure content cards are transparent by default for glass effect */
 }
+
+/* Dark mode: content-card should NOT be transparent — let glass panels handle it */
+.dark .content-card,
+[data-theme="softDark"] .content-card {
+  background-color: transparent !important;
+}
 .card-shadow { box-shadow: 0 10px 18px rgba(0,0,0,0.08); }
 
 /* Glassmorphism System */
 .glass-panel-minimal {
   /* Better balance: readable + glass effect */
-  background: rgba(255, 255, 255, 0.60) !important;
+  background: rgba(255, 255, 255, 0.68) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
   border: none !important;
@@ -108,9 +114,11 @@ html, body, #root {
   border-bottom: 1px solid rgba(255, 255, 255, 0.8) !important;
 }
 
-.dark .glass-bar {
-  background: rgba(26, 29, 26, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+.dark .glass-bar,
+[data-theme="softDark"] .glass-bar {
+  background: rgba(18, 22, 30, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) !important;
 }
 
 /* Shortcuts Buttons - Solid Dark Sage Grey */
@@ -140,11 +148,14 @@ html, body, #root {
 
 .dark .glass-modal,
 [data-theme="softDark"] .glass-modal {
-  background: rgba(40, 46, 42, 0.88) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(24, 28, 36, 0.96) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4), 
-    0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    0 8px 32px rgba(0, 0, 0, 0.6), 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Define a subtle, elegant separator for glass widgets with fade effect */
@@ -170,27 +181,33 @@ html, body, #root {
   );
 }
 
-.dark .widget-separator::after {
+.dark .widget-separator::after,
+[data-theme="softDark"] .widget-separator::after {
   background: linear-gradient(
     to right, 
     transparent 0%, 
-    rgba(255, 255, 255, 0.08) 20%, 
-    rgba(255, 255, 255, 0.12) 50%, 
-    rgba(255, 255, 255, 0.08) 80%, 
+    rgba(255, 255, 255, 0.06) 20%, 
+    rgba(255, 255, 255, 0.10) 50%, 
+    rgba(255, 255, 255, 0.06) 80%, 
     transparent 100%
   );
 }
 
 .dark .glass-panel-minimal,
 [data-theme="softDark"] .glass-panel-minimal {
-  background: rgba(26, 29, 26, 0.70) !important;
+  background: linear-gradient(135deg, rgba(62, 68, 80, 0.75), rgba(50, 56, 66, 0.82)) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border: none !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+  box-shadow: none !important;
 }
 
 .glass-panel-depth {
   /* Today's Research - distinct centerpiece */
-  background: rgba(255, 255, 255, 0.75) !important;
+  background: rgba(255, 255, 255, 0.80) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
   border: none !important;
@@ -201,22 +218,58 @@ html, body, #root {
 
 .dark .glass-panel-depth,
 [data-theme="softDark"] .glass-panel-depth {
-  background: rgba(40, 46, 42, 0.80) !important;
+  background: linear-gradient(135deg, rgba(62, 68, 80, 0.75), rgba(50, 56, 66, 0.82)) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border: none !important;
-  box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.2), 
-    0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+  box-shadow: none !important;
 }
 
-/* Dashboard Background Pattern - Solid Sage Green-Grey */
+/* Dashboard Background Pattern - Neutral Grey */
 .dashboard-bg-pattern {
-  background: #d4d8d4;
+  background: linear-gradient(180deg, #e6e4e1 0%, #d9d7d4 50%, #cdcbc8 100%);
   background-attachment: fixed;
 }
 
-.dark .dashboard-bg-pattern {
-  background: #1a1d1a;
+.dark .dashboard-bg-pattern,
+[data-theme="softDark"] .dashboard-bg-pattern {
+  background: linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%);
   background-attachment: fixed;
+}
+
+/* Shared page background - transparent so <main> gradient shows through */
+.page-bg {
+  background: transparent;
+  min-height: 100vh;
+}
+
+.dark .page-bg,
+[data-theme="softDark"] .page-bg {
+  background: transparent;
+}
+
+/* Content section card - matches dashboard glass-panel-minimal */
+.content-section {
+  background: rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-radius: 12px !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+
+.dark .content-section,
+[data-theme="softDark"] .content-section {
+  background: linear-gradient(135deg, rgba(62, 68, 80, 0.75), rgba(50, 56, 66, 0.82)) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 12px !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+  box-shadow: none !important;
 }
 
 /* Notification overlay - highest z-index */

@@ -36,7 +36,7 @@ export default function SettingsAppearance() {
   };
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
@@ -50,20 +50,20 @@ export default function SettingsAppearance() {
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Appearance</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
               Visual Interface & Themes
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       <div className="space-y-6">
         {/* Theme Selection Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Palette size={16} style={{ color: theme.primary }} />
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Color Theme
             </h4>
           </div>
@@ -80,9 +80,8 @@ export default function SettingsAppearance() {
                   <button
                     key={themeKey}
                     onClick={() => handleThemeChange(themeKey)}
-                    className="group relative flex flex-col p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
+                    className="content-section group relative flex flex-col p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
                     style={{
-                      backgroundColor: theme.cardBackground,
                       borderColor: isSelected ? theme.primary : 'transparent',
                       boxShadow: isSelected 
                         ? `0 20px 40px ${theme.primary}15, 0 8px 16px ${theme.primary}10` 
@@ -112,7 +111,7 @@ export default function SettingsAppearance() {
                         <div className="absolute top-2 right-2">
                           <div 
                             className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300"
-                            style={{ backgroundColor: themeData.primary, color: '#ffffff' }}
+                            style={{ backgroundColor: themeData.primary, color: theme.textOnPrimary || '#ffffff' }}
                           >
                             <Check size={14} strokeWidth={3} />
                           </div>
@@ -151,7 +150,7 @@ export default function SettingsAppearance() {
               style={{ borderColor: theme.border }}
             >
               <Sparkles size={24} style={{ color: theme.textLight }} className="mb-2" />
-              <p className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.textLight }}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-center" style={{ color: theme.textLight }}>
                 Sequencing New<br/>Color Chains
               </p>
             </div>

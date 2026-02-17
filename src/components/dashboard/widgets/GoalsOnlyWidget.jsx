@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit, ChevronDown } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
@@ -7,6 +7,36 @@ import { generateId } from '../../../utils/string';
 import { prepareItemForSave } from '../../../utils/userDataSave';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
+
+const getSmartDateLabel = (dateString) => {
+  if (!dateString) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dateString);
+  due.setHours(0, 0, 0, 0);
+  const diffMs = due.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    const overdue = Math.abs(diffDays);
+    return { label: `Overdue ${overdue}d`, status: 'overdue' };
+  }
+  if (diffDays === 0) return { label: 'Due today', status: 'today' };
+  if (diffDays === 1) return { label: 'Due tomorrow', status: 'soon' };
+  if (diffDays <= 3) return { label: `Due in ${diffDays}d`, status: 'soon' };
+  if (diffDays > 14) return { label: `Due in ${Math.round(diffDays / 7)}w`, status: 'onTrack' };
+  return { label: `Due in ${diffDays}d`, status: 'onTrack' };
+};
+
+const getDateColor = (status, isDark) => {
+  switch (status) {
+    case 'overdue': return isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
+    case 'today':
+    case 'soon': return isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
+    case 'onTrack':
+    default: return undefined;
+  }
+};
 
 const GoalsOnlyWidget = ({ 
   widget, 
@@ -26,8 +56,24 @@ const GoalsOnlyWidget = ({
   
   const usePropsGoals = goalsFromProps != null;
   const goalsToShow = usePropsGoals ? goalsFromProps : goals;
-  const displayGoals = (goalsToShow || []).filter(g => !g.archived).slice(0, maxItems);
-  const completedCount = displayGoals.filter(g => g.completed).length;
+  const activeGoalsRaw = (goalsToShow || []).filter(g => !g.archived);
+  const activeCount = activeGoalsRaw.filter(g => !g.completed).length;
+
+  const displayGoals = useMemo(() => {
+    const sorted = [...activeGoalsRaw].sort((a, b) => {
+      if (a.completed && !b.completed) return 1;
+      if (!a.completed && b.completed) return -1;
+      if (!a.completed && !b.completed) {
+        const aDate = a.targetDate || a.dueDate;
+        const bDate = b.targetDate || b.dueDate;
+        if (aDate && bDate) return new Date(aDate) - new Date(bDate);
+        if (aDate && !bDate) return -1;
+        if (!aDate && bDate) return 1;
+      }
+      return 0;
+    });
+    return sorted.slice(0, maxItems);
+  }, [activeGoalsRaw, maxItems]);
   
   // Load goals from localStorage on mount (when not using props)
   useEffect(() => {
@@ -169,6 +215,17 @@ const GoalsOnlyWidget = ({
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Goals
             <Flag size={18} style={{ color: theme.primary }} />
+            {activeCount > 0 && (
+              <span 
+                className="text-xs font-medium px-2 py-0.5 rounded-full"
+                style={{ 
+                  color: theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primary,
+                  backgroundColor: theme.isDark ? 'rgba(160, 180, 153, 0.1)' : theme.primary + '12'
+                }}
+              >
+                {activeCount} active
+              </span>
+            )}
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.goals_only} theme={theme} />
@@ -280,33 +337,21 @@ const GoalsOnlyWidget = ({
               </div>
             ) : (
               <>
-                {/* Progress Summary */}
-                <div className="mb-3 p-2 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium" style={{ color: theme.text }}>
-                      Progress
-                    </span>
-                    <span className="text-sm font-bold" style={{ color: theme.primary }}>
-                      {completedCount}/{displayGoals.length}
-                    </span>
-                  </div>
-                  <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full transition-all duration-300"
-                      style={{ 
-                        backgroundColor: theme.primary,
-                        width: `${displayGoals.length > 0 ? (completedCount / displayGoals.length) * 100 : 0}%`
-                      }}
-                    />
-                  </div>
-                </div>
-
                 {/* Goals List */}
-                <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
-                  {displayGoals.map((goal) => (
+                <div className="flex-1 space-y-1.5 overflow-y-auto min-h-0">
+                  {displayGoals.map((goal, index) => (
                     <div
                       key={goal.id}
-                      className="group flex items-center gap-2 p-2 rounded-lg transition-all hover:opacity-90 relative"
+                      className="group flex items-center gap-2 py-2.5 px-3 transition-all duration-200 relative"
+                      style={{
+                        backgroundColor: 'transparent',
+                        borderLeft: `3px solid ${goal.completed 
+                          ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '25') 
+                          : (theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40')}`,
+                        boxShadow: index < displayGoals.length - 1
+                          ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                          : 'none'
+                      }}
                     >
                       <button
                         onClick={(e) => {
@@ -337,24 +382,39 @@ const GoalsOnlyWidget = ({
                       <div className="flex-1 min-w-0">
                         <p 
                           className={`text-xs font-medium truncate ${
-                            goal.completed ? 'line-through opacity-60' : ''
+                            goal.completed ? 'line-through opacity-50' : ''
                           }`}
-                          style={{ color: theme.text }}
+                          style={{ color: goal.completed ? theme.textLight : theme.text }}
                         >
                           {goal.title || goal.text}
                         </p>
-                        {(goal.targetDate || goal.dueDate) && (
-                          <p className="text-xs opacity-60 truncate" style={{ color: theme.textLight }}>
-                            Due: {new Date((goal.targetDate || goal.dueDate)).toLocaleDateString()}
+                        {goal.completed ? (
+                          <p className="text-xs truncate" style={{ color: theme.textLight, opacity: 0.5 }}>
+                            Done
                           </p>
-                        )}
+                        ) : (() => {
+                          const dateInfo = getSmartDateLabel(goal.targetDate || goal.dueDate);
+                          if (!dateInfo) return null;
+                          const color = getDateColor(dateInfo.status, theme.isDark) || theme.textLight;
+                          return (
+                            <p 
+                              className="text-xs truncate"
+                              style={{ 
+                                color,
+                                fontWeight: dateInfo.status === 'today' || dateInfo.status === 'overdue' ? 600 : 400
+                              }}
+                            >
+                              {dateInfo.label}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* View/Edit Link */}
-                <div className="pt-2 border-t flex-shrink-0 flex justify-center" style={{ borderColor: theme.border }}>
+                <div className="pt-2 border-t flex-shrink-0 flex justify-center" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }}>
                   <button
                     onClick={() => setShowHistory(true)}
                     className="text-xs transition-all hover:opacity-80 flex items-center gap-1"
@@ -458,17 +518,32 @@ const GoalsOnlyWidget = ({
                           <div className="flex-1 min-w-0">
                             <p 
                               className={`text-sm font-medium truncate ${
-                                goal.completed ? 'line-through opacity-60' : ''
+                                goal.completed ? 'line-through opacity-50' : ''
                               }`}
-                              style={{ color: theme.text }}
+                              style={{ color: goal.completed ? theme.textLight : theme.text }}
                             >
                               {goal.title || goal.text}
                             </p>
-                            {(goal.targetDate || goal.dueDate) && (
-                              <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
-                                Due: {new Date((goal.targetDate || goal.dueDate)).toLocaleDateString()}
+                            {goal.completed ? (
+                              <p className="text-xs truncate mt-1" style={{ color: theme.textLight, opacity: 0.5 }}>
+                                Done
                               </p>
-                            )}
+                            ) : (() => {
+                              const dateInfo = getSmartDateLabel(goal.targetDate || goal.dueDate);
+                              if (!dateInfo) return null;
+                              const color = getDateColor(dateInfo.status, theme.isDark) || theme.textLight;
+                              return (
+                                <p 
+                                  className="text-xs truncate mt-1"
+                                  style={{ 
+                                    color,
+                                    fontWeight: dateInfo.status === 'today' || dateInfo.status === 'overdue' ? 600 : 400
+                                  }}
+                                >
+                                  {dateInfo.label}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
                         <div className="flex items-center gap-1 ml-2">

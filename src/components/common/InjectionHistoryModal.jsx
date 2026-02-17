@@ -388,7 +388,7 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                                                 style={{ color: theme.textLight }}
                                                 title="Edit site"
                                                 onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
                                                     e.currentTarget.style.color = theme.primary;
                                                 }}
                                                 onMouseLeave={(e) => {

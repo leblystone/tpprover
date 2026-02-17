@@ -33,7 +33,7 @@ export default function Account() {
   ]
 
   return (
-    <section className="max-w-xl mx-auto space-y-4 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
@@ -49,7 +49,7 @@ export default function Account() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Account Sections */}
       <div className="space-y-3">
@@ -70,9 +70,8 @@ export default function Account() {
                   console.error('❌ Navigate failed:', error);
                 }
               }}
-              className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+              className="content-section group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
               style={{
-                backgroundColor: theme.cardBackground,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
               }}
             >
@@ -103,7 +102,7 @@ export default function Account() {
       </div>
 
       {/* Logout Section */}
-      <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.isDark ? '#374151' : theme.border }}>
+      <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
         <button
           onClick={logout}
           className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
@@ -122,7 +121,7 @@ export default function Account() {
                 <LogOut size={22} style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-black tracking-tight" style={{ color: theme.error }}>
+                <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.error }}>
                   Sign Out
                 </h3>
                 <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>

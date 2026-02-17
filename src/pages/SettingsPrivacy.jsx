@@ -39,7 +39,7 @@ export default function SettingsPrivacy() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
         <button
@@ -57,14 +57,14 @@ export default function SettingsPrivacy() {
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Privacy</h1>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                 Data Protection & cookies
               </span>
             </div>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Privacy Settings */}
       <div className="space-y-6">
@@ -72,14 +72,14 @@ export default function SettingsPrivacy() {
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Shield size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Cookie Preferences
             </h4>
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.privacy.functional} 
@@ -106,14 +106,14 @@ export default function SettingsPrivacy() {
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Info size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Data Sharing
             </h4>
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.privacy.dataSharing} 
@@ -141,7 +141,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <Icon size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-[11px] font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
           {label}
         </div>
         <div className="text-base font-black tracking-tight" style={{ color: theme.text }}>

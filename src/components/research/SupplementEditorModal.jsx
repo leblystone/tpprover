@@ -67,21 +67,19 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
             title={supplement?.id ? "Edit Supplement" : "Add Supplement"} 
             theme={theme}
             footer={
-                <div className="flex justify-between items-center w-full">
-                    <div className="flex-1">
+                <div className="flex items-center w-full">
+                    <button onClick={onClose} className="text-sm font-medium" style={{ color: theme.textLight || theme.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
+                    <div className="ml-auto flex items-center gap-2">
                         {supplement?.id && (
                             <button 
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="px-3 py-2 rounded-md border text-red-600 hover:bg-red-50 transition-colors"
-                                style={{ borderColor: '#ef4444' }}
+                                className="px-3 py-2 rounded-md text-sm font-medium"
+                                style={{ color: '#b91c1c', background: 'none', border: 'none' }}
                             >
                                 Delete
                             </button>
                         )}
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
-                        <button onClick={handleSave} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save Supplement</button>
+                        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
                     </div>
                 </div>
             }
@@ -93,7 +91,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Supplement Info</h4>
                         <div className="flex items-center gap-2 ml-1">
                             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                 Regimen Details
                             </span>
                         </div>
@@ -136,7 +134,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                             </button>
                         ))}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">Leave blank for every day.</div>
+                    <div className="text-xs mt-1" style={{ color: theme.textLight || theme.text, opacity: 0.6 }}>Leave blank for every day.</div>
                 </div>
 
                 <div>

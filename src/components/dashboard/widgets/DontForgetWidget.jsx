@@ -209,31 +209,24 @@ const DontForgetWidget = ({
               </div>
               
               {/* Group Items */}
-              <div className="space-y-2">
-                {displayItems.map((task) => {
+              <div className="space-y-1.5">
+                {displayItems.map((task, taskIndex) => {
                   const IconComponent = task.icon;
                   return (
                     <button
                       key={task.id}
                       onClick={() => handleTaskClick(task)}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left group"
+                      className="w-full flex items-center gap-3 py-2.5 px-3 transition-all duration-200 text-left group"
                       style={{ 
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
-                        e.currentTarget.style.borderColor = theme.primary;
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
-                        e.currentTarget.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-                        e.currentTarget.style.transform = 'translateY(0)';
+                        backgroundColor: 'transparent',
+                        borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                        boxShadow: taskIndex < displayItems.length - 1
+                          ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                          : 'none'
                       }}
                     >
                       <div 
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ 
                           backgroundColor: theme.isDark 
                             ? 'rgba(255,255,255,0.08)' 
@@ -241,7 +234,7 @@ const DontForgetWidget = ({
                         }}
                       >
                         <IconComponent 
-                          size={18} 
+                          size={16} 
                           style={{ 
                             color: theme.primary,
                             opacity: 0.85

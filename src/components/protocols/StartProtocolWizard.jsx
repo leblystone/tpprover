@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -58,7 +58,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
         const isNewlyAdded = selectedVial?.notes?.includes('Added during protocol start');
         return (
             <div className="p-3 rounded-md" style={{
-                backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.primary + '10'),
                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
             }}>
                 <div className="flex items-start justify-between gap-2">
@@ -80,15 +80,15 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                                     });
                                     setAction('edit');
                                 }
-                            }} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Edit</button>
+                            }} className="text-xs hover:underline" style={{ color: theme.textLight }}>Edit</button>
                         )}
-                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
+                        <button onClick={() => onUnlink(peptideId)} className="text-xs hover:underline" style={{ color: theme.textLight }}>Unlink</button>
                     </div>
                 </div>
                 <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
                     <span className="text-xs block mb-2" style={{ color: theme.textLight }}>Add another vial?</span>
                     <div className="flex flex-wrap items-center gap-2">
-                        <button onClick={() => setAction('add')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
+                        <button onClick={() => setAction('add')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
                         <button onClick={() => setAction('select')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select from Stockpile</button>
                     </div>
                 </div>
@@ -111,7 +111,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
         
          return (
             <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
             }}>
                 <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>
@@ -125,7 +125,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
                 </div>
                 <div className="mt-3 flex items-center justify-end gap-2">
-                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
+                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
                      <button onClick={handleSave} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>{isEdit ? 'Save Changes' : 'Save & Link'}</button>
                 </div>
             </div>
@@ -135,7 +135,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
     if (action === 'select') {
         return (
             <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
             }}>
                 <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
@@ -147,7 +147,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     idleMessage="Start typing to search your stockpile."
                     emptyMessage="No stockpile entries found. Keep typing to refine your search."
                 />
-                <button onClick={() => setAction(null)} className="text-xs text-gray-500 mt-2 hover:underline">Cancel</button>
+                <button onClick={() => setAction(null)} className="text-xs mt-2 hover:underline" style={{ color: theme.textLight }}>Cancel</button>
             </div>
         );
     }
@@ -155,7 +155,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
     if (isSkipped) {
         return (
             <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#374151' : '#f9fafb',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.02)',
                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
             }}>
                  <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Undo</button>
+                        <button onClick={() => onUnlink(peptideId)} className="text-xs hover:underline" style={{ color: theme.textLight }}>Undo</button>
                     </div>
                 </div>
             </div>
@@ -176,15 +176,15 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
     // Default view with choices — stacked layout so long peptide names don't cramp buttons
     return (
         <div className="p-3 rounded-md" style={{ 
-            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
             boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
         }}>
             <p className="font-semibold text-sm mb-3 break-words" style={{ color: theme.text }}>{peptide.name}</p>
             <div className="flex flex-wrap items-center gap-2">
-                {!isSinglePeptide && (
-                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                    {!isSinglePeptide && (
+                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
                 )}
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
+                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
                 <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 whitespace-nowrap" style={{ backgroundColor: theme.primary, color: '#ffffff' }} title="Select Vial from Stockpile">Select from Stockpile</button>
             </div>
         </div>
@@ -601,10 +601,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             footer={
                 <div className="w-full space-y-2">
                     {/* Warning tip above buttons */}
-                    {!canStart && (
-                        <div className="text-xs text-center py-1" style={{ color: theme.textLight }}>
-                            {!linkingComplete && '⚠️ Complete vial linking or skip all peptides'}
-                            {linkingComplete && !deliveryComplete && '⚠️ Set delivery method for skipped peptides'}
+                        {!canStart && (
+                        <div className="text-xs text-center py-1 flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
+                            {!linkingComplete && <><AlertTriangle size={12} /> Complete vial linking or skip all peptides</>}
+                            {linkingComplete && !deliveryComplete && <><AlertTriangle size={12} /> Set delivery method for skipped peptides</>}
                         </div>
                     )}
                     
@@ -612,11 +612,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     <div className="flex gap-3">
                         <button 
                             onClick={onClose} 
-                            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-70" 
+                            className="py-2.5 text-sm font-medium transition-opacity hover:opacity-70" 
                             style={{ 
-                                color: theme.text, 
-                                background: 'transparent',
-                                border: `1px solid ${theme.border}`
+                                color: theme.textLight || theme.text, 
+                                background: 'none',
+                                border: 'none',
+                                padding: 0
                             }}
                         >
                             Cancel
@@ -670,7 +671,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             disabled={!canStart}
                             className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
                             style={{ 
-                                backgroundColor: canStart ? theme.primary : (theme.isDark ? '#374151' : theme.secondary), 
+                                backgroundColor: canStart ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary), 
                                 color: canStart ? '#ffffff' : theme.textLight,
                                 opacity: canStart ? 1 : 0.5,
                                 cursor: canStart ? 'pointer' : 'not-allowed'
@@ -809,9 +810,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     onClick={handleSkipAllVials}
                                     className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80 mb-3"
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary, 
                                         color: theme.text,
-                                        border: `1px dashed ${theme.border}`
+                                        border: `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.border}`
                                     }}
                                 >
                                     <X size={14} className="inline mr-1" />
@@ -907,9 +908,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     }}
                                     className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary, 
                                         color: theme.text,
-                                        border: `1px dashed ${theme.border}`
+                                        border: `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.border}`
                                     }}
                                 >
                                     <X size={14} className="inline mr-1" />
@@ -935,8 +936,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         onClick={() => setReconStrategy(option.key)}
                                                         className="flex flex-col items-center justify-center p-3 rounded-lg transition-all"
                                                         style={{
-                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                            border: `1px solid ${theme.border}`,
+                                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+                                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                                                             color: theme.text
                                                         }}
                                                     >
@@ -1147,8 +1148,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     
                                     return (
                                         <div key={peptideId} className="p-3 rounded-lg space-y-3" style={{ 
-                                            backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
-                                            border: `1px solid ${theme.border}`
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                                         }}>
                                             <h5 className="font-semibold text-sm pb-2 border-b" style={{ color: theme.text, borderColor: theme.border }}>
                                                 {p.name}
@@ -1181,7 +1182,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                 }}
                                                                 className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg border transition-all"
                                                                 style={{
-                                                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary),
                                                                     color: isSelected ? '#ffffff' : theme.text,
                                                                     borderColor: isSelected ? theme.primary : theme.border
                                                                 }}
@@ -1201,7 +1202,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         Route
                                                     </label>
                                                     <div className="flex gap-1 p-1 rounded-lg" style={{ 
-                                                        backgroundColor: theme.isDark ? '#0f172a' : '#ffffff',
+                                                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : '#ffffff',
                                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                                     }}>
                                                         {['subq', 'im', 'iv'].map(route => {
@@ -1274,8 +1275,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                             <div 
                                                                 className="absolute z-[9999] w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
                                                                 style={{
-                                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                                    borderColor: theme.border,
+                                                                    backgroundColor: theme.isDark ? 'rgba(30,30,40,0.95)' : '#ffffff',
+                                                                    borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                                                                     boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
                                                                 }}
                                                             >

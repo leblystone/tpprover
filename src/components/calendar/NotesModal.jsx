@@ -27,16 +27,16 @@ export default function NotesModal({ open, onClose, theme, notes, onSave }) {
                         className="px-4 py-2 rounded-lg border transition-all duration-200 action-button-hover" 
                         style={{ 
                             borderColor: theme.border, 
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                             color: theme.text
                         }} 
                         onClick={onClose}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.secondary;
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary;
                             e.currentTarget.style.borderColor = theme.primary;
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.cardBackground;
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground;
                             e.currentTarget.style.borderColor = theme.border;
                         }}
                     >
@@ -70,7 +70,7 @@ export default function NotesModal({ open, onClose, theme, notes, onSave }) {
                 style={{ 
                     borderColor: theme.border, 
                     minHeight: '150px', 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, 
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary, 
                     color: theme.text,
                     outline: 'none',
                     '::placeholder': { color: theme.textLight }

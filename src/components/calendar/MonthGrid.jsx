@@ -154,16 +154,16 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
   const groupBuysEnabled = areGroupBuysEnabled();
   
   return (
-    <div className="h-full flex flex-col">
-      <div className="grid grid-cols-7 text-xs mb-2" style={{ color: theme.textLight }}>
-        {weekdayHeaders.map(d => <div key={d} className="px-1 py-1 sm:px-1.5 md:px-2 text-center">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="grid grid-cols-7 text-xs mb-1 flex-shrink-0" style={{ color: theme.textLight }}>
+        {weekdayHeaders.map(d => <div key={d} className="px-1 py-0.5 sm:px-1.5 md:px-2 text-center">
             <span className="hidden sm:inline text-xs md:text-sm">{d}</span>
             <span className="sm:hidden text-xs">{d.charAt(0)}</span>
         </div>)}
       </div>
-      <div className="grid grid-cols-1 gap-1 sm:gap-1.5 md:gap-2 flex-1">
+      <div className="flex flex-col gap-1 sm:gap-1.5 md:gap-2 flex-1 min-h-0">
         {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-7 gap-1 sm:gap-1.5 md:gap-2 relative">
+            <div key={weekIndex} className="grid grid-cols-7 gap-1 sm:gap-1.5 md:gap-2 relative flex-1 min-h-0">
                 
 
                 {week.map((d, i) => {
@@ -260,23 +260,35 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const simpleTaskNames = [...peptideNames, ...supplementNames].slice(0, 6);
 
                     return (
-                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
-                            borderColor: allTasksCompleted ? (theme.isDark ? '#4b5563' : '#D1D5DB') : (isToday && todayPulse ? theme.primary : theme.border),
+                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative h-full overflow-hidden ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
+                            border: isToday 
+                              ? `1.5px solid ${theme.isDark ? theme.primary + '50' : theme.primary + '45'}`
+                              : `1px solid ${allTasksCompleted ? (theme.isDark ? '#4b5563' : '#D1D5DB') : theme.border}`,
                             backgroundColor: d ? (
-                                isToday ? theme.primary + '15' :
+                                isToday ? (theme.isDark ? theme.primary + '18' : theme.primary + '12') :
                                 allTasksCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6') : 
                                 hasActivity ? (theme.isDark ? '#1f2937' : theme.primary + '05') :
                                 theme.isDark ? '#111827' : theme.cardBackground
                             ) : 'transparent',
-                            boxShadow: isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'
+                            boxShadow: isToday 
+                              ? (theme.isDark 
+                                  ? `0 0 12px ${theme.primary}20, 0 0 0 1px ${theme.primary}18, inset 0 1px 0 ${theme.primary}10` 
+                                  : `0 0 12px ${theme.primary}15, 0 0 0 1px ${theme.primary}12, inset 0 1px 0 ${theme.primary}08`)
+                              : (isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'),
+                            background: isToday && d
+                              ? (theme.isDark 
+                                  ? `linear-gradient(180deg, ${theme.primary}15 0%, rgba(31,41,55,0.95) 100%)`
+                                  : `linear-gradient(180deg, ${theme.primary}12 0%, rgba(255,255,255,0.98) 100%)`)
+                              : undefined,
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             {/* Mobile-first layout */}
                             <div className="flex flex-col h-full relative">
                                 {/* Date row */}
                                 <div className="flex items-start justify-between mb-1">
-                                    <span className={`text-sm sm:text-base md:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex justify-center items-center shadow-sm text-xs sm:text-sm md:text-xl' : ''}`} style={{ 
+                                    <span className={`text-sm sm:text-base md:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex justify-center items-center text-xs sm:text-sm md:text-xl' : ''}`} style={{ 
                                         backgroundColor: isToday ? theme.primary : 'transparent',
-                                        color: isToday ? theme.textOnPrimary : (d ? (theme.isDark ? theme.text : theme.primaryDark) : theme.textLight)
+                                        color: isToday ? theme.textOnPrimary : (d ? (theme.isDark ? theme.text : theme.primaryDark) : theme.textLight),
+                                        boxShadow: isToday ? `0 2px 8px ${theme.primary}40` : 'none',
                                     }}>
                                         {d ? d.getDate() : ''}
                                     </span>

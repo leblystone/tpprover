@@ -386,8 +386,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             style={{
                 backdropFilter: 'blur(24px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                backgroundColor: 'rgba(139, 133, 125, 0.2)',
-                border: `1px solid rgba(0, 0, 0, 0.15)`,
+                backgroundColor: theme.isDark ? 'rgba(30, 30, 30, 0.75)' : 'rgba(139, 133, 125, 0.2)',
+                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.15)'}`,
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                 minWidth: compact ? '240px' : '320px',
                 top: `${dropdownPosition.top}px`,
@@ -401,7 +401,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             }}
         >
             {/* Calendar Header */}
-            <div className={`${compact ? 'p-1.5' : 'p-2.5'} border-b`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+            <div className={`${compact ? 'p-1.5' : 'p-2.5'} border-b`} style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.2)' }}>
                 <div className={`flex items-center justify-between ${compact ? 'mb-1.5' : 'mb-2'}`}>
                     <button
                         type="button"
@@ -422,7 +422,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     >
                         <ChevronLeft size={compact ? 14 : 18} />
                     </button>
-                    <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold`} style={{ color: '#5F7F76' }}>
+                    <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold`} style={{ color: theme.isDark ? 'rgba(255,255,255,0.85)' : '#5F7F76' }}>
                         {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                     </div>
                     <button
@@ -452,7 +452,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                         <div
                             key={day}
                             className={`${compact ? 'text-[10px]' : 'text-xs'} font-medium text-center ${compact ? 'py-0.5' : 'py-1'}`}
-                            style={{ color: '#5F7F76' }}
+                            style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : '#5F7F76' }}
                         >
                             {day}
                         </div>
@@ -483,7 +483,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                 className={`aspect-square rounded-lg transition-all ${compact ? 'text-xs' : 'text-sm'} font-medium touch-manipulation`}
                                 style={{
                                     backgroundColor: isSelectedDate
-                                        ? theme.primary
+                                        ? (theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primary)
                                         : isTodayDate
                                             ? 'rgba(255, 255, 255, 0.2)'
                                             : 'transparent',
@@ -491,10 +491,12 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                         ? '#ffffff'
                                         : '#ffffff',
                                     border: isTodayDate && !isSelectedDate
-                                        ? `1px solid ${theme.primary}`
+                                        ? `1px solid ${theme.isDark ? 'rgba(255,255,255,0.4)' : theme.primary}`
                                         : '1px solid transparent',
                                     boxShadow: isSelectedDate
-                                        ? `0 2px 8px ${theme.primary}50, inset 0 1px 0 rgba(255, 255, 255, 0.2)`
+                                        ? (theme.isDark 
+                                            ? `0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)` 
+                                            : `0 2px 8px ${theme.primary}50, inset 0 1px 0 rgba(255, 255, 255, 0.2)`)
                                         : isTodayDate
                                             ? `inset 0 1px 0 rgba(255, 255, 255, 0.3)`
                                             : 'none',
@@ -523,7 +525,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             </div>
 
             {/* Quick Actions */}
-            <div className={`${compact ? 'p-1.5' : 'p-2'} border-t flex gap-2`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+            <div className={`${compact ? 'p-1.5' : 'p-2'} border-t flex gap-2`} style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.2)' }}>
                 <button
                     type="button"
                     onClick={() => {
@@ -590,9 +592,9 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
                 style={{
-                    border: `1px solid #f0eee7`,
-                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                    border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0eee7',
+                    boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || theme.cardBackground),
                     color: theme.isDark ? theme.text : '#181A18',
                     WebkitTapHighlightColor: 'transparent'
                 }}
@@ -600,7 +602,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 <span className={compact ? 'text-sm' : ''} style={{ color: value ? (theme.isDark ? theme.text : '#181A18') : (theme.textLight || theme.text) }}>
                     {formatDisplayDate(value)}
                 </span>
-                <Calendar size={compact ? 14 : 18} style={{ color: theme.primary, opacity: 0.7 }} />
+                <Calendar size={compact ? 14 : 18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.primary, opacity: 0.7 }} />
             </button>
             {calendarDropdown}
         </div>

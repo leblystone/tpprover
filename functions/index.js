@@ -570,14 +570,19 @@ exports.scheduledResearchReminders = onSchedule({
       // Get peptides from active protocols
       for (const protocol of protocols) {
         
+        // Skip protocols explicitly marked as inactive/stopped
+        if (protocol.active === false) continue;
+        
         // Check if protocol is active today (in user's timezone)
-        if (protocol.startDate && protocol.endDate) {
+        // Must have a start date; end date is optional (ongoing protocols have no end date)
+        if (protocol.startDate) {
           const startDate = new Date(protocol.startDate);
           startDate.setHours(0, 0, 0, 0);
-          const endDate = new Date(protocol.endDate);
-          endDate.setHours(23, 59, 59, 999);
+          const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+          if (endDate) endDate.setHours(23, 59, 59, 999);
           
-          if (userToday >= startDate && userToday <= endDate) {
+          // Match client-side logic: started AND (no end date OR end date hasn't passed)
+          if (userToday >= startDate && (!endDate || userToday <= endDate)) {
             // Add protocol tasks to today's list
             // Some protocols don't have AM/PM scheduling - they just have tasks scheduled for the day
             if (protocol.peptides) {
@@ -854,6 +859,134 @@ exports.scheduledResearchReminders = onSchedule({
       promises.push(
         pushNotifications.sendPushNotificationByType(userId, 'researchReminders', notificationData)
       );
+    }
+
+    // ───────────────────────────────────────────────────
+    // STEP C: Titration Dose Change Notifications
+    // Runs once daily (at 8:00 AM user-local or AM reminder time)
+    // Compares today's titration dose vs yesterday's; sends alert when dose changes
+    // ───────────────────────────────────────────────────
+    for (const userDoc of usersWithPushEnabled) {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      const userSettings = userData.settings || {};
+      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
+      const reminderTimeAMForTitration = userData.notificationSettings?.researchReminderTimeAM || '08:00';
+      const [titHour, titMinute] = reminderTimeAMForTitration.split(':').map(Number);
+
+      // Get current time in user's timezone
+      const nowForTitration = new Date();
+      const userTimeStr = nowForTitration.toLocaleString("en-US", {
+        timeZone: userTimezone,
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const [curH, curM] = userTimeStr.split(':').map(Number);
+
+      // Only run this check at the user's AM reminder window
+      if (curH !== titHour || Math.floor(curM / 15) * 15 !== Math.floor(titMinute / 15) * 15) {
+        continue;
+      }
+
+      // Get user data
+      const titrationUserDataDoc = await admin.firestore().collection('userData').doc(userId).get();
+      const titrationUserData = titrationUserDataDoc.data();
+      const titrationProtocols = titrationUserData?.protocols || [];
+
+      // Get today and yesterday in user's timezone
+      const userDateStr = nowForTitration.toLocaleString("en-US", {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const [tM, tD, tY] = userDateStr.split('/');
+      const today = new Date(tY, tM - 1, tD);
+      today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Helper functions for titration calculation (mirrors client-side calendarTasks.js)
+      const getPhaseDays = (phase) => {
+        const unit = String(phase.durationUnit || 'day').toLowerCase();
+        if (unit === 'ongoing') return 0;
+        const count = Number(phase.durationCount) || 0;
+        if (unit.includes('week')) return count * 7;
+        if (unit.includes('month')) return count * 30;
+        return count;
+      };
+
+      const getElapsedDays = (protocol, peptide, targetDate) => {
+        const startDate = new Date(protocol.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const target = new Date(targetDate);
+        target.setHours(0, 0, 0, 0);
+        let elapsed = Math.floor((target - startDate) / (1000 * 60 * 60 * 24));
+        if (elapsed < 0) return null;
+        elapsed += (Number(peptide.titrationDaysOffset) || 0);
+        if (peptide.titrationHeldAt) {
+          const held = new Date(peptide.titrationHeldAt);
+          held.setHours(0, 0, 0, 0);
+          const heldDays = Math.floor((held - startDate) / (1000 * 60 * 60 * 24));
+          if (heldDays >= 0) elapsed = heldDays + (Number(peptide.titrationDaysOffset) || 0);
+        }
+        return Math.max(0, elapsed);
+      };
+
+      const getDoseForDate = (protocol, peptide, targetDate) => {
+        const isFixed = peptide.dosageScheduleType === 'fixed' || !peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0;
+        if (isFixed) return { dose: peptide.dosage?.amount || '', unit: peptide.dosage?.unit || '' };
+        const daysElapsed = getElapsedDays(protocol, peptide, targetDate);
+        if (daysElapsed === null) return { dose: peptide.dosage?.amount || '', unit: peptide.dosage?.unit || '' };
+        let cumulativeDays = 0;
+        for (let i = 0; i < peptide.titration.length; i++) {
+          const phase = peptide.titration[i];
+          const isLast = i === peptide.titration.length - 1;
+          let pDays = getPhaseDays(phase);
+          if (pDays <= 0) { if (isLast) return { dose: phase.dose || '', unit: phase.doseUnit || '' }; pDays = 1; }
+          if (daysElapsed < cumulativeDays + pDays) return { dose: phase.dose || '', unit: phase.doseUnit || '' };
+          cumulativeDays += pDays;
+        }
+        const lastPhase = peptide.titration[peptide.titration.length - 1];
+        return { dose: lastPhase.dose || '', unit: lastPhase.doseUnit || '' };
+      };
+
+      for (const protocol of titrationProtocols) {
+        if (protocol.active === false || !protocol.startDate) continue;
+        const startDate = new Date(protocol.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+        if (endDate) endDate.setHours(23, 59, 59, 999);
+        if (today < startDate || (endDate && today > endDate)) continue;
+
+        if (!protocol.peptides) continue;
+        for (const peptide of protocol.peptides) {
+          if (!peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length < 2) continue;
+          if (peptide.dosageScheduleType === 'fixed') continue;
+
+          const todayDose = getDoseForDate(protocol, peptide, today);
+          const yesterdayDose = getDoseForDate(protocol, peptide, yesterday);
+
+          if (String(todayDose.dose) !== String(yesterdayDose.dose) || String(todayDose.unit) !== String(yesterdayDose.unit)) {
+            const oldDoseStr = `${yesterdayDose.dose} ${yesterdayDose.unit}`.trim();
+            const newDoseStr = `${todayDose.dose} ${todayDose.unit}`.trim();
+            const peptideName = peptide.name || 'Peptide';
+
+            logger.info(`📈 Titration dose change for user ${userId}: ${peptideName} ${oldDoseStr} → ${newDoseStr}`);
+
+            const titrationNotifData = {
+              title: `📈 Dose Change Today!`,
+              body: `Your ${peptideName} dose changes today: ${oldDoseStr} → ${newDoseStr}. Check your protocol for details.`,
+              appUrl: 'https://thepepplanner.com/app/protocols'
+            };
+
+            promises.push(
+              pushNotifications.sendPushNotificationByType(userId, 'researchReminders', titrationNotifData)
+            );
+          }
+        }
+      }
     }
 
     const results = await Promise.allSettled(promises);
@@ -5551,6 +5684,7 @@ exports.scheduledCycleReminders = onSchedule({
         
         for (const protocol of protocols) {
           if (!protocol.startDate) continue;
+          if (protocol.active === false) continue; // Skip stopped/ended protocols
           
           const protocolName = protocol.protocolName || protocol.name || 'your protocol';
           const startDate = new Date(protocol.startDate);

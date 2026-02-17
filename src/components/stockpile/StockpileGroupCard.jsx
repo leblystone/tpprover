@@ -38,11 +38,8 @@ export default function StockpileGroupCard({
   return (
     <div
       onClick={onCardClick}
-      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl"
+      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl glass-panel-minimal"
       style={{
-        background: theme.isDark 
-          ? `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.cardBackground}ee 100%)`
-          : `linear-gradient(135deg, ${theme.cardBackground} 0%, #ffffff 100%)`,
         boxShadow: theme.isDark
           ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
           : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
@@ -103,14 +100,14 @@ export default function StockpileGroupCard({
         {/* Header Section */}
         <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+            <h3 className="text-lg font-semibold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
           </div>
           
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <div 
-              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
+              className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm"
               style={{ 
                 fontFamily: 'Poppins, sans-serif',
                 backgroundColor: statusBadge === 'low' 
@@ -240,10 +237,10 @@ function ItemStrip({
         }}
         onMouseEnter={(e) => {
           if (!isExpanded) {
-            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
+            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)';
             e.currentTarget.style.boxShadow = theme.isDark 
-              ? `inset 0 0 0 1px rgba(255, 255, 255, 0.1)`
-              : `inset 0 0 0 1px rgba(0, 0, 0, 0.05)`;
+              ? `inset 0 0 0 1px rgba(255, 255, 255, 0.08)`
+              : `inset 0 0 0 1px rgba(0, 0, 0, 0.04)`;
           }
         }}
         onMouseLeave={(e) => {
@@ -262,7 +259,7 @@ function ItemStrip({
           {/* Needs Review Badge */}
           {needsReview && (
             <div 
-              className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
+              className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex-shrink-0"
               style={{ 
                 backgroundColor: theme.isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.15)',
                 color: theme.isDark ? '#fbbf24' : '#ca8a04',
@@ -274,7 +271,7 @@ function ItemStrip({
             </div>
           )}
           
-          <div className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+          <div className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
             {vendorName}
           </div>
           {item.date && (
@@ -320,7 +317,7 @@ function ItemStrip({
                   <div className="fixed inset-0 z-[9998]" onClick={() => setOpenMenuId(null)} />
                   <div 
                     className="absolute right-0 top-full mt-1 z-[9999] rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
-                    style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', borderColor: theme.border }}
+                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
                   >
                     {isUnknownGroup && (
                       <MenuAction icon={Merge} label="Merge Series" onClick={() => onMergeIndividualItem(item)} theme={theme} />
@@ -399,7 +396,7 @@ function DataPoint({ icon: Icon, label, value, theme }) {
       <Icon size={14} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
       <div className="flex flex-col min-w-0">
         <span className="text-[10px] uppercase tracking-wide opacity-60 font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{label}</span>
-        <span className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
+        <span className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
       </div>
     </div>
   );
@@ -409,8 +406,10 @@ function MenuAction({ icon: Icon, label, onClick, theme, color }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="w-full text-left px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-3 transition-colors font-medium"
+      className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors font-medium"
       style={{ color: color || theme.text, fontFamily: 'Poppins, sans-serif' }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
       <Icon size={14} style={{ color: color || '#8ca68c' }} />
       {label}

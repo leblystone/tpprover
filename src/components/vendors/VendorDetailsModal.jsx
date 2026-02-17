@@ -45,6 +45,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const [contactFocused, setContactFocused] = useState({})
   const [isNotesFocused, setIsNotesFocused] = useState(false)
   const [openDropdowns, setOpenDropdowns] = useState({})
+  // Dropdown is now inline, no refs/position state needed
   
   // Auto-save functionality with vendor persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
@@ -182,7 +183,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="flex items-center gap-4 mb-4">
             <Building2 size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5 flex-1">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vendor Profile</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Vendor Profile</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -259,8 +260,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       <svg 
                         xmlns="http://www.w3.org/2000/svg" 
                         viewBox="0 0 24 24" 
-                        fill={isFilled ? theme.primary : 'none'} 
-                        stroke={isFilled ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')} 
+                        fill={isFilled ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1] : 'none'} 
+                        stroke={isFilled ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1] : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')} 
                         className={`w-6 h-6 star-icon ${isFilled ? 'filled' : ''}`}
                         style={{ opacity: isFilled ? 1 : 0.5 }}
                       >
@@ -305,7 +306,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="flex items-center gap-4 mb-4">
             <MessageSquare size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Communication</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Communication</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -321,23 +322,34 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         <div>
           <div className="space-y-4">
             {form.contacts.map((c, idx) => (
-              <div key={idx} className="flex items-center gap-2 group">
-                <div className="flex-1 min-w-0 relative">
-                  <div 
-                    className="flex items-stretch rounded-xl overflow-hidden transition-all duration-200"
-                    style={{ 
-                      border: `1px solid ${contactFocused[idx] ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
-                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff',
-                      boxShadow: contactFocused[idx] ? `0 0 0 2px ${theme.primary}15` : 'none'
-                    }}
-                  >
-                    {/* Type Selector Dropdown */}
-                    <div className="relative border-r" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7' }}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                        className="flex items-center gap-2 px-4 py-3 h-full transition-colors hover:bg-black/5"
-                        style={{ color: theme.text }}
+              <div key={idx} data-dropdown-container className="relative">
+                <div className="flex items-center gap-2 group">
+                  <div className="flex-1 min-w-0">
+                    <div 
+                      className="flex items-stretch rounded-xl transition-all duration-200"
+                      style={{ 
+                        border: `1px solid ${contactFocused[idx] ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff',
+                        boxShadow: contactFocused[idx] ? `0 0 0 2px ${theme.primary}15` : 'none'
+                      }}
+                    >
+                      {/* Type Selector - entire left area is tappable */}
+                      <div 
+                        className="border-r flex items-center gap-2 px-4 py-3 cursor-pointer select-none"
+                        style={{ 
+                          borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7', 
+                          color: theme.text,
+                          backgroundColor: openDropdowns[idx] ? (theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent',
+                        }}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (openDropdowns[idx]) {
+                            setOpenDropdowns({});
+                          } else {
+                            setOpenDropdowns({ [idx]: true });
+                          }
+                        }}
                       >
                         <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">
                           {getContactLabel(c.type)}
@@ -345,70 +357,76 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                         <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className={`transition-transform duration-200 ${openDropdowns[idx] ? 'rotate-180' : ''}`}>
                           <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                      </button>
+                      </div>
 
-                      {openDropdowns[idx] && (
-                        <div 
-                          className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-2xl border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                          style={{
-                            backgroundColor: theme.cardBackground,
-                            borderColor: theme.border,
-                            minWidth: '160px'
-                          }}
-                        >
-                          {[
-                            { value: 'email', label: 'Email' },
-                            { value: 'website', label: 'Website' },
-                            { value: 'phone', label: 'Phone' },
-                            { value: 'whatsapp', label: 'WhatsApp' },
-                            { value: 'telegram', label: 'Telegram' },
-                            { value: 'discord', label: 'Discord' },
-                            { value: 'facebook', label: 'Facebook' },
-                            { value: 'other', label: 'Other' }
-                          ].map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => {
-                                updateContact(idx, 'type', option.value);
-                                setOpenDropdowns(prev => ({ ...prev, [idx]: false }));
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-black/5"
-                              style={{ 
-                                color: c.type === option.value ? theme.primary : theme.text,
-                                backgroundColor: c.type === option.value ? `${theme.primary}10` : 'transparent'
-                              }}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      <input 
+                        type="text"
+                        value={c.value || ''} 
+                        onChange={e => updateContact(idx, 'value', e.target.value)} 
+                        onFocus={() => setContactFocused(prev => ({ ...prev, [idx]: true }))}
+                        onBlur={() => setTimeout(() => setContactFocused(prev => ({ ...prev, [idx]: false })), 200)}
+                        placeholder={getContactPlaceholder(c.type)}
+                        className="flex-1 py-3 px-4 outline-none text-sm font-medium"
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: theme.text
+                        }}
+                      />
                     </div>
-
-                    <input 
-                      type="text"
-                      value={c.value || ''} 
-                      onChange={e => updateContact(idx, 'value', e.target.value)} 
-                      onFocus={() => setContactFocused(prev => ({ ...prev, [idx]: true }))}
-                      onBlur={() => setTimeout(() => setContactFocused(prev => ({ ...prev, [idx]: false })), 200)}
-                      placeholder={getContactPlaceholder(c.type)}
-                      className="flex-1 py-3 px-4 outline-none text-sm font-medium"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: theme.text
-                      }}
-                    />
                   </div>
+                  
+                  <button 
+                    type="button"
+                    className="p-2.5 rounded-xl transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" 
+                    onClick={() => removeContact(idx)}
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
-                
-                <button 
-                  type="button"
-                  className="p-2.5 rounded-xl transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" 
-                  onClick={() => removeContact(idx)}
-                >
-                  <X size={18} />
-                </button>
+
+                {/* Overlay dropdown - floats over content below */}
+                {openDropdowns[idx] && (
+                  <div 
+                    className="absolute left-0 mt-1 rounded-xl overflow-hidden border shadow-lg"
+                    style={{
+                      top: '100%',
+                      zIndex: 50,
+                      backgroundColor: theme.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme.cardBackground || '#fff'),
+                      borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7',
+                      width: '160px',
+                    }}
+                  >
+                    {[
+                      { value: 'email', label: 'Email' },
+                      { value: 'website', label: 'Website' },
+                      { value: 'phone', label: 'Phone' },
+                      { value: 'whatsapp', label: 'WhatsApp' },
+                      { value: 'telegram', label: 'Telegram' },
+                      { value: 'discord', label: 'Discord' },
+                      { value: 'facebook', label: 'Facebook' },
+                      { value: 'other', label: 'Other' }
+                    ].map((option, i, arr) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateContact(idx, 'type', option.value);
+                          setOpenDropdowns({});
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors"
+                        style={{ 
+                          color: c.type === option.value ? theme.primary : theme.text,
+                          backgroundColor: c.type === option.value ? `${theme.primary}08` : 'transparent',
+                          borderBottom: i < arr.length - 1 ? `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}` : 'none',
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             
@@ -432,7 +450,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="flex items-center gap-4 mb-4">
             <CreditCard size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Trust & Payments</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Trust & Payments</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -494,7 +512,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="flex items-center gap-4 mb-4">
             <FileText size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Labels</h4>
+              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Labels</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -574,7 +592,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               <div className="flex items-center gap-4 mb-4">
                 <History size={32} style={{ color: theme.primary }} />
                 <div className="flex flex-col gap-0.5">
-                  <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order History</h4>
+                  <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Order History</h4>
                   <div className="flex items-center gap-2 ml-1">
                     <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -601,7 +619,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
               <Lock size={32} style={{ color: theme.primary }} />
             </div>
-            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: theme.primaryDark }}>
               Trial has ended
             </h3>
             <p className="text-sm mb-4" style={{ color: theme.text }}>
@@ -623,6 +641,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           </div>
         </div>
       )}
+
+      {/* Portal removed - dropdown is now inline within each contact row */}
     </BottomSheet>
   )
 }
@@ -638,9 +658,9 @@ function NameSuggestions({ anchorValue, onPick, theme }) {
   const list = q ? base.filter(v => v.toLowerCase().includes(q)).slice(0, 6) : []
   if (list.length === 0) return null
   return (
-    <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" style={{ borderColor: theme?.border }}>
+    <div className="absolute z-10 mt-1 w-full rounded-md border shadow" style={{ borderColor: theme?.border, backgroundColor: theme?.cardBackground || '#ffffff' }}>
       {list.map(v => (
-        <button key={v} type="button" className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => onPick?.(v)}>
+        <button key={v} type="button" className="w-full text-left px-3 py-2 transition-colors" style={{ color: theme?.text }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }} onClick={() => onPick?.(v)}>
           {v}
         </button>
       ))}

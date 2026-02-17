@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
-import { Smartphone, Sparkles, Shield, X } from 'lucide-react';
+import { Smartphone, Sparkles, Shield, X, Lock, Bug, AlertTriangle } from 'lucide-react';
 import { recordDismissal, getStoreUrl } from '../../utils/versionChecker';
 
 export default function UpdatePromptModal({ 
@@ -127,8 +127,8 @@ export default function UpdatePromptModal({
               <Sparkles size={36} />
             )}
           </div>
-          <h2 className="text-xl font-bold mb-1">
-            {isCritical ? "Update Required 🔒" : "Hey! Update Your App!"}
+          <h2 className="text-xl font-semibold mb-1 flex items-center justify-center gap-2">
+            {isCritical ? <><span>Update Required</span><Lock size={18} /></> : "Hey! Update Your App!"}
           </h2>
         </div>
         
@@ -138,7 +138,7 @@ export default function UpdatePromptModal({
             {isCritical ? (
               <>This update is <strong>required</strong> to keep using <em>The Pep Planner</em> safely and securely.</>
             ) : (
-              <>We've found some bugs 🦠 and updated some useful features to make <em>The Pep Planner</em> better. ✨</>
+              <span className="inline-flex items-center gap-1 flex-wrap">We've found some bugs <Bug size={14} className="inline" /> and updated some useful features to make <em>The Pep Planner</em> better. <Sparkles size={14} className="inline" /></span>
             )}
           </p>
         </div>
@@ -181,9 +181,10 @@ export default function UpdatePromptModal({
         
         {/* Critical Warning (if needed) */}
         {isCritical && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-sm font-medium text-red-900">
-              ⚠️ Please update now to continue using the app. This includes important security fixes.
+          <div className="rounded-lg p-3 border" style={{ backgroundColor: theme?.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', borderColor: theme?.isDark ? 'rgba(239,68,68,0.2)' : '#fecaca' }}>
+            <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme?.isDark ? '#fca5a5' : '#7f1d1d' }}>
+              <AlertTriangle size={14} />
+              Please update now to continue using the app. This includes important security fixes.
             </p>
           </div>
         )}

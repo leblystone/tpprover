@@ -978,7 +978,7 @@ export default function Calendar() {
   });
 
   return (
-    <section className="flex flex-col h-full">
+    <section className="flex flex-col flex-1 min-h-0" style={{ overflow: 'hidden', background: 'transparent' }}>
       <CalendarHeader
         currentDate={currentDate}
         weekStart={weekStart}
@@ -995,15 +995,14 @@ export default function Calendar() {
         onShowIconKey={() => setShowIconKey(true)}
         theme={theme}
       />
-      <div 
-        className="rounded p-4 content-card flex-1" 
-        style={{ 
-          border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-          backgroundColor: theme.cardBackground 
-        }}
-        {...swipeHandlers}
-      >
-        {viewMode === 'month' ? (
+      {viewMode === 'month' ? (
+        <div 
+          className="content-section rounded-xl p-2 sm:p-4 flex-1 overflow-hidden min-h-0" 
+          style={{ 
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` 
+          }}
+          {...swipeHandlers}
+        >
           <MonthGrid
             date={currentDate}
             entries={calendarNotes}
@@ -1013,36 +1012,37 @@ export default function Calendar() {
             todayPulse={todayPulse}
             onDayClick={(d) => {
               if (!d) return
-              // Open day modal to show all details like weekly view
               setDayModalDate(d)
             }}
           />
-        ) : (
-          <div className="space-y-2">
-            <WeekView 
-              startDate={weekStart} 
-              entries={calendarNotes} 
-              scheduled={scheduled} 
-              theme={theme} 
-              calendarBump={calendarBump}
-              onDayClick={(date) => {
-                // Check if the day has scheduled tasks - if so, open quick edit
-                const dayKey = toKey(date);
-                const dayScheduled = scheduled[dayKey];
-                if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
-                  setQuickEditDate(dayKey);
-                  setQuickEditData(dayScheduled);
-                } else {
-                  setActiveDay(date);
-                }
-              }} 
-              onNotesClick={setEditingNotesFor}
-              onTaskToggle={handleTaskToggle}
-              onMarkAllDone={handleMarkAllDone}
-            />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div 
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-2 sm:px-3 py-2"
+          {...swipeHandlers}
+        >
+          <WeekView 
+            startDate={weekStart} 
+            entries={calendarNotes} 
+            scheduled={scheduled} 
+            theme={theme} 
+            calendarBump={calendarBump}
+            onDayClick={(date) => {
+              const dayKey = toKey(date);
+              const dayScheduled = scheduled[dayKey];
+              if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
+                setQuickEditDate(dayKey);
+                setQuickEditData(dayScheduled);
+              } else {
+                setActiveDay(date);
+              }
+            }} 
+            onNotesClick={setEditingNotesFor}
+            onTaskToggle={handleTaskToggle}
+            onMarkAllDone={handleMarkAllDone}
+          />
+        </div>
+      )}
 
       <NotesModal
           open={!!editingNotesFor}

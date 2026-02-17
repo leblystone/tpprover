@@ -104,7 +104,7 @@ export default function SettingsLegal() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col gap-1 mb-2">
         <div className="flex items-center gap-3">
@@ -122,12 +122,12 @@ export default function SettingsLegal() {
         </div>
         <div className="flex items-center gap-2 ml-14">
           <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
             Policies & Agreements
           </span>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Legal Settings */}
       <div className="space-y-6">
@@ -135,14 +135,14 @@ export default function SettingsLegal() {
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
             <FileText size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Research Agreements
             </h4>
           </div>
 
           <div 
-            className="px-6 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-6 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <LegalDocumentCard
               title="Terms of Service"
@@ -190,7 +190,7 @@ const LegalDocumentCard = ({ title, agreement, onAction, actionText, theme, icon
         <Icon size={18} style={{ color: theme.primary }} />
       </div>
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
           {title}
         </div>
         <div className="text-sm font-black tracking-tight" style={{ color: theme.text }}>

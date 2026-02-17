@@ -24,15 +24,15 @@ export default function GlobalSearchModal({ open, onClose, theme, onNavigate }) 
         <input autoFocus className="w-full p-3 rounded border" style={{ borderColor: safeTheme.border }} placeholder="Search protocols, orders, vendors, stockpile, glossary..." value={q} onChange={e => setQ(e.target.value)} />
         <ul className="divide-y" style={{ borderColor: safeTheme.border }}>
           {results.map(r => (
-            <li key={r.key} className="py-2 flex items-center gap-2 hover:bg-gray-50 px-1 rounded cursor-pointer" onClick={() => { onClose(); onNavigate?.(r.to) }}>
+            <li key={r.key} className="py-2 flex items-center gap-2 px-1 rounded cursor-pointer" onMouseEnter={e => e.currentTarget.style.backgroundColor = safeTheme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'} onClick={() => { onClose(); onNavigate?.(r.to) }}>
               <span>{iconFor(r.type)}</span>
               <div>
                 <div className="text-sm font-medium">{r.title}</div>
-                <div className="text-xs text-gray-500">{r.subtitle}</div>
+                <div className="text-xs" style={{ color: safeTheme.textLight || '#6b7280' }}>{r.subtitle}</div>
               </div>
             </li>
           ))}
-          {q && results.length === 0 && <li className="py-2 text-sm text-gray-500">No results.</li>}
+          {q && results.length === 0 && <li className="py-2 text-sm" style={{ color: safeTheme.textLight || '#6b7280' }}>No results.</li>}
         </ul>
       </div>
     </Modal>

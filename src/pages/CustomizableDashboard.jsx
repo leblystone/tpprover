@@ -185,10 +185,12 @@ export default function CustomizableDashboard() {
     const latest = activeOrders[0];
     
     return {
+      ...latest,
       peptide: latest.items?.[0]?.name || 'Unknown Item',
       mg: latest.items?.[0]?.mg || 'N/A',
       vendor: latest.vendorName || latest.vendor || 'Unknown Vendor',
       status: latest.status || 'Order Placed',
+      date: latest.date,
       shipDate: latest.shipDate || latest.date,
       deliveryDate: latest.deliveryDate,
       tracking: latest.tracking
@@ -224,17 +226,12 @@ export default function CustomizableDashboard() {
                 return true;
               })
             : buys;
-          const now = new Date();
-          const upcoming = filteredBuys.filter(b => 
-            new Date(b.openDate) >= now || 
-            (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
-          );
-          setScheduledBuys(upcoming.map(b => ({
+          setScheduledBuys(filteredBuys.map(b => ({
             id: b.id,
-            item: b.item, // CRITICAL: Preserve the item field for display
-            name: b.name || b.item, // Map for backward compatibility
-            peptideName: b.peptideName || b.item, // Map for backward compatibility
-            date: b.openDate,
+            item: b.item,
+            name: b.name || b.item,
+            peptideName: b.peptideName || b.item,
+            date: b.openDate || b.date,
             openDate: b.openDate,
             closeDate: b.closeDate,
             vendor: b.vendor,
@@ -243,7 +240,7 @@ export default function CustomizableDashboard() {
             price: b.price,
             notes: b.notes,
             description: b.description,
-            isMock: b.isMock, // Preserve isMock flag for filtering
+            isMock: b.isMock,
             createdAt: b.createdAt,
             updatedAt: b.updatedAt
           })));
@@ -271,6 +268,7 @@ export default function CustomizableDashboard() {
 
     window.addEventListener('sample-data-cleared', handleSampleDataCleared);
     window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
+    window.addEventListener('tpp:scheduled-buys-updated', loadAndFilterBuys);
 
     // Also listen for localStorage changes (cross-tab sync)
     const handleStorageChange = (e) => {
@@ -283,6 +281,7 @@ export default function CustomizableDashboard() {
     return () => {
       window.removeEventListener('sample-data-cleared', handleSampleDataCleared);
       window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
+      window.removeEventListener('tpp:scheduled-buys-updated', loadAndFilterBuys);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [setScheduledBuys]);
@@ -374,20 +373,23 @@ export default function CustomizableDashboard() {
           const filteredBuys = sampleDataCleared 
             ? buys.filter(b => !b.isMock)
             : buys;
-          const now = new Date();
-          const upcoming = filteredBuys.filter(b => 
-            new Date(b.openDate) >= now || 
-            (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
-          );
-          setScheduledBuys(upcoming.map(b => ({
+          setScheduledBuys(filteredBuys.map(b => ({
             id: b.id,
-            name: b.item,
-            date: b.openDate,
+            item: b.item,
+            name: b.name || b.item,
+            peptideName: b.peptideName || b.item,
+            date: b.openDate || b.date,
             openDate: b.openDate,
             closeDate: b.closeDate,
             vendor: b.vendor,
+            location: b.location,
+            participants: b.participants,
+            price: b.price,
             notes: b.notes,
-            isMock: b.isMock
+            description: b.description,
+            isMock: b.isMock,
+            createdAt: b.createdAt,
+            updatedAt: b.updatedAt
           })));
         } else {
           setScheduledBuys([]);

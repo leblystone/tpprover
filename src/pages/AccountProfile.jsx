@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info, AlertCircle } from 'lucide-react'
+import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info, AlertCircle, AlertTriangle, Lightbulb } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
@@ -660,13 +660,13 @@ export default function AccountProfile() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate('/app/account')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -680,7 +680,7 @@ export default function AccountProfile() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {user ? (
         <div className="space-y-6">
@@ -688,15 +688,14 @@ export default function AccountProfile() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <Mail size={16} style={{ color: theme.primary }} />
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Email Address
               </h4>
             </div>
             
             <div 
-              className="p-4 rounded-[2rem] border-2 transition-all"
+              className="content-section p-4 rounded-[2rem] border-2 transition-all"
               style={{
-                backgroundColor: theme.cardBackground,
                 borderColor: 'transparent',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
               }}
@@ -711,7 +710,7 @@ export default function AccountProfile() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email</div>
+                      <div className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email</div>
                       <div 
                         className="font-semibold tracking-tight whitespace-nowrap"
                         style={{ 
@@ -725,7 +724,7 @@ export default function AccountProfile() {
                       </div>
                     </div>
                     <button 
-                      className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all shrink-0" 
+                      className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg hover:opacity-80 transition-all shrink-0" 
                       style={{ color: theme.primary, backgroundColor: theme.primary + '10' }} 
                       onClick={() => { setEditingEmail(true); setEmailDraft(user.email || '') }}
                     >
@@ -742,16 +741,15 @@ export default function AccountProfile() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <Info size={16} style={{ color: theme.primary }} />
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Account Information
               </h4>
             </div>
             
             <div className="space-y-3">
               <div 
-                className="p-3 rounded-[2rem] border-2 transition-all"
+                className="content-section p-3 rounded-[2rem] border-2 transition-all"
                 style={{
-                  backgroundColor: theme.cardBackground,
                   borderColor: 'transparent',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                 }}
@@ -765,9 +763,8 @@ export default function AccountProfile() {
               </div>
               
               <div 
-                className="p-3 rounded-[2rem] border-2 transition-all"
+                className="content-section p-3 rounded-[2rem] border-2 transition-all"
                 style={{
-                  backgroundColor: theme.cardBackground,
                   borderColor: 'transparent',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                 }}
@@ -787,7 +784,7 @@ export default function AccountProfile() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <Shield size={16} style={{ color: theme.primary }} />
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Password & Security
               </h4>
             </div>
@@ -796,9 +793,8 @@ export default function AccountProfile() {
               {/* Password Reset Button */}
               <button
                 onClick={() => setPasswordModalOpen(true)}
-                className="group w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative"
+                className="content-section group w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative"
                 style={{
-                  backgroundColor: theme.cardBackground,
                   borderColor: 'transparent',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                 }}
@@ -831,9 +827,8 @@ export default function AccountProfile() {
               {/* 2FA Button - Coming Soon */}
               <div>
                 <div
-                  className="w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative opacity-40 cursor-not-allowed"
+                  className="content-section w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative opacity-40 cursor-not-allowed"
                   style={{
-                    backgroundColor: theme.cardBackground,
                     borderColor: 'transparent',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                   }}
@@ -866,8 +861,7 @@ export default function AccountProfile() {
         </div>
       ) : (
         <div 
-          className="p-6 rounded-lg text-center"
-          style={{ backgroundColor: theme.cardBackground }}
+          className="content-section p-6 rounded-lg text-center"
         >
           <User size={48} className="mx-auto mb-4" style={{ color: theme.mutedText }} />
           <h3 className="text-lg font-medium mb-2" style={{ color: theme.text }}>No Profile Data</h3>
@@ -1085,8 +1079,9 @@ export default function AccountProfile() {
         ) : (
           <div className="space-y-4">
             <div className="p-4 rounded-lg" style={{ backgroundColor: theme.secondary }}>
-              <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>
-                ⚠️ Important: Save These Backup Codes
+              <div className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: theme.text }}>
+                <AlertTriangle size={16} className="shrink-0" style={{ color: '#F59E0B' }} />
+                Important: Save These Backup Codes
               </div>
               <div className="text-xs" style={{ color: theme.mutedText }}>
                 Store these codes in a safe place. You can use them to access your account if you lose access to your authenticator app.
@@ -1295,7 +1290,7 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
       <Icon size={22} style={{ color: theme.primary }} />
     </div>
     <div>
-      <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>{label}</div>
+      <div className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>{label}</div>
       <div 
         className="font-semibold text-lg tracking-tight" 
         style={{ 
@@ -1324,7 +1319,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
             <Mail size={22} style={{ color: isVerified ? theme.primary : '#F59E0B' }} />
           </div>
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email Status</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email Status</div>
             <div 
               className="font-semibold text-lg tracking-tight" 
               style={{ 
@@ -1339,7 +1334,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
           <button
             onClick={onSendVerification}
             disabled={isDisabled}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
             style={{ 
               backgroundColor: isDisabled ? theme.mutedText : theme.primary,
               color: theme.primaryText || '#ffffff',
@@ -1367,7 +1362,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
               opacity: 0.8
             }}
           >
-            <strong>💡 Tip:</strong> Can't find the verification email? Check your spam/junk folder. 
+            <span className="inline-flex items-center gap-1"><Lightbulb size={12} className="shrink-0 inline" style={{ color: theme.primary }} /><strong>Tip:</strong></span> Can't find the verification email? Check your spam/junk folder. 
             Add <span className="font-mono">noreply@thepepplanner.com</span> to your contacts to ensure future emails arrive in your inbox.
           </div>
         </div>

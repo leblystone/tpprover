@@ -258,7 +258,7 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                                     onClick={() => toggleTimeOfDay(time)}
                                     className="flex-1 py-3 rounded-lg font-bold text-sm transition-all"
                                     style={{
-                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary),
                                         color: isSelected ? '#ffffff' : theme.text,
                                         border: `2px solid ${isSelected ? theme.primary : 'transparent'}`
                                     }}

@@ -181,7 +181,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
               className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm min-w-[100px]"
               style={{
                 borderColor: theme.border,
-                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff'),
                 color: theme.text,
                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
               }}
@@ -193,7 +193,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
               <div
                 className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                 style={{
-                  backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
                   borderColor: theme.border,
                   minWidth: '100%',
                   boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)',
@@ -237,7 +237,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
         {/* Filtered total */}
         <div className="p-4 rounded-lg border flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
           <span className="text-sm font-medium" style={{ color: theme.text }}>Total (filtered)</span>
-          <span className="text-lg font-bold flex items-center gap-1" style={{ color: theme.primary }}>
+          <span className="text-lg font-semibold flex items-center gap-1" style={{ color: theme.primary }}>
             <DollarSign size={20} />
             {formatCurrency(filteredTotal)}
           </span>

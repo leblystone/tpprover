@@ -1600,7 +1600,7 @@ export default function Protocols() {
   }, [organizedProtocols?.active?.length, organizedProtocols?.inactive?.length, theme.textLight, theme.primary]);
 
   return (
-    <>
+    <div className="page-bg">
       <ProtocolsTipsBanner theme={theme} />
       
       <div className="space-y-4">
@@ -1657,9 +1657,9 @@ export default function Protocols() {
                         onClick={() => setOpenAdd(true)}
                         className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
                         style={{ 
-                          backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, 
+                          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary, 
                           color: theme.text,
-                          border: `1px solid ${theme.border}`
+                          border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                         }}
                       >
                         <Settings size={16} />
@@ -2014,7 +2014,7 @@ export default function Protocols() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* AM Reminders Section */}
-                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', border: `1px solid ${theme.border}` }}>
+                <div className="content-section space-y-4 p-4 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
@@ -2079,9 +2079,9 @@ export default function Protocols() {
                     <div 
                       className="mt-4 p-3 rounded-lg text-sm text-center"
                       style={{ 
-                        backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.secondary || '#f9fafb'),
                         color: theme.textLight,
-                        border: `1px solid ${theme.border}`
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
                       }}
                     >
                       <span style={{ color: theme.textLight }}>No reminders set!</span>
@@ -2090,7 +2090,7 @@ export default function Protocols() {
                 </div>
 
                 {/* PM Reminders Section */}
-                <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', border: `1px solid ${theme.border}` }}>
+                <div className="content-section space-y-4 p-4 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
@@ -2155,9 +2155,9 @@ export default function Protocols() {
                   <div 
                     className="mt-4 p-3 rounded-lg text-sm text-center"
                     style={{ 
-                      backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.secondary || '#f9fafb'),
                       color: theme.textLight,
-                      border: `1px solid ${theme.border}`
+                      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
                     }}
                   >
                     <span style={{ color: theme.textLight }}>No reminders set!</span>
@@ -2352,7 +2352,7 @@ export default function Protocols() {
                 borderColor: theme.border
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -2374,7 +2374,7 @@ export default function Protocols() {
                 color: theme.text
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -3078,11 +3078,11 @@ export default function Protocols() {
                 {/* Page Break */}
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-                <div className="p-3 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
+                <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(239,68,68,0.3)' : '#fecaca', backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
-                            <div className="text-sm font-semibold mb-0.5" style={{ color: '#dc2626' }}>End protocol early?</div>
-                            <div className="text-xs" style={{ color: '#991b1b' }}>Ends today and starts washout period.</div>
+                            <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#f87171' : '#dc2626' }}>End protocol early?</div>
+                            <div className="text-xs" style={{ color: theme.isDark ? '#fca5a5' : '#991b1b' }}>Ends today and starts washout period.</div>
                         </div>
                         <button
                             className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
@@ -3142,9 +3142,8 @@ export default function Protocols() {
 
                 {/* Add Note Form */}
                 {showAddNoteForm && (
-                  <div className="p-4 rounded-lg space-y-4" style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    border: `1px solid ${theme.border}`
+                  <div className="content-section p-4 rounded-lg space-y-4" style={{
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
                   }}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold" style={{ color: theme.text }}>New Note</h3>
@@ -3172,8 +3171,8 @@ export default function Protocols() {
                       className="w-full p-3 rounded-lg text-sm resize-none"
                       rows={4}
                       style={{
-                        backgroundColor: theme.isDark ? '#111827' : '#ffffff',
-                        border: `1px solid ${theme.border}`,
+                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                         color: theme.text
                       }}
                     />
@@ -3192,7 +3191,7 @@ export default function Protocols() {
                             style={{
                               backgroundColor: newNote.tags.includes(tag.id)
                                 ? theme.primary
-                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'),
                               color: newNote.tags.includes(tag.id)
                                 ? theme.textOnPrimary
                                 : theme.text,
@@ -3232,9 +3231,8 @@ export default function Protocols() {
 
                 {/* Edit Note Form */}
                 {editingNote && (
-                  <div className="p-4 rounded-lg space-y-4" style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    border: `1px solid ${theme.border}`
+                  <div className="content-section p-4 rounded-lg space-y-4" style={{
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
                   }}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold" style={{ color: theme.text }}>Edit Note</h3>
@@ -3254,8 +3252,8 @@ export default function Protocols() {
                       className="w-full p-3 rounded-lg text-sm resize-none"
                       rows={4}
                       style={{
-                        backgroundColor: theme.isDark ? '#111827' : '#ffffff',
-                        border: `1px solid ${theme.border}`,
+                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                         color: theme.text
                       }}
                     />
@@ -3274,7 +3272,7 @@ export default function Protocols() {
                             style={{
                               backgroundColor: editingNote.tags?.includes(tag.id)
                                 ? theme.primary
-                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'),
                               color: editingNote.tags?.includes(tag.id)
                                 ? theme.textOnPrimary
                                 : theme.text,
@@ -3329,10 +3327,9 @@ export default function Protocols() {
                       notes.map((note) => (
                         <div
                           key={note.id}
-                          className="p-4 rounded-lg"
+                          className="content-section p-4 rounded-lg"
                           style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
                           }}
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -3405,7 +3402,7 @@ export default function Protocols() {
                   <div className="flex items-center gap-4 mb-4">
                     <Eye size={32} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5 flex-1">
-                      <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Preview</h4>
+                      <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Preview</h4>
                       <div className="flex items-center gap-2 ml-1">
                         <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                         <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -3627,8 +3624,8 @@ export default function Protocols() {
                         <div
                           className="px-4 py-2 rounded-full mb-3 max-w-md"
                           style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
                             display: 'inline-block'
                           }}
                         >
@@ -4041,7 +4038,7 @@ export default function Protocols() {
           shareData={{ ...manageConfirm, type: 'protocol' }}
         />
       )}
-    </>
+    </div>
   )
 }
 

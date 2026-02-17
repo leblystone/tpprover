@@ -451,7 +451,7 @@ export default function AccountSubscription() {
   }
 
   return (
-    <section className="max-w-4xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
       {/* Header - Same style as Appearance page */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
@@ -473,14 +473,14 @@ export default function AccountSubscription() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* SUBSCRIPTION STATUS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Subscription Status
             </h2>
           </div>
@@ -496,10 +496,9 @@ export default function AccountSubscription() {
 
         {/* Status Card */}
         <div 
-          className="p-5 rounded-2xl"
+          className="content-section p-5 rounded-2xl"
           style={{ 
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}
         >
           <div className="flex items-start justify-between">
@@ -520,7 +519,7 @@ export default function AccountSubscription() {
               </div>
             </div>
             <div 
-              className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"
+              className="px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide"
               style={{ 
                 backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
                 color: theme.text,
@@ -587,7 +586,7 @@ export default function AccountSubscription() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Upgrade Options
             </h2>
           </div>
@@ -602,7 +601,7 @@ export default function AccountSubscription() {
           >
             <div className="flex items-center justify-center gap-2.5 mb-1.5">
               <Lock size={20} style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' }} />
-              <h3 className="text-base font-bold tracking-wide" style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)' }}>
+              <h3 className="text-base font-semibold tracking-wide" style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)' }}>
                 BETA PRICING LOCKED
               </h3>
             </div>
@@ -616,14 +615,13 @@ export default function AccountSubscription() {
             {/* Annual Plan */}
             {status.type !== 'annual' && pricing.annual && (
               <div 
-                className="p-6 rounded-3xl border relative"
+                className="content-section p-6 rounded-3xl border relative"
                 style={{ 
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                 }}
               >
                 <div 
-                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter"
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-tighter"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
@@ -632,18 +630,18 @@ export default function AccountSubscription() {
                   {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
                 </div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-black" style={{ color: theme.text }}>Annual Plan</h3>
+                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Annual Plan</h3>
                   <Crown size={20} className="opacity-40" style={{ color: theme.text }} />
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-black" style={{ color: theme.text }}>
+                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
                       {formatCurrency(pricing.annual.founderPrice)}
                     </span>
                     <span className="text-sm opacity-40" style={{ color: theme.text }}>/year</span>
                   </div>
                   {pricing.annual.savings > 0 && (
-                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.primary }}>
                       SAVE {formatCurrency(pricing.annual.savings)}
                     </p>
                   )}
@@ -665,14 +663,13 @@ export default function AccountSubscription() {
             {/* Lifetime Plan */}
             {pricing.lifetime && (
               <div 
-                className="p-6 rounded-3xl border relative"
+                className="content-section p-6 rounded-3xl border relative"
                 style={{ 
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                 }}
               >
                 <div 
-                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
                   style={{ 
                     backgroundColor: theme.primary,
                     color: '#ffffff'
@@ -681,17 +678,17 @@ export default function AccountSubscription() {
                   LIMITED TIME
                 </div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-black" style={{ color: theme.text }}>Lifetime Plan</h3>
+                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Lifetime Plan</h3>
                   <Sparkles size={20} className="opacity-40" style={{ color: theme.text }} />
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-black" style={{ color: theme.text }}>
+                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
                       {formatCurrency(pricing.lifetime.founderPrice)}
                     </span>
                     <span className="text-sm opacity-40" style={{ color: theme.text }}>/once</span>
                   </div>
-                  <p className="text-xs font-bold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
                     ONE-TIME COST
                   </p>
                 </div>
@@ -716,21 +713,20 @@ export default function AccountSubscription() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
         <button
           onClick={handleManageBilling}
-          className="flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
+          className="content-section flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
           style={{ 
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}
         >
           <div className="flex items-center gap-4">
             <div 
               className="p-2.5 rounded-xl"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
             >
               <Settings size={20} className="opacity-60" style={{ color: theme.text }} />
             </div>
             <div>
-              <div className="font-bold text-base" style={{ color: theme.text }}>Manage Billing</div>
+              <div className="font-semibold text-base" style={{ color: theme.text }}>Manage Billing</div>
               {getSource() && (
                 <div className="text-xs opacity-60" style={{ color: theme.text }}>{getSource()}</div>
               )}
@@ -741,21 +737,20 @@ export default function AccountSubscription() {
         
         <button
           onClick={() => setShowGiftModal(true)}
-          className="flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
+          className="content-section flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
           style={{ 
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}
         >
           <div className="flex items-center gap-4">
             <div 
               className="p-2.5 rounded-xl"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
             >
               <Gift size={20} className="opacity-60" style={{ color: theme.text }} />
             </div>
             <div>
-              <div className="font-bold text-base" style={{ color: theme.text }}>Give a Gift</div>
+              <div className="font-semibold text-base" style={{ color: theme.text }}>Give a Gift</div>
               <div className="text-xs opacity-60" style={{ color: theme.text }}>Share research tools</div>
             </div>
           </div>
@@ -768,7 +763,7 @@ export default function AccountSubscription() {
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-2 mb-2">
             <Shield size={16} className="opacity-40" style={{ color: theme.text }} />
-            <span className="text-xs font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+            <span className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Secure Payment Processing
             </span>
           </div>

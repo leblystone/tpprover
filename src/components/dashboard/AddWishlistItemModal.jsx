@@ -140,7 +140,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                 <div className="flex items-center gap-4 mb-4">
                     <BookHeart size={32} style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5 flex-1">
-                        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Wishlist Item</h4>
+                        <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Wishlist Item</h4>
                         <div className="flex items-center gap-2 ml-1">
                             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                             <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -185,7 +185,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                 className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none outlined-input"
                                 style={{
                                     border: `1px solid ${isPriceFocused ? theme.primary : '#f0eee7'}`,
-                                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff'),
                                     color: theme.isDark ? theme.text : '#181A18',
                                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                 }}
@@ -195,7 +195,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                 }}
                                 onBlur={(e) => {
                                     setIsPriceFocused(false);
-                                    e.target.style.borderColor = '#f0eee7';
+                                    e.target.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7';
                                 }}
                             />
                             <label 
@@ -206,7 +206,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                     fontSize: (isPriceFocused || form.price) ? '0.875rem' : '1rem',
                                     padding: (isPriceFocused || form.price) ? '0 4px' : '0',
                                     color: (isPriceFocused || form.price) ? theme.primary : (theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76'),
-                                    backgroundColor: (isPriceFocused || form.price) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                    backgroundColor: (isPriceFocused || form.price) ? (theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff')) : 'transparent',
                                     fontWeight: 500
                                 }}
                             >
@@ -220,7 +220,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     <div className="flex items-stretch rounded-lg" style={{ 
                         border: `1px solid ${isMgFocused ? theme.primary : '#f0eee7'}`,
                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')
                     }}>
                         <input
                             type="text"
@@ -249,16 +249,16 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                             className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                             data-dropdown-container
                             style={{ 
-                                borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : `1px solid #f0eee7`,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.cardBackground || '#f9fafb'),
                                 color: theme.isDark ? theme.text : '#181A18',
                                 minWidth: '100px'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.02)';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.cardBackground || '#f9fafb');
                             }}
                         >
                             <span className="text-sm font-semibold">
@@ -285,7 +285,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                             style={{
                                 top: `${dropdownPosition.top}px`,
                                 right: `${dropdownPosition.right}px`,
-                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
                                 borderColor: theme.border,
                                 minWidth: '100px',
                                 boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -345,7 +345,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                             left: (isMgFocused || form.mgAmount) ? '12px' : '16px',
                             fontSize: (isMgFocused || form.mgAmount) ? '0.75rem' : '0.9375rem',
                             padding: (isMgFocused || form.mgAmount) ? '0 4px' : '0',
-                            background: (isMgFocused || form.mgAmount) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                            background: (isMgFocused || form.mgAmount) ? (theme.isDark ? theme.cardBackground : (theme.inputBackground || '#fff')) : 'transparent',
                             color: (isMgFocused || form.mgAmount) ? theme.primary : (theme.textLight || theme.text),
                             fontWeight: 500
                         }}

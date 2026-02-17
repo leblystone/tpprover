@@ -14,7 +14,6 @@ import BadgesWidget from './widgets/BadgesWidget';
 import GoalsOnlyWidget from './widgets/GoalsOnlyWidget';
 import MetricsWidget from './widgets/MetricsWidget';
 import SupplementsWidget from './widgets/SupplementsWidget';
-import GoalsWidget from './widgets/GoalsWidget';
 import QuickActionsWidget from './widgets/QuickActionsWidget';
 import WaterTrackerWidget from './widgets/WaterTrackerWidget';
 import GlossaryWidget from './widgets/GlossaryWidget';

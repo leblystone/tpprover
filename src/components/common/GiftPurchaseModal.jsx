@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Gift, PartyPopper, HeartCrack, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { createCheckoutSession } from '../../services/stripe';
 import { httpsCallable } from 'firebase/functions';
@@ -130,7 +131,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
     <Modal
       open={isOpen}
       onClose={onClose}
-      title="🎁 Give the Gift of Research"
+      title="Give the Gift of Research"
       titleExtra="Share The Pep Planner with someone special"
       theme={theme}
       maxWidth="max-w-2xl"
@@ -160,14 +161,15 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Gift Giver Info */}
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">Your Name *</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>Your Name *</label>
           <input
             type="text"
             name="giftGiverName"
             value={formData.giftGiverName}
             onChange={handleInputChange}
             required
-            className={`w-full px-4 py-3 rounded-xl border-2 ${theme.border} bg-gray-50 text-gray-800 focus:border-green-500 focus:outline-none transition-colors`}
+            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+            style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1e293b' : '#f9fafb', color: theme.text }}
             placeholder="Enter your name"
           />
         </div>
@@ -175,25 +177,27 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
         {/* Recipient Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">Recipient Email *</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>Recipient Email *</label>
             <input
               type="email"
               name="recipientEmail"
               value={formData.recipientEmail}
               onChange={handleInputChange}
               required
-              className={`w-full px-4 py-3 rounded-xl border-2 ${theme.border} bg-gray-50 text-gray-800 focus:border-green-500 focus:outline-none transition-colors`}
+              className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+              style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1e293b' : '#f9fafb', color: theme.text }}
               placeholder="friend@email.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">Recipient Name (Optional)</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>Recipient Name (Optional)</label>
             <input
               type="text"
               name="recipientName"
               value={formData.recipientName}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${theme.border} bg-gray-50 text-gray-800 focus:border-green-500 focus:outline-none transition-colors`}
+              className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+              style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1e293b' : '#f9fafb', color: theme.text }}
               placeholder="Their name"
             />
           </div>
@@ -201,20 +205,21 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
 
         {/* Gift Message */}
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">Personal Message (Optional)</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>Personal Message (Optional)</label>
           <textarea
             name="giftMessage"
             value={formData.giftMessage}
             onChange={handleInputChange}
             rows={3}
-            className={`w-full px-4 py-3 rounded-xl border-2 ${theme.border} bg-gray-50 text-gray-800 focus:border-green-500 focus:outline-none transition-colors resize-none`}
+            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors resize-none"
+            style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1e293b' : '#f9fafb', color: theme.text }}
             placeholder="I thought you'd love organizing your research with The Pep Planner..."
           />
         </div>
 
         {/* Subscription Options */}
         <div>
-          <label className="block text-sm font-medium mb-4 text-gray-800">Choose Gift Duration</label>
+          <label className="block text-sm font-medium mb-4" style={{ color: theme.text }}>Choose Gift Duration</label>
           <div className="space-y-3">
             {subscriptionOptions.map((option) => (
               <label key={option.value} className="block">
@@ -246,7 +251,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
                       <p className="text-sm mt-1" style={{ color: theme.textLight }}>{option.description}</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold" style={{ color: theme.success }}>${option.price}</div>
+                      <div className="text-2xl font-semibold" style={{ color: theme.success }}>${option.price}</div>
                     </div>
                   </div>
                 </div>
@@ -257,18 +262,18 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
 
         {/* Error Message */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.isDark ? 'rgba(220,38,38,0.1)' : '#fef2f2', borderColor: theme.isDark ? 'rgba(220,38,38,0.3)' : '#fecaca' }}>
+            <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>
           </div>
         )}
 
         {/* Footer Info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+        <div className="mt-6 p-4 rounded-xl" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb' }}>
           <div className="flex items-start gap-3">
-            <div className="text-2xl">🎁</div>
+            <Gift size={24} style={{ color: theme.primary, flexShrink: 0 }} />
             <div>
-              <h4 className="font-semibold text-gray-800 mb-1">How it works:</h4>
-              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+              <h4 className="font-semibold mb-1" style={{ color: theme.text }}>How it works:</h4>
+              <ul className="text-sm space-y-1 list-disc list-inside" style={{ color: theme.textLight }}>
                 <li>Recipient receives email with redemption link</li>
                 <li>They have 60 days to claim their gift (expiration date shown on redemption page)</li>
                 <li>Gift activates immediately upon redemption</li>
@@ -286,7 +291,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       <Modal
         open={showSuccess}
         onClose={() => setShowSuccess(false)}
-        title="🎉 Gift Sent Successfully!"
+        title="Gift Sent Successfully!"
         theme={theme}
         maxWidth="max-w-md"
         footer={
@@ -306,7 +311,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       >
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: theme.successBg }}>
-            <span className="text-3xl">🎁</span>
+            <Gift size={32} style={{ color: theme.success }} />
           </div>
           
           <div>
@@ -318,7 +323,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 text-left">
+          <div className="rounded-lg p-4 text-left" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb' }}>
             <h4 className="font-medium mb-2" style={{ color: theme.text }}>Gift Details:</h4>
             <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
               <p><strong>Recipient:</strong> {giftData?.recipientName}</p>
@@ -340,7 +345,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       <Modal
         open={showFailure}
         onClose={() => setShowFailure(false)}
-        title="❌ Gift Purchase Failed"
+        title="Gift Purchase Failed"
         theme={theme}
         maxWidth="max-w-md"
         footer={
@@ -356,8 +361,8 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
         }
       >
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
-            <span className="text-3xl">💔</span>
+          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: theme.isDark ? 'rgba(220,38,38,0.15)' : '#FEE2E2' }}>
+            <HeartCrack size={32} style={{ color: theme.error || '#dc2626' }} />
           </div>
           
           <div>
@@ -369,14 +374,14 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
             </p>
           </div>
 
-          <div className="bg-red-50 rounded-lg p-4 text-left">
-            <h4 className="font-medium mb-2 text-red-800">Error Details:</h4>
-            <p className="text-sm text-red-700">
+          <div className="rounded-lg p-4 text-left" style={{ backgroundColor: theme.isDark ? 'rgba(220,38,38,0.1)' : '#fef2f2', border: `1px solid ${theme.isDark ? 'rgba(220,38,38,0.3)' : '#fecaca'}` }}>
+            <h4 className="font-medium mb-2" style={{ color: '#dc2626' }}>Error Details:</h4>
+            <p className="text-sm" style={{ color: theme.isDark ? '#fca5a5' : '#b91c1c' }}>
               {giftData?.errorMessage || 'Payment was declined or checkout was abandoned. Please try again with a different payment method.'}
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 text-left">
+          <div className="rounded-lg p-4 text-left" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#f9fafb' }}>
             <h4 className="font-medium mb-2" style={{ color: theme.text }}>Gift Details:</h4>
             <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
               <p><strong>Recipient:</strong> {giftData?.recipientName}</p>

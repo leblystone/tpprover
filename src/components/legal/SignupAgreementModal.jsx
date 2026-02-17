@@ -60,29 +60,29 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
             />
             
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="relative rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col" style={{ backgroundColor: theme?.isDark ? '#1f2937' : '#ffffff' }}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: '#DDE6DE' }}>
+                <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : '#DDE6DE' }}>
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full" style={{ backgroundColor: '#F5F5F0' }}>
-                            <FileText className="w-6 h-6" style={{ color: '#7F9E95' }} />
+                        <div className="p-2 rounded-full" style={{ backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F0' }}>
+                            <FileText className="w-6 h-6" style={{ color: theme?.primary || '#7F9E95' }} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold" style={{ color: '#2F3B3A' }}>Agreement Required</h2>
-                            <p className="text-sm" style={{ color: '#6B7D7A' }}>Please read and agree to our terms before creating your account</p>
+                            <h2 className="text-xl font-semibold" style={{ color: theme?.text || '#2F3B3A' }}>Agreement Required</h2>
+                            <p className="text-sm" style={{ color: theme?.textLight || '#6B7D7A' }}>Please read and agree to our terms before creating your account</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
                         className="p-2 rounded-full transition-colors hover:opacity-70"
-                        style={{ backgroundColor: '#F5F5F0' }}
+                        style={{ backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F0' }}
                     >
-                        <X className="w-5 h-5" style={{ color: '#6B7D7A' }} />
+                        <X className="w-5 h-5" style={{ color: theme?.textLight || '#6B7D7A' }} />
                     </button>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex border-b" style={{ borderColor: '#DDE6DE' }}>
+                <div className="flex border-b" style={{ borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : '#DDE6DE' }}>
                     <button
                         className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors ${
                             currentTab === 'terms' 
@@ -91,11 +91,11 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                         }`}
                         style={currentTab === 'terms' 
                             ? { 
-                                color: '#7F9E95', 
-                                borderBottomColor: '#7F9E95', 
-                                backgroundColor: '#F5F5F0' 
+                                color: theme?.primary || '#7F9E95', 
+                                borderBottomColor: theme?.primary || '#7F9E95', 
+                                backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : '#F5F5F0' 
                             } 
-                            : { color: '#6B7D7A' }
+                            : { color: theme?.textLight || '#6B7D7A' }
                         }
                         onClick={() => setCurrentTab('terms')}
                     >
@@ -114,11 +114,11 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                         }`}
                         style={currentTab === 'privacy' 
                             ? { 
-                                color: '#7F9E95', 
-                                borderBottomColor: '#7F9E95', 
-                                backgroundColor: '#F5F5F0' 
+                                color: theme?.primary || '#7F9E95', 
+                                borderBottomColor: theme?.primary || '#7F9E95', 
+                                backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : '#F5F5F0' 
                             } 
-                            : { color: '#6B7D7A' }
+                            : { color: theme?.textLight || '#6B7D7A' }
                         }
                         onClick={() => setCurrentTab('privacy')}
                     >
@@ -186,15 +186,15 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                 </div>
                 
                 {/* Footer */}
-                <div className="p-6 border-t" style={{ borderColor: '#DDE6DE', backgroundColor: '#F5F5F0' }}>
+                <div className="p-6 border-t" style={{ borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : '#DDE6DE', backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.03)' : '#F5F5F0' }}>
                     <div className="flex flex-col gap-4">
                         {/* Status text row */}
-                        <div className="text-sm text-center" style={{ color: '#6B7D7A' }}>
+                        <div className="text-sm text-center" style={{ color: theme?.textLight || '#6B7D7A' }}>
                             {!canProceed && (
                                 <p>Please scroll through both documents completely to proceed</p>
                             )}
                             {canProceed && (
-                                <p className="font-medium" style={{ color: '#5FAF8B' }}>✓ Ready to proceed</p>
+                                <p className="font-medium" style={{ color: theme?.success || '#5FAF8B' }}>✓ Ready to proceed</p>
                             )}
                         </div>
                         
@@ -203,7 +203,7 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                             <button
                                 onClick={onClose}
                                 className="px-4 py-2 rounded-lg transition-colors hover:opacity-70"
-                                style={{ color: '#6B7D7A', backgroundColor: '#E8EDEB' }}
+                                style={{ color: theme?.textLight || '#6B7D7A', backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : '#E8EDEB' }}
                             >
                                 Cancel
                             </button>
@@ -216,8 +216,8 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                                         : 'cursor-not-allowed'
                                 }`}
                                 style={canProceed 
-                                    ? { backgroundColor: '#7F9E95', color: '#FFFFFF' } 
-                                    : { backgroundColor: '#B0C4BF', color: '#6B7D7A' }
+                                    ? { backgroundColor: theme?.primary || '#7F9E95', color: theme?.textOnPrimary || '#FFFFFF' } 
+                                    : { backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.1)' : '#B0C4BF', color: theme?.textLight || '#6B7D7A' }
                                 }
                             >
                                 I Agree

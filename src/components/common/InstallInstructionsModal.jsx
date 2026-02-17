@@ -75,7 +75,7 @@ const InstallInstructionsModal = ({ open, onClose, onInstall, theme }) => {
         <div className="mt-8 text-center">
           <button
             onClick={onInstall}
-            className="w-full px-6 py-3 rounded-lg text-lg font-bold transition-transform duration-200 hover:scale-105"
+            className="w-full px-6 py-3 rounded-lg text-lg font-semibold transition-transform duration-200 hover:scale-105"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             Install Now

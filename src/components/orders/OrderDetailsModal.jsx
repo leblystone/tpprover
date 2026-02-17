@@ -429,10 +429,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       <div className="space-y-6">
         {/* Error Display */}
         {saveError && (
-          <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)', borderColor: theme.isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)' }}>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm font-medium text-red-800">{saveError}</span>
+              <span className="text-sm font-medium" style={{ color: theme.isDark ? '#fca5a5' : '#991b1b' }}>{saveError}</span>
             </div>
           </div>
         )}
@@ -458,7 +458,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                           }));
                         }
                       }}
-                      className="text-[10px] px-2 py-1 rounded-md transition-all hover:opacity-80 font-bold uppercase tracking-wider"
+                      className="text-[10px] px-2 py-1 rounded-md transition-all hover:opacity-80 font-semibold uppercase tracking-wider"
                       style={{ backgroundColor: theme.accent, color: theme.accentText }}
                       title="Autofill category from selected vendor"
                     >
@@ -468,7 +468,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 </div>
                 <div className="flex items-center gap-2 ml-1">
                   <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                     Vendor & Category
                   </span>
                 </div>
@@ -491,7 +491,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   />
                 </div>
                 <div className="lg:col-span-2">
-                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
                         className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center"
@@ -501,7 +501,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                         }
                         onMouseEnter={(e) => {
                           if (form.category !== k) {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -526,7 +526,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Items</h4>
                 <div className="flex items-center gap-2 ml-1">
                   <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                     Peptides & Quantities
                   </span>
                 </div>
@@ -560,15 +560,15 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               type="button"
               className="mt-3 px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all"
               style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
                 color: theme.text 
               }}
               onClick={addItem}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '20';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary;
               }}
             >
               <PlusCircle size={14} /> Add Another Item
@@ -607,14 +607,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Status</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Shipment Tracking
                 </span>
               </div>
             </div>
           </div>
           <div className="space-y-3">
-            <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+            <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
               {[
                 { label: 'Order Placed', value: 'Order Placed' },
                 { label: 'In Transit', value: 'Shipped' },
@@ -663,7 +663,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   }
                   onMouseEnter={(e) => {
                     if ((form.status || (order ? null : 'Order Placed')) !== opt.value) {
-                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                      e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -687,7 +687,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             />
             {/* Tracking Status Display */}
             {form.tracking && (
-              <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb', borderColor: theme.border }}>
+              <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold" style={{ color: theme.text }}>Tracking Status</span>
                   {isLoadingTracking && <RefreshCw size={14} className="animate-spin" style={{ color: theme.primary }} />}
@@ -756,7 +756,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Extra Details</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                   Notes & Documentation
                 </span>
               </div>
@@ -792,7 +792,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       
       {/* Lockout Overlay - Covers entire modal */}
       {isReadOnly && (
-        <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+        <div className="absolute inset-0 backdrop-blur-md flex items-center justify-center z-50 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}>
           <div className="text-center p-6 max-w-md">
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
               <PlusCircle size={32} style={{ color: theme.primary }} />

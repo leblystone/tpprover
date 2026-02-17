@@ -126,15 +126,15 @@ export default function ImagePreviewModal({
               onClick={handleDownload}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
               style={{
-                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary,
                 color: theme.primary,
                 border: theme.isDark ? 'none' : `1px solid ${theme.border}`
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '15';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary;
               }}
             >
               <Download size={16} />
@@ -187,7 +187,7 @@ export default function ImagePreviewModal({
           className="p-4 rounded-lg border"
           style={{ 
             borderColor: theme.border,
-            backgroundColor: theme.isDark ? '#111827' : theme.cardBackground
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.cardBackground
           }}
         >
           <div className="space-y-3">

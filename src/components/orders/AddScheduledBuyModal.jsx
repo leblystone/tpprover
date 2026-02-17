@@ -170,7 +170,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Group Buy Details</h4>
                         <div className="flex items-center gap-2 ml-1">
                             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                 Study Acquisition
                             </span>
                         </div>
@@ -241,7 +241,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vendor & Pricing</h4>
                         <div className="flex items-center gap-2 ml-1">
                             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                 Sourcing Details
                             </span>
                         </div>
@@ -274,8 +274,8 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                                     placeholder="0.00"
                                     className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none"
                                     style={{
-                                        border: `1px solid #f0eee7`,
-                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7'}`,
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                         color: theme.isDark ? theme.text : '#181A18',
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                     }}
@@ -290,7 +290,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                                     className="absolute left-3 -top-2.5 px-1 text-xs font-medium transition-all pointer-events-none"
                                     style={{ 
                                         color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76',
-                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground
                                     }}
                                 >
                                     Price

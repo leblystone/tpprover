@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
-import { Merge, Package, Beaker } from 'lucide-react';
+import { Merge, Package, Beaker, Check } from 'lucide-react';
 
 export default function MergeSelectionModal({ 
   open, 
@@ -96,7 +96,7 @@ export default function MergeSelectionModal({
                           className="w-4 h-4 rounded-full flex items-center justify-center"
                           style={{ backgroundColor: theme.primary }}
                         >
-                          <span className="text-white text-[10px]">✓</span>
+                          <Check size={10} className="text-white" />
                         </div>
                       </div>
                     )}

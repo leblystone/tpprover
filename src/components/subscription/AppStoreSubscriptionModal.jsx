@@ -77,7 +77,8 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
         <div className="flex justify-center w-full">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all"
+            className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.isDark ? '#e5e7eb' : '#374151' }}
           >
             Maybe Later
           </button>
@@ -86,7 +87,7 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
     >
       <div className="p-4 space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="p-3 rounded-lg border text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', borderColor: theme.isDark ? 'rgba(239,68,68,0.2)' : '#fecaca', color: theme.isDark ? '#fca5a5' : '#b91c1c' }}>
             {error}
           </div>
         )}
@@ -111,7 +112,7 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
             }}
           >
             <div className="text-left">
-              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
+              <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.monthly.label}
                 {selectedPlan === 'monthly' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
@@ -140,7 +141,7 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
               </span>
             </div>
             <div className="text-left">
-              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
+              <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.annual.label}
                 {selectedPlan === 'annual' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
@@ -164,7 +165,7 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
             }}
           >
             <div className="text-left">
-              <div className="font-bold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
+              <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
                 {SUBSCRIPTION_PLANS.lifetime.label}
                 {selectedPlan === 'lifetime' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>

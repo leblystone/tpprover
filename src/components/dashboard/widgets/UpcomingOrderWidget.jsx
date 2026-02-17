@@ -9,7 +9,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
   if (!order) {
     return (
       <div className="relative h-full flex flex-col">
-        <div className={`px-4 py-3 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+        <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Incoming Orders
@@ -30,9 +30,9 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
             onClick={onNewOrder}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
             style={{
-              color: theme.primary,
-              backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
-              border: `1px solid ${theme.primary}40`
+              color: theme.isDark ? 'rgba(200, 215, 195, 0.9)' : theme.primary,
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}15`,
+              border: theme.isDark ? 'none' : `1px solid ${theme.primary}40`
             }}
           >
             Add an Order

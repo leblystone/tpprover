@@ -151,7 +151,7 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
         className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2"
         style={{
           borderColor: theme.border,
-          backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || theme.cardBackground || '#fff'),
+          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.inputBackground || theme.cardBackground || '#fff'),
           color: theme.text
         }}
       >
@@ -168,7 +168,7 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
       <div className="flex items-center gap-4 mb-4">
         <FileText size={32} style={{ color: theme.primary }} />
         <div className="flex flex-col gap-0.5 flex-1">
-          <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Research Note</h4>
+          <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Research Note</h4>
           <div className="flex items-center gap-2 ml-1">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -211,7 +211,7 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
       <div className="flex items-center gap-4 mb-4">
         <FileText size={32} style={{ color: theme.primary }} />
         <div className="flex flex-col gap-0.5 flex-1">
-          <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Edit Note</h4>
+          <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Edit Note</h4>
           <div className="flex items-center gap-2 ml-1">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -356,18 +356,22 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
                         <button
                           type="button"
                           onClick={() => handleEditNote(note)}
-                          className="p-1.5 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded transition-colors"
                           style={{ color: theme.textLight }}
                           title="Edit note"
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; e.currentTarget.style.color = theme.primary; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.textLight; }}
                         >
                           <Edit3 size={14} />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteNote(note.id)}
-                          className="p-1.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded transition-colors"
                           style={{ color: theme.textLight }}
                           title="Delete note"
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.15)' : 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = theme.error || '#dc2626'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.textLight; }}
                         >
                           <Trash2 size={14} />
                         </button>

@@ -11,7 +11,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
-import { Crown } from '../../icons/lucide-safe';
+import { Crown, FlaskConical, BookOpen, Gift } from '../../icons/lucide-safe';
 import GiftPurchaseModal from '../common/GiftPurchaseModal';
 
 export default function StripeSubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
@@ -93,7 +93,8 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
           <div className="flex justify-center w-full">
             <button
               onClick={onClose}
-              className="px-6 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all"
+              className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.isDark ? '#e5e7eb' : '#374151' }}
             >
               Maybe Later
             </button>
@@ -105,8 +106,8 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
             {/* Beta Pricing Banner */}
             <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #DBEAFE, #93C5FD)', border: '2px solid #3B82F6' }}>
               <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="text-2xl">🧪</div>
-                <div className="text-lg font-bold" style={{ color: '#1E40AF' }}>
+                <FlaskConical size={22} style={{ color: '#1E40AF' }} />
+                <div className="text-lg font-semibold" style={{ color: '#1E40AF' }}>
                   Beta Pricing
                 </div>
               </div>
@@ -134,7 +135,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                 onClick={() => !isProcessing && handleSelectPlan('monthly')}
               >
                 <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                  <h3 className="text-base font-semibold" style={{ color: theme.text }}>Monthly</h3>
                   <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>
                     {monthlyBase}
                   </div>
@@ -167,15 +168,15 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                 </div>
 
                 <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                  <h3 className="text-base font-semibold" style={{ color: theme.text }}>Annual</h3>
                   <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>
                     {annualBase}
                   </div>
                   <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
                   
                   <div className="text-center mt-1">
-                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
-                      📓 Same price as our planner!
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(59,130,246,0.15)' : '#DBEAFE', color: '#1E40AF' }}>
+                      <BookOpen size={12} /> Same price as our planner!
                     </span>
                   </div>
                 </div>
@@ -212,7 +213,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                     <Crown size={20} style={{ color: theme.textOnPrimary }} />
                   </div>
                   <div className="space-y-1">
-                    <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                    <div className="font-semibold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
                     <div className="text-base font-semibold" style={{ color: theme.text }}>
                       {lifetimeBase}
                     </div>
@@ -241,7 +242,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
                 }}
               >
-                🎁 Give as a Gift
+                <span className="inline-flex items-center gap-1.5"><Gift size={16} /> Give as a Gift</span>
               </button>
             </div>
           </div>

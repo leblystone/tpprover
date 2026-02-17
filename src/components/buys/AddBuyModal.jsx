@@ -15,10 +15,10 @@ export default function AddBuyModal({ open, onClose, onSave, theme }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Schedule Upcoming Buy" theme={theme} footer={(
-      <>
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
-      </>
+      <div className="flex items-center w-full">
+        <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
+        <button onClick={() => onSave?.(form)} className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }}>Save</button>
+      </div>
     )}>
       <div className="space-y-6">
         <div className="flex items-center gap-4 mb-4">
@@ -29,7 +29,7 @@ export default function AddBuyModal({ open, onClose, onSave, theme }) {
             <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Schedule Buy</h4>
             <div className="flex items-center gap-2 ml-1">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                 Upcoming Purchase
               </span>
             </div>

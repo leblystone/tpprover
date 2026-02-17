@@ -512,7 +512,7 @@ export default function SettingsData() {
   }
 
   return (
-    <section className="max-w-xl mx-auto space-y-3 pb-4">
+    <section className="page-bg max-w-xl mx-auto space-y-3 pb-4">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
@@ -526,13 +526,13 @@ export default function SettingsData() {
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Data Management</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
               Backup, Recovery & Exports
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-3 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-3 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Data Settings */}
       <div className="space-y-3">
@@ -552,7 +552,7 @@ export default function SettingsData() {
               <AlertCircle size={20} style={{ color: '#991B1B' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold tracking-tight" style={{ color: '#991B1B' }}>
+              <p className="text-sm font-semibold tracking-tight" style={{ color: '#991B1B' }}>
                 Account Deletion Pending
               </p>
               <p className="text-[10px] opacity-60" style={{ color: '#991B1B' }}>
@@ -566,7 +566,7 @@ export default function SettingsData() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Trash2 size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recently Deleted
             </h4>
           </div>
@@ -577,21 +577,21 @@ export default function SettingsData() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Database size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recovery & Backups
             </h4>
           </div>
 
           <div 
-            className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section p-4 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <div className="flex items-start gap-4 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
                 <RotateCcw size={18} style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="text-sm font-bold tracking-tight" style={{ color: theme.text }}>
+                <div className="text-sm font-semibold tracking-tight" style={{ color: theme.text }}>
                   Cloud Data Recovery
                 </div>
                 <p className="text-xs opacity-60 leading-relaxed" style={{ color: theme.text }}>
@@ -605,7 +605,7 @@ export default function SettingsData() {
                 className="w-full px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 disabled:opacity-50" 
                 style={{ 
                   backgroundColor: theme.primary, 
-                  color: '#ffffff' 
+                  color: theme.textOnPrimary || '#ffffff' 
                 }}
                 onClick={recoverFromSnapshot}
                 disabled={recoveryStatus === 'restoring' || recoveryStatus === 'syncing'}
@@ -653,14 +653,14 @@ export default function SettingsData() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1 text-red-800">
             <Trash2 size={14} />
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">
+            <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em]">
               Danger Zone
             </h4>
           </div>
 
           <div 
-            className="p-4 rounded-[2rem] border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: '#991B1B20' }}
+            className="content-section p-4 rounded-[2rem] border-2 transition-all shadow-sm"
+            style={{ borderColor: '#991B1B20' }}
           >
             <div className="space-y-3">
               <button 

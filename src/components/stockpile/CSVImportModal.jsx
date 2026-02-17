@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import { generateId } from '../../utils/string';
-import { Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, AlertTriangle, FileText } from 'lucide-react';
 
 const FIELD_OPTIONS = [
   { value: 'name', label: 'Name' },
@@ -213,10 +213,13 @@ export default function CSVImportModal({ open, onClose, theme, onSave }) {
         <div className="w-full flex items-center justify-between">
           <div className="text-sm" style={{ color: theme.textLight }}>
             {step === 1 && 'Upload your CSV file to begin'}
-            {step === 2 && (mappingValid ? '✅ Mapping complete' : '⚠️ Map required fields: Name, mg, Quantity')}
+            {step === 2 && (mappingValid 
+              ? <span className="flex items-center gap-1"><CheckCircle size={14} style={{ color: '#10b981' }} /> Mapping complete</span>
+              : <span className="flex items-center gap-1"><AlertTriangle size={14} style={{ color: '#f59e0b' }} /> Map required fields: Name, mg, Quantity</span>
+            )}
             {step === 3 && (
-              <span>
-                ✅ {validRows.length} vial{validRows.length !== 1 ? 's' : ''} will be imported
+              <span className="flex items-center gap-1">
+                <CheckCircle size={14} style={{ color: '#10b981' }} /> {validRows.length} vial{validRows.length !== 1 ? 's' : ''} will be imported
                 {invalidRows.length > 0 && ` • ${invalidRows.length} row${invalidRows.length !== 1 ? 's' : ''} skipped`}
               </span>
             )}
@@ -379,7 +382,7 @@ export default function CSVImportModal({ open, onClose, theme, onSave }) {
               <div className="p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)', border: `1px solid ${theme.isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)'}` }}>
                 <AlertCircle size={16} style={{ color: '#ef4444' }} />
                 <span className="text-sm" style={{ color: theme.text }}>
-                  ⚠️ {invalidRows.length} row{invalidRows.length !== 1 ? 's' : ''} have missing data and will be skipped
+                  {invalidRows.length} row{invalidRows.length !== 1 ? 's' : ''} have missing data and will be skipped
                 </span>
               </div>
             )}

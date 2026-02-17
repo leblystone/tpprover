@@ -121,8 +121,8 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
         return (
             <>
                 <div 
-                    className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover cursor-pointer" 
-                    style={{ backgroundColor: theme.cardBackground }}
+                    className="p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer" 
+                    style={{}}
                     onClick={() => !isPublicView && onEditClick(p)}
                 >
                     <div className="flex-grow">
@@ -308,9 +308,8 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     return (
         <>
             <div 
-                className={`p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''}`}
+                className={`p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''}`}
                 style={{ 
-                    backgroundColor: theme.cardBackground,
                     borderColor: isActive ? `${theme.primary}30` : 'transparent'
                 }}
                 onClick={() => {

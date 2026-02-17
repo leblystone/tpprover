@@ -145,8 +145,8 @@ const SupplementsWidget = ({
                 style={{ 
                   backgroundColor: 'transparent',
                   borderLeft: isPMOnly
-                    ? `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
-                    : `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                    ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+                    : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`,
                   boxShadow: index < supplements.length - 1 
                     ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
                     : 'none'
@@ -183,7 +183,7 @@ const SupplementsWidget = ({
                             <div className="flex gap-1 mb-0.5">
                               {schedule.includes('AM') && (
                                 <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
-                                  backgroundColor: `${theme.primary}B0`, 
+                                  backgroundColor: theme.isDark ? 'rgba(107, 127, 101, 0.7)' : `${theme.primary}B0`, 
                                   color: '#ffffff',
                                   fontSize: '10px'
                                 }}>
@@ -192,8 +192,8 @@ const SupplementsWidget = ({
                               )}
                               {schedule.includes('PM') && (
                                 <div className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ 
-                                  backgroundColor: theme.primaryDark || theme.primary, 
-                                  color: '#ffffff',
+                                  backgroundColor: theme.isDark ? 'rgba(160, 180, 153, 0.85)' : (theme.primaryDark || theme.primary), 
+                                  color: theme.isDark ? '#1a2020' : '#ffffff',
                                   fontSize: '10px'
                                 }}>
                                   PM

@@ -122,13 +122,15 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
     const cardStyle = {
-        backgroundColor: theme.cardBackground,
+        boxShadow: theme.isDark
+            ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+            : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
     };
 
     return (
         <>
             <div 
-                className={`rounded-2xl shadow-md p-4 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} 
+                className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col h-full glass-panel-minimal ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} 
                 style={{
                     ...cardStyle, 
                     '--tw-ring-color': vendor.isStub ? theme.primary : 'transparent',
@@ -143,9 +145,14 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             {vendor.name}
                         </h3>
                         <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map(n => (
-                                <Star key={n} size={14} style={{ fill: (vendor.rating || 0) >= n ? theme.primary : '#e5e7eb', color: (vendor.rating || 0) >= n ? theme.primary : '#d1d5db' }} />
-                            ))}
+                            {[1, 2, 3, 4, 5].map(n => {
+                                const starGradient = ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'];
+                                const filledColor = starGradient[n - 1];
+                                const isFilled = (vendor.rating || 0) >= n;
+                                return (
+                                    <Star key={n} size={14} style={{ fill: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'), color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }} />
+                                );
+                            })}
                         </div>
                     </div>
                     
@@ -163,7 +170,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         )}
                         {!isPublicView && orderHistory.length > 0 && (
                             <>
-                                <div className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
+                                <div className="text-[10px] font-semibold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
                                     {orderHistory.length} ORDER{orderHistory.length !== 1 ? 'S' : ''}
                                 </div>
                                 <div className="text-[10px] font-semibold opacity-60 mt-0.5" style={{ color: theme.text }}>
@@ -366,7 +373,10 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                     e.stopPropagation();
                                     handleShare();
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                className="p-1.5 rounded-lg transition-colors"
+                                style={{ }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 title="Share vendor"
                             >
                                 <Share2 size={14} style={{ color: theme.textLight }} />

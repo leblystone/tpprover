@@ -163,8 +163,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     <div
                         className="p-3 rounded-lg"
                         style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
@@ -220,8 +220,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     <div
                         className="p-3 rounded-lg"
                         style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                         }}
                     >
                         <div className="flex items-center gap-2 mb-1.5">
@@ -239,7 +239,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         <div
                             className="p-4 rounded-lg"
                             style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                 border: `1px solid ${theme.border}`
                             }}
                         >
@@ -258,8 +258,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     <div
                         className="p-3 rounded-lg"
                         style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                         }}
                     >
                         <div className="flex items-center gap-2 mb-1.5">
@@ -296,7 +296,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         <div
                             className="p-4 rounded-lg"
                             style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                 border: `1px solid ${theme.border}`
                             }}
                         >
@@ -374,7 +374,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         key={index}
                                         className="p-4 rounded-lg"
                                         style={{
-                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                             border: `1px solid ${theme.border}`
                                         }}
                                     >
@@ -429,7 +429,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         key={index}
                                         className="p-4 rounded-lg"
                                         style={{
-                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                             border: `1px solid ${theme.border}`
                                         }}
                                     >
@@ -478,7 +478,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         <div
                             className="p-4 rounded-lg"
                             style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                 border: `1px solid ${theme.border}`
                             }}
                         >
@@ -513,7 +513,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     key={peptideId}
                                     className="p-4 rounded-lg"
                                     style={{
-                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                         border: `1px solid ${theme.border}`
                                     }}
                                 >
@@ -582,7 +582,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         <div
                             className="p-4 rounded-lg"
                             style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                 border: `2px solid ${theme.primary}`,
                                 borderLeft: `4px solid ${theme.primary}`
                             }}
@@ -641,15 +641,15 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 <FileText size={16} />
                                 Follow-Up Assessment
                             </h3>
-                            <div
-                                className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
-                                style={{
-                                    backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                                    color: theme.textLight
-                                }}
-                            >
-                                <span className="font-medium text-xs">No Follow-Up</span>
-                            </div>
+                                    <div
+                                        className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                                        style={{
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                                            color: theme.textLight
+                                        }}
+                                    >
+                                        <span className="font-medium text-xs">No Follow-Up</span>
+                                    </div>
                         </div>
                         <div className="flex justify-center">
                             <button
@@ -717,7 +717,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         key={note.id}
                                         className="p-4 rounded-lg"
                                         style={{
-                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                                             border: `1px solid ${theme.border}`,
                                             borderLeft: `4px solid ${note.type === 'follow_up' ? theme.primary : theme.accent}`
                                         }}
@@ -749,7 +749,9 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                                     )}
                                                     {note.rating && (
                                                         <span className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
-                                                            {'⭐'.repeat(note.rating)}
+                                                                    {[1, 2, 3, 4, 5].slice(0, note.rating).map(n => (
+                                                                        <Star key={n} size={12} style={{ fill: theme.primary, color: theme.primary }} />
+                                                                    ))}
                                                         </span>
                                                     )}
                                                 </div>
@@ -786,7 +788,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
 
             {/* Footer */}
             <div className="flex justify-start items-center pt-3 mt-4" style={{
-                borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
+                    borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`
             }}>
                 <button
                     onClick={handleDelete}

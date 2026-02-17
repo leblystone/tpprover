@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Zap } from 'lucide-react';
 import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion } from '../../../utils/taskCompletion';
 import { generateTaskId } from '../../../utils/taskCompletion';
@@ -139,19 +139,23 @@ const ComplianceWidget = ({ widget, theme }) => {
       planned: totalPlanned, 
       done: totalDone, 
       streak,
-      hasData: totalPlanned > 0
+      hasData: totalPlanned > 0,
+      dailyStats
     };
   }, [protocols, supplements, reconItems, taskCompletion, refreshTrigger]);
 
   const getComplianceColor = (pct) => {
-    if (pct >= 90) return theme.success;
-    if (pct >= 70) return theme.warning;
-    return theme.error;
+    if (pct >= 90) return theme.primary;
+    if (pct >= 70) return theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
+    return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
   };
+
+  const last7 = complianceData.dailyStats?.slice(-7) || [];
+  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3 widget-separator" style={{ borderColor: 'rgba(47, 59, 58, 0.4)' }}>
+      <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Research Consistency
@@ -176,30 +180,72 @@ const ComplianceWidget = ({ widget, theme }) => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 p-4 flex flex-col items-center justify-center">
-          <div className="text-center mb-4">
-            <div className="flex items-center justify-center mb-2">
-              <CheckCircle size={24} style={{ color: getComplianceColor(complianceData.compliancePct) }} />
+        <div className="flex-1 p-4 flex flex-col justify-center">
+          {/* Top row: percentage + streak */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div 
+                className="text-2xl lg:text-xl font-bold" 
+                style={{ color: getComplianceColor(complianceData.compliancePct) }}
+              >
+                {complianceData.compliancePct}%
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>
+                30-day compliance
+              </div>
             </div>
-            
-            <div 
-              className="text-2xl lg:text-xl font-bold mb-1" 
-              style={{ color: getComplianceColor(complianceData.compliancePct) }}
-            >
-              {complianceData.compliancePct}%
-            </div>
-            
-            <div className="text-sm" style={{ color: theme.textLight }}>
-              30-day compliance
+
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
+              <Zap size={14} style={{ color: theme.primary }} />
+              <span className="text-sm font-bold" style={{ color: theme.primary }}>
+                {complianceData.streak}
+              </span>
+              <span className="text-xs" style={{ color: theme.textLight }}>
+                day streak
+              </span>
             </div>
           </div>
 
-          <div className="text-center">
-            <div className="text-xl lg:text-lg font-bold mb-1" style={{ color: theme.primary }}>
-              {complianceData.streak}
+          {/* 7-day dot grid */}
+          <div className="rounded-lg p-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.primary + '08' }}>
+            <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>
+              Last 7 days
             </div>
-            <div className="text-xs" style={{ color: theme.textLight }}>
-              day streak
+            <div className="flex items-center justify-between">
+              {last7.map((day, i) => {
+                const dayDate = new Date(day.date + 'T00:00:00');
+                const label = dayLabels[dayDate.getDay() === 0 ? 6 : dayDate.getDay() - 1];
+                const hasTasks = day.planned > 0;
+                const isComplete = day.completed && hasTasks;
+                const isPartial = hasTasks && !day.completed && day.done > 0;
+
+                return (
+                  <div key={day.date} className="flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+                      {label}
+                    </span>
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        backgroundColor: !hasTasks
+                          ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                          : isComplete
+                            ? theme.primary
+                            : isPartial
+                              ? (theme.isDark ? 'rgba(217, 167, 60, 0.5)' : '#d9770640')
+                              : 'transparent',
+                        border: !hasTasks
+                          ? 'none'
+                          : isComplete
+                            ? 'none'
+                            : `2px solid ${theme.isDark ? 'rgba(197, 130, 100, 0.6)' : '#b5684a60'}`
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

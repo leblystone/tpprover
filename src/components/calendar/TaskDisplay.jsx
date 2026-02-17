@@ -62,6 +62,7 @@ const getResolvedPenColor = (penColor) => {
 };
 
 // Main TaskDisplay component
+// Styled to match Today's Research widget (TasksList) for visual consistency
 const TaskDisplay = ({ 
   task, 
   theme, 
@@ -119,74 +120,65 @@ const TaskDisplay = ({
     }
   };
 
-  // Size-based styling
-  const sizeClasses = {
-    compact: {
-      container: 'flex items-center gap-1 text-xs p-1 rounded',
-      checkbox: 'w-3 h-3',
-      name: 'text-xs',
-      details: 'text-xs',
-      penSwatch: 'w-2 h-2',
-      penType: 'text-xs'
-    },
-    normal: {
-      container: 'flex items-center gap-2 text-sm p-2 rounded',
-      checkbox: 'w-4 h-4',
-      name: 'text-sm',
-      details: 'text-sm',
-      penSwatch: 'w-3 h-3',
-      penType: 'text-xs'
-    },
-    detailed: {
-      container: 'flex items-center gap-3 text-base p-3 rounded',
-      checkbox: 'w-5 h-5',
-      name: 'text-base',
-      details: 'text-sm',
-      penSwatch: 'w-4 h-4',
-      penType: 'text-sm'
-    }
-  };
+  const isPM = timeSlot === 'PM';
 
-  const styles = sizeClasses[size] || sizeClasses.normal;
+  // Left border color matches Today's Research widget: PM = darker, AM = lighter
+  const borderLeftColor = isPM
+    ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+    : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+
+  // Checkbox color: PM gets darker shade (matches Today's Research)
+  const checkboxBg = isCompleted
+    ? (isPM
+        ? (theme.isDark ? '#a0b499' : (theme.primaryDark || '#3d5a4c'))
+        : (theme.isDark ? '#6b7f65' : theme.primary))
+    : 'transparent';
+  const checkboxBorder = isCompleted
+    ? (isPM
+        ? (theme.isDark ? '#a0b499' : (theme.primaryDark || '#3d5a4c'))
+        : (theme.isDark ? '#6b7f65' : theme.primary))
+    : `${theme.primaryLight}60`;
 
   return (
     <div 
-      className={`${styles.container} ${isCompleted ? 'line-through decoration-1' : ''}`}
+      className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200"
       style={{ 
-        backgroundColor: isCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6') : (task.type === 'peptide' ? theme.primary + '20' : theme.secondary),
-        borderLeft: isCompleted ? '3px solid #4CAF50' : 'none',
-        paddingLeft: isCompleted ? 'calc(0.5rem - 3px)' : undefined
+        backgroundColor: 'transparent',
+        borderLeft: borderLeftColor,
       }}
     >
-      {/* Task name */}
-      <div className="flex-1 min-w-0">
-        <div className={`${styles.name} font-semibold truncate`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.text }}>
-          {task.name}
+      {/* Left: Task name */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
+            {task.name}
+          </div>
         </div>
       </div>
 
-      {/* Right-aligned details */}
-      <div className={`text-right flex items-center gap-2 ${isCompleted ? 'line-through decoration-1' : ''}`}>
+      {/* Right: Details + Checkbox */}
+      <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : undefined }}>
         {/* Dose and units */}
         <div className="text-right">
-          <div className={`${styles.details} font-semibold`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.text }}>
+          <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
             {task.dose}{task.unit ? ` ${task.unit}` : ''}
           </div>
         </div>
 
-        {/* Pen color and type (if pen delivery) */}
-        {task.deliveryMethod === 'pen' && showPenDetails && (
-          <div className="flex items-center gap-1">
+        {/* Pen color and type (if pen delivery or penColor present) */}
+        {task.penColor && showPenDetails && (
+          <div className="flex items-center gap-0.5 sm:gap-1">
             <div 
-              className={`${styles.penSwatch} rounded-full border border-gray-300 shadow-sm flex-shrink-0`}
+              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shadow-sm flex-shrink-0"
               style={{ 
-                background: isCompleted ? '#d1d5db' : getChromeGradient(getResolvedPenColor(task.penColor)),
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`,
+                background: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.15)' : '#d1d5db') : getChromeGradient(getResolvedPenColor(task.penColor)),
                 opacity: isCompleted ? 0.5 : 1
               }}
               title={`Pen Color: ${task.penColor || 'Default'}`}
             />
             {task.penType && (
-              <span className={`${styles.penType} font-medium`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.textLight }}>
+              <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.textLight }}>
                 {task.penType.toUpperCase()}
               </span>
             )}
@@ -194,20 +186,15 @@ const TaskDisplay = ({
         )}
 
         {/* Delivery method icon */}
-        <div style={{ opacity: isCompleted ? 0.3 : 1 }}>
-          <DeliveryIcon task={task} theme={theme} size={size === 'compact' ? 10 : size === 'normal' ? 14 : 16} />
+        <div className="flex-shrink-0" style={{ opacity: isCompleted ? 0.5 : 1 }}>
+          <DeliveryIcon task={task} theme={theme} size={12} />
         </div>
 
-        {/* Checkbox - Matching Today's Research widget design */}
+        {/* Checkbox - Matching Today's Research widget design exactly */}
         {showCheckbox && (
           <button
             type="button"
             onMouseDown={(e) => {
-              // Prevent blur events on mobile
-              e.preventDefault();
-            }}
-            onTouchStart={(e) => {
-              // Prevent blur events on touch devices
               e.preventDefault();
             }}
             onClick={(e) => {
@@ -215,23 +202,21 @@ const TaskDisplay = ({
               e.stopPropagation();
               handleToggle();
             }}
-            className="relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer border-2 rounded-sm touch-manipulation"
+            className="w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation"
             style={{
-              width: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
-              height: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
-              minWidth: size === 'compact' ? '16px' : '24px',
-              minHeight: size === 'compact' ? '16px' : '24px',
-              backgroundColor: isCompleted ? theme.primary : 'transparent',
-              borderColor: isCompleted ? theme.primary : theme.border,
+              borderColor: checkboxBorder,
+              backgroundColor: checkboxBg,
               borderRadius: '4px',
+              minWidth: '20px',
+              minHeight: '20px',
               WebkitTapHighlightColor: 'transparent'
             }}
             title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
           >
             {isCompleted && (
               <Check 
-                size={size === 'compact' ? 14 : 18} 
-                className="absolute text-white" 
+                size={14} 
+                className="sm:w-[18px] sm:h-[18px] absolute text-white" 
                 style={{ 
                   strokeWidth: 2.5,
                   top: '-3px',

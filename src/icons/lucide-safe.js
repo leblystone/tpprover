@@ -98,4 +98,5 @@ export { default as Sparkles } from 'lucide-react/dist/esm/icons/sparkles.js'
 export { default as Lock } from 'lucide-react/dist/esm/icons/lock.js'
 export { default as LogOut } from 'lucide-react/dist/esm/icons/log-out.js'
 export { default as DownloadCloud } from 'lucide-react/dist/esm/icons/download-cloud.js'
+export { default as Gift } from 'lucide-react/dist/esm/icons/gift.js'
 

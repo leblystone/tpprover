@@ -53,7 +53,7 @@ export default function BetaModal({ open, onClose, theme }) {
         
         <div className="text-center">
           <h3 
-            className="text-lg font-bold mb-1 pulsing-tagline"
+            className="text-lg font-semibold mb-1 pulsing-tagline"
             style={{ color: theme?.isDark ? '#929e82' : '#4A4A4A' }}
           >
             Building with you!

@@ -138,14 +138,14 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
   }, [currentOrder?.tracking])
   
   if (!currentOrder) return (
-    <div className="p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
+    <div className="p-4 rounded-xl content-card w-full" style={{ backgroundColor: 'transparent' }}>
       {!hideHeader && (
-        <div className="px-3 py-2 border-b mb-3" style={{ borderColor: theme.border }}>
+        <div className="px-3 py-2 border-b mb-3" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold" style={{ color: theme.text }}>
               Incoming Peptides
             </h3>
-            <Truck size={18} style={{ color: theme.primary }} />
+            <Truck size={18} style={{ color: theme.isDark ? 'rgba(200, 215, 195, 0.7)' : theme.primary }} />
           </div>
         </div>
       )}
@@ -221,7 +221,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
       }}
     >
       {!hideHeader && (
-        <div className="px-3 py-2 border-b mb-3 flex-shrink-0" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-3 py-2 border-b mb-3 flex-shrink-0" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold" style={{ color: theme.text }}>
@@ -279,7 +279,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
         </div>
       )}
       <div className="w-full flex flex-col mb-3 flex-shrink-0">
-        <div className="text-base font-semibold mb-1 text-center" style={{ color: theme.primary }}>{currentOrder?.peptide || 'N/A'} {currentOrder?.mg || ''}mg</div>
+        <div className="text-base font-semibold mb-1 text-center" style={{ color: theme.isDark ? 'rgba(200, 215, 195, 0.9)' : theme.primary }}>{currentOrder?.peptide || 'N/A'} {currentOrder?.mg || ''}mg</div>
         <div className="text-xs mb-2 text-center" style={{ color: theme.textLight }}>
           <span style={{ fontWeight: 500, color: theme.text }}>Vendor:</span> {currentOrder?.vendor || 'Unknown'}
         </div>
@@ -334,9 +334,9 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded transition-all hover:opacity-80 break-all w-full"
                 style={{ 
-                  backgroundColor: theme.secondary, 
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary, 
                   color: theme.text,
-                  border: `1px solid ${theme.border}`,
+                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
                   textDecoration: 'none',
                   cursor: 'pointer'
                 }}
@@ -348,8 +348,8 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                 <span style={{ color: theme.textLight, fontWeight: 500 }}>Tracking Number:</span>
                 <span className="font-mono flex-1">{currentOrder.tracking}</span>
                 <div className="text-xs px-2 py-0.5 rounded flex-shrink-0" style={{ 
-                  backgroundColor: theme.primary + '20', 
-                  color: theme.primary,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.primary + '20', 
+                  color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary,
                   fontWeight: 600
                 }}>
                   {carrierDisplay}
@@ -372,14 +372,14 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
           <div 
             className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-1" 
             style={{ 
-              backgroundColor: theme.secondary 
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary 
             }}
           />
           <div 
             className="absolute top-1/2 -translate-y-1/2 left-0 h-1" 
             style={{ 
               width: `${(current / (steps.length - 1)) * 100}%`,
-              backgroundColor: theme.primary,
+              backgroundColor: theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primary,
               transition: 'width 0.3s ease-in-out'
             }}
           />
@@ -388,8 +388,12 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
               <div
                 className="rounded-full p-1.5 border-2 flex items-center justify-center"
                 style={{ 
-                  backgroundColor: idx <= current ? theme.primary : theme.cardBackground,
-                  borderColor: idx <= current ? theme.primary : theme.secondary
+                  backgroundColor: idx <= current 
+                    ? (theme.isDark ? '#7a8a72' : theme.primary) 
+                    : (theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground),
+                  borderColor: idx <= current 
+                    ? (theme.isDark ? '#7a8a72' : theme.primary) 
+                    : (theme.isDark ? 'rgba(255,255,255,0.12)' : theme.secondary)
                 }}
               >
                 {React.cloneElement(s.icon, { 
@@ -413,7 +417,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                 <div key={s.status} className="flex flex-col items-center flex-1">
                   <span
                     className="text-xs text-center"
-                    style={{ color: idx <= current ? theme.primaryDark : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
+                    style={{ color: idx <= current ? (theme.isDark ? 'rgba(255,255,255,0.85)' : theme.primaryDark) : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
                   >
                     {s.label}
                   </span>
@@ -439,10 +443,10 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
               <div key={s.status} className="flex flex-col items-center flex-1">
                 <span
                   className="text-xs text-center"
-                  style={{ color: idx <= current ? theme.primaryDark : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
-                >
-                  {s.label}
-                </span>
+                    style={{ color: idx <= current ? (theme.isDark ? 'rgba(255,255,255,0.85)' : theme.primaryDark) : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
+                  >
+                    {s.label}
+                  </span>
               </div>
             );
           })}
@@ -455,7 +459,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
         if (!shouldShow) return null;
         
         return (
-        <div className="mt-auto w-full flex items-center justify-center gap-2 pt-2 pb-2 border-t flex-shrink-0" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
+        <div className="mt-auto w-full flex items-center justify-center gap-2 pt-2 pb-2 border-t flex-shrink-0" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }} onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}

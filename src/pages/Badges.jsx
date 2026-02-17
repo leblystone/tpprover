@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Trophy, TrendingUp, Star, Award, Target, Clock, BarChart3 } from 'lucide-react';
+import { Trophy, TrendingUp, Star, Award, Target, Clock, BarChart3, Check } from 'lucide-react';
 import ViewContainer from '../components/ui/ViewContainer';
 import { useBadgeStats } from '../utils/badges';
 import BadgeCard from '../components/badges/BadgeCard';
@@ -57,14 +57,14 @@ export default function Badges() {
   }, [groupedBadges, earnedBadgeNames]);
 
   return (
-    <ViewContainer theme={theme} title="Badges & Achievements">
+    <ViewContainer theme={theme} title="Badges & Achievements" className="page-bg">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-8">
         {/* Main Content */}
         <div className="md:col-span-2 lg:col-span-3 space-y-3 md:space-y-8">
         {/* Hero Section */}
-        <div className="badge-hero-section relative overflow-hidden rounded-2xl p-3 md:p-8" style={{ 
+        <div className="badge-hero-section content-section relative overflow-hidden rounded-2xl p-3 md:p-8" style={{ 
           background: `linear-gradient(135deg, ${theme.primary}15, ${theme.accent}15)`,
-          border: `1px solid ${theme.border}`
+          border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
         }}>
           <div className="relative z-10">
             <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-6">
@@ -83,14 +83,14 @@ export default function Badges() {
             
             {/* Progress Overview */}
             <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-4 md:mb-6">
-              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+              <div className="content-section text-center p-2 md:p-4 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
                 <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.primary }}>
                   {earnedCount}/{totalBadges}
                 </div>
                 <div className="text-xs md:text-sm opacity-80" style={{ color: theme.text }}>
                   Badges Earned
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 md:h-2 mt-2 md:mt-3">
+                <div className="w-full rounded-full h-1.5 md:h-2 mt-2 md:mt-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                   <div 
                     className="h-1.5 md:h-2 rounded-full transition-all duration-500" 
                     style={{ 
@@ -101,7 +101,7 @@ export default function Badges() {
                 </div>
               </div>
               
-              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+              <div className="content-section text-center p-2 md:p-4 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
                 <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.accent }}>
                   {progressPercentage}%
                 </div>
@@ -113,7 +113,7 @@ export default function Badges() {
                 </div>
               </div>
               
-              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+              <div className="content-section text-center p-2 md:p-4 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
                 <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.primaryDark }}>
                   {categories.length - 1}
                 </div>
@@ -140,14 +140,13 @@ export default function Badges() {
           <div className="mb-4 md:mb-8">
             <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
               <Clock className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.primary }} />
-              <h2 className="text-lg md:text-xl font-bold" style={{ color: theme.primaryDark }}>
+              <h2 className="text-lg md:text-xl font-semibold" style={{ color: theme.primaryDark }}>
                 Recently Earned
               </h2>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1.5 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-1.5 md:p-3 rounded-md border recently-earned-badge" style={{ 
-                  backgroundColor: theme.cardBackground, 
+                <div key={badge.name} className="content-section p-1.5 md:p-3 rounded-md border recently-earned-badge" style={{ 
                   borderColor: theme.primary
                 }}>
                   <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
@@ -161,7 +160,7 @@ export default function Badges() {
                       />
                     </div>
                     <div className="space-y-0.5 md:space-y-1 min-h-0">
-                      <h3 className="font-bold text-xs md:text-sm leading-tight line-clamp-2" style={{ color: theme.primaryDark }}>
+                      <h3 className="font-semibold text-xs md:text-sm leading-tight line-clamp-2" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
                       <p className="text-xs opacity-80 leading-relaxed hidden md:block line-clamp-2" style={{ color: theme.text }}>
@@ -170,7 +169,7 @@ export default function Badges() {
                       <div className="flex items-center justify-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
                         <Star className="w-2.5 h-2.5 md:w-3 md:h-3" />
                         <span className="hidden sm:inline">Earned!</span>
-                        <span className="sm:hidden">✓</span>
+                        <Check className="w-3 h-3 sm:hidden" />
                       </div>
                     </div>
                   </div>
@@ -188,7 +187,7 @@ export default function Badges() {
             <div key={category} className="category-section">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>
+                  <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>
                     {category}
                   </h2>
                   <div className="px-3 py-1 rounded-full text-sm font-medium" style={{ 
@@ -207,7 +206,7 @@ export default function Badges() {
               </div>
               
               {/* Category Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+              <div className="w-full rounded-full h-2 mb-6" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                 <div 
                   className="h-2 rounded-full transition-all duration-500" 
                   style={{ 
@@ -237,7 +236,7 @@ export default function Badges() {
         {filteredBadges.length === 0 && (
           <div className="text-center py-12">
             <Target className="w-16 h-16 mx-auto mb-4 opacity-50" style={{ color: theme.text }} />
-            <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: theme.text }}>
               No badges found
             </h3>
             <p className="opacity-80" style={{ color: theme.text }}>
@@ -250,13 +249,12 @@ export default function Badges() {
         {/* Sidebar */}
         <div className="md:col-span-2 lg:col-span-1 space-y-3 md:space-y-6">
           {/* Progress Widget */}
-          <div className="progress-widget p-3 md:p-6 rounded-xl" style={{ 
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.border}`
+          <div className="progress-widget content-section p-3 md:p-6 rounded-xl" style={{ 
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}>
             <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
               <BarChart3 className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.primary }} />
-              <h3 className="font-bold text-sm md:text-base" style={{ color: theme.primaryDark }}>
+              <h3 className="font-semibold text-sm md:text-base" style={{ color: theme.primaryDark }}>
                 Progress Overview
               </h3>
             </div>
@@ -267,9 +265,8 @@ export default function Badges() {
           </div>
 
           {/* Achievement Timeline */}
-          <div className="p-3 md:p-6 rounded-xl" style={{ 
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.border}`
+          <div className="content-section p-3 md:p-6 rounded-xl" style={{ 
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}>
             <AchievementTimeline earnedBadges={earnedBadges} theme={theme} />
           </div>

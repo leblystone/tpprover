@@ -5,8 +5,10 @@ export default function TextArea({ label, value, onChange, placeholder, theme, n
     <>
       <style>{`
         .themed-textarea:focus {
-          border-color: ${theme.primary};
-          box-shadow: 0 0 0 2px ${theme.primaryLight};
+          border-color: ${theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary};
+          box-shadow: ${theme.isDark 
+            ? '0 0 0 2px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)' 
+            : `0 0 0 2px ${theme.primaryLight}`};
         }
       `}</style>
       <label className="block w-full">
@@ -23,9 +25,10 @@ export default function TextArea({ label, value, onChange, placeholder, theme, n
           aria-describedby={label ? `${name || 'textarea'}-label` : undefined}
           className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg border transition-colors focus:outline-none themed-textarea resize-vertical`}
           style={{ 
-            borderColor: theme.border, 
-            backgroundColor: theme.cardBackground, 
-            color: theme.text 
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border, 
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.cardBackground, 
+            color: theme.text,
+            boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'none' 
           }}
         />
       </label>

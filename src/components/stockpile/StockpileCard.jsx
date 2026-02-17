@@ -33,8 +33,14 @@ export default function StockpileCard({
 
   return (
     <div 
-      className="rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
-      style={{ backgroundColor: theme.cardBackground }}
+      className="rounded-2xl p-6 transition-all duration-200 cursor-pointer glass-panel-minimal"
+      style={{
+        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+        boxShadow: theme.isDark
+          ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+      }}
       onClick={() => onEdit?.(item)}
     >
       {/* Header */}
@@ -57,7 +63,9 @@ export default function StockpileCard({
                 e.stopPropagation();
                 onEdit?.(item);
               }}
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               title="Edit item"
             >
               <Edit size={16} style={{ color: theme.textLight }} />
@@ -81,7 +89,7 @@ export default function StockpileCard({
         </div>
         
         {item.minAmount && (
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full rounded-full h-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
             <div
               className="h-2 rounded-full transition-all"
               style={{
@@ -134,7 +142,7 @@ export default function StockpileCard({
 
       {/* Notes */}
       {item.notes && (
-        <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
+        <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
           <div className="flex items-start gap-2">
             <FileText size={14} style={{ color: theme.textLight }} className="mt-0.5" />
             <span className="text-sm" style={{ color: theme.text }}>
@@ -146,7 +154,7 @@ export default function StockpileCard({
 
       {/* Action Buttons */}
       {showActions && (
-        <div className="mt-4 pt-4 border-t flex gap-2" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
+        <div className="mt-4 pt-4 flex gap-2" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }} onClick={(e) => e.stopPropagation()}>
           {(item.currentAmount <= (item.minAmount || 0)) && (
             <button
               onClick={(e) => {

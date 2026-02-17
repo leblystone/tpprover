@@ -103,7 +103,7 @@ export default function Vendors() {
 	const isEmptyCategory = vendorsInCategory.length === 0 && !searchQuery;
 
 	return (
-		<>
+		<section className="page-bg">
 			<VendorsTipsBanner theme={theme} />
 
 			{/* Filter dropdown - same pattern as Stockpile / Orders */}
@@ -128,7 +128,7 @@ export default function Vendors() {
 
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (
-					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+					<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
 						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 							<Store size={32} style={{ color: theme.primary }} />
 						</div>
@@ -136,7 +136,7 @@ export default function Vendors() {
 						<p className="text-sm max-w-sm" style={{ color: theme.textLight }}>No vendors match your search.</p>
 					</div>
 				) : isEmptyCategory ? (
-					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+					<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
 						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
 							{categoryFilter === 'domestic' ? (
 								<Store size={32} style={{ color: theme.primary }} />
@@ -273,7 +273,7 @@ export default function Vendors() {
 				actionAttempted="manage vendors"
 				theme={theme}
 			/>
-		</>
+		</section>
 	)
 }
 

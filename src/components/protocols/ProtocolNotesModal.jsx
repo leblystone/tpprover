@@ -189,8 +189,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                 {/* Add Note Form */}
                 {showAddForm && (
                     <div className="p-4 rounded-lg space-y-4" style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                        border: `1px solid ${theme.border}`
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                     }}>
                         <div className="flex items-center justify-between">
                             <h3 className="font-semibold" style={{ color: theme.text }}>New Note</h3>
@@ -214,8 +214,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                             className="w-full p-3 rounded-lg text-sm resize-none"
                             rows={4}
                             style={{
-                                backgroundColor: theme.isDark ? '#111827' : '#ffffff',
-                                border: `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                                 color: theme.text
                             }}
                         />
@@ -234,7 +234,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         style={{
                                             backgroundColor: newNote.tags.includes(tag.id)
                                                 ? theme.primary
-                                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
                                             color: newNote.tags.includes(tag.id)
                                                 ? theme.textOnPrimary
                                                 : theme.text,
@@ -279,7 +279,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                 }}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium"
                                 style={{ 
-                                    backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
                                     color: theme.text
                                 }}
                             >
@@ -302,8 +302,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                 {/* Edit Note Form */}
                 {editingNote && (
                     <div className="p-4 rounded-lg space-y-4" style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                        border: `1px solid ${theme.border}`
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                     }}>
                         <div className="flex items-center justify-between">
                             <h3 className="font-semibold" style={{ color: theme.text }}>Edit Note</h3>
@@ -323,8 +323,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                             className="w-full p-3 rounded-lg text-sm resize-none"
                             rows={4}
                             style={{
-                                backgroundColor: theme.isDark ? '#111827' : '#ffffff',
-                                border: `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                                 color: theme.text
                             }}
                         />
@@ -343,7 +343,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         style={{
                                             backgroundColor: editingNote.tags?.includes(tag.id)
                                                 ? theme.primary
-                                                : (theme.isDark ? '#374151' : '#f3f4f6'),
+                                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
                                             color: editingNote.tags?.includes(tag.id)
                                                 ? theme.textOnPrimary
                                                 : theme.text,
@@ -387,7 +387,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                 onClick={() => setEditingNote(null)}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium"
                                 style={{ 
-                                    backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
                                     color: theme.text
                                 }}
                             >
@@ -421,8 +421,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                     key={note.id}
                                     className="p-4 rounded-lg"
                                     style={{
-                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                        border: `1px solid ${theme.border}`
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                                     }}
                                 >
                                     <div className="flex items-start justify-between gap-2 mb-2">
@@ -484,7 +484,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
             {/* Footer */}
             {!showAddForm && !editingNote && (
                 <div className="flex justify-end pt-4 mt-4" style={{
-                    borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
+                    borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`
                 }}>
                     <button
                         onClick={handleClose}

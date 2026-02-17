@@ -105,7 +105,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
 
   return (
     <div className="h-full flex flex-col p-4 rounded-xl content-card w-full">
-      <h3 className="text-base font-bold mb-3 border-b pb-2 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.border }}>
+      <h3 className="text-base font-bold mb-3 pb-2 flex-shrink-0 flex items-center justify-between widget-separator" style={{ color: theme.text }}>
         <span className="flex items-center gap-2">
           Wishlist
           <BookHeart size={20} style={{ color: theme.primary }} />
@@ -174,13 +174,20 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
             </button>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {list.map((it) => (
+          <ul className="space-y-1.5">
+            {list.map((it, index) => (
               <li 
                 key={it.id} 
                 onClick={handleItemClick}
-                className="flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors hover:opacity-80 touch-manipulation" 
-                style={{ borderColor: theme.border, WebkitTapHighlightColor: 'transparent' }}
+                className="flex items-center justify-between py-2.5 px-3 cursor-pointer transition-all duration-200 hover:opacity-80 touch-manipulation" 
+                style={{ 
+                  backgroundColor: 'transparent',
+                  borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
+                  boxShadow: index < list.length - 1
+                    ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
+                    : 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>{it.name || it.item || 'Untitled Item'}</div>

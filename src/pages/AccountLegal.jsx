@@ -104,7 +104,7 @@ export default function AccountLegal() {
   }
 
   return (
-    <section className="max-w-4xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
@@ -126,7 +126,7 @@ export default function AccountLegal() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       <div className="space-y-4">
         {/* Legal Documents */}
@@ -155,7 +155,7 @@ export default function AccountLegal() {
         <div className="space-y-4 pt-4">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Agreement History
             </h2>
           </div>
@@ -200,22 +200,21 @@ export default function AccountLegal() {
 const LegalDocumentCard = ({ title, description, agreement, onAction, actionText, icon: Icon, theme }) => (
   <button
     onClick={onAction}
-    className="group w-full p-4 rounded-2xl transition-all hover:opacity-80 text-left"
+    className="content-section group w-full p-4 rounded-2xl transition-all hover:opacity-80 text-left"
     style={{ 
-      backgroundColor: theme.cardBackground,
-      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
     }}
   >
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div 
           className="p-2 rounded-xl"
-          style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
         >
           <Icon size={18} style={{ color: theme.text, opacity: 0.6 }} />
         </div>
         <div>
-          <h3 className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>{title}</h3>
+          <h3 className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>{title}</h3>
           <p className="text-xs" style={{ color: agreement ? theme.textLight : theme.error }}>
             {description}
           </p>
@@ -232,10 +231,9 @@ const LegalDocumentCard = ({ title, description, agreement, onAction, actionText
 
 const AgreementHistoryCard = ({ title, version, date, type, theme }) => (
   <div 
-    className="flex items-center justify-between p-3 rounded-2xl"
+    className="content-section flex items-center justify-between p-3 rounded-2xl"
     style={{ 
-      backgroundColor: theme.cardBackground,
-      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
     }}
   >
     <div className="flex items-center gap-3">
@@ -246,14 +244,14 @@ const AgreementHistoryCard = ({ title, version, date, type, theme }) => (
         <Check size={16} style={{ color: '#10B981' }} strokeWidth={2.5} />
       </div>
       <div>
-        <div className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>{title}</div>
+        <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>{title}</div>
         <div className="text-xs opacity-60" style={{ color: theme.text }}>
           Version {version} • {new Date(date).toLocaleDateString()}
         </div>
       </div>
     </div>
     <div 
-      className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide"
+      className="px-2.5 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide"
       style={{ 
         backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
         color: '#10B981'

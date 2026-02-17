@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
-import { Rocket, Clock } from 'lucide-react';
+import { Rocket, Clock, Sparkles } from 'lucide-react';
 
 export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
   const handleDismiss = () => {
@@ -21,7 +21,7 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
           <button
             className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:opacity-90"
             onClick={handleDismiss}
-            style={{ backgroundColor: '#F3F4F6', color: '#374151' }}
+            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6', color: theme.isDark ? '#e5e7eb' : '#374151' }}
           >
             Still Deciding
           </button>
@@ -49,15 +49,16 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
 
         {/* Message */}
         <div className="text-center space-y-3">
-          <p className="text-base text-gray-700">
+          <p className="text-base" style={{ color: theme.isDark ? '#d1d5db' : '#374151' }}>
             Your research trial has expired. To continue organizing your peptide research and accessing all features, please choose a subscription plan.
           </p>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-            <p className="text-sm text-gray-700 font-medium mb-2">
-              ✨ What you'll keep with a subscription:
+          <div className="rounded-lg p-4 text-left border" style={{ backgroundColor: theme.isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', borderColor: theme.isDark ? 'rgba(59,130,246,0.2)' : '#bfdbfe' }}>
+            <p className="text-sm font-medium mb-2 flex items-center gap-1.5" style={{ color: theme.isDark ? '#d1d5db' : '#374151' }}>
+              <Sparkles size={14} style={{ color: theme.primary }} />
+              What you'll keep with a subscription:
             </p>
-            <ul className="text-sm text-gray-600 space-y-1.5">
+            <ul className="text-sm space-y-1.5" style={{ color: theme.isDark ? '#d1d5db' : '#4b5563' }}>
               <li className="flex items-start gap-2">
                 <span className="text-green-600 mt-0.5">•</span>
                 <span>Full access to protocol research tools</span>
@@ -77,7 +78,7 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
             </ul>
           </div>
 
-          <p className="text-xs text-gray-500 italic">
+          <p className="text-xs italic" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
             Don't worry - your data is safe in read-only mode until you subscribe.
           </p>
         </div>

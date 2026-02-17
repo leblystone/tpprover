@@ -1529,9 +1529,9 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
 
   return (
     <Modal open={open} onClose={onClose} title="Research Database" theme={theme} footer={(
-      <>
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Close</button>
-      </>
+      <div className="flex items-center w-full">
+        <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Close</button>
+      </div>
     )}>
       <div className="space-y-4">
         {/* Tab Navigation */}

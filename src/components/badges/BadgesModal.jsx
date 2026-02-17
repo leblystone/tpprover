@@ -25,11 +25,11 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
       title={goal ? 'Edit Goal' : 'New Goal'}
       theme={theme}
       footer={(
-        <div className="flex items-center gap-2 w-full">
-          {goal && <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border, color: '#b91c1c' }}>Delete</button>}
+        <div className="flex items-center w-full">
+          <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-            <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+            {goal && <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md text-sm font-medium" style={{ color: '#b91c1c', background: 'none', border: 'none' }}>Delete</button>}
+            <button onClick={() => onSave?.(form)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }}>Save</button>
           </div>
         </div>
       )}

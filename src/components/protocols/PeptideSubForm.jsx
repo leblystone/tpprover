@@ -735,7 +735,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                                 Custom Reminder
                                             </span>
                                             <span className="text-[10px] opacity-50 block" style={{ color: theme.text }}>
-                                                Get a push notification at a specific time for this peptide
+                                                Override the global AM/PM reminder with a specific time for this peptide
                                             </span>
                                         </div>
                                         <div 
@@ -750,7 +750,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     </button>
 
                                     {item.frequency?.customReminder && (
-                                        <div className="pt-1">
+                                        <div className="pt-1 space-y-1.5">
                                             <TimePicker15Min
                                                 label="Remind me at"
                                                 value={item.frequency?.reminderTime || '08:00'}
@@ -761,6 +761,9 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                                 }}
                                                 theme={theme}
                                             />
+                                            <p className="text-[9px] opacity-45 px-0.5" style={{ color: theme.text }}>
+                                                This peptide will no longer appear in your global morning/evening reminder.
+                                            </p>
                                         </div>
                                     )}
                                     </div>

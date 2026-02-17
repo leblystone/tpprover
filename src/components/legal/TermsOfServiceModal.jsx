@@ -33,13 +33,13 @@ export default function TermsOfServiceModal({ open, onClose, onAgree, theme }) {
             theme={theme}
             maxWidth="max-w-3xl"
             footer={
-                <div className="w-full flex justify-end gap-2">
-                    <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>{onAgree ? 'Cancel' : 'Close'}</button>
+                <div className="flex items-center w-full">
+                    <button onClick={onClose} className="text-sm font-medium" style={{ color: theme.textLight || theme.text, background: 'none', border: 'none', padding: 0 }}>{onAgree ? 'Cancel' : 'Close'}</button>
                     {onAgree && (
                         <button 
                             onClick={onAgree} 
                             disabled={!scrolledToBottom}
-                            className="px-3 py-2 rounded-md disabled:opacity-50" 
+                            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" 
                             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                         >
                             I Agree

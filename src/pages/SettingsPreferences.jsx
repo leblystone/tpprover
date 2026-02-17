@@ -119,7 +119,7 @@ export default function SettingsPreferences() {
   };
 
   return (
-    <section className="max-w-xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
         <button
@@ -133,13 +133,13 @@ export default function SettingsPreferences() {
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Preferences</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
               Region & App Behavior
             </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? '#4B5563' : '#9CA3AF' }}></div>
+      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Preference Settings */}
       <div className="space-y-4">
@@ -147,14 +147,14 @@ export default function SettingsPreferences() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <FlaskConical size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Features
             </h4>
           </div>
 
           <div 
-            className="px-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.tracking?.injectionSites ?? true} 
@@ -204,14 +204,14 @@ export default function SettingsPreferences() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Package size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Orders & Inventory
             </h4>
           </div>
 
           <div 
-            className="px-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.orders?.autoStockpileUpdate ?? true} 
@@ -245,14 +245,14 @@ export default function SettingsPreferences() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Shield size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Privacy & Data
             </h4>
           </div>
 
           <div 
-            className="px-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
               checked={settings.privacy?.functional ?? true} 
@@ -287,19 +287,19 @@ export default function SettingsPreferences() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Globe size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Regional
             </h4>
           </div>
 
           <div 
-            className="p-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+            className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
           >
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-1">
                 <Clock size={14} style={{ color: theme.primary, opacity: 0.7 }} />
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
+                <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
                   Time Zone
                 </label>
               </div>
@@ -320,7 +320,7 @@ export default function SettingsPreferences() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <CalendarIcon size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Calendar
             </h4>
           </div>
@@ -388,7 +388,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         <Icon size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
-        <div className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>
+        <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>
           {label}
         </div>
         <div className="text-xs opacity-60" style={{ color: theme.text }}>
@@ -417,7 +417,7 @@ const SettingSelect = ({ label, value, onChange, options, theme, icon: Icon, isL
         <Icon size={16} style={{ color: theme.primary }} />
       </div>
       <div className="flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
           {label}
         </div>
         <div className="relative">
@@ -440,10 +440,10 @@ const SettingSelect = ({ label, value, onChange, options, theme, icon: Icon, isL
 
 const SegmentedControl = ({ label, value, onChange, options, theme }) => (
   <div 
-    className="p-4 rounded-2xl border-2 transition-all shadow-sm"
-    style={{ backgroundColor: theme.cardBackground, borderColor: 'transparent' }}
+    className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
+    style={{ borderColor: 'transparent' }}
   >
-    <div className="text-[10px] font-bold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
+    <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
       {label}
     </div>
     <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
@@ -456,7 +456,7 @@ const SegmentedControl = ({ label, value, onChange, options, theme }) => (
             className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
             style={{
               backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#ffffff' : theme.text,
+              color: isSelected ? (theme.textOnPrimary || '#ffffff') : theme.text,
               opacity: isSelected ? 1 : 0.6
             }}
           >

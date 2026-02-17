@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, X } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, X, Sun, Moon } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon'
@@ -223,37 +223,35 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     }
   }
 
+  const allTasks = [
+    ...(scheduled.peptides || []).map((p, i) => ({ item: p, type: 'peptide', key: `p-${i}` })),
+    ...(scheduled.supplements || []).map((s, i) => ({ item: s, type: 'supplement', key: `s-${i}` }))
+  ]
+
   return (
-    <div className="space-y-1">
-      {scheduled.peptides?.map((p, i) => {
-        const task = createTaskFromItem(p, 'peptide')
+    <ul className="space-y-1.5">
+      {allTasks.map(({ item, type, key }, index) => {
+        const task = createTaskFromItem(item, type)
         return (
-          <TaskDisplay
-            key={`p-${i}`}
-            task={task}
-            theme={theme}
-            date={date}
-            timeSlot={timeSlot}
-            onToggle={onTaskToggle}
-            size="compact"
-          />
+          <li 
+            key={key}
+            style={{
+              boxShadow: index < allTasks.length - 1 
+                ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
+                : 'none'
+            }}
+          >
+            <TaskDisplay
+              task={task}
+              theme={theme}
+              date={date}
+              timeSlot={timeSlot}
+              onToggle={onTaskToggle}
+            />
+          </li>
         )
       })}
-      {scheduled.supplements?.map((s, i) => {
-        const task = createTaskFromItem(s, 'supplement')
-        return (
-          <TaskDisplay
-            key={`s-${i}`}
-            task={task}
-            theme={theme}
-            date={date}
-            timeSlot={timeSlot}
-            onToggle={onTaskToggle}
-            size="compact"
-          />
-        )
-      })}
-    </div>
+    </ul>
   )
 }
 
@@ -448,56 +446,73 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
     <>
       <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-             style={{ backgroundColor: theme.cardBackground }}>
+             style={{ 
+               background: theme.isDark 
+                 ? 'linear-gradient(135deg, rgba(62, 68, 80, 0.97), rgba(50, 56, 66, 0.98))'
+                 : `linear-gradient(180deg, ${theme.accent}F0 0%, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.92) 100%)`,
+               backdropFilter: 'blur(20px)',
+               WebkitBackdropFilter: 'blur(20px)',
+               border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+             }}>
           
-          {/* Header */}
-          <div className="p-4 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: isToday ? theme.primary : theme.accent, backgroundColor: isToday ? theme.primary : theme.accent }}>
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-lg flex items-center gap-2" style={{ color: isToday ? theme.textOnPrimary : (theme.isDark ? '#29303b' : theme.primaryDark) }}>
-                {isToday ? 'Today' : dayOfWeek}
-                {allTasksCompleted && <span title="All tasks done">✓</span>}
-              </span>
-              <span 
-                className={`font-bold text-2xl flex items-center justify-center rounded-full w-12 h-12`}
-                style={{
-                  backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : (theme.isDark ? '#1f2937' : theme.secondary),
-                  color: isToday ? theme.textOnPrimary : (theme.isDark ? theme.text : theme.primaryDark),
-                }}
+          {/* Header - gradient style matching Today's Research */}
+          <div className="px-4 py-3 flex-shrink-0" style={{ 
+            borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : theme.primary + '15'}`,
+            background: theme.isDark 
+              ? `linear-gradient(135deg, ${theme.primary}18, rgba(255,255,255,0.03))` 
+              : `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}15, transparent)`,
+          }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold tracking-tight" style={{ color: theme.text }}>
+                  {isToday ? 'Today' : dayOfWeek}
+                </h3>
+                <span 
+                  className="font-bold text-base flex items-center justify-center rounded-full w-9 h-9"
+                  style={{
+                    backgroundColor: theme.primary,
+                    color: theme.textOnPrimary || '#ffffff',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  {date.getDate()}
+                </span>
+                {allTasksCompleted && (
+                  <CheckCircle size={16} style={{ color: theme.success || '#4CAF50' }} strokeWidth={2.5} />
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full hover:opacity-70 transition-all"
+                style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
               >
-                {date.getDate()}
-              </span>
+                <X size={18} />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:opacity-70 transition-all"
-              style={{ 
-                color: isToday ? theme.textOnPrimary : (theme.isDark ? '#29303b' : theme.primaryDark),
-                backgroundColor: 'rgba(255,255,255,0.1)'
-              }}
-            >
-              <X size={20} />
-            </button>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
-            {/* AM/PM Slots */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-4">
-              {/* AM Slot */}
-              <div className="rounded p-2" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold" style={{ color: theme.textLight }}>AM</div>
-                  {dayScheduled?.bySlot?.AM && (dayScheduled.bySlot.AM.peptides?.length > 0 || dayScheduled.bySlot.AM.supplements?.length > 0) && (
-                    <MarkAllButton
-                      date={date}
-                      timeSlot="AM"
-                      scheduled={dayScheduled.bySlot.AM}
-                      theme={theme}
-                      onMarkAllDone={onMarkAllDone}
-                      calendarBump={calendarBump}
-                    />
-                  )}
+          {/* Content - styled to match Today's Research widget */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 sm:px-3 py-2 space-y-0.5">
+            
+            {/* AM Section */}
+            <div>
+              <div className="flex items-center justify-between mb-0.5 px-1">
+                <div className="flex items-center gap-1.5">
+                  <Sun size={12} style={{ color: theme.isDark ? 'rgba(160, 180, 153, 0.6)' : theme.primary }} />
+                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Morning</span>
                 </div>
+                {dayScheduled?.bySlot?.AM && (dayScheduled.bySlot.AM.peptides?.length > 0 || dayScheduled.bySlot.AM.supplements?.length > 0) && (
+                  <MarkAllButton
+                    date={date}
+                    timeSlot="AM"
+                    scheduled={dayScheduled.bySlot.AM}
+                    theme={theme}
+                    onMarkAllDone={onMarkAllDone}
+                    calendarBump={calendarBump}
+                  />
+                )}
+              </div>
+              <div className="space-y-1.5">
                 <SlotContent 
                   scheduled={dayScheduled?.bySlot?.AM} 
                   theme={theme} 
@@ -506,22 +521,30 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   onTaskToggle={onTaskToggle}
                 />
               </div>
+            </div>
 
-              {/* PM Slot */}
-              <div className="rounded p-2 mt-4 sm:mt-0" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold" style={{ color: theme.textLight }}>PM</div>
-                  {dayScheduled?.bySlot?.PM && (dayScheduled.bySlot.PM.peptides?.length > 0 || dayScheduled.bySlot.PM.supplements?.length > 0) && (
-                    <MarkAllButton
-                      date={date}
-                      timeSlot="PM"
-                      scheduled={dayScheduled.bySlot.PM}
-                      theme={theme}
-                      onMarkAllDone={onMarkAllDone}
-                      calendarBump={calendarBump}
-                    />
-                  )}
+            {/* Faded separator between AM/PM */}
+            <div className="widget-separator" style={{ marginBottom: '0.25rem', paddingBottom: '0.15rem' }} />
+
+            {/* PM Section */}
+            <div>
+              <div className="flex items-center justify-between mb-0.5 px-1">
+                <div className="flex items-center gap-1.5">
+                  <Moon size={12} style={{ color: theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primaryDark }} />
+                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Evening</span>
                 </div>
+                {dayScheduled?.bySlot?.PM && (dayScheduled.bySlot.PM.peptides?.length > 0 || dayScheduled.bySlot.PM.supplements?.length > 0) && (
+                  <MarkAllButton
+                    date={date}
+                    timeSlot="PM"
+                    scheduled={dayScheduled.bySlot.PM}
+                    theme={theme}
+                    onMarkAllDone={onMarkAllDone}
+                    calendarBump={calendarBump}
+                  />
+                )}
+              </div>
+              <div className="space-y-1.5">
                 <SlotContent 
                   scheduled={dayScheduled?.bySlot?.PM} 
                   theme={theme} 
@@ -534,40 +557,54 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
 
             {/* Goals Section */}
             {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
-              <div className="p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : theme.secondary + '40' }}>
-                <div className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Goals</div>
-                <div className="space-y-1.5">
-                  {dayScheduled.goals.map((g, i) => (
-                    <div key={`goal-${i}`} className="flex items-center gap-2 text-sm">
-                      {g.completed ? 
-                        <CheckCircle size={14} style={{ color: theme.success }} /> :
-                        <Target size={14} style={{ color: theme.warning }} />
-                      }
-                      <span className={`flex-1 ${g.completed ? 'line-through' : ''}`} 
-                            style={{ color: g.completed ? theme.textLight : theme.text }}>
-                        {g.text}
-                      </span>
-                    </div>
-                  ))}
+              <>
+                <div className="widget-separator" style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }} />
+                <div>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Target size={14} style={{ color: theme.primary }} />
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Goals</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {dayScheduled.goals.map((g, i) => (
+                      <div key={`goal-${i}`} className="flex items-center gap-2 text-sm py-1.5 px-3"
+                        style={{
+                          borderLeft: `3px solid ${g.completed ? (theme.success || '#4CAF50') + '60' : theme.primary + '40'}`,
+                        }}
+                      >
+                        {g.completed ? 
+                          <CheckCircle size={14} style={{ color: theme.success }} /> :
+                          <Target size={14} style={{ color: theme.warning }} />
+                        }
+                        <span className={`flex-1 ${g.completed ? 'line-through' : ''}`} 
+                              style={{ color: g.completed ? theme.textLight : theme.text }}>
+                          {g.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Notes Section */}
+            <div className="widget-separator" style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }} />
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <div className="text-sm font-semibold" style={{ color: theme.text }}>Notes</div>
-                <button onClick={() => onNotesClick(date)} className="p-1.5 rounded transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              <div className="flex justify-between items-center mb-1 px-1">
+                <div className="flex items-center gap-1.5">
+                  <FileText size={12} style={{ color: theme.primary }} />
+                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Notes</span>
+                </div>
+                <button onClick={() => onNotesClick(date)} className="p-1.5 rounded-lg transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <Edit size={16} />
                 </button>
               </div>
               {dayNotesText ? (
                 <div 
                   onClick={() => onNotesClick(date)}
-                  className="p-3 rounded-md border text-sm cursor-pointer hover:opacity-90"
+                  className="py-2 px-3 rounded-lg text-sm cursor-pointer hover:opacity-90"
                   style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                    borderColor: theme.border,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    borderLeft: `3px solid ${theme.primary}40`,
                     color: theme.text
                   }}
                   title="View or edit notes"
@@ -577,10 +614,10 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               ) : (
                 <div 
                   onClick={() => onNotesClick(date)}
-                  className="p-3 rounded-md border text-sm cursor-pointer hover:opacity-90 text-center"
+                  className="py-2 px-3 rounded-lg text-sm cursor-pointer hover:opacity-90 text-center"
                   style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                    borderColor: theme.border,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    borderLeft: `3px solid ${theme.primary}20`,
                     color: theme.textLight
                   }}
                 >
@@ -600,7 +637,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                     style={{
                       backgroundColor: note.type === 'follow_up' 
                         ? (theme.isDark ? '#3c4e3a' : '#e6f7f0')
-                        : (theme.isDark ? '#374151' : '#f3f4f6'),
+                        : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
                       border: `1px solid ${note.type === 'follow_up' ? theme.primary : theme.border}`,
                       color: theme.text
                     }}
@@ -634,7 +671,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               <div>
                 <button
                   className="w-full p-2 rounded text-center hover:opacity-80 transition-all cursor-pointer"
-                  style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}
+                  style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary }}
                   onClick={(e) => {
                     e.stopPropagation()
                     const isExpanded = expandedGroupBuy === dayKey
@@ -728,7 +765,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   }}
                 >
                   {expandedGroupBuy === dayKey && expandedGroupBuyData && (
-                    <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? '#111827' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                    <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
                     <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
                       <p className="font-semibold text-sm" style={{ color: theme.text }}>{expandedGroupBuyData.item || 'Unknown Item'}</p>
                     </div>
@@ -812,7 +849,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
             
             {/* Washout indicator */}
             {dayScheduled?.washout?.length > 0 && (
-              <div className="p-2 rounded text-center" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
+              <div className="p-2 rounded text-center" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary }}>
                 <span className="text-sm font-semibold" style={{ color: theme.textLight }}>
                   Washout: {dayScheduled.washout.join(', ')}
                 </span>
@@ -853,7 +890,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
             <div
               className="p-4 rounded-lg"
               style={{
-                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
                 border: `2px solid ${theme.primary}`,
                 borderLeft: `4px solid ${theme.primary}`
               }}

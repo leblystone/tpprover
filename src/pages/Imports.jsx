@@ -99,52 +99,54 @@ export default function Imports() {
   }
 
   const TargetSelector = ({ imp }) => (
-    <select className="p-2 rounded border text-xs" value={imp.targetType || 'calendar'} onChange={e => setField(imp.id, { targetType: e.target.value })} style={{ borderColor: theme.border }}>
+    <select className="p-2 rounded border text-xs" value={imp.targetType || 'calendar'} onChange={e => setField(imp.id, { targetType: e.target.value })} style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.cardBackground, color: theme.text }}>
       <option value="orders">Orders</option>
       <option value="stockpile">Stockpile</option>
       <option value="calendar">Notes</option>
     </select>
   )
 
+  const inputStyle = { borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: theme.text }
+
   const OrderFields = ({ imp }) => (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Vendor" value={imp.vendor || ''} onChange={e => setField(imp.id, { vendor: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Peptide" value={imp.peptide || ''} onChange={e => setField(imp.id, { peptide: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="mg" value={imp.mg || ''} onChange={e => setField(imp.id, { mg: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Cost" value={imp.cost || ''} onChange={e => setField(imp.id, { cost: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} type="date" value={imp.date || ''} onChange={e => setField(imp.id, { date: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Vendor" value={imp.vendor || ''} onChange={e => setField(imp.id, { vendor: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Peptide" value={imp.peptide || ''} onChange={e => setField(imp.id, { peptide: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="mg" value={imp.mg || ''} onChange={e => setField(imp.id, { mg: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Cost" value={imp.cost || ''} onChange={e => setField(imp.id, { cost: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} type="date" value={imp.date || ''} onChange={e => setField(imp.id, { date: e.target.value })} />
     </div>
   )
 
   const StockFields = ({ imp }) => (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Peptide" value={imp.name || ''} onChange={e => setField(imp.id, { name: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="mg" value={imp.mg || ''} onChange={e => setField(imp.id, { mg: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Qty" value={imp.quantity || ''} onChange={e => setField(imp.id, { quantity: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Vendor" value={imp.vendor || ''} onChange={e => setField(imp.id, { vendor: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Batch #" value={imp.batchNumber || ''} onChange={e => setField(imp.id, { batchNumber: e.target.value })} />
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Min Qty" value={imp.minQty || ''} onChange={e => setField(imp.id, { minQty: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Peptide" value={imp.name || ''} onChange={e => setField(imp.id, { name: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="mg" value={imp.mg || ''} onChange={e => setField(imp.id, { mg: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Qty" value={imp.quantity || ''} onChange={e => setField(imp.id, { quantity: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Vendor" value={imp.vendor || ''} onChange={e => setField(imp.id, { vendor: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Batch #" value={imp.batchNumber || ''} onChange={e => setField(imp.id, { batchNumber: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} placeholder="Min Qty" value={imp.minQty || ''} onChange={e => setField(imp.id, { minQty: e.target.value })} />
     </div>
   )
 
   const NoteFields = ({ imp }) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-      <input className="p-2 rounded border text-xs" style={{ borderColor: theme.border }} type="date" value={imp.date || ''} onChange={e => setField(imp.id, { date: e.target.value })} />
-      <input className="md:col-span-2 p-2 rounded border text-xs" style={{ borderColor: theme.border }} placeholder="Notes" value={imp.notes || ''} onChange={e => setField(imp.id, { notes: e.target.value })} />
+      <input className="p-2 rounded border text-xs" style={inputStyle} type="date" value={imp.date || ''} onChange={e => setField(imp.id, { date: e.target.value })} />
+      <input className="md:col-span-2 p-2 rounded border text-xs" style={inputStyle} placeholder="Notes" value={imp.notes || ''} onChange={e => setField(imp.id, { notes: e.target.value })} />
     </div>
   )
 
   return (
-    <section className="space-y-4">
+    <section className="page-bg space-y-4">
       
-      <div className="rounded border bg-white p-4 content-card" style={{ borderColor: theme.border }}>
-        {items.length === 0 ? <div className="text-sm text-gray-500">No imports yet.</div> : (
+      <div className="content-section rounded-xl p-4" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
+        {items.length === 0 ? <div className="text-sm" style={{ color: theme.textLight }}>No imports yet.</div> : (
           <>
             <div className="flex items-center gap-2 mb-3">
-              <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.white }} onClick={bulkAccept} disabled={selectedIds.length === 0}>Accept Selected</button>
+              <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={bulkAccept} disabled={selectedIds.length === 0}>Accept Selected</button>
               <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={bulkReject} disabled={selectedIds.length === 0}>Reject Selected</button>
             </div>
-            <ul className="divide-y" style={{ borderColor: theme.border }}>
+            <ul className="divide-y" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
               {items.map(imp => (
                 <li key={imp.id} className="py-3">
                   <div className="flex items-start gap-2">
@@ -158,17 +160,17 @@ export default function Imports() {
                       {(imp.targetType || 'calendar') === 'stockpile' && <StockFields imp={imp} />}
                       {(imp.targetType || 'calendar') === 'calendar' && <NoteFields imp={imp} />}
                       {imp.raw && (
-                        <details className="text-xs">
+                        <details className="text-xs" style={{ color: theme.text }}>
                           <summary className="cursor-pointer">Raw</summary>
-                          <pre className="p-2 rounded border overflow-auto max-h-28" style={{ borderColor: theme.border }}>{imp.raw}</pre>
+                          <pre className="p-2 rounded border overflow-auto max-h-28" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', color: theme.text }}>{imp.raw}</pre>
                         </details>
                       )}
                       <div className="flex items-center gap-2">
-                        <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.primary, color: theme.white }} onClick={() => acceptOne(imp)}>Accept</button>
+                        <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={() => acceptOne(imp)}>Accept</button>
                         <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={() => rejectOne(imp)}>Reject</button>
-                        {(imp.targetType || 'calendar') === 'orders' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/orders')}>Go to Orders</button>}
-                        {(imp.targetType || 'calendar') === 'stockpile' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/stockpile')}>Go to Stockpile</button>}
-                        {(imp.targetType || 'calendar') === 'calendar' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/calendar')}>Go to Calendar</button>}
+                        {(imp.targetType || 'calendar') === 'orders' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme.text }} onClick={() => navigate('/app/orders')}>Go to Orders</button>}
+                        {(imp.targetType || 'calendar') === 'stockpile' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme.text }} onClick={() => navigate('/app/stockpile')}>Go to Stockpile</button>}
+                        {(imp.targetType || 'calendar') === 'calendar' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme.text }} onClick={() => navigate('/app/calendar')}>Go to Calendar</button>}
                       </div>
                     </div>
                   </div>

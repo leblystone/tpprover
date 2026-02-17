@@ -95,6 +95,18 @@ function App() {
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
 
+  // Apply dark mode class + data-theme attribute to <html> so CSS selectors work
+  useEffect(() => {
+    const html = document.documentElement;
+    if (theme.isDark) {
+      html.classList.add('dark');
+      html.setAttribute('data-theme', themeName);
+    } else {
+      html.classList.remove('dark');
+      html.removeAttribute('data-theme');
+    }
+  }, [theme, themeName]);
+
   // Update status bar style based on theme (mobile apps only)
   useEffect(() => {
     const updateStatusBar = async () => {
@@ -108,7 +120,7 @@ function App() {
         // Style.Dark = light text/icons (for dark backgrounds)
         // Style.Light = dark text/icons (for light backgrounds)
         const statusBarStyle = isDarkTheme ? Style.Dark : Style.Light;
-        const statusBarBgColor = theme.background;
+        const statusBarBgColor = isDarkTheme ? '#12161e' : theme.background;
 
         await StatusBar.setStyle({ style: statusBarStyle });
         // Android also allows setting background color
@@ -527,14 +539,22 @@ function App() {
             />
           </div>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden main-content min-h-0 w-full max-w-full relative" 
+          <main className={`flex-1 overflow-x-hidden main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`} 
             style={{ 
-              background: (location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}88 30%, ${theme.primary}55 55%, ${theme.primaryLight}88 75%, ${theme.accent} 100%)` : theme.background, 
+              background: location.pathname.startsWith('/app')
+                ? (theme.isDark 
+                    ? 'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)'
+                    : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
+                : theme.background, 
               color: theme.text, 
               minWidth: 0, 
               boxSizing: 'border-box',
               paddingTop: Capacitor.isNativePlatform() && window.innerWidth < 1024 ? 'calc(3.5rem + var(--safe-area-top, 0px))' : '3.5rem',
-              paddingBottom: location.pathname.startsWith('/app') ? '4.5rem' : '0'
+              paddingBottom: location.pathname.startsWith('/app') 
+                ? (location.pathname.includes('/calendar') 
+                    ? 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' 
+                    : '4.5rem') 
+                : '0'
             }}>
             
             <Suspense fallback={<div className="p-8">Loading...</div>}>

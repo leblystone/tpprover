@@ -314,11 +314,11 @@ export default function BottomNavigation({ theme }) {
             style={{
               height: '50vh',
               background: theme.isDark 
-                ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%)'
+                ? 'linear-gradient(135deg, rgba(20, 25, 33, 0.97) 0%, rgba(14, 18, 25, 0.98) 100%)'
                 : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
               boxShadow: theme.isDark
-                ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
                 : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
               animation: searchClosing 
                 ? 'slideDownSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
@@ -458,11 +458,11 @@ export default function BottomNavigation({ theme }) {
             className="rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
             style={{
               background: theme.isDark 
-                ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%)'
+                ? 'linear-gradient(135deg, rgba(20, 25, 33, 0.97) 0%, rgba(14, 18, 25, 0.98) 100%)'
                 : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
               boxShadow: theme.isDark
-                ? '0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                ? '0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
                 : '0 20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
             }}
           >
@@ -486,9 +486,9 @@ export default function BottomNavigation({ theme }) {
                     className="group relative flex flex-col items-center justify-center py-5 px-3 rounded-2xl transition-all duration-300 touch-manipulation active:scale-95"
                     style={{
                       background: theme.isDark
-                        ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.5) 0%, rgba(31, 41, 55, 0.5) 100%)'
+                        ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
                         : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)',
-                      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+                      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
                       WebkitTapHighlightColor: 'transparent',
                       animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
                       opacity: 0,
@@ -568,7 +568,7 @@ export default function BottomNavigation({ theme }) {
                   onTouchMove={handleTouchMove}
                   className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
                   style={{
-                    color: active || isExpanded ? theme.primary : theme.textLight,
+                    color: active || isExpanded ? theme.primary : (theme.isDark ? '#ffffff' : theme.textLight),
                     WebkitTapHighlightColor: 'transparent',
                     transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
                   }}
@@ -667,7 +667,7 @@ export default function BottomNavigation({ theme }) {
                 onTouchMove={handleTouchMove}
                 className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
                 style={{
-                  color: active || isExpanded ? theme.primary : theme.textLight,
+                  color: active || isExpanded ? theme.primary : (theme.isDark ? '#ffffff' : theme.textLight),
                   WebkitTapHighlightColor: 'transparent',
                   transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
                 }}

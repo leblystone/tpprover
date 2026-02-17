@@ -1,6 +1,6 @@
 import React from 'react'
 import Modal from '../common/Modal'
-import { Clock, AlertTriangle, Calendar } from 'lucide-react'
+import { Clock, AlertTriangle, Calendar, ClipboardList, Lightbulb } from 'lucide-react'
 
 export default function TimezoneChangeModal({ 
   open, 
@@ -26,7 +26,7 @@ export default function TimezoneChangeModal({
               <Clock size={16} style={{ color: theme.primary }} />
             )}
           </div>
-          <h2 className="text-lg font-bold" style={{ color: theme.text }}>
+          <h2 className="text-lg font-semibold" style={{ color: theme.text }}>
             Change Time Zone
           </h2>
         </div>
@@ -54,8 +54,8 @@ export default function TimezoneChangeModal({
             <div className="flex items-start gap-2">
               <Calendar size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.warning }} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold mb-1" style={{ color: theme.warning }}>
-                  📋 Protocol Schedule Impact
+                <p className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: theme.warning }}>
+                  <ClipboardList size={12} /> Protocol Schedule Impact
                 </p>
                 <p className="text-xs leading-relaxed" style={{ color: theme.text }}>
                   This timezone change will shift your schedule by <strong>{hoursDifference} hours</strong>.
@@ -103,8 +103,8 @@ export default function TimezoneChangeModal({
 
         {/* Compact Tip */}
         {hasImpact && (
-          <p className="text-[10px] text-center opacity-60" style={{ color: theme.text }}>
-            💡 Tip: You may want to review your protocol schedules after changing timezones.
+          <p className="text-[10px] text-center opacity-60 flex items-center justify-center gap-1" style={{ color: theme.text }}>
+            <Lightbulb size={10} /> Tip: You may want to review your protocol schedules after changing timezones.
           </p>
         )}
       </div>

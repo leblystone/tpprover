@@ -376,11 +376,11 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                             {/* Chip/Badge */}
                             <div
                                 className="px-4 py-2 rounded-full mb-3 max-w-md"
-                                style={{
-                                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                    border: `1px solid ${theme.border}`,
-                                    display: 'inline-block'
-                                }}
+                                    style={{
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                                        display: 'inline-block'
+                                    }}
                             >
                                 <span className="text-sm font-medium text-center" style={{ color: theme.text }}>
                                     {isActiveProtocol 

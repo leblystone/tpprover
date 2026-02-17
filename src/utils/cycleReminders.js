@@ -16,6 +16,9 @@ export function checkCycleReminders(protocols = []) {
     today.setHours(0, 0, 0, 0);
     
     protocols.forEach(protocol => {
+      // Skip protocols explicitly marked as stopped/inactive
+      if (protocol.active === false) return;
+      
       // Only consider protocols that are currently active (today within start-end range)
       // Prevents reminders for ended protocols that are still in user data
       const startDate = protocol.startDate ? new Date(protocol.startDate) : null;

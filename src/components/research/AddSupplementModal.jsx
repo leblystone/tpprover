@@ -14,10 +14,10 @@ export default function AddSupplementModal({ open, onClose, onSave, theme, suppl
 
   return (
     <Modal open={open} onClose={onClose} title={supplement ? 'Edit Supplement' : 'Add Supplement'} theme={theme} footer={(
-      <>
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
-      </>
+      <div className="flex items-center w-full">
+        <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
+        <button onClick={() => onSave?.(form)} className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary || '#fff' }}>Save</button>
+      </div>
     )}>
       <div className="space-y-3">
         <TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vitamin D3" theme={theme} />
@@ -29,13 +29,13 @@ export default function AddSupplementModal({ open, onClose, onSave, theme, suppl
             { label: 'PM', value: 'PM' },
             { label: 'AM/PM', value: 'BOTH' },
           ].map(opt => (
-            <button key={opt.value} onClick={() => setForm({ ...form, schedule: opt.value })} className={`px-3 py-2 rounded-md text-sm font-semibold ${form.schedule === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-100'}`} style={form.schedule === opt.value ? { backgroundColor: theme.primary } : {}}>{opt.label}</button>
+            <button key={opt.value} onClick={() => setForm({ ...form, schedule: opt.value })} className={`px-3 py-2 rounded-md text-sm font-semibold ${form.schedule === opt.value ? 'text-white' : ''}`} style={form.schedule === opt.value ? { backgroundColor: theme.primary } : { color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}>{opt.label}</button>
           ))}
         </div>
         <label className="block text-sm font-medium" style={{ color: theme.text }}>Days</label>
         <div className="flex flex-wrap gap-1">
           {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((d, i) => (
-            <button key={d} onClick={() => toggleDay(d)} className={`px-2 py-1 rounded text-xs font-semibold ${form.days.includes(d) ? 'text-white' : 'text-gray-700 hover:bg-gray-100'}`} style={form.days.includes(d) ? { backgroundColor: theme.primary } : {}}>
+            <button key={d} onClick={() => toggleDay(d)} className={`px-2 py-1 rounded text-xs font-semibold ${form.days.includes(d) ? 'text-white' : ''}`} style={form.days.includes(d) ? { backgroundColor: theme.primary } : { color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}>
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}
             </button>
           ))}

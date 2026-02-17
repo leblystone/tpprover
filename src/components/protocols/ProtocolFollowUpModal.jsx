@@ -135,7 +135,7 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
         let statusInfo = {
             icon: Clock,
             label: isActive ? 'Active' : 'Unknown',
-            bgColor: isActive ? (theme.isDark ? '#1e3a2e' : '#d1fae5') : (theme.isDark ? '#374151' : '#f3f4f6'),
+            bgColor: isActive ? (theme.isDark ? '#1e3a2e' : '#d1fae5') : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
             textColor: isActive ? (theme.isDark ? '#86efac' : '#065f46') : theme.textLight
         };
 
@@ -276,7 +276,7 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                         onClick={handleClose}
                         className="px-4 py-2 rounded-lg font-medium transition-all"
                         style={{ 
-                            backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
                             color: theme.text
                         }}
                     >
@@ -300,8 +300,8 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                 {/* Protocol Info Box - 2x2 Grid */}
                 {protocolInfo && (
                     <div className="p-3 rounded-lg" style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                        border: `1px solid ${theme.border}`
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                     }}>
                         <div className="grid grid-cols-2 gap-3">
                             {/* Top Left: Protocol Name */}
@@ -365,9 +365,9 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                 type="button"
                                 onClick={() => setRating(num)}
                                 className="p-2 rounded-lg transition-all hover:scale-110"
-                                style={{
-                                    backgroundColor: theme.isDark ? '#374151' : '#DDE6DE'
-                                }}
+                                    style={{
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#DDE6DE'
+                                    }}
                             >
                                 <Star 
                                     size={24} 
@@ -405,22 +405,22 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                                     onClick={() => handleTagToggle(tag.id)}
                                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left"
                                     style={{
-                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                                        border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                                        color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                        border: `1px solid ${isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+                                        color: isSelected ? '#ffffff' : theme.textLight,
                                         boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
                                         position: 'relative'
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isSelected) {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb';
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.02)';
                                             e.currentTarget.style.color = theme.text;
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!isSelected) {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff';
-                                            e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280';
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+                                            e.currentTarget.style.color = theme.textLight;
                                         }
                                     }}
                                 >
@@ -448,8 +448,8 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                     <div 
                         className="w-full px-3 py-2 rounded-t-lg flex items-center gap-2 mb-0 transition-all"
                         style={{ 
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                            border: `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                             borderBottom: 'none'
                         }}
                     >
@@ -474,8 +474,8 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                         className="w-full p-3 rounded-b-lg rounded-t-none text-sm resize-none"
                         rows={8}
                         style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            border: `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                             borderTop: 'none',
                             color: theme.text
                         }}

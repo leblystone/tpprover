@@ -720,8 +720,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                                         <button key={type} type="button"
                                             onClick={() => handleSharedFrequencyChange('type', type)}
-                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${((form.sharedFrequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500')}`}
-                                            style={(form.sharedFrequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
+                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${((form.sharedFrequency?.type || 'daily') === type ? 'text-white shadow-sm' : '')}`}
+                                            style={(form.sharedFrequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : { color: theme.textLight }}
                                         >
                                             {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
                                         </button>
@@ -769,8 +769,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         const active = Array.isArray(form.sharedFrequency?.time) ? form.sharedFrequency.time.includes(t) : (t === 'AM');
                                         return (
                                             <button key={t} type="button" onClick={() => handleSharedFrequencyTimeToggle(t)}
-                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                                                style={active ? { backgroundColor: theme.primary } : {}}
+                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
+                                                style={active ? { backgroundColor: theme.primary } : { color: theme.textLight }}
                                             >
                                                 {t}
                                             </button>
@@ -961,7 +961,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary) }}></div>
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.12)' : theme.secondary) }}></div>
                                     </label>
                                     <span className="text-sm" style={{ color: theme.text }}>No end date</span>
                                 </div>
@@ -972,9 +972,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div 
                                     className="flex items-stretch rounded-lg"
                                     style={{ 
-                                            border: `1px solid ${isDurationFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                            border: `1px solid ${isDurationFocused ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                            backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.inputBackground || '#fff')
                                     }}
                                 >
                                     <input 
@@ -1012,16 +1012,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                             data-dropdown-container
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                                backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                            borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.1)' : `1px solid #f0eee7`,
+                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : (theme.cardBackground || '#f9fafb'),
                                                 color: theme.isDark ? theme.text : '#181A18',
                                                 minWidth: '90px'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
                                             }}
                                             onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : (theme.cardBackground || '#f9fafb');
                                             }}
                                         >
                                             <span className="text-sm font-semibold">
@@ -1036,7 +1036,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                 <div 
                                                     className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                                                     style={{
-                                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
                                                         borderColor: theme.border,
                                                         minWidth: '100px',
                                                         boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -1091,7 +1091,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             top: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '-8px' : '14px',
                                             left: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '12px' : '16px',
                                             padding: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? '0 4px' : '0',
-                                            background: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                            background: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? (theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.inputBackground || '#fff')) : 'transparent',
                                             color: (isDurationFocused || (form.duration?.count && form.duration.count.trim())) ? theme.primary : (theme.textLight || theme.text),
                                         fontWeight: 500
                                     }}
@@ -1107,7 +1107,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.12)' : theme.secondary)}}></div>
                                     </label>
                                     <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
                                 </div>
@@ -1118,9 +1118,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div 
                                     className="flex items-stretch rounded-lg"
                                     style={{ 
-                                            border: `1px solid ${isWashoutFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
+                                            border: `1px solid ${isWashoutFocused ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                                            backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.inputBackground || '#fff')
                                     }}
                                 >
                                     <input 
@@ -1158,16 +1158,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                             data-dropdown-container
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                                backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                            borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.1)' : `1px solid #f0eee7`,
+                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : (theme.cardBackground || '#f9fafb'),
                                                 color: theme.isDark ? theme.text : '#181A18',
                                                 minWidth: '90px'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
                                             }}
                                             onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : (theme.cardBackground || '#f9fafb');
                                             }}
                                         >
                                             <span className="text-sm font-semibold">
@@ -1182,7 +1182,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                 <div 
                                                     className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                                                     style={{
-                                                        backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
                                                         borderColor: theme.border,
                                                         minWidth: '100px',
                                                         boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
@@ -1237,7 +1237,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             top: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '-8px' : '14px',
                                             left: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '12px' : '16px',
                                             padding: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? '0 4px' : '0',
-                                            background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                            background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? (theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.inputBackground || '#fff')) : 'transparent',
                                             color: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim())) ? theme.primary : (theme.textLight || theme.text),
                                         fontWeight: 500
                                     }}
@@ -1326,7 +1326,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Delete Section - Only show for existing protocols */}
                 {form?.id && onDelete && (
                     <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
-                        <div className="p-5 rounded-lg space-y-4" style={{ backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.1)' : 'rgba(200, 122, 92, 0.05)' }}>
+                        <div className="p-5 rounded-lg space-y-4" style={{ backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.05)' }}>
                             <div>
                                 <h4 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Delete Entire Protocol</h4>
                                 <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
@@ -1359,12 +1359,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             
                 {/* Lockout Overlay - Covers entire modal */}
                 {isReadOnly && (
-                    <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+                    <div className="absolute inset-0 backdrop-blur-md flex items-center justify-center z-50 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}>
                         <div className="text-center p-6 max-w-md">
                             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
                                 <Lock size={32} style={{ color: theme.primary }} />
                             </div>
-                            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+                            <h3 className="text-xl font-semibold mb-2" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>
                                 Trial has ended
                             </h3>
                             <p className="text-sm mb-4" style={{ color: theme.text }}>

@@ -252,8 +252,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   // Check if this is the sage/default theme
   const isSageTheme = theme?.name === 'Sage';
   
-  // Header styling: sage theme gets light background with dark text, others use gradient
-  const headerStyle = isSageTheme ? {
+  // Header styling: dark mode uses dark slate, light mode uses theme background
+  const headerStyle = theme?.isDark ? {
+    background: 'rgba(20, 24, 32, 0.98)',
+    color: theme.text || '#ededee'
+  } : isSageTheme ? {
     background: theme.background || '#EFF2EE',
     color: theme.text || '#2F3B3A'
   } : isModern && theme ? {
@@ -296,11 +299,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       <div 
         className={`relative w-full max-w-[calc(100vw-2rem)] ${maxWidth || 'max-w-lg'} ${maxWidth?.includes('max-w-6xl') ? 'lg:max-w-3xl' : maxWidth?.includes('max-w-4xl') ? 'lg:max-w-2xl' : maxWidth?.includes('max-w-3xl') ? 'lg:max-w-xl' : maxWidth?.includes('max-w-2xl') ? 'lg:max-w-xl' : ''} ${modalClass} flex flex-col overflow-hidden`} 
         style={{ 
-          backgroundColor: theme?.cardBackground || '#FFFFFF', 
+          backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'), 
           maxHeight: '90vh', 
           minHeight: 'auto',
           boxShadow: theme?.isDark 
-            ? '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1)' 
+            ? '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)' 
             : '0 20px 60px rgba(0,0,0,0.15)',
           transform: internalOpen ? 'scale(1)' : 'scale(0.95)',
           opacity: internalOpen ? 1 : 0,
@@ -328,7 +331,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
                   e.stopPropagation();
                   onBack();
                 }}
-                className={`p-1 rounded-full -ml-2 transition-colors touch-manipulation ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+                className={`p-1 rounded-full -ml-2 transition-colors touch-manipulation ${theme?.isDark ? 'hover:bg-white/10' : isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
                 style={{ 
                   color: headerStyle.color,
                   WebkitTapHighlightColor: 'transparent'
@@ -350,7 +353,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
                 e.stopPropagation();
                 handleBackdropClick();
               }}
-              className={`p-1.5 rounded-full transition-colors touch-manipulation ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+              className={`p-1.5 rounded-full transition-colors touch-manipulation ${theme?.isDark ? 'hover:bg-white/10' : isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
               style={{ 
                 color: headerStyle.color,
                 WebkitTapHighlightColor: 'transparent',
@@ -361,15 +364,15 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             </button>
           </div>
         </div>
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF') }}>
           {children}
         </div>
         {footer && (
           <div 
             className="px-6 py-3 flex items-center justify-end gap-3 flex-shrink-0 border-t" 
             style={{ 
-              backgroundColor: theme?.cardBackground || '#FFFFFF', 
-              borderColor: theme?.border || 'rgba(0,0,0,0.1)',
+              backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'), 
+              borderColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : (theme?.border || 'rgba(0,0,0,0.1)'),
               // Add bottom padding for Android navigation bar on mobile devices
               // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
               // Devices without overlap (e.g., Pixel) will just get normal 0.75rem padding

@@ -171,7 +171,7 @@ export default function SubscriptionExpired() {
 
   return (
     <>
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8" style={{ backgroundColor: theme.background }}>
+    <div className="page-bg min-h-screen flex flex-col items-center justify-center p-4 lg:p-8">
       <div className="w-full max-w-4xl space-y-4">
         {/* Header */}
         <div className="text-center mb-4">
@@ -180,7 +180,7 @@ export default function SubscriptionExpired() {
               className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
               style={{ backgroundColor: theme.primary }}
             >
-              <BookOpenCheck size={28} style={{ color: '#ffffff' }} />
+              <BookOpenCheck size={28} style={{ color: theme.textOnPrimary || '#ffffff' }} />
             </div>
           </div>
           <h1 className="text-3xl mb-1" style={{ color: theme.primaryDark }}>
@@ -210,10 +210,9 @@ export default function SubscriptionExpired() {
               return (
                 <div
                   key={plan.name}
-                  className={`relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
+                  className={`content-section relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
                   style={{
-                    backgroundColor: theme?.cardBackground,
-                    borderColor: plan.popular ? theme?.primary : theme?.border,
+                    borderColor: plan.popular ? theme?.primary : (theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
                   }}
                 >
                   {plan.popular && (
@@ -222,7 +221,7 @@ export default function SubscriptionExpired() {
                         className="px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter"
                         style={{ 
                           backgroundColor: theme?.primary, 
-                          color: '#ffffff' 
+                          color: theme?.textOnPrimary || '#ffffff' 
                         }}
                       >
                         {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
@@ -282,10 +281,9 @@ export default function SubscriptionExpired() {
 
         {/* Data Access Section (Lower for Conversion) */}
         <div 
-          className="rounded-2xl p-6 shadow-sm mt-8"
+          className="content-section rounded-2xl p-6 shadow-sm mt-8"
           style={{
-            backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.05)' : 'rgba(0,0,0,0.02)',
-            border: `1px solid ${theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : theme?.border}`
+            border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}
         >
           <div className="text-center mb-5">
@@ -303,7 +301,7 @@ export default function SubscriptionExpired() {
               onClick={() => setShowDataModal(true)}
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                 color: theme?.text
               }}
             >
@@ -315,7 +313,7 @@ export default function SubscriptionExpired() {
                 onClick={handleExportCSV}
                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
-                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                   color: theme?.text
                 }}
               >
@@ -326,7 +324,7 @@ export default function SubscriptionExpired() {
                 onClick={handleExportPDF}
                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
-                  backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+                  backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                   color: theme?.text
                 }}
               >

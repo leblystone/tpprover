@@ -164,7 +164,7 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
         className="p-1 rounded-full transition-all hover:opacity-80 focus:outline-none"
         style={{ 
           color: theme.textLight,
-          backgroundColor: isExpanded ? (theme.isDark ? '#374151' : theme.secondary) : 'transparent'
+          backgroundColor: isExpanded ? theme.secondary : 'transparent'
         }}
         aria-label="Show help"
       >

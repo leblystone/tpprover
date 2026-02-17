@@ -193,8 +193,8 @@ export default function BottomSheet({
 
   if (!shouldRender) return null;
 
-  // Theme-aware styling - Header matches content background for seamless look
-  const headerBackground = theme?.cardBackground || '#FFFFFF';
+  // Theme-aware styling - dark uses dark slate, light uses card background
+  const headerBackground = theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF');
   const headerTextColor = theme?.text || '#000000';
   
   // Calculate transition based on open state for smoother animations
@@ -232,11 +232,11 @@ export default function BottomSheet({
           md:max-w-lg md:mx-4
         `}
         style={{ 
-          backgroundColor: theme?.cardBackground || '#FFFFFF',
+          backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
           height: fitContent ? 'auto' : maxHeight,
           maxHeight: maxHeight,
           boxShadow: theme?.isDark 
-            ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1)' 
+            ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.08)' 
             : '0 -10px 40px rgba(0,0,0,0.2)',
           transform: isMobile 
             ? `translate3d(0, ${internalOpen ? (isDragging ? `${dragOffset}px` : '0') : '100%'}, 0)`
@@ -270,7 +270,7 @@ export default function BottomSheet({
           style={{ 
             backgroundColor: headerBackground,
             color: headerTextColor,
-            ...(seamlessContent ? {} : { borderColor: theme?.border || 'rgba(0,0,0,0.1)' })
+            ...(seamlessContent ? {} : { borderColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : (theme?.border || 'rgba(0,0,0,0.1)') })
           }}
         >
           {centerTitle ? (
@@ -395,7 +395,7 @@ export default function BottomSheet({
               : 'flex-1 p-4 sm:p-6 overflow-y-auto'
           }`}
           style={{ 
-            backgroundColor: theme?.cardBackground || '#FFFFFF',
+            backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
             ...(seamlessContent ? { 
               boxShadow: 'none', 
               border: 'none',
@@ -414,8 +414,8 @@ export default function BottomSheet({
           <div 
             className={`py-3 flex items-center justify-end gap-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-t'}`}
             style={{ 
-              backgroundColor: theme?.cardBackground || '#FFFFFF',
-              ...(seamlessContent ? {} : { borderColor: theme?.border || 'rgba(0,0,0,0.1)' }),
+              backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
+              ...(seamlessContent ? {} : { borderColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : (theme?.border || 'rgba(0,0,0,0.1)') }),
               // Add bottom padding for Android navigation bar on mobile devices
               // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
               // Devices without overlap (e.g., Pixel) will just get normal 0.75rem padding
