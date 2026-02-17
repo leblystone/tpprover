@@ -864,8 +864,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Conversion Widget - UNREMOVABLE, UNMOVEABLE, HIDDEN FROM SETTINGS - Shows only for trial/inactive users */}
-            <ConversionWidget theme={theme} subscription={subscription} />
+            {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
           </div>
         </div>
       </ViewContainer>

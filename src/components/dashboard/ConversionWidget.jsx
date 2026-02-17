@@ -6,8 +6,8 @@ import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
 import { useFirebase } from '../../context/FirebaseContext';
-import { isAndroid } from '../../utils/platform';
-import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
+import { isAndroid, isIOS } from '../../utils/platform';
+import { getAndroidSubscriptionMessage, getNativeSubscriptionMessage } from '../../utils/paymentCompliance';
 
 export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -307,16 +307,16 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             <div className="space-y-2 pt-2">
               <h4 className="font-semibold text-xs" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>Continue Your Research</h4>
               
-              {/* Android compliance: Show text-only message, hide payment buttons */}
-              {isAndroid() ? (
+              {/* Native app compliance: Show text-only message, hide Stripe buttons */}
+              {(isAndroid() || isIOS()) ? (
                 <div className="p-3 rounded-lg text-center text-xs" style={{ 
                   backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
                   color: theme.isDark ? '#d1d5db' : '#6b7280'
                 }}>
-                  {getAndroidSubscriptionMessage()}
+                  {getNativeSubscriptionMessage()}
                 </div>
               ) : (
-                /* All Plans in 3 Columns - Web/iOS only */
+                /* All Plans in 3 Columns - Web only */
                 <div className="grid grid-cols-3 gap-2 relative">
                   {/* Monthly Plan */}
                   <button

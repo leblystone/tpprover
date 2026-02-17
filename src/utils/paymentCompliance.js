@@ -6,7 +6,7 @@
  * On Web/iOS: Use external payment (Stripe/App Store)
  */
 
-import { isAndroid } from './platform';
+import { isAndroid, isIOS } from './platform';
 
 /**
  * Check if payment buttons/links should be shown
@@ -50,10 +50,37 @@ export function getAndroidUpgradeMessage() {
   return 'To upgrade, visit thepepplanner.web.app in your browser';
 }
 
+/**
+ * Check if we're on a native app store platform (iOS or Android)
+ * where external payment links are not allowed
+ */
+export function isNativeAppStore() {
+  return isAndroid() || isIOS();
+}
+
+/**
+ * Get iOS-compliant message for subscription prompts
+ */
+export function getIOSSubscriptionMessage() {
+  return 'Subscription available once your trial ends.';
+}
+
+/**
+ * Get platform-appropriate subscription message (iOS or Android)
+ */
+export function getNativeSubscriptionMessage() {
+  if (isIOS()) return getIOSSubscriptionMessage();
+  if (isAndroid()) return getAndroidSubscriptionMessage();
+  return '';
+}
+
 export default {
   canShowPaymentButtons,
   canShowSubscriptionModal,
   getAndroidSubscriptionMessage,
-  getAndroidUpgradeMessage
+  getAndroidUpgradeMessage,
+  isNativeAppStore,
+  getIOSSubscriptionMessage,
+  getNativeSubscriptionMessage
 };
 

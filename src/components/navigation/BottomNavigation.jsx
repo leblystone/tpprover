@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen, ClipboardList, Box } from 'lucide-react';
 import BetaModal from '../common/BetaModal';
 import logo from '../../assets/tpp_logo.png';
+import { isNative } from '../../utils/platform';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -35,6 +36,9 @@ const triggerHaptic = (style = 'light') => {
 export default function BottomNavigation({ theme }) {
   const navigate = useNavigate();
   const location = useLocation();
+  // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
+  const nativeApp = isNative();
+  const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [longPressItem, setLongPressItem] = useState(null);
@@ -298,7 +302,7 @@ export default function BottomNavigation({ theme }) {
         <>
           {/* Backdrop */}
           <div
-            className="lg:hidden fixed inset-0 z-[10000]"
+            className={`${hideOnDesktop} fixed inset-0 z-[10000]`}
             onClick={handleCloseSearch}
             style={{
               backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
@@ -310,7 +314,7 @@ export default function BottomNavigation({ theme }) {
           
           {/* Half-screen search modal */}
           <div
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-[10001] rounded-t-3xl shadow-2xl backdrop-blur-xl"
+            className={`${hideOnDesktop} fixed bottom-0 left-0 right-0 z-[10001] rounded-t-3xl shadow-2xl backdrop-blur-xl`}
             style={{
               height: '50vh',
               background: theme.isDark 
@@ -428,7 +432,7 @@ export default function BottomNavigation({ theme }) {
 
       {/* Backdrop - click to close expanded menu */}
       <div
-        className="lg:hidden fixed inset-0 z-[9998] transition-all duration-300 ease-in-out"
+        className={`${hideOnDesktop} fixed inset-0 z-[9998] transition-all duration-300 ease-in-out`}
         onClick={() => { setExpandedMenu(null); triggerHaptic('light'); }}
         style={{
           backgroundColor: expandedMenu ? (theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)') : 'transparent',
@@ -442,7 +446,7 @@ export default function BottomNavigation({ theme }) {
       {/* Expanded Menu (appears above bottom nav) - with swipe support */}
       <div
         ref={menuRef}
-        className="lg:hidden fixed bottom-16 left-0 right-0 z-[9999] px-3 transition-all duration-300 ease-in-out"
+        className={`${hideOnDesktop} fixed bottom-16 left-0 right-0 z-[9999] px-3 transition-all duration-300 ease-in-out`}
         onTouchStart={handleMenuTouchStart}
         onTouchMove={handleMenuTouchMove}
         style={{
@@ -538,7 +542,7 @@ export default function BottomNavigation({ theme }) {
 
       {/* Bottom Navigation Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] glass-bar"
+        className={`${hideOnDesktop} fixed bottom-0 left-0 right-0 z-[9999] glass-bar`}
         style={{
           borderTop: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
           // Use comprehensive safe area variable (includes Android detection via visualViewport API)

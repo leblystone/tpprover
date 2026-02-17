@@ -11,6 +11,7 @@ import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconTipsBanner from '../components/recon/ReconTipsBanner'
+import { isNative } from '../utils/platform'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS, penColors } from '../utils/penColors'
@@ -900,12 +901,13 @@ export default function Recon() {
 			<div className="page-bg">
 			<ReconTipsBanner theme={theme} />
 			
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Desktop: Show calculator in sidebar on other tabs */}
-				<div className="order-1 lg:order-2 hidden lg:block">
+			<div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-5">
+				{/* Desktop/Tablet: Show calculator in sidebar (2/5 width for more room) */}
+				<div className="order-1 lg:order-2 lg:col-span-2 hidden lg:block">
 				<ReconCalculatorPanel 
                     theme={theme} 
                     prefill={prefill} 
+                    compact={true}
                     isReadOnly={isReadOnly} 
                     onUpgrade={() => setShowUpgradeModal(true)} 
                     onSave={handleCalculatorSave}
@@ -913,8 +915,8 @@ export default function Recon() {
                 />
 				</div>
 
-			{/* Main content area */}
-			<div className="order-2 lg:order-1 lg:col-span-2">
+			{/* Main content area (3/5 width) */}
+			<div className="order-2 lg:order-1 lg:col-span-3">
 				
 				{activeTab === 'inuse' && (
 						<div className="space-y-4">

@@ -737,3 +737,57 @@ body .grecaptcha-badge,
 .dashboard-grid > *:active {
   outline: none !important;
 }
+
+/* ===================================================================
+   NATIVE APP TABLET LAYOUT
+   On native iOS/Android, the sidebar is hidden and bottom nav is used.
+   These rules ensure proper spacing and layout on tablets (iPad, etc.)
+   =================================================================== */
+
+/* Tablet portrait (768px+): Add breathing room */
+@media (min-width: 768px) {
+  .native-app .main-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Tablet landscape / large tablets (1024px+): More padding, cap dashboard grid */
+@media (min-width: 1024px) {
+  .native-app .main-content {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  /* Dashboard: 3 columns max on native tablets (instead of 4) */
+  .native-app .dashboard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
+    padding: 0.5rem !important;
+  }
+
+  /* Override lg:grid-cols-4 inside native-app to 3 cols (dashboard-like grids only) */
+  .native-app .grid.lg\:grid-cols-4:not(.dashboard-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Very large tablets / iPad Pro landscape (1366px+) */
+@media (min-width: 1280px) {
+  .native-app .main-content {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  /* Allow 4 columns on very large native tablets in landscape */
+  .native-app .dashboard-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Cap max content width on native to prevent extreme stretching */
+.native-app .main-content > * {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -491,8 +491,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 gap-4 mb-2">
-        {/* Left Column: Equal Split for Vial Details and Visual Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-end" style={{ minWidth: 0 }}>
+        {/* Left Column: Equal Split for Vial Details and Visual Preview (single column when compact/sidebar) */}
+        <div className={`grid grid-cols-1 ${compact ? '' : 'md:grid-cols-2'} gap-4 ${compact ? '' : 'md:gap-6'} items-end`} style={{ minWidth: 0 }}>
           {/* Vial Details - Takes 1/2 width */}
           <div 
             className="col-span-1"
@@ -1340,8 +1340,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               </div>
             </div>
           </div>
-          {/* 2x2 grid on mobile so all 4 fit; single row on sm+ */}
-          <div className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 rounded-lg p-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+          {/* 2x2 grid on mobile/compact so all 4 fit; single row on sm+ (non-compact) */}
+          <div className={`grid grid-cols-2 ${compact ? '' : 'sm:flex sm:flex-row'} gap-1.5 ${compact ? '' : 'sm:gap-1'} rounded-lg p-1`} style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
@@ -2237,9 +2237,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
   return (
     <div 
-      className={`rounded-lg p-6 content-card shadow-md hover:shadow-lg transition-shadow ${prefillJustLoaded ? 'ring-2 ring-offset-2' : ''}`}
-      style={{ 
-        backgroundColor: theme.cardBackground,
+      className={`rounded-xl ${compact ? 'p-4' : 'p-6'} content-card glass-panel-minimal ${compact ? '' : 'shadow-md hover:shadow-lg'} transition-shadow ${prefillJustLoaded ? 'ring-2 ring-offset-2' : ''}`}
+      style={{
         ...(prefillJustLoaded ? {
           ringColor: theme.primary,
           ringOffsetColor: theme.isDark ? '#1f2937' : '#ffffff',

@@ -8,8 +8,8 @@ import { useFounderOffer } from '../context/FounderOfferContext';
 import { STRIPE_CONFIG } from '../config/stripe';
 import { formatCurrency } from '../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
-import { isAndroid } from '../utils/platform';
-import { getAndroidSubscriptionMessage } from '../utils/paymentCompliance';
+import { isAndroid, isIOS } from '../utils/platform';
+import { getAndroidSubscriptionMessage, getNativeSubscriptionMessage } from '../utils/paymentCompliance';
 import { subscribe } from '../services/payment/paymentService';
 import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export';
 import DeleteAccountModal from '../components/common/DeleteAccountModal';
@@ -205,7 +205,7 @@ export default function SubscriptionExpired() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((plan) => {
               // Hide payment buttons on Android, show text message instead
-              const showPaymentButton = !isAndroid();
+              const showPaymentButton = !isAndroid() && !isIOS();
               
               return (
                 <div
@@ -270,7 +270,7 @@ export default function SubscriptionExpired() {
                     </button>
                   ) : (
                     <div className="w-full py-3 rounded-xl text-xs text-center" style={{ color: theme.textLight }}>
-                      {getAndroidSubscriptionMessage()}
+                      {getNativeSubscriptionMessage()}
                     </div>
                   )}
                 </div>

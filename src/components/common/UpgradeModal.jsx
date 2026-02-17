@@ -5,8 +5,8 @@ import Modal from './Modal';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
-import { isAndroid } from '../../utils/platform';
-import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';
+import { isAndroid, isIOS } from '../../utils/platform';
+import { getAndroidSubscriptionMessage, getNativeSubscriptionMessage } from '../../utils/paymentCompliance';
 
 /**
  * Modal displayed when user tries to perform an action in read-only mode
@@ -102,10 +102,10 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
 
         {/* Plan Selection */}
         <div className="mt-6 space-y-4">
-          {/* Android compliance: Show text message instead of payment buttons */}
-          {isAndroid() ? (
+          {/* Native app compliance: Show text message instead of payment buttons on iOS/Android */}
+          {(isAndroid() || isIOS()) ? (
             <div className="p-4 rounded-lg text-center text-sm" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6', color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
-              {getAndroidSubscriptionMessage()}
+              {getNativeSubscriptionMessage()}
             </div>
           ) : (
             <>

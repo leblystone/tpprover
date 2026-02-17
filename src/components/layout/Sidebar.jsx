@@ -6,6 +6,7 @@ import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings,
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
+import { isNative } from '../../utils/platform'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -13,14 +14,18 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
   const location = useLocation()
   const { logout } = useAppContext();
 
+  // Native apps (iOS/Android) always use mobile layout - no sidebar
+  const nativeApp = isNative();
+
   useEffect(() => {
+    if (nativeApp) return;
     const updateIsOpen = () => {
       setIsOpen(window.innerWidth >= 1024)
     }
     updateIsOpen()
     window.addEventListener('resize', updateIsOpen)
     return () => window.removeEventListener('resize', updateIsOpen)
-  }, [])
+  }, [nativeApp])
 
   // Helper to convert hex to rgba
   const hexToRgba = (hex, alpha = 1) => {
@@ -49,6 +54,9 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
   const activeBgColor = theme.primaryLight 
     ? hexToRgba(theme.primaryLight, 0.4)
     : hexToRgba(theme.primary, 0.2)
+
+  // Native apps always use mobile layout (bottom nav) - no sidebar even on iPad
+  if (nativeApp) return null;
 
   return (
     <>

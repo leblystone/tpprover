@@ -1924,7 +1924,7 @@ export default function Login() {
                 </div>
             </Modal>
 
-            {/* iOS Coming Soon Popup */}
+            {/* iOS App Available Popup */}
             {showIOSPopup && (
                 <div 
                     className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn"
@@ -1941,11 +1941,11 @@ export default function Login() {
                                 </div>
                             </div>
                             <h3 className="text-2xl font-bold mb-3" style={{ color: '#2F3B3A' }}>
-                                iOS App Coming Soon!
+                                Now Available on iOS!
                             </h3>
                             <p className="text-base mb-6" style={{ color: '#6B7D7A' }}>
-                                We're working hard to bring <strong>The Pep Planner</strong> to the App Store. 
-                                In the meantime, you can access the full experience on <strong>Android</strong> or <strong>Web</strong>!
+                                <strong>The Pep Planner</strong> is available on the App Store.
+                                Download now and start organizing your peptide research!
                             </p>
                             <button
                                 onClick={() => setShowIOSPopup(false)}

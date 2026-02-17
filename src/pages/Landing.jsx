@@ -105,7 +105,7 @@ export default function Landing() {
   ];
 
   const platforms = [
-    { icon: Apple, name: 'iOS', status: 'Coming Soon' },
+    { icon: Apple, name: 'iOS', status: 'Available' },
     { icon: Play, name: 'Android', status: 'Available' },
     { icon: Monitor, name: 'Web', status: 'Available' }
   ];
@@ -379,7 +379,7 @@ export default function Landing() {
               Download the App
             </h2>
             <p className="text-lg" style={{ color: '#6B7D7A' }}>
-              Available on Android and Web. <span style={{ color: '#7F9E95', fontWeight: '600' }}>iOS Coming Soon!</span>
+              Available on iOS, Android, and Web.
             </p>
           </div>
           
@@ -637,7 +637,7 @@ export default function Landing() {
       {/* Contact Modal */}
       <LandingContactModal open={showContact} onClose={() => setShowContact(false)} />
       
-      {/* iOS Coming Soon Popup */}
+      {/* iOS App Available Popup */}
       {showIOSPopup && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn"
@@ -654,11 +654,11 @@ export default function Landing() {
                 </div>
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ color: '#2F3B3A' }}>
-                iOS App Coming Soon!
+                Now Available on iOS!
               </h3>
               <p className="text-base mb-6" style={{ color: '#6B7D7A' }}>
-                We're working hard to bring <strong>The Pep Planner</strong> to the App Store. 
-                In the meantime, you can access the full experience on <strong>Android</strong> or <strong>Web</strong>!
+                <strong>The Pep Planner</strong> is available on the App Store. 
+                Download now and start organizing your peptide research!
               </p>
               <button
                 onClick={() => setShowIOSPopup(false)}

@@ -511,7 +511,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden" style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
+    <div className={`h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden ${Capacitor.isNativePlatform() ? 'native-app' : ''}`} style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
         <div className="relative flex-1 flex flex-col min-w-0 w-full max-w-full overflow-hidden" style={{
           boxSizing: 'border-box',
@@ -549,7 +549,7 @@ function App() {
               color: theme.text, 
               minWidth: 0, 
               boxSizing: 'border-box',
-              paddingTop: Capacitor.isNativePlatform() && window.innerWidth < 1024 ? 'calc(3.5rem + var(--safe-area-top, 0px))' : '3.5rem',
+              paddingTop: Capacitor.isNativePlatform() ? 'calc(3.5rem + var(--safe-area-top, 0px))' : '3.5rem',
               paddingBottom: location.pathname.startsWith('/app') 
                 ? (location.pathname.includes('/calendar') 
                     ? 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' 

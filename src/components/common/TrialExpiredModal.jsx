@@ -1,6 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 import { Rocket, Clock, Sparkles } from 'lucide-react';
+import { isIOS } from '../../utils/platform';
 
 export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
   const handleDismiss = () => {
@@ -25,14 +26,20 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
           >
             Still Deciding
           </button>
-          <button
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2"
-            onClick={onSignUp}
-            style={{ backgroundColor: theme.primary }}
-          >
-            <Rocket size={18} />
-            Choose Your Plan
-          </button>
+          {isIOS() ? (
+            <div className="flex-1 px-4 py-2.5 rounded-lg text-sm text-center font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#f3f4f6', color: theme.isDark ? '#d1d5db' : '#374151' }}>
+              Subscription available once your trial ends.
+            </div>
+          ) : (
+            <button
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              onClick={onSignUp}
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Rocket size={18} />
+              Choose Your Plan
+            </button>
+          )}
         </div>
       )}
     >

@@ -1,3 +1,5 @@
+import { isNative } from './platform';
+
 // Dashboard customization utilities
 export const WIDGET_TYPES = {
   TASKS: 'tasks',
@@ -68,6 +70,24 @@ export function getResponsiveSizeConfig(screenWidth) {
         [WIDGET_SIZES.LARGE]: { cols: 2, rows: 2 },
         [WIDGET_SIZES.WIDE]: { cols: 2, rows: 1 },
         [WIDGET_SIZES.FULL]: { cols: 2, rows: 1 }
+      }
+    };
+  }
+
+  // Native tablet (>= 1024px on iOS/Android) - 3 column layout
+  // No sidebar on native apps, so use tablet-optimized grid
+  if (isNative() && screenWidth < 1280) {
+    return {
+      columnsCount: 3,
+      columnWidth: 'calc(33.333% - 0.667rem)',
+      gapSize: '1rem',
+      sizeMap: {
+        [WIDGET_SIZES.SMALL]: { cols: 1, rows: 1 },
+        [WIDGET_SIZES.MEDIUM]: { cols: 2, rows: 1 },
+        [WIDGET_SIZES.TALL]: { cols: 1, rows: 2 },
+        [WIDGET_SIZES.LARGE]: { cols: 2, rows: 2 },
+        [WIDGET_SIZES.WIDE]: { cols: 3, rows: 1 },
+        [WIDGET_SIZES.FULL]: { cols: 3, rows: 1 }
       }
     };
   }
@@ -501,8 +521,9 @@ export const getSizeConfig = (size, screenWidth = null) => {
   const width = screenWidth || (typeof window !== 'undefined' ? window.innerWidth : 1024);
   const responsiveConfig = getResponsiveSizeConfig(width);
   
-  // For mobile/tablet, return responsive sizing
-  if (width < 1024 && responsiveConfig.sizeMap[size]) {
+  // For mobile/tablet (and native tablet), return responsive sizing
+  const useResponsive = width < 1024 || (isNative() && width < 1280);
+  if (useResponsive && responsiveConfig.sizeMap[size]) {
     return { 
       w: responsiveConfig.sizeMap[size].cols, 
       h: responsiveConfig.sizeMap[size].rows 

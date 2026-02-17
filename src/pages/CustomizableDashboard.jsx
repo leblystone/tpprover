@@ -963,10 +963,7 @@ export default function CustomizableDashboard() {
               );
             })}
             
-            {/* UNMOVEABLE SYSTEM WIDGET - Always shown at the end */}
-            <div className="col-span-2">
-              <ConversionWidget theme={theme} subscription={subscription} />
-            </div>
+            {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
           </div>
         </div>
 

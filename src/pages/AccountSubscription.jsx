@@ -6,6 +6,7 @@ import { faStripe, faGooglePlay, faApple, faSquarespace } from '@fortawesome/fre
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
+import { isIOS } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
@@ -581,8 +582,8 @@ export default function AccountSubscription() {
         </div>
       )}
 
-      {/* UPGRADE OPTIONS */}
-      {status.type !== 'lifetime' && (
+      {/* UPGRADE OPTIONS - hidden on iOS until Apple IAP is implemented */}
+      {status.type !== 'lifetime' && !isIOS() && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />

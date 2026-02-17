@@ -348,11 +348,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   // Only apply safe area padding for native apps (Android/iOS), not PWA/web
   const isNative = Capacitor.isNativePlatform();
+  // Native apps always use mobile layout (even on iPad)
+  const lgHidden = isNative ? '' : 'lg:hidden';
+  const lgShow = isNative ? 'hidden' : 'hidden lg:flex';
+  const lgBlock = isNative ? 'hidden' : 'hidden lg:block';
   
   return (
     <>
       <header 
-        className="backdrop-blur-xl border-b flex items-center px-3 lg:px-6 relative transition-all duration-300 topbar-header glass-bar" 
+        className={`backdrop-blur-xl border-b flex items-center px-3 ${isNative ? '' : 'lg:px-6'} relative transition-all duration-300 topbar-header ${isNative ? 'topbar-native' : ''} glass-bar`} 
         style={{ 
           paddingTop: isNative ? '0.375rem' : '0.5rem',
           paddingBottom: '0.5rem',
@@ -381,7 +385,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               e.stopPropagation();
               onMenuClick();
             }}
-            className="hidden lg:block no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95" 
+            className={`${lgBlock} no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95`} 
             style={{ 
               color: theme.text,
               WebkitTapHighlightColor: 'transparent',
@@ -396,7 +400,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           
         {/* Tabs in Topbar - Center position - Desktop */}
         {tabs && tabs.length > 0 && (
-          <div className="hidden lg:flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2">
+          <div className={`${lgShow} items-center gap-4 absolute left-1/2 transform -translate-x-1/2`}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
@@ -471,7 +475,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Mobile tabs - minimal underline style */}
         {tabs && tabs.length > 0 && (
           <div 
-            className="lg:hidden flex items-center gap-0.5 flex-1 overflow-x-auto mobile-tabs-container" 
+            className={`${lgHidden} flex items-center gap-0.5 flex-1 overflow-x-auto mobile-tabs-container`} 
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
@@ -554,7 +558,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 e.stopPropagation();
                 onActionClick();
               }}
-              className="lg:hidden p-1.5 rounded-lg hover:scale-110 active:scale-95 transition-all duration-200 flex-shrink-0 touch-manipulation" 
+              className={`${lgHidden} p-1.5 rounded-lg hover:scale-110 active:scale-95 transition-all duration-200 flex-shrink-0 touch-manipulation`} 
               style={{ 
                 color: actionDisabled ? theme.textLight : theme.primary, 
                 backgroundColor: actionDisabled ? 'transparent' : `${theme.primary}10`,
@@ -733,7 +737,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           /* Height handled inline with safe area calculations */
         }
         @media (min-width: 1024px) {
-          .topbar-header {
+          .topbar-header:not(.topbar-native) {
             min-height: 3rem !important; /* lg:h-12 for desktop */
             padding-top: 0px !important; /* No safe area padding on desktop */
           }
