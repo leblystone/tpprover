@@ -539,12 +539,14 @@ function App() {
             />
           </div>
 
-          <main className={`flex-1 overflow-x-hidden main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`} 
+          <main className={`flex-1 main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`} 
             style={{ 
               background: location.pathname.startsWith('/app')
                 ? (theme.isDark 
                     ? 'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)'
-                    : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
+                    : theme.name === 'Sage'
+                      ? 'linear-gradient(180deg, #B8C4BA 0%, #ADBCAF 25%, #A5B5A7 50%, #ADBCAF 75%, #B8C4BA 100%)'
+                      : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
                 : theme.background, 
               color: theme.text, 
               minWidth: 0, 

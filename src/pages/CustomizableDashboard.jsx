@@ -4,7 +4,6 @@ import { Settings, Edit, FlaskConical } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
-import ViewContainer from '../components/ui/ViewContainer';
 import DashboardWidget from '../components/dashboard/DashboardWidget';
 import DashboardCustomizer from '../components/dashboard/DashboardCustomizer';
 import WidgetFactory from '../components/dashboard/WidgetFactory';
@@ -806,26 +805,24 @@ export default function CustomizableDashboard() {
     : [];
 
   return (
-    <ViewContainer theme={theme} transparent={true} noMinHeight>
+    <>
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
       
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border px-2 sm:px-4 md:px-6 lg:px-8" style={{ minWidth: 0, boxSizing: 'border-box', width: '100%', fontFamily: 'Poppins, sans-serif' }}>
-        {/* Decorative background icon - positioned within content area */}
-        <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
-          <FlaskConical 
-            size={280} 
-            strokeWidth={1}
-            style={{ 
-              color: theme.primary || '#3B82F6',
-              opacity: 0.22
-            }}
-          />
-        </div>
+      {/* Decorative background icon */}
+      <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
+        <FlaskConical 
+          size={280} 
+          strokeWidth={1}
+          style={{ 
+            color: theme.primary || '#3B82F6',
+            opacity: 0.22
+          }}
+        />
+      </div>
 
-        {/* Dashboard Layout - Flexible Grid */}
-        <div className="w-full" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-<div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-4 auto-rows-min box-border p-1" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      {/* Dashboard Layout - Widgets sit directly on the background */}
+      <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             {enabledWidgetsForGrid.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);
@@ -871,10 +868,11 @@ export default function CustomizableDashboard() {
               }
               
               return (
-                <div key={`${widget.id}-${widget.position?.x}-${widget.position?.y}-${widget.enabled}`} className={`${gridClasses} w-full flex`}>
                   <DashboardWidget
+                    key={`${widget.id}-${widget.position?.x}-${widget.position?.y}-${widget.enabled}`}
                     widget={widget}
                     theme={theme}
+                    gridClassName={gridClasses}
                     isCustomizing={isCustomizing}
                     onToggleVisibility={handleToggleWidgetVisibility}
                     onSettings={handleWidgetSettings}
@@ -959,17 +957,15 @@ export default function CustomizableDashboard() {
                       }}
                     />
                   </DashboardWidget>
-                </div>
               );
             })}
             
             {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
           </div>
-        </div>
 
         {/* Hidden Widgets Section - Only shown in customizing mode */}
         {isCustomizing && hiddenWidgets.length > 0 && (
-          <div className="mt-4 p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px dashed ${theme.border}` }}>
+          <div className="mt-4 mx-3 sm:mx-5 md:mx-6 lg:mx-8 p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px dashed ${theme.border}` }}>
             <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
               Hidden Widgets
             </h3>
@@ -1095,7 +1091,7 @@ export default function CustomizableDashboard() {
         )}
 
         {enabledWidgets.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-12 px-3 sm:px-5 md:px-6 lg:px-8">
             <p className="text-lg mb-4" style={{ color: theme.textLight }}>
               No widgets enabled. 
             </p>
@@ -1111,7 +1107,6 @@ export default function CustomizableDashboard() {
             </button>
           </div>
         )}
-      </div>
 
       {/* Modals */}
       <DashboardCustomizer
@@ -1544,6 +1539,6 @@ export default function CustomizableDashboard() {
       />
 
       {/* Toast notifications now handled globally in App.jsx */}
-    </ViewContainer>
+    </>
   );
 }

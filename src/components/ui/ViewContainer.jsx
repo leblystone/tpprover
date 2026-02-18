@@ -3,7 +3,7 @@
 export default function ViewContainer({ theme, className = '', children, transparent = false, noMinHeight = false }) {
   return (
     <div
-      className={`relative ${noMinHeight ? '' : 'min-h-screen'} w-full max-w-full overflow-x-hidden ${className}`}
+      className={`relative ${noMinHeight ? '' : 'min-h-screen'} w-full max-w-full ${className}`}
       style={{ 
         backgroundColor: transparent ? 'transparent' : (theme?.background || '#FFFFFF'),
         minWidth: 0,

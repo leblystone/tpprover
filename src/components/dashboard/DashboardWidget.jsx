@@ -6,6 +6,7 @@ const DashboardWidget = ({
   widget, 
   children, 
   theme, 
+  gridClassName = '',
   isCustomizing = false,
   onToggleVisibility,
   onMove,
@@ -106,16 +107,14 @@ const DashboardWidget = ({
 
   return (
     <div
-      className={`dashboard-widget relative rounded-xl ${glassClass} transition-all duration-200 ${
+      className={`dashboard-widget relative rounded-xl ${glassClass} transition-all duration-200 ${gridClassName} ${
         isCustomizing && widget.enabled ? 'cursor-move' : ''
       } ${isDragging ? 'z-50 shadow-2xl' : 'widget-card-hover'}`}
       style={{
         ...widgetStyle,
         fontFamily: 'Poppins, sans-serif',
-        border: 'none',
         outline: 'none',
-        overflow: 'hidden',
-        borderRadius: '12px'
+        borderRadius: '14px'
       }}
       tabIndex={-1}
       onFocus={(e) => e.currentTarget.style.outline = 'none'}
