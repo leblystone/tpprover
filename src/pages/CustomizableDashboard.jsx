@@ -806,11 +806,11 @@ export default function CustomizableDashboard() {
     : [];
 
   return (
-    <ViewContainer theme={theme} transparent={true}>
+    <ViewContainer theme={theme} transparent={true} noMinHeight>
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
       
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border" style={{ minWidth: 0, boxSizing: 'border-box', width: '100%', fontFamily: 'Poppins, sans-serif' }}>
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative box-border px-2 sm:px-4 md:px-6 lg:px-8" style={{ minWidth: 0, boxSizing: 'border-box', width: '100%', fontFamily: 'Poppins, sans-serif' }}>
         {/* Decorative background icon - positioned within content area */}
         <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
           <FlaskConical 

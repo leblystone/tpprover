@@ -47,6 +47,39 @@ html, body, #root {
   background: #6b7280;
 }
 
+/* Main content: subtle scrollbar on desktop; no reserved gutter. */
+.main-content {
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.main-content::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 10px;
+}
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.55);
+}
+
+/* PWA and touch: hide main scrollbar completely; content stays scrollable, no distraction. */
+@media (display-mode: standalone), (pointer: coarse) {
+  .main-content {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .main-content::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 /* Global Dark Mode Button Hover Effect - Inspired by Quick Actions */
 [data-theme="softDark"] button:not(:disabled):hover,
 .dark button:not(:disabled):hover {

@@ -62,7 +62,7 @@ const getResolvedPenColor = (penColor) => {
 
 const BookmarkRibbon = ({ theme }) => (
   <div 
-    className="absolute -top-1 right-16 w-6 h-10 pointer-events-none hidden sm:block"
+    className="absolute -top-1 right-16 w-6 h-10 pointer-events-none hidden"
     style={{ 
       zIndex: 1,
       filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))'
