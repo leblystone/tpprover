@@ -125,14 +125,27 @@ html, body {
     margin-top: 0 !important;
   }
   
-  /* Mobile and tablet-specific: Ensure single column */
+}
+
+/* Mobile only: single column – leave unchanged */
+@media (max-width: 767px) {
   .dashboard-grid {
     grid-template-columns: 1fr !important;
   }
-  
-  /* Force all widgets to full width on mobile, regardless of col-span */
   .dashboard-grid > * {
     grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Tablet: 2-column grid for all widgets so they're not stretched */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .dashboard-grid > * {
+    grid-column: span 1 !important;
     width: 100% !important;
     max-width: 100% !important;
   }
