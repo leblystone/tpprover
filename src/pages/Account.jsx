@@ -36,8 +36,8 @@ export default function Account() {
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
-        <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-          <User size={32} style={{ color: theme.primary }} />
+        <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>
+          <User size={32} style={{ color: '#FFFFFF' }} />
         </div>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Account</h1>
@@ -107,8 +107,8 @@ export default function Account() {
           onClick={logout}
           className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
           style={{
-            backgroundColor: '#4A5E4F',
-            border: '1.5px solid #3E5043',
+            backgroundColor: '#5F7F76',
+            border: '1.5px solid #4F6B63',
             boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)'
           }}
         >

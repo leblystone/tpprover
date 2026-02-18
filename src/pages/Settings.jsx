@@ -45,8 +45,8 @@ export default function Settings() {
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
-        <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-          <SettingsIcon size={32} style={{ color: theme.primary }} />
+        <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>
+          <SettingsIcon size={32} style={{ color: '#FFFFFF' }} />
         </div>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Settings</h1>
