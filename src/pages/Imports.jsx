@@ -143,7 +143,7 @@ export default function Imports() {
         {items.length === 0 ? <div className="text-sm" style={{ color: theme.textLight }}>No imports yet.</div> : (
           <>
             <div className="flex items-center gap-2 mb-3">
-              <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={bulkAccept} disabled={selectedIds.length === 0}>Accept Selected</button>
+              <button className="px-3 py-2 rounded-md text-sm font-semibold btn-primary-inset" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={bulkAccept} disabled={selectedIds.length === 0}>Accept Selected</button>
               <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={bulkReject} disabled={selectedIds.length === 0}>Reject Selected</button>
             </div>
             <ul className="divide-y" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
@@ -166,7 +166,7 @@ export default function Imports() {
                         </details>
                       )}
                       <div className="flex items-center gap-2">
-                        <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={() => acceptOne(imp)}>Accept</button>
+                        <button className="px-3 py-1 rounded-md text-sm btn-primary-inset" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || theme.white }} onClick={() => acceptOne(imp)}>Accept</button>
                         <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={() => rejectOne(imp)}>Reject</button>
                         {(imp.targetType || 'calendar') === 'orders' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme.text }} onClick={() => navigate('/app/orders')}>Go to Orders</button>}
                         {(imp.targetType || 'calendar') === 'stockpile' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: theme.text }} onClick={() => navigate('/app/stockpile')}>Go to Stockpile</button>}

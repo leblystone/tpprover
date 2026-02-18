@@ -949,7 +949,7 @@ export default function Recon() {
 										<button
 											type="button"
 											onClick={() => setShowCalculatorModal(true)}
-											className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 touch-manipulation"
+											className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 touch-manipulation btn-primary-inset"
 											style={{
 												backgroundColor: theme.primary,
 												color: theme.textOnPrimary || '#ffffff',

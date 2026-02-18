@@ -220,7 +220,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             <ModernTooltip text="History & Analytics" position="top">
               <button 
                 onClick={() => setShowHistoryModal(true)}
-                className="w-7 h-7 rounded-full flex items-center justify-center transition-all relative overflow-hidden"
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-all relative overflow-hidden btn-primary-inset"
                 style={{ 
                   backgroundColor: theme.primary,
                   color: '#FFFFFF',
@@ -292,7 +292,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             {/* Add Button */}
             <button
               onClick={() => updateWaterIntake(1)}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md"
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md btn-primary-inset"
               style={{ 
                 backgroundColor: theme.primary, 
                 color: theme.textOnPrimary 

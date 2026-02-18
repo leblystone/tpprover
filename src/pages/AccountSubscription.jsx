@@ -558,7 +558,7 @@ export default function AccountSubscription() {
               <button
                 onClick={handleRestorePurchases}
                 disabled={isRestoringPurchases || restoreCooldown > 0}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 btn-primary-inset"
                 style={{ 
                   backgroundColor: theme.primary,
                   color: theme.primaryText || '#ffffff'

@@ -98,7 +98,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         <button 
                             type="button"
                             onClick={handleSave} 
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap min-w-fit btn-primary-inset"
                             style={{ 
                                 background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
                                 color: theme.textOnPrimary || '#ffffff',
@@ -200,7 +200,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                     key={time}
                                     type="button"
                                     onClick={() => toggleTime(time)}
-                                    className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center"
+                                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center ${form.schedule.includes(time) ? 'btn-primary-inset' : ''}`}
                                     style={form.schedule.includes(time) ? { backgroundColor: theme.primary, color: '#ffffff' } : { color: theme.text }}
                                     onMouseEnter={(e) => {
                                         if (!form.schedule.includes(time)) e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -220,7 +220,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                         key={day}
                                         type="button"
                                         onClick={() => toggleDay(day)}
-                                        className="px-2 py-1 text-xs font-medium rounded-md transition-all"
+                                        className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${form.days.includes(day) ? 'btn-primary-inset' : ''}`}
                                         style={form.days.includes(day) ? { backgroundColor: theme.primary, color: '#ffffff' } : { color: theme.text, backgroundColor: 'transparent' }}
                                         onMouseEnter={(e) => {
                                             if (!form.days.includes(day)) e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -260,7 +260,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 key={value}
                                 type="button"
                                 onClick={() => setForm({ ...form, delivery: value })}
-                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all"
+                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${form.delivery === value ? 'btn-primary-inset' : ''}`}
                                 style={form.delivery === value ? { backgroundColor: theme.primary, color: '#ffffff' } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                     if (form.delivery !== value) e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';

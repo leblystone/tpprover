@@ -124,8 +124,7 @@ export default function SettingsPreferences() {
       <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>

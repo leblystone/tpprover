@@ -128,6 +128,40 @@ export function updateProtocolHistoryEntry(historyId, updates) {
 }
 
 /**
+ * Restore a protocol history entry (re-activate an accidentally ended protocol)
+ * Clears endDate, completionStatus, and endType so the entry becomes active again
+ * @param {string} historyId - The history entry ID to restore
+ * @returns {object|null} The restored entry, or null on failure
+ */
+export function restoreProtocolHistoryEntry(historyId) {
+    try {
+        const allHistory = getProtocolHistory();
+        const index = allHistory.findIndex(entry => entry.id === historyId);
+        
+        if (index === -1) {
+            console.warn('Protocol history entry not found for restore:', historyId);
+            return null;
+        }
+        
+        const entry = allHistory[index];
+        
+        allHistory[index] = {
+            ...entry,
+            endDate: null,
+            completionStatus: null,
+            endType: null,
+            updatedAt: getLocalTimestamp()
+        };
+        
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return allHistory[index];
+    } catch (error) {
+        console.error('Error restoring protocol history entry:', error);
+        return null;
+    }
+}
+
+/**
  * Delete a protocol history entry
  */
 export function deleteProtocolHistoryEntry(historyId) {

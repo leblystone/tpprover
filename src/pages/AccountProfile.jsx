@@ -993,7 +993,7 @@ export default function AccountProfile() {
         {!showBackupCodes ? (
           <div className="space-y-4">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+              <div className="content-section p-4 rounded-lg" style={{ border: `1px solid ${theme.border}` }}>
                 <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>
                   Scan QR Code or Enter Secret Key
                 </div>
@@ -1088,7 +1088,7 @@ export default function AccountProfile() {
               </div>
             </div>
 
-            <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+            <div className="content-section p-4 rounded-lg" style={{ border: `1px solid ${theme.border}` }}>
               <div className="grid grid-cols-2 gap-2 font-mono text-sm">
                 {backupCodes.map((code, index) => (
                   <div 

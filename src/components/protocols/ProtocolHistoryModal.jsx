@@ -7,7 +7,7 @@ import { getProtocolHistoryEntries, findActiveProtocolHistoryEntry } from '../..
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 
-export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, theme, onStartProtocol }) {
+export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, theme, onStartProtocol, onRestore, onEdit, protocols }) {
     const { stockpile } = useAppContext();
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
     const [followUpProtocol, setFollowUpProtocol] = useState(null);
@@ -238,14 +238,10 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                                                 {/* Floating icon node - only visible on hover */}
                                                 {isHovered && (
                                                     <div 
-                                                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20"
+                                                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20 glass-panel-minimal"
                                                         style={{ 
-                                                            backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                                                            backdropFilter: 'blur(10px)',
                                                             border: `2px solid ${theme.primary}`,
-                                                            boxShadow: theme.isDark 
-                                                                ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
-                                                                : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                                                            boxShadow: `0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px ${theme.primary}20`
                                                         }}
                                                     >
                                                         <TimelineIcon 
@@ -258,18 +254,7 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                                                 {/* Protocol card with glassmorphism */}
                                                 <button
                                                     onClick={() => setSelectedHistoryEntry(historyEntry)}
-                                                    className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
-                                                    style={{ 
-                                                        backgroundColor: theme.isDark 
-                                                            ? 'rgba(31, 41, 55, 0.6)' 
-                                                            : 'rgba(255, 255, 255, 0.7)',
-                                                        backdropFilter: 'blur(20px)',
-                                                        WebkitBackdropFilter: 'blur(20px)',
-                                                        border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
-                                                        boxShadow: theme.isDark 
-                                                            ? '0 4px 16px rgba(0, 0, 0, 0.3)' 
-                                                            : '0 4px 16px rgba(0, 0, 0, 0.08)'
-                                                    }}
+                                                    className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative glass-panel-minimal widget-card-hover"
                                                 >
                                                     <div className="flex gap-4 p-4">
                                                         {/* Main content */}
@@ -290,7 +275,8 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                                                                         className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
                                                                         style={{ 
                                                                             backgroundColor: statusBadge.bgColor,
-                                                                            color: statusBadge.textColor
+                                                                            color: statusBadge.textColor,
+                                                                            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
                                                                         }}
                                                                     >
                                                                         <StatusIcon size={12} />
@@ -317,7 +303,7 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                                                                                 style={{
                                                                                     background: terracottaGradient,
                                                                                     color: '#ffffff',
-                                                                                    boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
+                                                                                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)'
                                                                                 }}
                                                                                 onMouseEnter={(e) => {
                                                                                     e.currentTarget.style.background = terracottaHoverGradient;
@@ -431,6 +417,9 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                 historyEntry={selectedHistoryEntry}
                 theme={theme}
                 stockpile={stockpile}
+                onRestore={onRestore}
+                onEdit={onEdit}
+                protocols={protocols}
             />
             
             {/* Follow-Up Modal */}

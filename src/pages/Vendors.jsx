@@ -103,7 +103,7 @@ export default function Vendors() {
 	const isEmptyCategory = vendorsInCategory.length === 0 && !searchQuery;
 
 	return (
-		<section className="page-bg">
+		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 			<VendorsTipsBanner theme={theme} />
 
 			{/* Filter dropdown - same pattern as Stockpile / Orders */}

@@ -141,7 +141,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90"
+            className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90 btn-primary-inset"
             style={{ backgroundColor: theme.primary }}
           >
             Close

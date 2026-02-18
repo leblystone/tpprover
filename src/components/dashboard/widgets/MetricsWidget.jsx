@@ -405,7 +405,7 @@ const MetricsWidget = ({
               </p>
               <button
                 onClick={onAddMetric}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 btn-primary-inset"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 <Plus size={12} />
@@ -501,7 +501,7 @@ const MetricsWidget = ({
                 if (onUpgrade) onUpgrade();
                 else window.location.href = '/app/account';
               }}
-              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm btn-primary-inset"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               Upgrade

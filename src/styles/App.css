@@ -30,14 +30,23 @@
 
 .main-content {
     transition: margin-left 0.3s ease-in-out;
-    margin-left: 0; /* remove extra left gap */
+    margin-left: 0; /* mobile/tablet: no sidebar */
     /* Add bottom padding for iOS home indicator */
     padding-bottom: max(0.5rem, var(--safe-area-bottom));
 }
 
-.sidebar-container:hover + .topbar + .main-content,
-.sidebar-container:hover ~ .main-content {
-    margin-left: 0; /* keep content aligned on hover */
+/* Desktop (lg+): collapsed sidebar – content starts beside it (not behind). Expanded sidebar overlays. */
+@media (min-width: 1024px) {
+    .app-layout:not(.native-app) .main-content {
+        margin-left: 6rem; /* content starts to the right of collapsed sidebar so nothing sits behind it */
+        width: calc(100% - 6rem); /* full remaining width, no squish */
+        max-width: calc(100% - 6rem);
+        padding-left: 1.5rem;
+        padding-right: 2rem;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    /* When sidebar expands on hover it overlays the content (no layout change, no squish) */
 }
 
 /* Conversion Widget Animation */

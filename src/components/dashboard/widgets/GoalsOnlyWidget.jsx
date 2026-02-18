@@ -284,7 +284,7 @@ const GoalsOnlyWidget = ({
               <button
                 onClick={handleAddGoal}
                 disabled={!newGoal.title.trim()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed btn-primary-inset"
                 style={{ 
                   backgroundColor: theme.primary, 
                   color: theme.textOnPrimary || '#ffffff',
@@ -633,7 +633,7 @@ const GoalsOnlyWidget = ({
                         <div className="flex items-center gap-1 ml-2">
                           <button
                             onClick={() => handleRestoreGoal(goal.id)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1 btn-primary-inset"
                             style={{ 
                               backgroundColor: theme.primary,
                               color: theme.textOnPrimary

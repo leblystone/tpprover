@@ -1046,7 +1046,7 @@ export default function Stockpile() {
   }, [isReadOnly]);
 
   return (
-    <section className="page-bg space-y-4">
+    <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
       
       {/* Add to Stockpile Dropdown Menu */}
@@ -1114,7 +1114,7 @@ export default function Stockpile() {
       <div className="space-y-6">
         {/* On Hand Tab */}
         {activeTab === 'onhand' && (
-          <div>
+          <div className="min-w-0 overflow-x-hidden w-full">
             {groups.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
@@ -1489,9 +1489,9 @@ export default function Stockpile() {
           </div>
         )}
 
-        {/* Incoming Tab */}
+        {/* Incoming Tab - same padded layout as On Hand / Out of Stock */}
         {activeTab === 'incoming' && (
-          <div>
+          <div className="min-w-0 overflow-x-hidden w-full">
             {incomingGroups.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
@@ -1549,7 +1549,7 @@ export default function Stockpile() {
 
         {/* Out of Stock Tab */}
         {activeTab === 'outofstock' && (
-          <div>
+          <div className="min-w-0 overflow-x-hidden w-full">
             {groups.filter(g => g.totalVials <= 0).length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>

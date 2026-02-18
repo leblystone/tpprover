@@ -978,7 +978,7 @@ export default function Calendar() {
   });
 
   return (
-    <section className="flex flex-col flex-1 min-h-0" style={{ overflow: 'hidden', background: 'transparent' }}>
+    <section className="flex flex-col flex-1 min-h-0 px-2 sm:px-4 md:px-6 lg:px-8" style={{ overflow: 'hidden', background: 'transparent' }}>
       <CalendarHeader
         currentDate={currentDate}
         weekStart={weekStart}
@@ -1018,7 +1018,7 @@ export default function Calendar() {
         </div>
       ) : (
         <div 
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-2 sm:px-3 py-2"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-2 sm:px-3 py-2 scrollbar-hide"
           {...swipeHandlers}
         >
           <WeekView 

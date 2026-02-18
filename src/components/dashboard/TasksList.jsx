@@ -239,7 +239,10 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                                     borderRadius: '4px',
                                     minWidth: '20px',
                                     minHeight: '20px',
-                                    WebkitTapHighlightColor: 'transparent'
+                                    WebkitTapHighlightColor: 'transparent',
+                                    boxShadow: theme.isDark 
+                                        ? 'inset 0 2px 4px rgba(0, 0, 0, 0.35)' 
+                                        : 'inset 0 2px 4px rgba(0, 0, 0, 0.12)'
                                 }}
                                 title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                             >

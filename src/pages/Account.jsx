@@ -107,30 +107,30 @@ export default function Account() {
           onClick={logout}
           className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
           style={{
-            backgroundColor: theme.error + '10',
-            border: `1px solid ${theme.error}30`,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+            backgroundColor: '#4A5E4F',
+            border: '1.5px solid #3E5043',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)'
           }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div 
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors"
-                style={{ backgroundColor: theme.error }}
+                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
               >
                 <LogOut size={22} style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.error }}>
+                <h3 className="text-lg font-semibold tracking-tight" style={{ color: '#FFFFFF' }}>
                   Sign Out
                 </h3>
-                <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
+                <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   Sign out of your account
                 </p>
               </div>
             </div>
-            <div className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
-              <ChevronRight size={24} style={{ color: theme.error }} />
+            <div className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+              <ChevronRight size={24} style={{ color: '#FFFFFF' }} />
             </div>
           </div>
         </button>

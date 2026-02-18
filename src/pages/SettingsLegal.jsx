@@ -110,8 +110,7 @@ export default function SettingsLegal() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/app/settings')}
-            className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm"
-            style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+            className="group p-2 rounded-xl transition-all active:scale-95 glass-button-nav"
           >
             <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
           </button>

@@ -17,6 +17,7 @@ import {
   resetDashboardLayout,
   getSizeConfig,
   WIDGET_TYPES,
+  WIDGET_SIZES,
   compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
@@ -91,6 +92,14 @@ export default function CustomizableDashboard() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
   const [injectionSiteTrackingEnabled, setInjectionSiteTrackingEnabled] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handle = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', handle);
+    return () => mq.removeEventListener('change', handle);
+  }, []);
 
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
@@ -821,11 +830,17 @@ export default function CustomizableDashboard() {
         />
       </div>
 
-      {/* Dashboard Layout - Widgets sit directly on the background */}
-      <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {/* Dashboard Layout - Widgets sit directly on the background; min-w-0 so right edge isn't clipped on desktop */}
+      <div className="w-full max-w-full min-w-0">
+        <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             {enabledWidgetsForGrid.map((widget, index) => {
-              // Use consistent widget sizing based on configuration
-              const sizeConfig = getSizeConfig(widget.size);
+              // Desktop only: swap Supplements and Active Research widget sizes
+              const effectiveSize = isDesktop && widget.type === WIDGET_TYPES.SUPPLEMENTS
+                ? WIDGET_SIZES.SMALL
+                : isDesktop && (widget.type === WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES || widget.id === 'active_protocols_notes')
+                  ? WIDGET_SIZES.MEDIUM
+                  : widget.size;
+              const sizeConfig = getSizeConfig(effectiveSize);
               
               // Map grid width to CSS classes
               let gridClasses = '';
@@ -962,6 +977,7 @@ export default function CustomizableDashboard() {
             
             {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
           </div>
+        </div>
 
         {/* Hidden Widgets Section - Only shown in customizing mode */}
         {isCustomizing && hiddenWidgets.length > 0 && (
@@ -1097,7 +1113,7 @@ export default function CustomizableDashboard() {
             </p>
             <button
               onClick={() => setShowCustomizer(true)}
-              className="px-6 py-3 rounded-lg font-semibold action-button-hover"
+              className="px-6 py-3 rounded-lg font-semibold action-button-hover btn-primary-inset"
               style={{
                 backgroundColor: theme.primary,
                 color: theme.textOnPrimary

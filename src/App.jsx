@@ -511,7 +511,7 @@ function App() {
   };
 
   return (
-    <div className={`h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden ${Capacitor.isNativePlatform() ? 'native-app' : ''}`} style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
+    <div className={`app-layout h-screen flex font-sans antialiased w-full max-w-full overflow-x-hidden ${Capacitor.isNativePlatform() ? 'native-app' : ''}`} style={{ backgroundColor: theme.background, boxSizing: 'border-box' }}>
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
         <div className="relative flex-1 flex flex-col min-w-0 w-full max-w-full overflow-hidden" style={{
           boxSizing: 'border-box',
@@ -545,7 +545,7 @@ function App() {
                 ? (theme.isDark 
                     ? 'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)'
                     : theme.name === 'Sage'
-                      ? 'linear-gradient(180deg, #B8C4BA 0%, #ADBCAF 25%, #A5B5A7 50%, #ADBCAF 75%, #B8C4BA 100%)'
+                      ? 'linear-gradient(180deg, #DAE0DB 0%, #D2DAD4 25%, #CCD5CD 50%, #D2DAD4 75%, #DAE0DB 100%)'
                       : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
                 : theme.background, 
               color: theme.text, 

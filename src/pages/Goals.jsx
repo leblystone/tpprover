@@ -27,7 +27,7 @@ export default function Goals() {
           >Back</button>
           <button
             onClick={() => { setEditingGoal(null); setShowGoal(true) }}
-            className="px-3 py-2 rounded-md text-sm font-semibold"
+            className="px-3 py-2 rounded-md text-sm font-semibold btn-primary-inset"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             <PlusCircle className="h-4 w-4 inline mr-1" /> New Goal

@@ -442,7 +442,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                         <button
                             onClick={handleSaveNote}
                             disabled={!noteContent.trim() && selectedTags.length === 0}
-                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn-primary-inset"
                             style={{ 
                                 backgroundColor: theme.primary,
                                 color: theme.textOnPrimary || '#ffffff',

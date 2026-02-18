@@ -785,6 +785,23 @@ export default function Protocols() {
     setShowProtocolEndedConfirm(true);
   };
 
+  const handleRestoreProtocol = (protocolId, restoredHistoryEntry) => {
+    const targetProtocol = protocols.find(p => p.id === protocolId);
+    if (targetProtocol) {
+      const reactivated = { ...targetProtocol, active: true, endDate: null, endType: null };
+      updateProtocolWithForceSync(reactivated);
+    }
+    window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+    setHistoryRefreshKey(prev => prev + 1);
+  };
+
+  const handleEditFromHistory = (protocolToEdit) => {
+    setEditing(protocolToEdit);
+    setHistoryProtocol(null);
+    setSelectedHistoryEntry(null);
+    setSelectedHistoryEntryForManage(null);
+  };
+
   // Check and auto-end protocols that have finished organically
   useEffect(() => {
     // Only run this check once per day to avoid excessive updates
@@ -1603,7 +1620,7 @@ export default function Protocols() {
     <div className="page-bg">
       <ProtocolsTipsBanner theme={theme} />
       
-      <div className="space-y-4">
+      <div className="space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
@@ -1647,7 +1664,7 @@ export default function Protocols() {
                     <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                       <button
                         onClick={() => setOpenQuickStart(true)}
-                        className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105"
+                        className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 btn-primary-inset"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         <Zap size={18} fill="currentColor" />
@@ -1711,7 +1728,7 @@ export default function Protocols() {
                         Inactive Protocols
                       </h2>
                     )}
-                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {organizedProtocols.inactive.map(p => (
                         <ProtocolCard 
                           key={p.id}
@@ -1793,8 +1810,8 @@ export default function Protocols() {
 
               if (finishedHistoryEntries.length === 0) {
                 return (
-                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center content-section">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15`, boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.08)' }}>
                       <Clock size={32} style={{ color: theme.primary }} />
                     </div>
                     <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
@@ -1909,14 +1926,10 @@ export default function Protocols() {
                             {/* Floating icon node - only visible on hover */}
                             {isHovered && (
                               <div 
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20 glass-panel-minimal"
                                 style={{ 
-                                  backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                                  backdropFilter: 'blur(10px)',
                                   border: `2px solid ${theme.primary}`,
-                                  boxShadow: theme.isDark 
-                                    ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
-                                    : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                                  boxShadow: `0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px ${theme.primary}20`
                                 }}
                               >
                                 <TimelineIcon 
@@ -1929,18 +1942,7 @@ export default function Protocols() {
                             {/* Protocol card with glassmorphism */}
                             <button
                               onClick={() => setSelectedHistoryEntry(historyEntry)}
-                              className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
-                              style={{ 
-                                backgroundColor: theme.isDark 
-                                  ? 'rgba(31, 41, 55, 0.6)' 
-                                  : 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(20px)',
-                                WebkitBackdropFilter: 'blur(20px)',
-                                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
-                                boxShadow: theme.isDark 
-                                  ? '0 4px 16px rgba(0, 0, 0, 0.3)' 
-                                  : '0 4px 16px rgba(0, 0, 0, 0.08)'
-                              }}
+                              className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative glass-panel-minimal widget-card-hover"
                             >
                               <div className="flex gap-4 p-4">
                                 {/* Main content */}
@@ -1961,7 +1963,8 @@ export default function Protocols() {
                                         className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
                                         style={{ 
                                           backgroundColor: statusBadge.bgColor,
-                                          color: statusBadge.textColor
+                                          color: statusBadge.textColor,
+                                          boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
                                         }}
                                       >
                                         <StatusIcon size={12} />
@@ -2610,7 +2613,6 @@ export default function Protocols() {
           setHistoryFromManage(false);
         }}
         onBack={historyFromManage ? () => {
-          // Restore manage modal when back is clicked
           setHistoryProtocol(null);
           setManageConfirm(historyProtocol);
           setHistoryFromManage(false);
@@ -2618,7 +2620,10 @@ export default function Protocols() {
         protocol={historyProtocol}
         theme={theme}
         onStartProtocol={handleStartClick}
-        key={`${historyProtocol?.id}-${historyRefreshKey}`} // Force re-render when history is updated
+        onRestore={handleRestoreProtocol}
+        onEdit={handleEditFromHistory}
+        protocols={protocols}
+        key={`${historyProtocol?.id}-${historyRefreshKey}`}
       />
 
       <ProtocolHistoryDetailModal
@@ -2627,6 +2632,9 @@ export default function Protocols() {
         historyEntry={selectedHistoryEntry}
         theme={theme}
         stockpile={stockpile}
+        onRestore={handleRestoreProtocol}
+        onEdit={handleEditFromHistory}
+        protocols={protocols}
       />
 
       {manageConfirm && manageConfirm.protocolName && (
@@ -2818,7 +2826,7 @@ export default function Protocols() {
                         {!showAddNoteForm && !editingNote && (
                           <button
                             onClick={() => setShowAddNoteForm(true)}
-                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 btn-primary-inset"
                             style={{ 
                               backgroundColor: theme.primary, 
                               color: theme.textOnPrimary || '#ffffff',
@@ -2857,7 +2865,7 @@ export default function Protocols() {
                                   handleSaveEditNote();
                                 }
                               }}
-                              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 btn-primary-inset"
                               style={{ 
                                 backgroundColor: theme.primary, 
                                 color: theme.textOnPrimary || '#ffffff',
@@ -2891,7 +2899,7 @@ export default function Protocols() {
                         </button>
                         <button 
                           onClick={handleShareImage} 
-                          className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-md hover:scale-[1.02] active:scale-95" 
+                          className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-md hover:scale-[1.02] active:scale-95 btn-primary-inset" 
                           style={{ 
                             backgroundColor: theme.primary, 
                             color: theme.textOnPrimary || '#ffffff',
@@ -3658,6 +3666,9 @@ export default function Protocols() {
         historyEntry={selectedHistoryEntryForManage}
         theme={theme}
         stockpile={stockpile}
+        onRestore={handleRestoreProtocol}
+        onEdit={handleEditFromHistory}
+        protocols={protocols}
       />
 
       {/* Follow-Up Modal - From Manage Tab */}

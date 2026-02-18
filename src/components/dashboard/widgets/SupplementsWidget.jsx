@@ -252,7 +252,7 @@ const SupplementsWidget = ({
                 if (onUpgrade) onUpgrade();
                 else window.location.href = '/app/account';
               }}
-              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm btn-primary-inset"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               Upgrade

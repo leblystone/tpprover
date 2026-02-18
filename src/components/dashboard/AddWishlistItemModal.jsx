@@ -116,7 +116,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                 <button
                     onClick={handleSave}
                     disabled={isSaving || !form.name.trim()}
-                    className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                    className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation btn-primary-inset"
                     style={{ 
                         backgroundColor: theme.primary,
                         color: theme.textOnPrimary || '#ffffff',

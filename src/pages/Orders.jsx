@@ -711,7 +711,7 @@ export default function Orders() {
 	}, [ordersInCategory]);
 
 	return (
-		<section className="page-bg">
+		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 			<OrdersTipsBanner theme={theme} />
 
 			{/* Filter dropdowns - same pattern as Stockpile */}

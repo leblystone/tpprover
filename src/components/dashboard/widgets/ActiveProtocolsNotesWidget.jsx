@@ -126,7 +126,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                                     if (onUpgrade) onUpgrade();
                                     else window.location.href = '/app/account';
                                 }}
-                                className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
+                                className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm btn-primary-inset"
                                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                             >
                                 <span className="text-hover">Upgrade</span>
@@ -161,7 +161,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                                 if (onUpgrade) onUpgrade();
                                 else window.location.href = '/app/account';
                             }}
-                            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
+                            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm btn-primary-inset"
                             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                         >
                             <span className="text-hover">Upgrade</span>

@@ -116,7 +116,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
         setShareModalOpen(true);
     };
 
-    // Compact layout for inactive protocols (mobile only)
+    // Compact layout for inactive protocols: simple details (mobile-style) on all viewports
     if (compact && !isActive) {
         return (
             <>
@@ -129,76 +129,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                         <div className="font-semibold text-base mb-2" style={{ color: theme.text }}>
                             {p.protocolName || 'Unnamed Protocol'}
                         </div>
-                        
-                        {/* Mobile compact view */}
-                        <div className="md:hidden text-sm mb-3" style={{ color: theme.textLight }}>
+                        <div className="text-sm mb-3" style={{ color: theme.textLight }}>
                             <div className="flex items-center gap-1.5">
                                 <Target size={14} className="flex-shrink-0" />
                                 <span className="line-clamp-2">{p.purpose || 'No purpose defined'}</span>
-                            </div>
-                        </div>
-
-                        {/* Desktop full details view */}
-                        <div className="hidden md:block">
-                            <div className="space-y-1 mt-2 text-sm" style={{ color: theme.textLight }}>
-                                <div className="flex items-start gap-2"><Target size={14} className="mt-0.5 flex-shrink-0" /><span>{p.purpose || 'No purpose defined'}</span></div>
-                            </div>
-                            
-                            <hr className="my-3" style={{ borderColor: theme.border }} />
-
-                            {p.peptides && p.peptides.length > 0 && (
-                                <div className="space-y-2">
-                                    {/* Header row */}
-                                    <div className="grid grid-cols-2 gap-3 text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
-                                        <div>Peptides</div>
-                                        <div>Dosage / Frequency</div>
-                                    </div>
-                                    {/* Peptide rows */}
-                                    {p.peptides.map((peptide, index) => (
-                                        <div key={peptide.id || index} className="grid grid-cols-2 gap-3 text-sm">
-                                            <div className="font-medium" style={{color: theme.text}}>
-                                                {peptide.name || 'Unnamed Peptide'}
-                                            </div>
-                                            <div className="space-y-1 text-xs" style={{ color: theme.isDark ? theme.textLight : theme.text }}>
-                                                {peptide.dosage?.amount > 0 && (
-                                                    <div>
-                                                        {peptide.dosage.amount} {peptide.dosage.unit}
-                                                        {peptide.unitValue && ` (${peptide.unitValue} units)`}
-                                                    </div>
-                                                )}
-                                                {peptide.frequency && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <CalendarClock size={12} className="flex-shrink-0" />
-                                                        <span>{formatIndividualFrequency(peptide.frequency)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div className="space-y-2 mt-3 text-sm" style={{ color: theme.textLight }}>
-                                {p.duration && (
-                                    <div className="flex items-start gap-2">
-                                        <CalendarClock size={14} className="mt-0.5 flex-shrink-0" />
-                                        <span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span>
-                                    </div>
-                                )}
-                                {p.washout?.enabled && p.washout?.count > 0 && (
-                                    <div className="flex items-start gap-2">
-                                        <RotateCw size={14} className="mt-0.5 flex-shrink-0" />
-                                        <span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span>
-                                    </div>
-                                )}
-                                {p.notes && (
-                                    <div className="flex items-start gap-2">
-                                        <FileText size={14} className="mt-0.5 flex-shrink-0" />
-                                        <p className="text-xs italic border-l-2 pl-2 break-words" style={{ borderColor: theme.border, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                                            {p.notes}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>

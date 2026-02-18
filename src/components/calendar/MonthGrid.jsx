@@ -277,8 +277,8 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                               : (isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'),
                             background: isToday && d
                               ? (theme.isDark 
-                                  ? `linear-gradient(180deg, ${theme.primary}15 0%, rgba(31,41,55,0.95) 100%)`
-                                  : `linear-gradient(180deg, ${theme.primary}12 0%, rgba(255,255,255,0.98) 100%)`)
+                                  ? `linear-gradient(180deg, ${theme.primary}40 0%, ${theme.primary}15 40%, rgba(31,41,55,0.95) 100%)`
+                                  : `linear-gradient(180deg, ${theme.primary}30 0%, ${theme.primary}14 45%, rgba(255,255,255,0.95) 100%)`)
                               : undefined,
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             {/* Mobile-first layout */}

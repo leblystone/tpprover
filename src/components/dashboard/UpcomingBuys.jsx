@@ -467,7 +467,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
                 e.stopPropagation();
                 onAdd();
               }}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] touch-manipulation"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] touch-manipulation btn-primary-inset"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff', WebkitTapHighlightColor: 'transparent' }}
             >
               <Plus size={18} />
@@ -698,7 +698,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
                               console.error('No item ID found for save');
                             }
                           }}
-                          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 btn-primary-inset"
                           style={{ 
                             backgroundColor: theme.primary,
                             color: theme.textOnPrimary || '#ffffff',
