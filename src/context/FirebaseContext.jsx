@@ -18,13 +18,13 @@ export function FirebaseProvider({ children }) {
         let timeoutId = null;
         let isMounted = true;
         
-        // Set a timeout to prevent infinite loading (5 seconds max)
+        // Set a timeout to prevent infinite loading (15s to allow slow/VPN networks)
         timeoutId = setTimeout(() => {
             if (isMounted) {
-                console.warn('⚠️ Firebase auth initialization timeout - proceeding without user');
+                console.warn('⚠️ Firebase auth initialization timeout - proceeding without user. If login fails, check network/VPN or try: window.clearAppCache()');
                 setIsFirebaseLoading(false);
             }
-        }, 5000);
+        }, 15000);
         
         const unsubscribe = onAuthChange((user) => {
             // Clear timeout since auth state changed

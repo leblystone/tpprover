@@ -1525,6 +1525,7 @@ export default function Login() {
                             <div className="relative">
                                 <input 
                                     type="email" 
+                                    autoComplete="email"
                                     placeholder="Email Address" 
                                     value={email} 
                                     onChange={e => setEmail(e.target.value)} 
@@ -1546,6 +1547,7 @@ export default function Login() {
                             <div className="relative">
                                 <input 
                                     type={showPassword ? "text" : "password"} 
+                                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                                     placeholder="Password" 
                                     value={password} 
                                     onChange={e => setPassword(e.target.value)} 
@@ -1571,6 +1573,7 @@ export default function Login() {
                                 <div className="relative">
                                     <input 
                                         type={showPassword ? "text" : "password"} 
+                                        autoComplete="new-password"
                                         placeholder="Confirm Password" 
                                         value={confirmPassword} 
                                         onChange={e => setConfirmPassword(e.target.value)} 
@@ -1655,6 +1658,20 @@ export default function Login() {
                             {error && (
                                 <div className="space-y-2">
                                     <p className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md whitespace-pre-line">{error}</p>
+                                    {mode === 'login' && (error.includes('Network') || error.includes('timeout') || error.includes('timed out')) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setError(''); setLoading(false); }}
+                                            className="w-full px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all"
+                                            style={{
+                                                borderColor: theme.primary,
+                                                color: theme.primary,
+                                                backgroundColor: 'transparent'
+                                            }}
+                                        >
+                                            🔄 Try again
+                                        </button>
+                                    )}
                                     {showTryLoginButton && mode === 'signup' && (
                                         <button
                                             type="button"
