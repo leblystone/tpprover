@@ -6,7 +6,8 @@ import { faStripe, faGooglePlay, faApple, faSquarespace } from '@fortawesome/fre
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
-import { isIOS } from '../utils/platform'
+import { subscribe as paymentSubscribe } from '../services/payment/paymentService'
+import { isIOS, isAndroid, isNative } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
@@ -64,11 +65,18 @@ export default function AccountSubscription() {
 
   const handleSelectPlan = async (planKey) => {
     try {
-      let priceId = STRIPE_CONFIG.prices[planKey]
-      if (planKey === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
-        priceId = STRIPE_CONFIG.founder.lifetimePrice
+      if (isNative()) {
+        await paymentSubscribe(planKey, {
+          userEmail: firebaseUser?.email || '',
+          userId: firebaseUser?.uid || '',
+        })
+      } else {
+        let priceId = STRIPE_CONFIG.prices[planKey]
+        if (planKey === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
+          priceId = STRIPE_CONFIG.founder.lifetimePrice
+        }
+        await createCheckoutSession(priceId, firebaseUser?.email, firebaseUser?.uid)
       }
-      await createCheckoutSession(priceId, firebaseUser?.email, firebaseUser?.uid)
     } catch (error) {
       console.error('Checkout error:', error)
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -83,12 +91,29 @@ export default function AccountSubscription() {
     setIsRestoringPurchases(true)
     
     try {
-      // Dynamically import the restore function
-      const { restorePurchases } = await import('../services/payment/googlePlayBillingService')
+      const { isAndroid, isIOS } = await import('../utils/platform')
+      let restorePurchases;
+      let providerName;
+      
+      if (isAndroid()) {
+        const gpService = await import('../services/payment/googlePlayBillingService')
+        restorePurchases = gpService.restorePurchases
+        providerName = 'Google Play'
+      } else if (isIOS()) {
+        const appleService = await import('../services/payment/appStoreIAPService')
+        restorePurchases = appleService.restorePurchases
+        providerName = 'App Store'
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: 'Restore is only available on mobile devices.', type: 'info' }
+        }))
+        setIsRestoringPurchases(false)
+        return
+      }
       
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: {
-          message: '🔍 Checking Google Play for purchases...',
+          message: `Checking ${providerName} for purchases...`,
           type: 'info'
         }
       }))
@@ -166,49 +191,42 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
-      // Log subscription data for debugging - ALWAYS log first
-      console.log('💳💳💳 [BILLING] ===== STARTING BILLING MANAGEMENT =====')
+      console.log('💳 [BILLING] ===== STARTING BILLING MANAGEMENT =====')
       console.log('💳 [BILLING] Subscription object:', sub)
-      console.log('💳 [BILLING] Subscription type:', typeof sub)
-      console.log('💳 [BILLING] Subscription keys:', sub ? Object.keys(sub) : 'NULL')
+
+      if (!sub) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'No active subscription found. Please select a plan first.', 
+            type: 'info' 
+          } 
+        }))
+        return
+      }
       
-      // CRITICAL: Check for lifetime access FIRST - regardless of where it was purchased
-      // If user has lifetime access, show the lifetime billing page instead
       if (sub?.hasLifetimeAccess || sub?.interval === 'lifetime' || sub?.plan === 'lifetime') {
-        console.log('💳 [BILLING] ✅✅✅ DETECTED LIFETIME ACCESS - ROUTING TO LIFETIME BILLING PAGE ✅✅✅')
+        console.log('💳 [BILLING] Detected lifetime access - routing to lifetime billing')
         navigate('/app/account/subscription/lifetime-billing')
         return
       }
       
-      // Check for Google Play indicators - check ALL possible fields
       const hasGooglePlayProductId = sub?.googlePlayProductId
       const hasGooglePlayOrderId = sub?.googlePlayOrderId
       const hasGooglePlayPurchaseToken = sub?.googlePlayPurchaseToken
       
-      console.log('💳 [BILLING] googlePlayProductId:', hasGooglePlayProductId)
-      console.log('💳 [BILLING] googlePlayOrderId:', hasGooglePlayOrderId)
-      console.log('💳 [BILLING] googlePlayPurchaseToken:', hasGooglePlayPurchaseToken)
-      
-      // CRITICAL: Check for Google Play FIRST before anything else
-      // This prevents accidentally trying to open Stripe portal for Google Play subscriptions
       if (hasGooglePlayProductId || hasGooglePlayOrderId || hasGooglePlayPurchaseToken) {
-        console.log('💳 [BILLING] ✅✅✅ DETECTED GOOGLE PLAY - ROUTING TO PLAY STORE ✅✅✅')
+        console.log('💳 [BILLING] Detected Google Play subscription')
         const playStoreUrl = 'https://play.google.com/store/account/subscriptions'
         
-        // On Android, try to open the Play Store app first
         if (window.Capacitor && window.Capacitor.Plugins?.App) {
           try {
-            console.log('💳 [BILLING] Opening Play Store app...')
             await window.Capacitor.Plugins.App.openUrl({ url: playStoreUrl })
-            console.log('💳 [BILLING] Play Store app opened successfully')
             return
           } catch (error) {
-            console.warn('💳 [BILLING] Failed to open Play Store app, falling back to web:', error)
+            console.warn('Failed to open Play Store app, falling back to web:', error)
           }
         }
         
-        // Fallback to web URL
-        console.log('💳 [BILLING] Opening Play Store in browser...')
         window.open(playStoreUrl, '_blank')
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
@@ -216,13 +234,8 @@ export default function AccountSubscription() {
             type: 'info' 
           } 
         }))
-        console.log('💳 [BILLING] Returning early - Google Play handled')
         return
       }
-      
-      console.log('💳 [BILLING] ⚠️ NOT a Google Play subscription - continuing to other providers...')
-      
-      console.log('💳 [BILLING] Not a Google Play subscription, continuing detection...')
       
       // Determine payment provider from subscription
       // Check paymentProvider field first (most reliable)
@@ -533,7 +546,7 @@ export default function AccountSubscription() {
         </div>
       </div>
 
-      {/* RESTORE PURCHASES (Android Google Play only) */}
+      {/* RESTORE PURCHASES (Android + iOS native) */}
       {typeof window !== 'undefined' && window.Capacitor && (
         <div 
           className="p-4 rounded-2xl"
@@ -553,7 +566,7 @@ export default function AccountSubscription() {
                 Subscription Not Showing?
               </h3>
               <p className="text-xs leading-relaxed mb-3" style={{ color: theme.text, opacity: 0.6 }}>
-                If you purchased through Google Play but your subscription isn't recognized, use this button to restore your purchase.
+                If you purchased through the app store but your subscription isn't recognized, use this button to restore your purchase.
               </p>
               <button
                 onClick={handleRestorePurchases}

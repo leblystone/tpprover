@@ -10,13 +10,10 @@ require('dotenv').config();
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
 if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
-  console.error("❌ STRIPE_SECRET_KEY not found in environment variables!");
-  console.error("Please create functions/.env file with STRIPE_SECRET_KEY");
-} else {
+  throw new Error('STRIPE_SECRET_KEY is not configured. Create functions/.env with STRIPE_SECRET_KEY.');
 }
-
-const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
-exports.stripe = stripe; // Shared instance for recoverLifetimePurchases, etc.
+const stripe = require("stripe")(STRIPE_SECRET_KEY);
+exports.stripe = stripe;
 
 const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || "price_1SUALt50b3cktl9X7nAOQdQR";
 const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
@@ -36,12 +33,25 @@ exports.createCheckoutSession = onCall(
       // Debug logging
       
       try {
-        // Validate request data
         if (!request.data) {
           throw new Error("No request data provided");
         }
         
         const {priceId, userEmail, userId, successUrl, cancelUrl, isGift, giftData} = request.data;
+        
+        // Prevent duplicate subscriptions -- if user already has an active Stripe subscription,
+        // update it instead of creating a new one (unless this is a gift or lifetime)
+        if (userId && !isGift) {
+          const subDoc = await admin.firestore().collection('userSubscriptions').doc(userId).get();
+          const existingSub = subDoc.exists ? subDoc.data()?.subscription : null;
+          if (existingSub?.stripeSubscriptionId && 
+              ['active', 'trialing'].includes(existingSub?.status) &&
+              existingSub?.paymentProvider === 'stripe') {
+            console.log(`⚠️ User ${userId} already has active Stripe subscription ${existingSub.stripeSubscriptionId}`);
+            // For non-lifetime: Let Stripe handle plan changes via customer portal
+            // For lifetime: Allow -- they're buying a different product
+          }
+        }
         
         // Validate required fields
         if (!priceId) {

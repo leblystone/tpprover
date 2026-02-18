@@ -1124,6 +1124,38 @@ export function clearLocalStorageData() {
 }
 
 /**
+ * Subscribe to real-time subscription changes from the server.
+ * Fires whenever webhook writes update userSubscriptions/{userId}.
+ * @param {string} userId
+ * @param {function} callback - receives the subscription data object
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToUserSubscription(userId, callback) {
+  try {
+    const subDoc = doc(db, 'userSubscriptions', userId);
+    return onSnapshot(
+      subDoc,
+      snapshot => {
+        if (typeof callback === 'function') {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            callback(data?.subscription || data || null);
+          } else {
+            callback(null);
+          }
+        }
+      },
+      error => {
+        console.error('❌ Failed to subscribe to user subscription:', error);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up subscription listener:', error);
+    return () => {};
+  }
+}
+
+/**
  * Subscribe to user state changes (sampleDataCleared flag, etc.)
  * @param {string} userId - User ID
  * @param {function} callback - Callback function that receives the state data

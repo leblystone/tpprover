@@ -8,8 +8,7 @@ import { useFounderOffer } from '../context/FounderOfferContext';
 import { STRIPE_CONFIG } from '../config/stripe';
 import { formatCurrency } from '../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
-import { isAndroid, isIOS } from '../utils/platform';
-import { getAndroidSubscriptionMessage, getNativeSubscriptionMessage } from '../utils/paymentCompliance';
+
 import { subscribe } from '../services/payment/paymentService';
 import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export';
 import DeleteAccountModal from '../components/common/DeleteAccountModal';
@@ -203,11 +202,7 @@ export default function SubscriptionExpired() {
         {/* Subscription Section (Conversion First) */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => {
-              // Hide payment buttons on Android, show text message instead
-              const showPaymentButton = !isAndroid() && !isIOS();
-              
-              return (
+            {plans.map((plan) => (
                 <div
                   key={plan.name}
                   className={`content-section relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
@@ -255,27 +250,20 @@ export default function SubscriptionExpired() {
                     </p>
                   </div>
 
-                  {showPaymentButton ? (
-                    <button
-                      onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
-                      disabled={isCheckoutProcessing}
-                      className="w-full py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
-                      style={{
-                        backgroundColor: theme.primary,
-                        color: theme.textOnPrimary || '#ffffff'
-                      }}
-                    >
-                      <CreditCard size={16} />
-                      {isCheckoutProcessing ? 'Processing…' : plan.cta}
-                    </button>
-                  ) : (
-                    <div className="w-full py-3 rounded-xl text-xs text-center" style={{ color: theme.textLight }}>
-                      {getNativeSubscriptionMessage()}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
+                    disabled={isCheckoutProcessing}
+                    className="w-full py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                    style={{
+                      backgroundColor: theme.primary,
+                      color: theme.textOnPrimary || '#ffffff'
+                    }}
+                  >
+                    <CreditCard size={16} />
+                    {isCheckoutProcessing ? 'Processing…' : plan.cta}
+                  </button>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
 

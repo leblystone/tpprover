@@ -181,15 +181,24 @@ export function useSubscriptionAccess() {
         console.log('🔍 Checking subscription access...');
         console.log('  - Cloud subscription:', subscription);
         
-        // CRITICAL: If no cloud subscription, fall back to localStorage (offline support)
+        // Fallback to localStorage with a 24-hour expiry to prevent stale data abuse
         if (!effectiveSubscription) {
           try {
-            const localSub = localStorage.getItem('tpprover_subscription');
-            if (localSub) {
-              effectiveSubscription = JSON.parse(localSub);
-              console.log('  - localStorage subscription:', effectiveSubscription);
-            } else {
-              console.log('  - No localStorage subscription found');
+            const localRaw = localStorage.getItem('tpprover_subscription');
+            if (localRaw) {
+              const localData = JSON.parse(localRaw);
+              // Use _cachedAt if present, otherwise estimate from lastUpdated or startedAt
+              const savedAt = localData?._cachedAt || 
+                              (localData?.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0) ||
+                              (localData?.startedAt ? new Date(localData.startedAt).getTime() : 0);
+              const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+              if (savedAt > 0 && Date.now() - savedAt < maxAge) {
+                effectiveSubscription = localData;
+                console.log('  - Using localStorage subscription cache');
+              } else {
+                console.log('  - localStorage subscription cache too old, ignoring');
+                localStorage.removeItem('tpprover_subscription');
+              }
             }
           } catch (e) {
             console.error('Failed to parse localStorage subscription:', e);
@@ -317,15 +326,74 @@ export function useSubscriptionAccess() {
 
         // Handle past_due status (usually has grace period)
         if (effectiveSubscription.status === 'past_due' && timeLeft > 0) {
-          // Give grace period - still allow access but show warning
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
             isSubscriptionEnded: false,
             isReadOnly: false,
-            showUpgradePrompt: true, // Show upgrade prompt for past_due
+            showUpgradePrompt: true,
             daysRemaining: daysLeftDisplay,
             subscriptionStatus: 'past_due',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+          return;
+        }
+
+        // Grace period -- payment failed but provider gives a short window to fix it
+        if (effectiveSubscription.status === 'grace_period') {
+          setAccessInfo({
+            hasAccess: true,
+            isTrialExpired: false,
+            isSubscriptionEnded: false,
+            isReadOnly: false,
+            showUpgradePrompt: true,
+            daysRemaining: daysLeftDisplay,
+            subscriptionStatus: 'grace_period',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+          return;
+        }
+
+        // On hold -- payment failed, grace period expired, access suspended
+        if (effectiveSubscription.status === 'on_hold') {
+          setAccessInfo({
+            hasAccess: false,
+            isTrialExpired: false,
+            isSubscriptionEnded: true,
+            isReadOnly: true,
+            showUpgradePrompt: true,
+            daysRemaining: 0,
+            subscriptionStatus: 'on_hold',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+          return;
+        }
+
+        // Paused -- user voluntarily paused
+        if (effectiveSubscription.status === 'paused') {
+          setAccessInfo({
+            hasAccess: false,
+            isTrialExpired: false,
+            isSubscriptionEnded: true,
+            isReadOnly: true,
+            showUpgradePrompt: true,
+            daysRemaining: 0,
+            subscriptionStatus: 'paused',
+            subscriptionInterval: effectiveSubscription.interval,
+          });
+          return;
+        }
+
+        // Disputed / refunded / revoked -- access revoked
+        if (['disputed', 'refunded', 'revoked'].includes(effectiveSubscription.status)) {
+          setAccessInfo({
+            hasAccess: false,
+            isTrialExpired: false,
+            isSubscriptionEnded: true,
+            isReadOnly: true,
+            showUpgradePrompt: true,
+            daysRemaining: 0,
+            subscriptionStatus: effectiveSubscription.status,
             subscriptionInterval: effectiveSubscription.interval,
           });
           return;
@@ -348,15 +416,14 @@ export function useSubscriptionAccess() {
           return;
         }
 
-        // Trial expired or canceled subscription (past period end)
         // Distinguish between trial expired vs paid subscription ended
-        const hadPaidSubscription = effectiveSubscription.interval === 'monthly' || 
-                                     effectiveSubscription.interval === 'annual' ||
-                                     effectiveSubscription.status === 'active' ||
-                                     effectiveSubscription.status === 'canceled';
+        const paidIntervals = ['month', 'monthly', 'year', 'annual'];
+        const hadPaidSubscription = paidIntervals.includes(effectiveSubscription.interval) ||
+                                     (effectiveSubscription.status === 'canceled' && effectiveSubscription.interval !== 'trial');
         
-        const isSubscriptionEnded = hadPaidSubscription && timeLeft <= 0;
-        const isTrialExpired = !hadPaidSubscription || effectiveSubscription.status === 'trialing';
+        const wasTrial = effectiveSubscription.status === 'trialing' || effectiveSubscription.interval === 'trial';
+        const isSubscriptionEnded = hadPaidSubscription && !wasTrial && timeLeft <= 0;
+        const isTrialExpired = wasTrial || (!hadPaidSubscription && timeLeft <= 0);
         
         console.log(`❌ ${isSubscriptionEnded ? 'Subscription ENDED' : 'Trial EXPIRED'} - READ-ONLY MODE`);
         setAccessInfo({

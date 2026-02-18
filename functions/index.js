@@ -82,9 +82,81 @@ exports.pollSquarespaceOrders = squarespacePolling.pollSquarespaceOrders;
 // Manual Squarespace Order Processing
 exports.manualProcessSquarespaceOrder = manualProcessSquarespaceOrder.manualProcessSquarespaceOrder;
 
-// Apple In-App Purchase Functions (commented out until iOS is ready)
-// exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
-// exports.appleWebhook = appleInAppPurchase.appleWebhook;
+// Apple In-App Purchase Functions
+exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
+exports.appleWebhook = appleInAppPurchase.appleWebhook;
+
+// Revenue metrics API (admin only)
+exports.getRevenueMetrics = onCall({
+  cors: true,
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const db = admin.firestore();
+  const userDoc = await db.collection('users').doc(request.auth.uid).get();
+  if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
+    throw new HttpsError('permission-denied', 'Admin access required');
+  }
+
+  try {
+    const subSnapshot = await db.collection('userSubscriptions').get();
+    let activeMonthly = 0, activeAnnual = 0, activeLifetime = 0;
+    let canceled = 0, expired = 0, trialing = 0;
+    let monthlyRevenue = 0, annualRevenue = 0;
+    const providerCounts = { stripe: 0, googleplay: 0, apple: 0 };
+
+    for (const doc of subSnapshot.docs) {
+      const sub = doc.data()?.subscription;
+      if (!sub) continue;
+
+      const provider = sub.paymentProvider || 'stripe';
+      if (providerCounts[provider] !== undefined) providerCounts[provider]++;
+
+      switch (sub.status) {
+        case 'active':
+          if (sub.interval === 'month' || sub.interval === 'monthly') {
+            activeMonthly++;
+            monthlyRevenue += sub.amount || 0;
+          } else if (sub.interval === 'year' || sub.interval === 'annual') {
+            activeAnnual++;
+            annualRevenue += sub.amount || 0;
+          } else if (sub.interval === 'lifetime') {
+            activeLifetime++;
+          }
+          break;
+        case 'canceled': canceled++; break;
+        case 'expired': expired++; break;
+        case 'trialing': trialing++; break;
+      }
+    }
+
+    const mrr = monthlyRevenue + (annualRevenue / 12);
+    const totalActive = activeMonthly + activeAnnual + activeLifetime;
+    const totalUsers = subSnapshot.size;
+    const conversionRate = totalUsers > 0 ? ((totalActive / totalUsers) * 100).toFixed(1) : 0;
+    const churnRate = totalUsers > 0 ? (((canceled + expired) / totalUsers) * 100).toFixed(1) : 0;
+
+    return {
+      mrr: Math.round(mrr * 100) / 100,
+      totalActive,
+      activeMonthly,
+      activeAnnual,
+      activeLifetime,
+      trialing,
+      canceled,
+      expired,
+      totalUsers,
+      conversionRate: parseFloat(conversionRate),
+      churnRate: parseFloat(churnRate),
+      providerBreakdown: providerCounts,
+    };
+  } catch (error) {
+    logger.error('❌ Revenue metrics error:', error);
+    throw new HttpsError('internal', error.message);
+  }
+});
 
 // Shippo Tracking Functions
 exports.getTrackingInfo = shippo.getTrackingInfo;
@@ -1572,6 +1644,88 @@ exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminder
 exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;
 
+// Daily reconciliation: compare Stripe subscriptions with Firestore
+exports.dailyReconciliation = onSchedule({
+  schedule: '0 4 * * *', // 4 AM UTC daily
+  timeZone: 'UTC',
+  memory: '512MiB',
+  timeoutSeconds: 300,
+}, async (event) => {
+  logger.info('🔄 Running daily Stripe/Firestore reconciliation...');
+  const db = admin.firestore();
+  let issues = 0;
+
+  try {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      logger.error('❌ STRIPE_SECRET_KEY not available for reconciliation');
+      return;
+    }
+    const stripe = require('stripe')(stripeSecretKey);
+
+    // Get all userSubscriptions with Stripe provider
+    const subSnapshot = await db.collection('userSubscriptions').get();
+
+    for (const doc of subSnapshot.docs) {
+      const data = doc.data();
+      const sub = data?.subscription;
+      if (!sub?.stripeSubscriptionId || sub?.paymentProvider !== 'stripe') continue;
+
+      try {
+        const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+        
+        // Check for status drift
+        if (stripeSub.status !== sub.status) {
+          logger.warn(`⚠️ Status drift for user ${doc.id}: Firestore=${sub.status}, Stripe=${stripeSub.status}`);
+          
+          await db.collection('reconciliationIssues').add({
+            userId: doc.id,
+            type: 'status_drift',
+            firestoreStatus: sub.status,
+            stripeStatus: stripeSub.status,
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            detectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            resolved: false,
+          });
+
+          // Auto-fix: update Firestore to match Stripe (Stripe is source of truth)
+          const fixPayload = {
+            status: stripeSub.status,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            reconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+          await db.collection('userSubscriptions').doc(doc.id).set(
+            { subscription: fixPayload }, { merge: true }
+          );
+          await db.collection('users').doc(doc.id).set(
+            { subscription: fixPayload }, { merge: true }
+          );
+
+          issues++;
+        }
+      } catch (stripeError) {
+        if (stripeError.code === 'resource_missing') {
+          logger.warn(`⚠️ Stripe subscription ${sub.stripeSubscriptionId} not found for user ${doc.id}`);
+          await db.collection('reconciliationIssues').add({
+            userId: doc.id,
+            type: 'subscription_missing_in_stripe',
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            detectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            resolved: false,
+          });
+          issues++;
+        }
+      }
+    }
+
+    logger.info(`✅ Reconciliation complete. Issues found: ${issues}`);
+    return { success: true, issues };
+  } catch (error) {
+    logger.error('❌ Reconciliation failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Stripe Webhook Handler
 exports.stripeWebhook = stripeWebhooks.stripeWebhook;
 
@@ -2489,70 +2643,160 @@ exports.onUserCreated = onDocumentCreated(
   return null;
 });
 
-// Scheduled function to remind users about trial ending - Now timezone-aware
-exports.scheduledTrialReminders = onSchedule({
-  schedule: '0 * * * *',
-  timeZone: 'UTC', // Use UTC as base, calculate user-specific times
-  secrets: ['RESEND_API_KEY', 'LOGO_URL']
+// Trial ending reminders are handled by emailAutomation.checkTrialEndingSoon
+// (removed duplicate scheduledTrialReminders)
+
+// Win-back campaign: email churned users who had a paid subscription that ended 14+ days ago
+exports.bulkWinBackCampaign = onSchedule({
+  schedule: '0 10 * * 1', // Every Monday at 10 AM UTC
+  timeZone: 'UTC',
+  memory: '512MiB',
+  timeoutSeconds: 300,
+  secrets: ['RESEND_API_KEY'],
 }, async (event) => {
-  logger.info('🔔 Running scheduled trial ending reminders (hourly check)...');
+  logger.info('📧 Running bulk win-back campaign...');
+  const db = admin.firestore();
+
+  try {
+    const now = new Date();
+    const fourteenDaysAgo = new Date(now);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const sixtyDaysAgo = new Date(now);
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    // Find users whose subscriptions ended between 14 and 60 days ago
+    const usersSnapshot = await db.collection('users')
+      .where('subscription.status', 'in', ['canceled', 'expired'])
+      .get();
+
+    let sent = 0;
+    let skipped = 0;
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const userEmail = userData.email;
+      const userId = userDoc.id;
+      const subscription = userData.subscription || {};
+
+      if (!userEmail) { skipped++; continue; }
+
+      // Check if subscription ended in the 14-60 day window
+      const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+      if (!periodEnd || periodEnd > fourteenDaysAgo || periodEnd < sixtyDaysAgo) {
+        skipped++;
+        continue;
+      }
+
+      // Skip if they had a trial only (never paid)
+      if (subscription.interval === 'trial') { skipped++; continue; }
+
+      // Check if we already sent a win-back email recently (within 30 days)
+      const recentEmailQuery = await db.collection('emailHistory')
+        .where('recipientEmail', '==', userEmail)
+        .where('type', '==', 'winBack')
+        .limit(1)
+        .get();
+
+      if (!recentEmailQuery.empty) {
+        const lastSent = recentEmailQuery.docs[0].data()?.sentAt?.toDate?.();
+        if (lastSent && (now - lastSent) < 30 * 24 * 60 * 60 * 1000) {
+          skipped++;
+          continue;
+        }
+      }
+
+      try {
+        const userName = userData.displayName || userEmail.split('@')[0];
+        await emailService.sendWinBackEmail(userEmail, userName, null);
+
+        await db.collection('emailHistory').add({
+          type: 'winBack',
+          recipientEmail: userEmail,
+          userId,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'scheduled',
+        });
+
+        sent++;
+      } catch (emailError) {
+        logger.warn(`⚠️ Failed to send win-back email to ${userEmail}: ${emailError.message}`);
+      }
+
+      // Rate limit: small delay between emails
+      if (sent % 10 === 0 && sent > 0) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    logger.info(`✅ Win-back campaign complete. Sent: ${sent}, Skipped: ${skipped}`);
+    return { success: true, sent, skipped };
+  } catch (error) {
+    logger.error('❌ Win-back campaign failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Server-side trial expiry enforcement
+// Marks expired trials as 'expired' in Firestore so users can't abuse client-side logic
+exports.enforceTrialExpiry = onSchedule({
+  schedule: '0 */6 * * *', // Every 6 hours
+  timeZone: 'UTC',
+  memory: '256MiB',
+  timeoutSeconds: 120,
+}, async (event) => {
+  logger.info('🔒 Running server-side trial expiry enforcement...');
   
   try {
-    // Find all users (we'll filter by timezone later)
-    const usersSnapshot = await admin.firestore()
-      .collection('users')
+    const db = admin.firestore();
+    const now = new Date();
+    
+    const usersSnapshot = await db.collection('users')
       .where('subscription.status', '==', 'trialing')
       .get();
 
-    const now = new Date();
-    const twoDaysFromNow = new Date(now);
-    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-    
-    const promises = [];
-    
+    let enforced = 0;
+    const batch = db.batch();
+    let batchCount = 0;
+
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
-      const userId = userDoc.id;
-      
-      // Get user's timezone settings (default to America/New_York if not set)
-      const userSettings = userData.settings || {};
-      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
-      
-      // Check if it's 9 AM in the user's timezone
-      const userTime = new Date().toLocaleString("en-US", {
-        timeZone: userTimezone,
-        hour12: false,
-        hour: '2-digit'
-      });
-      
-      // Only send reminders if it's 9 AM in user's timezone
-      if (userTime !== '09') {
-        continue; // Skip this user, not their reminder time yet
-      }
-      
       const subscription = userData.subscription || {};
+      const endDate = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
       
-      if (subscription.currentPeriodEnd) {
-        const endDate = new Date(subscription.currentPeriodEnd);
-        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-        
-        // Send reminder if 2 days left
-        if (daysLeft === 2) {
-          promises.push(
-            emailService.sendTrialEndingEmail(userData.email, daysLeft)
-          );
+      if (endDate && endDate < now) {
+        const userId = userDoc.id;
+        const expiredPayload = {
+          status: 'expired',
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        batch.set(db.collection('userSubscriptions').doc(userId), {
+          subscription: expiredPayload
+        }, { merge: true });
+        batch.set(db.collection('users').doc(userId), {
+          subscription: expiredPayload
+        }, { merge: true });
+
+        enforced++;
+        batchCount += 2;
+
+        // Firestore batch limit is 500 operations
+        if (batchCount >= 498) {
+          await batch.commit();
+          batchCount = 0;
         }
       }
     }
 
-    const results = await Promise.allSettled(promises);
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
-    
-    logger.info(`✅ Trial ending emails sent: ${successful}/${results.length}`);
-    return { success: true, sent: successful, total: results.length };
-    
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    logger.info(`✅ Trial expiry enforcement complete. Enforced: ${enforced}`);
+    return { success: true, enforced };
   } catch (error) {
-    logger.error('❌ Error in scheduled trial reminders:', error);
+    logger.error('❌ Error in trial expiry enforcement:', error);
     return { success: false, error: error.message };
   }
 });
@@ -3434,7 +3678,7 @@ exports.submitAccountDeletionRequest = onCall(
 exports.deleteUserAccount = onCall(
   {
     cors: true,
-    secrets: ['RESEND_API_KEY', 'STRIPE_SECRET_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     // Verify user is authenticated
@@ -3473,24 +3717,50 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // STEP 3: Cancel Stripe subscription FIRST (stop billing before anything else)
-      if (subscriptionInfo?.stripeSubscriptionId) {
+      // STEP 3: Cancel active subscriptions on all platforms
+      const subData = subscriptionInfo?.subscription || subscriptionInfo;
+      
+      // Stripe
+      const stripeSubId = subData?.stripeSubscriptionId || subscriptionInfo?.stripeSubscriptionId;
+      if (stripeSubId) {
         try {
           const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-          if (stripeSecretKey && stripeSecretKey !== 'sk_test_fallback_key') {
+          if (stripeSecretKey) {
             const stripe = require('stripe')(stripeSecretKey);
-            const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionInfo.stripeSubscriptionId);
-            
-            if (stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing') {
-              await stripe.subscriptions.cancel(subscriptionInfo.stripeSubscriptionId);
-              logger.info(`✅ Cancelled Stripe subscription: ${subscriptionInfo.stripeSubscriptionId}`);
+            const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubId);
+            if (['active', 'trialing', 'past_due'].includes(stripeSubscription.status)) {
+              await stripe.subscriptions.cancel(stripeSubId);
+              logger.info(`✅ Cancelled Stripe subscription: ${stripeSubId}`);
             }
-          } else {
-            logger.warn(`⚠️ STRIPE_SECRET_KEY not configured, skipping subscription cancellation`);
           }
         } catch (error) {
           logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
-          // Continue with deletion even if subscription cancellation fails
+        }
+      }
+      
+      // Google Play
+      const gpToken = subData?.googlePlayPurchaseToken;
+      const gpProductId = subData?.googlePlayProductId;
+      if (gpToken && gpProductId) {
+        try {
+          const { google } = require('googleapis');
+          const keyValue = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY;
+          if (keyValue) {
+            const serviceAccountKey = JSON.parse(keyValue.trim().replace(/\r?\n/g, ''));
+            const auth = new google.auth.GoogleAuth({
+              credentials: serviceAccountKey,
+              scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+            });
+            const client = google.androidpublisher({ version: 'v3', auth });
+            await client.purchases.subscriptions.revoke({
+              packageName: 'com.thepepplanner.app',
+              subscriptionId: gpProductId,
+              token: gpToken,
+            });
+            logger.info(`✅ Revoked Google Play subscription for user ${userId}`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Could not revoke Google Play subscription: ${error.message}`);
         }
       }
 
@@ -5265,7 +5535,7 @@ exports.blockUser = onCall(
 exports.terminateUser = onCall(
   {
     cors: true,
-    secrets: ['RESEND_API_KEY', 'STRIPE_SECRET_KEY']
+    secrets: ['RESEND_API_KEY']
   },
   async (request) => {
     const adminEmails = ['lebrockmaldonado@gmail.com', 'contact@thepepplanner.com', 'thepepplanner@gmail.com'];

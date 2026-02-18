@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read their own profile, write only non-subscription fields
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && !('subscription' in request.resource.data)
+                   && !('stripeCustomerId' in request.resource.data);
+    }
+
+    // Subscription data is server-only (written by webhooks via admin SDK)
+    match /userSubscriptions/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Lifetime access is server-only
+    match /lifetimeAccess/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /lifetimeAccessPreGrants/{email} {
+      allow read, write: if false;
+    }
+
+    // Stripe mappings are server-only
+    match /stripeCustomers/{customerId} {
+      allow read, write: if false;
+    }
+
+    // Event logs are server-only
+    match /stripeEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Email history is server-only
+    match /emailHistory/{docId} {
+      allow read, write: if false;
+    }
+
+    match /emailLogs/{docId} {
+      allow read, write: if false;
+    }
+
+    // Gift access -- users can read their own gifts
+    match /giftAccess/{giftId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // App config (founder offer, etc.) -- read only
+    match /appConfig/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // User app data (protocols, orders, etc.) -- users own their data
+    match /appData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /userPreferences/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /userState/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Reconciliation issues -- server-only
+    match /reconciliationIssues/{docId} {
+      allow read, write: if false;
+    }
+
+    // Subscription history -- users can read their own
+    match /userSubscriptions/{userId}/history/{historyId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Webhook failures -- server-only
+    match /webhookFailures/{docId} {
+      allow read, write: if false;
+    }
+
+    // Support tickets -- users can read/write their own
+    match /supportTickets/{ticketId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if false;
+    }
+
+    // Account deletion requests
+    match /accountDeletionRequests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Analytics -- server-only
+    match /analytics/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

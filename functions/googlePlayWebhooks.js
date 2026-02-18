@@ -86,13 +86,26 @@ exports.googlePlayWebhook = onRequest(
         logger.warn('⚠️ Unknown notification type');
       }
 
-      // Always acknowledge receipt
       response.status(200).json({ received: true });
 
     } catch (error) {
       logger.error('❌ Error processing Google Play notification:', error);
-      // Return 200 to avoid retries for parsing errors
-      response.status(200).json({ error: error.message });
+
+      const isTransient = error.code === 'UNAVAILABLE' || 
+                          error.code === 'DEADLINE_EXCEEDED' ||
+                          error.message?.includes('ECONNRESET');
+
+      if (isTransient) {
+        response.status(500).json({ error: error.message, retryable: true });
+      } else {
+        await admin.firestore().collection('webhookFailures').add({
+          source: 'google_play',
+          error: error.message,
+          stack: error.stack,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        response.status(200).json({ error: error.message });
+      }
     }
   }
 );
@@ -170,6 +183,25 @@ async function handleSubscriptionNotification(notification) {
       await handleSubscriptionRevoked(userId, userEmail, subscriptionDetails);
       break;
 
+    case NOTIFICATION_TYPES.SUBSCRIPTION_RESTARTED:
+      await handleSubscriptionRestarted(userId, userEmail, subscriptionDetails);
+      break;
+
+    case NOTIFICATION_TYPES.SUBSCRIPTION_PRICE_CHANGE_CONFIRMED:
+      logger.info(`💲 Price change confirmed for user ${userId}`);
+      await updateSubscriptionStatus(userId, 'active', subscriptionDetails);
+      break;
+
+    case NOTIFICATION_TYPES.SUBSCRIPTION_DEFERRED:
+      logger.info(`⏭️ Subscription deferred for user ${userId}`);
+      await updateSubscriptionStatus(userId, 'active', subscriptionDetails);
+      break;
+
+    case NOTIFICATION_TYPES.SUBSCRIPTION_PAUSE_SCHEDULE_CHANGED:
+      logger.info(`📅 Pause schedule changed for user ${userId}`);
+      await updateSubscriptionStatus(userId, userData.subscription?.status || 'active', subscriptionDetails);
+      break;
+
     default:
       logger.info(`ℹ️ Unhandled notification type: ${notificationType}`);
   }
@@ -188,9 +220,65 @@ async function handleOneTimeProductNotification(notification) {
   // This webhook is mainly for tracking refunds
   
   if (notificationType === NOTIFICATION_TYPES.ONE_TIME_PRODUCT_CANCELED) {
-    // Handle refund/cancellation
-    logger.warn(`⚠️ One-time product canceled: ${sku}, token: ${purchaseToken}`);
-    // You may want to revoke access here
+    logger.warn(`⚠️ One-time product canceled/refunded: ${sku}, token: ${purchaseToken}`);
+    
+    const db = admin.firestore();
+    
+    // Find user by purchase token in lifetimeAccess or userSubscriptions
+    const subQuery = await db.collection('userSubscriptions')
+      .where('subscription.googlePlayPurchaseToken', '==', purchaseToken)
+      .limit(1)
+      .get();
+
+    let userId = null;
+    let userEmail = null;
+
+    if (!subQuery.empty) {
+      userId = subQuery.docs[0].id;
+      userEmail = subQuery.docs[0].data()?.subscription?.userEmail;
+    }
+
+    if (!userId) {
+      const lifetimeQuery = await db.collection('lifetimeAccess')
+        .where('metadata.googlePlayPurchaseToken', '==', purchaseToken)
+        .limit(1)
+        .get();
+      if (!lifetimeQuery.empty) {
+        userId = lifetimeQuery.docs[0].id;
+        userEmail = lifetimeQuery.docs[0].data()?.email;
+      }
+    }
+
+    if (userId) {
+      // Revoke lifetime access
+      await db.collection('lifetimeAccess').doc(userId).update({
+        status: 'revoked',
+        revokedAt: admin.firestore.FieldValue.serverTimestamp(),
+        revokedReason: 'google_play_refund',
+        refundPurchaseToken: purchaseToken,
+      });
+
+      await db.collection('userSubscriptions').doc(userId).set({
+        subscription: {
+          status: 'refunded',
+          hasLifetimeAccess: false,
+          refundedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+
+      await db.collection('users').doc(userId).set({
+        subscription: {
+          status: 'refunded',
+          hasLifetimeAccess: false,
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+
+      logger.info(`🚫 Lifetime access revoked for user ${userId} due to Google Play refund`);
+    } else {
+      logger.warn(`⚠️ Could not find user for refunded one-time product: ${sku}`);
+    }
   }
 }
 
@@ -350,9 +438,16 @@ async function handleSubscriptionPaused(userId, userEmail, details) {
 
 async function handleSubscriptionRevoked(userId, userEmail, details) {
   logger.info(`🚫 Subscription revoked: ${userId}`);
-  
-  // Update Firestore
   await updateSubscriptionStatus(userId, 'revoked', details);
+}
+
+async function handleSubscriptionRestarted(userId, userEmail, details) {
+  logger.info(`▶️ Subscription restarted: ${userId}`);
+  await updateSubscriptionStatus(userId, 'active', details);
+  
+  if (userEmail) {
+    await emailService.sendSubscriptionConfirmedEmail(userEmail, 'Premium Plan (Google Play)');
+  }
 }
 
 /**
@@ -376,17 +471,22 @@ async function updateSubscriptionStatus(userId, status, details) {
 
   subscriptionData.isAutoRenewing = details.autoRenewing === true;
 
-  // Update both collections
-  await db.collection('userSubscriptions').doc(userId).set(
-    { subscription: subscriptionData },
-    { merge: true }
-  );
+  const batch = db.batch();
+  const subRef = db.collection('userSubscriptions').doc(userId);
+  const userRef = db.collection('users').doc(userId);
 
-  await db.collection('users').doc(userId).set(
-    { subscription: subscriptionData },
-    { merge: true }
-  );
+  batch.set(subRef, { subscription: subscriptionData }, { merge: true });
+  batch.set(userRef, { subscription: subscriptionData }, { merge: true });
 
+  // Audit trail
+  const historyRef = subRef.collection('history').doc();
+  batch.set(historyRef, {
+    ...subscriptionData,
+    eventTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+    source: 'google_play_webhook',
+  });
+
+  await batch.commit();
   logger.info(`✅ Updated subscription status to ${status} for user ${userId}`);
 }
 

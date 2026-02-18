@@ -2094,3 +2094,20 @@ exports.sendTrialExpiredSurveyEmail = async (userEmail, userName = null, surveyL
   return result.sent || result.queued; // Return true if sent or queued
 };
 
+/**
+ * Send win-back email to churned user
+ */
+exports.sendWinBackEmail = async (userEmail, userName = null, promoCode = null) => {
+  try {
+    const customTemplate = await loadEmailTemplate('winBack');
+    if (customTemplate) {
+      const subject = customTemplate.subject || "We miss you! Here's a reason to come back";
+      const html = generateEmailHTML(customTemplate, { userName, promoCode });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
+  const subject = "We miss you! Here's a reason to come back - The Pep Planner";
+  const html = emailTemplates.winBackEmail(userName, promoCode);
+  return sendEmail(userEmail, subject, html);
+};
+

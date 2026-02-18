@@ -4574,3 +4574,49 @@ exports.emailChangeVerificationEmailV2 = (newEmail, oldEmail) => {
   
   return modernEmailWrapper(content);
 };
+
+/**
+ * Win-back email -- re-engage churned users
+ */
+exports.winBackEmail = (userName = null, promoCode = null) => {
+  const greeting = userName ? `Hey ${userName}` : 'Hey there';
+  const promoSection = promoCode ? `
+    <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+      <p style="font-size: 14px; color: ${MODERN_COLORS.textLight}; margin: 0 0 8px 0;">Your exclusive code:</p>
+      <p style="font-size: 28px; font-weight: 700; color: ${MODERN_COLORS.primary}; margin: 0; letter-spacing: 2px;">${promoCode}</p>
+      <p style="font-size: 13px; color: ${MODERN_COLORS.textLight}; margin: 8px 0 0 0;">Apply at checkout for 1 free month</p>
+    </div>
+  ` : '';
+
+  const content = `
+    <div style="padding: 0 8px;">
+      <h1 style="font-size: 26px; font-weight: 700; color: ${MODERN_COLORS.heading}; margin: 0 0 16px 0; line-height: 1.3;">
+        We miss you!
+      </h1>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
+        ${greeting}, it's been a while since you've used The Pep Planner and we wanted to check in.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
+        We've been hard at work adding new features -- smarter protocol tracking, better analytics,
+        and a completely refreshed experience. We'd love for you to give it another shot.
+      </p>
+
+      ${promoSection}
+
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="https://thepepplanner.com/app" style="display: inline-block; background: ${MODERN_COLORS.primary}; color: #fff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          Come Back &amp; Explore
+        </a>
+      </div>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 32px 0 0 0;">
+        Hope to see you soon!<br>
+        <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">-- The Pep Planner Team</span>
+      </p>
+    </div>
+  `;
+
+  return modernEmailWrapper(content);
+};

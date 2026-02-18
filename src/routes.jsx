@@ -44,6 +44,7 @@ const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'),
 const AdminOverviewDashboard = lazyWithRetry(() => import('./pages/admin/AdminOverviewDashboard.jsx'), 'AdminOverviewDashboard')
 const AdminSupport = lazyWithRetry(() => import('./pages/admin/AdminSupport.jsx'), 'AdminSupport')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
+const AdminRevenue = lazyWithRetry(() => import('./pages/admin/AdminRevenue.jsx'), 'AdminRevenue')
 const AdminAutomation = lazyWithRetry(() => import('./pages/admin/AdminAutomation.jsx'), 'AdminAutomation')
 // Legacy components (still used within new structure)
 const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
@@ -124,6 +125,7 @@ export const router = createBrowserRouter([
       { path: 'overview/support', element: <AdminSupport /> },
       { path: 'overview/contact', element: <AdminContact /> },
       { path: 'overview/analytics', element: <AdminAnalytics /> },
+      { path: 'overview/revenue', element: <AdminRevenue /> },
       { path: 'overview/automation', element: <AdminAutomation /> },
       
       // Legacy routes - redirect to new structure for backward compatibility

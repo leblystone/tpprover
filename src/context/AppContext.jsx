@@ -2,12 +2,12 @@ import React, { createContext, useState, useEffect, useContext, useMemo, useCall
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
-import { isNative } from '../utils/platform';
+import { isNative, isAndroid } from '../utils/platform';
 import { 
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
-  saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
+  loadUserSubscription, saveUserState, loadUserState,
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
-  subscribeToUserState, subscribeToAppData, mergeWithTimestamps,
+  subscribeToUserState, subscribeToAppData, subscribeToUserSubscription, mergeWithTimestamps,
   mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker,
   mergeTaskCompletion,
   saveCloudSnapshot, shouldCreateVisitBackup, markVisitBackupDone
@@ -3816,13 +3816,9 @@ export function AppProvider({ children }) {
         });
     }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]);
 
-    // Listen for subscription changes and save to cloud storage
-    useEffect(() => {
-        if (subscription && firebaseUser) {
-            const userId = firebaseUser.uid;
-            saveUserSubscription(userId, subscription);
-        }
-    }, [subscription, firebaseUser]);
+    // Subscription state is managed by server-side webhooks only.
+    // Do NOT write subscription data back to Firestore from the client
+    // to avoid overwriting fresher webhook data with stale local state.
     
     // Listen for subscription changes from custom events (e.g., from Account page, lifetime redemption)
     // CRITICAL: This ensures subscription is refreshed immediately after lifetime grant
@@ -3838,10 +3834,7 @@ export function AppProvider({ children }) {
                 try {
                     // Use the subscription from the event directly (it's already the latest from Firebase Function)
                     setSubscription(e.detail.subscription);
-                    
-                    // Save to cloud storage for persistence
-                    await saveUserSubscription(userId, e.detail.subscription);
-                    console.log('✅ Subscription updated and saved to cloud');
+                    console.log('✅ Subscription state updated from event');
                 } catch (err) {
                     console.error('⚠️ Failed to save subscription:', err);
                 } finally {
@@ -3855,6 +3848,49 @@ export function AppProvider({ children }) {
         return () => {
             window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
         };
+    }, [firebaseUser]);
+
+    // Android: check for interrupted purchases when app resumes
+    useEffect(() => {
+        if (!firebaseUser || !isAndroid()) return;
+        let listener = null;
+        import('@capacitor/app').then(({ App }) => {
+            App.addListener('appStateChange', async ({ isActive }) => {
+                if (isActive) {
+                    try {
+                        const { queryPurchases, restorePurchases } = await import('../services/payment/googlePlayBillingService');
+                        const purchases = await queryPurchases();
+                        const unacknowledged = purchases.filter(p => !p.isAcknowledged);
+                        if (unacknowledged.length > 0) {
+                            console.log(`🔄 Found ${unacknowledged.length} unacknowledged purchase(s), restoring...`);
+                            await restorePurchases({ userId: firebaseUser.uid, userEmail: firebaseUser.email });
+                        }
+                    } catch (err) {
+                        console.warn('⚠️ Error checking interrupted purchases:', err);
+                    }
+                }
+            }).then(l => { listener = l; });
+        }).catch(() => {});
+        return () => { if (listener) listener.remove(); };
+    }, [firebaseUser]);
+
+    // Real-time Firestore listener for server-side subscription changes (webhooks)
+    useEffect(() => {
+        if (!firebaseUser) return;
+        const unsubscribe = subscribeToUserSubscription(firebaseUser.uid, (serverSub) => {
+            if (serverSub && serverSub.status) {
+                setSubscription(prev => {
+                    // Only update if the server data is newer
+                    const serverTime = serverSub.lastUpdated?.seconds || 0;
+                    const localTime = prev?.lastUpdated?.seconds || 0;
+                    if (serverTime >= localTime || !prev) {
+                        return serverSub;
+                    }
+                    return prev;
+                });
+            }
+        });
+        return () => unsubscribe();
     }, [firebaseUser]);
 
     return (

@@ -49,7 +49,7 @@ import { useRef, useMemo } from 'react';
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
-  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory } = useAppContext();
+  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory, orders, vendors } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
@@ -715,15 +715,81 @@ export default function Protocols() {
     return () => clearTimeout(timer);
   }, [protocols, followUpProtocol]);
 
+  const buildProtocolLineage = (proto) => {
+    const items = proto.linkedItems || {};
+    const lineage = {};
+
+    Object.entries(items).forEach(([peptideId, link]) => {
+      const peptide = proto.peptides?.find(p => (p.id || `peptide-${proto.peptides.indexOf(p)}`) === peptideId);
+      const entry = { peptideName: peptide?.name || 'Unknown' };
+
+      if (link.vialId) {
+        const stockItem = stockpile?.find(s => s.id === link.vialId);
+        if (stockItem) {
+          entry.vial = {
+            stockpileId: stockItem.id,
+            name: stockItem.name,
+            mg: stockItem.mg,
+            vendor: stockItem.vendor || null,
+            vendorId: stockItem.vendorId || null,
+            cost: stockItem.cost || null,
+            purchaseDate: stockItem.purchaseDate || null,
+            orderId: stockItem.orderId || null,
+          };
+          if (stockItem.orderId) {
+            const order = orders?.find(o => o.id === stockItem.orderId);
+            if (order) {
+              entry.order = {
+                id: order.id,
+                orderNumber: order.publicOrderNumber || null,
+                date: order.date || null,
+                tracking: order.tracking || null,
+                status: order.status || null,
+                category: order.category || order.type || null,
+              };
+            }
+          }
+          if (stockItem.vendorId || stockItem.vendor) {
+            const vendor = vendors?.find(v => v.id === (stockItem.vendorId) || v.name === stockItem.vendor);
+            if (vendor) {
+              entry.vendor = { id: vendor.id, name: vendor.name };
+            }
+          }
+        }
+      }
+
+      if (link.reconId) {
+        const reconItem = reconItems?.find(r => r.id === link.reconId);
+        if (reconItem) {
+          entry.recon = {
+            id: reconItem.id,
+            date: reconItem.date || null,
+            reconStrategy: reconItem.reconStrategy || null,
+            water: reconItem.water || null,
+            deliveryMethod: reconItem.deliveryMethod || null,
+            concentration: reconItem.concentration || null,
+          };
+        }
+      }
+
+      if (link.deliveryMethod) {
+        entry.deliveryMethod = link.deliveryMethod;
+      }
+      entry.status = link.status || null;
+
+      lineage[peptideId] = entry;
+    });
+
+    return lineage;
+  };
+
   const endProtocol = (protocolToEnd) => {
     const today = getLocalDateString();
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
-    updateProtocolWithForceSync(updatedProtocol); // Use force sync for immediate cross-device update
+    updateProtocolWithForceSync(updatedProtocol);
     
-    // Update history entry
     const activeHistoryEntry = findActiveProtocolHistoryEntry(protocolToEnd.id);
     if (activeHistoryEntry) {
-      // Determine completion status
       const expectedEndDate = updatedProtocol.endDate || updatedProtocol.expectedEndDate;
       let completionStatus = 'ended_early';
       
@@ -731,14 +797,11 @@ export default function Protocols() {
         const expected = new Date(expectedEndDate);
         const actual = new Date(today);
         const diffDays = Math.abs(actual - expected) / (1000 * 60 * 60 * 24);
-        // If ended within 2 days of expected, consider it completed on time
         if (diffDays <= 2 && actual <= expected) {
           completionStatus = 'completed';
         }
       }
       
-      // Update history entry with current protocol state (including any vials added during)
-      // Also capture current linkedItems for skipped reconstitution and delivery methods
       const skippedReconstitution = {};
       const linkedItems = protocolToEnd.linkedItems || {};
       Object.entries(linkedItems).forEach(([peptideId, item]) => {
@@ -751,25 +814,25 @@ export default function Protocols() {
         }
       });
       
-      // Update protocolData with current linkedItems to preserve all data
       const updatedProtocolData = {
         ...(activeHistoryEntry.protocolData || {}),
-        linkedItems: linkedItems // Save complete linkedItems for reference
+        linkedItems: linkedItems
       };
+
+      const lineage = buildProtocolLineage(protocolToEnd);
       
       updateProtocolHistoryEntry(activeHistoryEntry.id, {
         endDate: today,
         completionStatus: completionStatus,
         endType: 'manual',
         protocolData: updatedProtocolData,
-        skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+        skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null,
+        lineage: Object.keys(lineage).length > 0 ? lineage : null
       });
       
-      // Show follow-up modal
       setFollowUpProtocol(protocolToEnd);
       setFollowUpHistoryId(activeHistoryEntry.id);
     } else {
-      // Protocol ended but no history entry - still show toast
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
     }
   };
@@ -869,15 +932,17 @@ export default function Protocols() {
               }
             });
             
+            const lineage = buildProtocolLineage(p);
+
             updateProtocolHistoryEntry(activeHistoryEntry.id, {
               endDate: endDateString,
               completionStatus: 'completed',
               endType: 'completed',
               protocolData: updatedProtocolData,
-              skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+              skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null,
+              lineage: Object.keys(lineage).length > 0 ? lineage : null
             });
             
-            // Track this protocol for follow-up
             autoCompletedProtocols.push({
               protocolId: p.id,
               historyId: activeHistoryEntry.id,

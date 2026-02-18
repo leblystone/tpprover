@@ -261,7 +261,11 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
           {/* Compact calculated results row */}
           <div 
             className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
-            style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '06', border: `1px solid ${theme.primary}10` }}
+            style={{ 
+              backgroundColor: theme.isDark ? 'rgba(127, 158, 149, 0.35)' : 'rgba(127, 158, 149, 0.38)',
+              border: `1px solid ${theme.primary}40`,
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
+            }}
           >
             <div className="flex-1">
               <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
@@ -303,7 +307,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
               background: getPrimaryActionGradient(isSavingToRecon || isReadOnly),
               color: (isSavingToRecon || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
               border: 'none',
-              boxShadow: (isSavingToRecon || isReadOnly) ? 'none' : primaryActionDefaultShadow
+              boxShadow: (isSavingToRecon || isReadOnly) ? 'none' : `inset 0 2px 4px rgba(0,0,0,0.15), ${primaryActionDefaultShadow}`
             }}
             onMouseEnter={(e) => {
               if (isSavingToRecon || isReadOnly) return;
@@ -312,7 +316,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = (isSavingToRecon || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+              e.currentTarget.style.boxShadow = (isSavingToRecon || isReadOnly) ? 'none' : `inset 0 2px 4px rgba(0,0,0,0.15), ${primaryActionDefaultShadow}`;
               e.currentTarget.style.background = getPrimaryActionGradient(isSavingToRecon || isReadOnly);
             }}
             title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}

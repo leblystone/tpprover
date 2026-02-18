@@ -1,31 +1,16 @@
 import React from 'react';
 import { navigateToPayment, isNative } from '../../utils/platform';
-import { canShowPaymentButtons, getAndroidUpgradeMessage } from '../../utils/paymentCompliance';
-import { isAndroid } from '../../utils/platform';
 
-/**
- * Universal upgrade button that handles payment flow across all platforms
- * Android-compliant: Hides payment buttons on Android (Google Play policy)
- */
 const UpgradeButton = ({ 
   plan = 'monthly', 
   children = 'Upgrade to Pro',
   className = '',
   theme,
-  variant = 'primary' // 'primary', 'secondary', 'outline'
+  variant = 'primary'
 }) => {
   const handleUpgrade = () => {
     navigateToPayment(plan);
   };
-
-  // Android compliance: Hide payment buttons, show text-only message
-  if (isAndroid()) {
-    return (
-      <div className="px-4 py-2 text-sm" style={{ color: theme?.textLight || '#6B7280' }}>
-        {getAndroidUpgradeMessage()}
-      </div>
-    );
-  }
 
   const getButtonStyles = () => {
     const baseStyles = "px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2";

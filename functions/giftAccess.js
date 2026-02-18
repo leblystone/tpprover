@@ -165,11 +165,11 @@ exports.redeemGiftAccess = async (giftId, userId, userEmail) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
     
-    // Save subscription to user's data
+    // Save subscription to user's data (merge to preserve existing fields)
     await admin.firestore()
       .collection('userSubscriptions')
       .doc(userId)
-      .set(subscriptionData);
+      .set({ subscription: subscriptionData }, { merge: true });
     
     // Update gift record as redeemed
     await giftRef.update({

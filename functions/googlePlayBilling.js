@@ -285,8 +285,39 @@ exports.verifyGooglePlayPurchase = onCall(
         throw new HttpsError('failed-precondition', 'Purchase verification failed');
       }
 
-      // Acknowledge the purchase with Google Play if not already acknowledged
-      await acknowledgePurchase(packageName, productId, purchaseToken, productType, verifiedPurchase.data);
+      // Validate purchase state from Google's API response
+      const purchaseData = verifiedPurchase.data;
+      if (productType === 'subs') {
+        // paymentState: 0=pending, 1=received, 2=free_trial, 3=pending_deferred
+        if (purchaseData.paymentState === 0) {
+          throw new HttpsError('failed-precondition', 'Subscription payment is still pending');
+        }
+        // cancelReason: 0=user, 1=system (billing issue), 2=replaced, 3=developer
+        if (purchaseData.cancelReason !== undefined && purchaseData.cancelReason !== null) {
+          logger.warn(`⚠️ Subscription has cancelReason: ${purchaseData.cancelReason}`);
+        }
+      } else {
+        // purchaseState: 0=purchased, 1=canceled, 2=pending
+        if (purchaseData.purchaseState === 1) {
+          throw new HttpsError('failed-precondition', 'Purchase has been canceled/refunded');
+        }
+        if (purchaseData.purchaseState === 2) {
+          throw new HttpsError('failed-precondition', 'Purchase is still pending');
+        }
+      }
+
+      // Idempotency: check if this purchase was already verified
+      const existingPurchase = await admin.firestore()
+        .collection('userSubscriptions').doc(resolvedUserId).get();
+      if (existingPurchase.exists) {
+        const existingSub = existingPurchase.data()?.subscription;
+        if (existingSub?.googlePlayPurchaseToken === purchaseToken && existingSub?.status === 'active') {
+          logger.info(`ℹ️ Purchase already verified for user ${resolvedUserId}, returning existing`);
+          return { success: true, subscription: existingSub, alreadyVerified: true };
+        }
+      }
+
+      await acknowledgePurchase(packageName, productId, purchaseToken, productType, purchaseData);
 
       // Map to subscription format
       const subscriptionData = mapPurchaseToSubscription(verifiedPurchase, productId, {

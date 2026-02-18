@@ -12,6 +12,7 @@ import { isAndroid, isIOS, isWeb } from '../../utils/platform';
 import { subscribe as stripeSubscribe } from './stripeService';
 import { subscribe as googlePlaySubscribe } from './googlePlayBillingService';
 import { subscribe as appStoreSubscribe } from './appStoreIAPService';
+import { logAnalyticsEvent } from '../../config/firebase';
 
 /**
  * Subscribe to a plan
@@ -25,15 +26,25 @@ import { subscribe as appStoreSubscribe } from './appStoreIAPService';
  * @returns {Promise<void>}
  */
 export async function subscribe(planKey, options = {}) {
-  console.log(`💳 PaymentService: Routing subscription for ${planKey} on ${getPlatformName()}`);
+  const platform = getPlatformName();
+  console.log(`💳 PaymentService: Routing subscription for ${planKey} on ${platform}`);
   
-  if (isAndroid()) {
-    return await googlePlaySubscribe(planKey, options);
-  } else if (isIOS()) {
-    return await appStoreSubscribe(planKey, options);
-  } else {
-    // Web/PWA - use Stripe
-    return await stripeSubscribe(planKey, options);
+  logAnalyticsEvent('begin_checkout', { plan: planKey, platform, provider: getActivePaymentProvider() });
+
+  try {
+    let result;
+    if (isAndroid()) {
+      result = await googlePlaySubscribe(planKey, options);
+    } else if (isIOS()) {
+      result = await appStoreSubscribe(planKey, options);
+    } else {
+      result = await stripeSubscribe(planKey, options);
+    }
+    logAnalyticsEvent('purchase', { plan: planKey, platform, provider: getActivePaymentProvider() });
+    return result;
+  } catch (error) {
+    logAnalyticsEvent('checkout_error', { plan: planKey, platform, error: error.message?.slice(0, 100) });
+    throw error;
   }
 }
 

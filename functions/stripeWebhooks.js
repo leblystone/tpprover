@@ -6,6 +6,7 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailService = require('./emailService');
 const pushNotifications = require('./pushNotifications');
+const adminAlerts = require('./adminAlerts');
 
 const FieldValue = admin.firestore.FieldValue;
 const DEFAULT_FOUNDER_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
@@ -248,6 +249,7 @@ async function upsertSubscriptionState({
   }) : null;
 
   const db = admin.firestore();
+  const batch = db.batch();
   const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
   const userRef = db.collection('users').doc(context.userId);
 
@@ -263,7 +265,7 @@ async function upsertSubscriptionState({
     subscriptionUpdate.lastInvoice = lastInvoiceRecord;
   }
 
-  await userSubscriptionsRef.set(subscriptionUpdate, { merge: true });
+  batch.set(userSubscriptionsRef, subscriptionUpdate, { merge: true });
 
   const userSubscriptionSnapshot = sanitizeObject({
     status: subscriptionRecord.status,
@@ -287,11 +289,21 @@ async function upsertSubscriptionState({
     userSubscriptionSnapshot.latestInvoice = lastInvoiceRecord;
   }
 
-  await userRef.set({
+  batch.set(userRef, {
     stripeCustomerId: subscriptionRecord.stripeCustomerId,
     subscription: userSubscriptionSnapshot,
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
+
+  // Write subscription history for audit trail
+  const historyRef = userSubscriptionsRef.collection('history').doc();
+  batch.set(historyRef, {
+    ...subscriptionRecord,
+    eventTimestamp: FieldValue.serverTimestamp(),
+    source: 'stripe_webhook',
+  });
+
+  await batch.commit();
 
   logger.info(`✅ Subscription data synced for user ${context.userId} with status ${subscriptionRecord.status}`);
 }
@@ -350,7 +362,15 @@ exports.stripeWebhook = onRequest(
       });
     }
 
-    logger.info(`📥 Received Stripe webhook event: ${event.type}`);
+    logger.info(`📥 Received Stripe webhook event: ${event.type} (${event.id})`);
+
+    // Idempotency: skip already-processed events
+    const eventRef = admin.firestore().collection('processedWebhookEvents').doc(event.id);
+    const existingEvent = await eventRef.get();
+    if (existingEvent.exists) {
+      logger.info(`⏭️ Event ${event.id} already processed, skipping`);
+      return response.status(200).json({ received: true, duplicate: true });
+    }
 
     try {
       switch (event.type) {
@@ -402,7 +422,23 @@ exports.stripeWebhook = onRequest(
           await handleChargeFailed(event, stripe);
           break;
 
-        // Dispute Events (for chargebacks, not refunds)
+        case 'charge.refunded':
+          await handleChargeRefunded(event, stripe);
+          break;
+
+        case 'customer.subscription.trial_will_end':
+          await handleTrialWillEnd(event, stripe);
+          break;
+
+        case 'customer.subscription.paused':
+          await handleSubscriptionPaused(event, stripe);
+          break;
+
+        case 'customer.subscription.resumed':
+          await handleSubscriptionResumed(event, stripe);
+          break;
+
+        // Dispute Events
         case 'charge.dispute.created':
           await handleDisputeCreated(event, stripe);
           break;
@@ -419,17 +455,36 @@ exports.stripeWebhook = onRequest(
           logger.info(`🤷 Unhandled event type: ${event.type}`);
       }
 
-      // Always return 200 to acknowledge receipt to Stripe
+      // Mark event as processed for idempotency
+      await eventRef.set({
+        eventType: event.type,
+        processedAt: FieldValue.serverTimestamp(),
+      });
+
       response.status(200).json({ received: true, eventType: event.type });
     } catch (error) {
-      logger.error(`❌ Error processing webhook: ${error.message}`, error);
-      // Return 200 to acknowledge receipt to Stripe even on processing errors
-      // This prevents Stripe from retrying indefinitely
-      response.status(200).json({ 
-        received: true, 
-        processed: false,
-        error: error.message 
-      });
+      logger.error(`❌ Error processing webhook ${event.id}: ${error.message}`, error);
+
+      // Return 500 for transient/retryable errors so Stripe retries
+      // Return 200 for permanent errors to stop retries
+      const isTransient = error.code === 'UNAVAILABLE' || 
+                          error.code === 'DEADLINE_EXCEEDED' ||
+                          error.message?.includes('ECONNRESET') ||
+                          error.message?.includes('timeout');
+      
+      if (isTransient) {
+        response.status(500).json({ error: error.message, retryable: true });
+      } else {
+        adminAlerts.alertWebhookFailure('stripe', event.type, error.message).catch(() => {});
+        await admin.firestore().collection('webhookFailures').add({
+          eventId: event.id,
+          eventType: event.type,
+          error: error.message,
+          stack: error.stack,
+          timestamp: FieldValue.serverTimestamp(),
+        });
+        response.status(200).json({ received: true, processed: false, error: error.message });
+      }
     }
   }
 );
@@ -843,11 +898,27 @@ async function handlePaymentFailed(event, stripe) {
     );
   }
 
-  // Log the event
+  // Update subscription status to reflect payment failure
+  if (userId) {
+    const db = admin.firestore();
+    const failPayload = {
+      billingStatus: 'payment_failed',
+      lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection('userSubscriptions').doc(userId).set(
+      { subscription: failPayload }, { merge: true }
+    );
+    await db.collection('users').doc(userId).set(
+      { subscription: failPayload }, { merge: true }
+    );
+  }
+
   await admin.firestore().collection('stripeEvents').add({
     type: 'payment_intent.payment_failed',
     paymentIntentId: paymentIntent.id,
     customerId: paymentIntent.customer,
+    userId: userId || null,
     userEmail,
     amount: paymentIntent.amount,
     currency: paymentIntent.currency,
@@ -1253,7 +1324,6 @@ async function handleDisputeCreated(event, stripe) {
   const dispute = event.data.object;
   logger.info(`🚨 Dispute created: ${dispute.id} for charge: ${dispute.charge}`);
 
-  // Get customer email
   const charge = await stripe.charges.retrieve(dispute.charge);
   const customer = await stripe.customers.retrieve(charge.customer);
   const userEmail = customer.email;
@@ -1263,10 +1333,40 @@ async function handleDisputeCreated(event, stripe) {
     return;
   }
 
-  // Send dispute notification email
+  // Immediately suspend access on dispute
+  const context = await resolveUserContext({ customerId: charge.customer, emailHint: userEmail });
+  if (context?.userId) {
+    const db = admin.firestore();
+    const disputePayload = {
+      status: 'disputed',
+      disputeId: dispute.id,
+      disputeReason: dispute.reason,
+      disputedAt: FieldValue.serverTimestamp(),
+      lastUpdated: FieldValue.serverTimestamp(),
+    };
+    await db.collection('userSubscriptions').doc(context.userId).set(
+      { subscription: disputePayload }, { merge: true }
+    );
+    await db.collection('users').doc(context.userId).set(
+      { subscription: disputePayload }, { merge: true }
+    );
+    logger.info(`🔒 Access suspended for user ${context.userId} due to dispute ${dispute.id}`);
+    adminAlerts.alertDispute(context.userId, userEmail, dispute.id, dispute.reason, dispute.amount).catch(() => {});
+  }
+
   await emailService.sendDisputeNotificationEmail(userEmail, dispute.reason, dispute.amount);
 
-  logger.info(`✅ Dispute notification sent to: ${userEmail}`);
+  await admin.firestore().collection('stripeEvents').add({
+    type: 'charge.dispute.created',
+    disputeId: dispute.id,
+    chargeId: dispute.charge,
+    customerId: charge.customer,
+    userId: context?.userId,
+    userEmail,
+    reason: dispute.reason,
+    amount: dispute.amount,
+    timestamp: FieldValue.serverTimestamp()
+  });
 }
 
 /**
@@ -1299,7 +1399,6 @@ async function handleDisputeClosed(event, stripe) {
   const dispute = event.data.object;
   logger.info(`✅ Dispute closed: ${dispute.id} - Status: ${dispute.status}`);
 
-  // Get customer email
   const charge = await stripe.charges.retrieve(dispute.charge);
   const customer = await stripe.customers.retrieve(charge.customer);
   const userEmail = customer.email;
@@ -1309,10 +1408,187 @@ async function handleDisputeClosed(event, stripe) {
     return;
   }
 
-  // Send dispute resolution email
+  const context = await resolveUserContext({ customerId: charge.customer, emailHint: userEmail });
+  if (context?.userId) {
+    const db = admin.firestore();
+    // dispute.status: won = merchant wins (restore), lost = customer wins (revoke stays)
+    if (dispute.status === 'won') {
+      await db.collection('userSubscriptions').doc(context.userId).set({
+        subscription: {
+          status: 'active',
+          disputeResolved: true,
+          disputeResolvedAt: FieldValue.serverTimestamp(),
+          lastUpdated: FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+      await db.collection('users').doc(context.userId).set({
+        subscription: {
+          status: 'active',
+          disputeResolved: true,
+          lastUpdated: FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+      logger.info(`✅ Access restored for user ${context.userId} -- dispute won`);
+    } else {
+      // Lost or other status -- keep access revoked
+      await db.collection('userSubscriptions').doc(context.userId).set({
+        subscription: {
+          status: 'revoked',
+          revokedReason: `dispute_${dispute.status}`,
+          disputeResolvedAt: FieldValue.serverTimestamp(),
+          lastUpdated: FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+      await db.collection('users').doc(context.userId).set({
+        subscription: {
+          status: 'revoked',
+          lastUpdated: FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
+      logger.info(`🚫 Access permanently revoked for user ${context.userId} -- dispute ${dispute.status}`);
+    }
+  }
+
   await emailService.sendDisputeResolutionEmail(userEmail, dispute.status, dispute.reason);
 
-  logger.info(`✅ Dispute resolution sent to: ${userEmail}`);
+  await admin.firestore().collection('stripeEvents').add({
+    type: 'charge.dispute.closed',
+    disputeId: dispute.id,
+    chargeId: dispute.charge,
+    customerId: charge.customer,
+    userId: context?.userId,
+    userEmail,
+    outcome: dispute.status,
+    timestamp: FieldValue.serverTimestamp()
+  });
+}
+
+/**
+ * Handle charge refunded -- revoke access for lifetime, update state for subscriptions
+ */
+async function handleChargeRefunded(event, stripe) {
+  const charge = event.data.object;
+  logger.info(`💸 Charge refunded: ${charge.id}, amount_refunded: ${charge.amount_refunded}`);
+
+  const customer = await stripe.customers.retrieve(charge.customer);
+  const userEmail = customer.email;
+  const context = await resolveUserContext({
+    customerId: charge.customer,
+    emailHint: userEmail
+  });
+
+  if (!context?.userId) {
+    logger.warn(`⚠️ Cannot resolve user for refunded charge ${charge.id}`);
+    return;
+  }
+
+  const db = admin.firestore();
+  const isFullRefund = charge.refunded === true;
+
+  if (isFullRefund) {
+    // Check if this was a lifetime purchase
+    const lifetimeDoc = await db.collection('lifetimeAccess').doc(context.userId).get();
+    if (lifetimeDoc.exists && lifetimeDoc.data()?.metadata?.stripeChargeId === charge.id) {
+      await db.collection('lifetimeAccess').doc(context.userId).update({
+        status: 'revoked',
+        revokedAt: FieldValue.serverTimestamp(),
+        revokedReason: 'refund',
+        refundChargeId: charge.id,
+      });
+    }
+
+    await db.collection('userSubscriptions').doc(context.userId).set({
+      subscription: {
+        status: 'refunded',
+        refundedAt: FieldValue.serverTimestamp(),
+        hasLifetimeAccess: false,
+        lastUpdated: FieldValue.serverTimestamp(),
+      }
+    }, { merge: true });
+
+    await db.collection('users').doc(context.userId).set({
+      subscription: {
+        status: 'refunded',
+        hasLifetimeAccess: false,
+        lastUpdated: FieldValue.serverTimestamp(),
+      }
+    }, { merge: true });
+
+    logger.info(`🚫 Access revoked for user ${context.userId} due to full refund on charge ${charge.id}`);
+    adminAlerts.alertRefund(context.userId, userEmail, charge.amount_refunded, 'stripe').catch(() => {});
+  }
+
+  await db.collection('stripeEvents').add({
+    type: 'charge.refunded',
+    chargeId: charge.id,
+    customerId: charge.customer,
+    userEmail,
+    userId: context.userId,
+    amountRefunded: charge.amount_refunded,
+    isFullRefund,
+    timestamp: FieldValue.serverTimestamp()
+  });
+}
+
+/**
+ * Handle trial_will_end -- notify user 3 days before trial ends
+ */
+async function handleTrialWillEnd(event, stripe) {
+  const subscription = event.data.object;
+  logger.info(`⏰ Trial ending soon for subscription: ${subscription.id}`);
+
+  const customer = await stripe.customers.retrieve(subscription.customer);
+  const userEmail = customer.email;
+  if (!userEmail) return;
+
+  const trialEnd = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000).toISOString().split('T')[0]
+    : 'soon';
+
+  await emailService.sendRenewalReminderEmail(userEmail, `Trial ending ${trialEnd}`);
+
+  await admin.firestore().collection('stripeEvents').add({
+    type: 'customer.subscription.trial_will_end',
+    subscriptionId: subscription.id,
+    customerId: subscription.customer,
+    userEmail,
+    trialEnd,
+    timestamp: FieldValue.serverTimestamp()
+  });
+}
+
+/**
+ * Handle subscription paused
+ */
+async function handleSubscriptionPaused(event, stripe) {
+  const subscription = event.data.object;
+  logger.info(`⏸️ Subscription paused: ${subscription.id}`);
+
+  const customer = await stripe.customers.retrieve(subscription.customer);
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    customer,
+    userIdHint: subscription.metadata?.userId,
+    emailHint: customer?.email,
+    statusOverride: 'paused'
+  });
+}
+
+/**
+ * Handle subscription resumed
+ */
+async function handleSubscriptionResumed(event, stripe) {
+  const subscription = event.data.object;
+  logger.info(`▶️ Subscription resumed: ${subscription.id}`);
+
+  const customer = await stripe.customers.retrieve(subscription.customer);
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    customer,
+    userIdHint: subscription.metadata?.userId,
+    emailHint: customer?.email,
+    statusOverride: subscription.status || 'active'
+  });
 }
 
 async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, paymentIntent }) {

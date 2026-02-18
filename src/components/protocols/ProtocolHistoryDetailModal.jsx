@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2 } from 'lucide-react';
+import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot } from 'lucide-react';
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
@@ -59,6 +59,113 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         const allProtocols = protocols || [];
         return allProtocols.some(p => p.id === currentHistoryEntry.protocolId);
     }, [currentHistoryEntry, protocols]);
+
+    const timelineEvents = useMemo(() => {
+        if (!currentHistoryEntry) return [];
+        const ev = [];
+        const he = currentHistoryEntry;
+        const lin = he.lineage || {};
+
+        if (he.startDate) {
+            ev.push({ date: he.startDate, sort: 0, type: 'start', icon: Play, color: '#10b981', label: 'Protocol started' });
+        }
+
+        if (he.vials?.length > 0) {
+            he.vials.forEach((v, i) => {
+                const pepLin = Object.values(lin).find(l => l.vial?.stockpileId === v.vialId || l.vial?.stockpileId === v.stockpileId);
+                const vendor = pepLin?.vendor?.name || pepLin?.vial?.vendor || v.vendor;
+                const mg = pepLin?.vial?.mg || v.mg;
+                ev.push({
+                    date: he.startDate,
+                    sort: 1 + i,
+                    type: 'link',
+                    icon: Link2,
+                    color: '#6366f1',
+                    label: `Linked ${mg ? mg + 'mg ' : ''}${v.name || 'peptide'}${vendor ? ' from ' + vendor : ''}`
+                });
+            });
+        }
+
+        if (Object.keys(lin).length > 0) {
+            Object.values(lin).forEach(l => {
+                if (l.recon?.date) {
+                    const water = l.recon.water ? `${l.recon.water}mL BAC` : '';
+                    ev.push({
+                        date: l.recon.date,
+                        sort: 0,
+                        type: 'recon',
+                        icon: Droplets,
+                        color: '#0ea5e9',
+                        label: `Reconstituted ${l.peptideName || 'peptide'}${water ? ' — ' + water : ''}`
+                    });
+                }
+            });
+        }
+
+        if (he.vialsAddedDuring?.length > 0) {
+            he.vialsAddedDuring.forEach(v => {
+                ev.push({
+                    date: v.addedDate || he.endDate || he.startDate,
+                    sort: 0,
+                    type: 'add_vial',
+                    icon: Plus,
+                    color: '#8b5cf6',
+                    label: `Added ${v.mg ? v.mg + 'mg ' : ''}${v.name || 'peptide'}${v.vendor ? ' from ' + v.vendor : ''}`
+                });
+            });
+        }
+
+        if (he.notes?.length > 0) {
+            he.notes.forEach(n => {
+                const snippet = n.content ? (n.content.length > 35 ? '"' + n.content.slice(0, 35) + '..."' : '"' + n.content + '"') : '';
+                if (n.type === 'follow_up') {
+                    ev.push({
+                        date: n.createdAt || n.linkedDate || he.endDate,
+                        sort: 10,
+                        type: 'follow_up',
+                        icon: Star,
+                        color: '#f59e0b',
+                        label: `Follow-up assessment added${snippet ? ' ' + snippet : ''}`
+                    });
+                } else {
+                    ev.push({
+                        date: n.createdAt || n.linkedDate,
+                        sort: 0,
+                        type: 'note',
+                        icon: StickyNote,
+                        color: '#a78bfa',
+                        label: `Added note${snippet ? ' ' + snippet : ''}`
+                    });
+                }
+            });
+        }
+
+        if (he.endDate) {
+            const endLabel = he.endType === 'completed' ? 'Protocol completed' : he.endType === 'manual' ? 'Protocol manually ended' : 'Protocol ended';
+            ev.push({ date: he.endDate, sort: 5, type: 'end', icon: CalendarX, color: '#ef4444', label: endLabel });
+        }
+
+        if (he.vialAssessment && Object.keys(he.vialAssessment).length > 0) {
+            const count = Object.keys(he.vialAssessment).length;
+            ev.push({
+                date: he.endDate || he.startDate,
+                sort: 6,
+                type: 'assessment',
+                icon: ClipboardCheck,
+                color: '#10b981',
+                label: `Vial assessment completed (${count} vial${count !== 1 ? 's' : ''})`
+            });
+        }
+
+        ev.sort((a, b) => {
+            const da = new Date(a.date || 0);
+            const db = new Date(b.date || 0);
+            if (da.getTime() !== db.getTime()) return da - db;
+            return (a.sort || 0) - (b.sort || 0);
+        });
+
+        return ev;
+    }, [currentHistoryEntry]);
     
     if (!open || !currentHistoryEntry) return null;
     
@@ -121,7 +228,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         }
     };
 
-    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring, notes, vialAssessment, endType } = currentHistoryEntry;
+    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring, notes, vialAssessment, endType, lineage } = currentHistoryEntry;
 
     const linkedItems = protocolData?.linkedItems || {};
 
@@ -196,6 +303,55 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         </div>
     );
 
+    const footerContent = (
+        <div className="flex items-center justify-between w-full">
+            <button
+                onClick={handleDelete}
+                className="p-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 text-xs font-medium"
+                style={{ 
+                    background: terracottaGradient,
+                    color: '#ffffff',
+                    border: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
+            >
+                <Trash2 size={14} />
+                Delete
+            </button>
+            <div className="flex items-center gap-2">
+                {onEdit && protocol && (
+                    <button
+                        onClick={handleEdit}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5"
+                        style={{ 
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                            color: theme.text,
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`
+                        }}
+                    >
+                        <Edit3 size={14} />
+                        Edit Protocol
+                    </button>
+                )}
+                {canRestore && onRestore && (
+                    <button
+                        onClick={handleRestore}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 btn-primary-inset"
+                        style={{ 
+                            backgroundColor: theme.primary,
+                            color: theme.textOnPrimary
+                        }}
+                    >
+                        <RotateCcw size={14} />
+                        Restore Protocol
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <BottomSheet
             open={open}
@@ -204,9 +360,10 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             title={`Protocol Details - ${formatMMDDYYYY(startDate)}`}
             theme={theme}
             maxHeight="90vh"
+            footer={footerContent}
         >
-            <div className="space-y-4">
-                {/* Mobile: Combined date card */}
+            <div className="space-y-6">
+                {/* Timeline / Date Range - kept compact */}
                 <div className="md:hidden">
                     <div className="p-3 rounded-lg content-section">
                         <div className="flex items-center justify-between mb-2">
@@ -236,8 +393,6 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         </div>
                     </div>
                 </div>
-
-                {/* Desktop: Separate cards */}
                 <div className="hidden md:grid grid-cols-3 gap-4">
                     <div className="p-3 rounded-lg content-section">
                         <div className="flex items-center gap-2 mb-1.5">
@@ -267,66 +422,112 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 </div>
 
-                {/* Protocol Summary */}
-                {protocolData && (
+                {/* ─── ACTIVITY TIMELINE ─── */}
+                {timelineEvents.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Protocol Summary</h3>
-                        <div className="p-4 rounded-lg content-section">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    {protocolData.protocolName && (
-                                        <div>
-                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>Name</div>
-                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.protocolName}</div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="space-y-3">
-                                    {protocolData.duration && !protocolData.duration.noEnd && (
-                                        <div>
-                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>Planned Duration</div>
-                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.duration.count} {protocolData.duration.unit}</div>
-                                        </div>
-                                    )}
-                                    {protocolData.purpose && (
-                                        <div>
-                                            <div className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>Purpose</div>
-                                            <div className="text-sm" style={{ color: theme.text }}>{protocolData.purpose}</div>
-                                        </div>
-                                    )}
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <Clock size={26} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Activity Timeline</h4>
+                                <div className="flex items-center gap-2 ml-0.5">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Protocol Lifecycle</span>
                                 </div>
                             </div>
-                            {protocolData.peptides && protocolData.peptides.length > 0 && (
-                                <div className="mt-3">
-                                    <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>Peptides ({protocolData.peptides.length})</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {protocolData.peptides.map((pep, idx) => (
-                                            <div key={idx} className="text-sm" style={{ color: theme.text }}>
-                                                • {pep.name || 'Unnamed'}
-                                                {pep.dosage && (
-                                                    <span className="ml-2" style={{ color: theme.textLight }}>({pep.dosage.amount} {pep.dosage.unit})</span>
-                                                )}
+                        </div>
+                        <div className="p-4 rounded-lg content-section">
+                            <div className="relative">
+                                <div
+                                    className="absolute left-[9px] top-2 bottom-2 w-px"
+                                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+                                />
+                                <div className="space-y-0">
+                                    {timelineEvents.map((ev, idx) => {
+                                        const Icon = ev.icon;
+                                        const isLast = idx === timelineEvents.length - 1;
+                                        return (
+                                            <div key={idx} className={`relative flex items-start gap-3 ${isLast ? '' : 'pb-3'}`}>
+                                                <div
+                                                    className="relative z-10 flex-shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center"
+                                                    style={{
+                                                        backgroundColor: ev.color + '20',
+                                                        border: `1.5px solid ${ev.color}50`
+                                                    }}
+                                                >
+                                                    <Icon size={10} style={{ color: ev.color }} />
+                                                </div>
+                                                <div className="flex-1 min-w-0 pt-px">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <span className="text-xs leading-snug" style={{ color: theme.text }}>{ev.label}</span>
+                                                        {ev.date && (
+                                                            <span className="text-[10px] flex-shrink-0 tabular-nums" style={{ color: theme.textLight }}>
+                                                                {formatMMDDYYYY(ev.date)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Dosage Schedule */}
-                {protocolData?.peptides && protocolData.peptides.some(p => p.dosage || p.schedule || p.frequency || p.per || p.time) && (
+                {/* ─── PROTOCOL INFO ─── */}
+                {protocolData && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <Pill size={16} />
-                            Dosage Schedule
-                        </h3>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <FlaskConical size={26} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
+                                <div className="flex items-center gap-2 ml-0.5">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Name & Purpose</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-lg content-section space-y-3">
+                            {protocolData.protocolName && (
+                                <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.protocolName}</div>
+                            )}
+                            {protocolData.purpose && (
+                                <div className="text-xs" style={{ color: theme.textLight }}>{protocolData.purpose}</div>
+                            )}
+                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                {protocolData.duration && !protocolData.duration.noEnd && (
+                                    <div>
+                                        <div className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Planned</div>
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.duration.count} {protocolData.duration.unit}</div>
+                                    </div>
+                                )}
+                                {protocolData.peptides && protocolData.peptides.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Peptides</div>
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.peptides.length}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── PEPTIDES — DOSAGE & SCHEDULE ─── */}
+                {protocolData?.peptides && protocolData.peptides.length > 0 && (
+                    <div>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <Pill size={26} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                                <div className="flex items-center gap-2 ml-0.5">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Dosage & Schedule</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             {protocolData.peptides.map((pep, idx) => {
-                                const hasDoseInfo = pep.dosage || pep.schedule || pep.frequency || pep.per || pep.time || pep.count;
-                                if (!hasDoseInfo) return null;
-
                                 const formatFrequency = (freq) => {
                                     if (!freq) return null;
                                     if (typeof freq === 'string') return freq;
@@ -337,40 +538,43 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     if (freq.time && typeof freq.time === 'string') parts.push(freq.time);
                                     return parts.length > 0 ? parts.join(' - ') : freq.type || 'Custom';
                                 };
-
                                 const formatTime = (t) => {
                                     if (!t) return null;
                                     if (typeof t === 'string') return t;
                                     if (typeof t === 'object') return JSON.stringify(t);
                                     return String(t);
                                 };
+                                const freqLabel = formatFrequency(pep.frequency);
+                                const doseLabel = pep.dosage ? `${pep.dosage.amount} ${pep.dosage.unit}` : null;
+                                const subtitle = [doseLabel, freqLabel].filter(Boolean).join(' · ');
 
                                 return (
                                     <div key={idx} className="p-3 rounded-lg content-section">
-                                        <div className="font-medium text-sm mb-1.5" style={{ color: theme.text }}>{pep.name || 'Unnamed'}</div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{ color: theme.textLight }}>
-                                            {pep.dosage && (
-                                                <div><span className="font-medium" style={{ color: theme.text }}>Dose:</span> {pep.dosage.amount} {pep.dosage.unit}</div>
-                                            )}
-                                            {pep.frequency && (
-                                                <div><span className="font-medium" style={{ color: theme.text }}>Frequency:</span> {formatFrequency(pep.frequency)}</div>
-                                            )}
-                                            {(pep.count || pep.per) && (
-                                                <div><span className="font-medium" style={{ color: theme.text }}>Schedule:</span> {pep.count || ''}{pep.per ? `x per ${pep.per}` : ''}</div>
-                                            )}
-                                            {pep.time && (
-                                                <div><span className="font-medium" style={{ color: theme.text }}>Time:</span> {formatTime(pep.time)}</div>
-                                            )}
-                                            {pep.schedule && Array.isArray(pep.schedule) && (
-                                                <div className="col-span-2">
-                                                    <span className="font-medium" style={{ color: theme.text }}>Schedule:</span>{' '}
-                                                    {pep.schedule.join(', ')}
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="font-medium text-sm" style={{ color: theme.text }}>{pep.name || 'Unnamed'}</div>
+                                            {doseLabel && (
+                                                <div className="px-2 py-0.5 rounded-md text-[10px] font-semibold" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                                    {doseLabel}
                                                 </div>
                                             )}
-                                            {pep.schedule && typeof pep.schedule === 'string' && (
-                                                <div><span className="font-medium" style={{ color: theme.text }}>Schedule:</span> {pep.schedule}</div>
-                                            )}
                                         </div>
+                                        {subtitle && (
+                                            <div className="text-xs mb-1" style={{ color: theme.textLight }}>{subtitle}</div>
+                                        )}
+                                        {(pep.count || pep.per || pep.time || pep.schedule) && (
+                                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs mt-1" style={{ color: theme.textLight }}>
+                                                {(pep.count || pep.per) && (
+                                                    <span>{pep.count || ''}{pep.per ? `x per ${pep.per}` : ''}</span>
+                                                )}
+                                                {pep.time && <span>{formatTime(pep.time)}</span>}
+                                                {pep.schedule && Array.isArray(pep.schedule) && (
+                                                    <span>{pep.schedule.join(', ')}</span>
+                                                )}
+                                                {pep.schedule && typeof pep.schedule === 'string' && (
+                                                    <span>{pep.schedule}</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -378,40 +582,35 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 )}
 
-                {/* Vials Used Section */}
-                {vials && vials.length > 0 && (
+                {/* ─── VIALS ─── */}
+                {((vials && vials.length > 0) || (vialsAddedDuring && vialsAddedDuring.length > 0)) && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <Package size={16} />
-                            Vials Used
-                        </h3>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <Package size={26} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vials</h4>
+                                <div className="flex items-center gap-2 ml-0.5">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Stockpile & Assessment</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="space-y-2">
-                            {vials.map((vial, index) => {
+                            {vials && vials.length > 0 && vials.map((vial, index) => {
                                 const stockpileItem = stockpile?.find(s => s.id === vial.vialId || s.id === vial.stockpileId);
                                 const assessment = vialAssessment?.[vial.vialId];
+                                const pepLineage = lineage ? Object.values(lineage).find(l => l.vial?.stockpileId === vial.vialId || l.vial?.stockpileId === vial.stockpileId) : null;
+                                const orderInfo = pepLineage?.order;
+                                const vendorInfo = pepLineage?.vendor || (pepLineage?.vial ? { name: pepLineage.vial.vendor } : null);
                                 return (
-                                    <div key={index} className="p-4 rounded-lg content-section">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1">
-                                                <div className="font-medium mb-1" style={{ color: theme.text }}>
-                                                    {vial.name || stockpileItem?.name || 'Unknown Peptide'}
-                                                </div>
-                                                <div className="flex flex-wrap gap-3 text-xs" style={{ color: theme.textLight }}>
-                                                    {vial.mg && (
-                                                        <span className="flex items-center gap-1"><FlaskConical size={12} />{vial.mg}mg</span>
-                                                    )}
-                                                    {vial.vendor && <span>{vial.vendor}</span>}
-                                                    {vial.cost && (
-                                                        <span className="flex items-center gap-1"><DollarSign size={12} />${Number(vial.cost).toFixed(2)}</span>
-                                                    )}
-                                                </div>
-                                                {vial.reconstitutionDate && (
-                                                    <div className="mt-2 text-xs" style={{ color: theme.textLight }}>Reconstituted: {formatMMDDYYYY(vial.reconstitutionDate)}</div>
-                                                )}
+                                    <div key={`v-${index}`} className="p-3 rounded-lg content-section">
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <div className="font-medium text-sm" style={{ color: theme.text }}>
+                                                {vial.name || stockpileItem?.name || 'Unknown Peptide'}
                                             </div>
                                             {assessment && (
                                                 <div
-                                                    className="px-2 py-1 rounded-lg text-[10px] font-semibold flex items-center gap-1"
+                                                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1"
                                                     style={{
                                                         backgroundColor: assessment.status === 'fully_used'
                                                             ? (theme.isDark ? '#22543d' : '#d1fae5')
@@ -427,169 +626,133 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                                 </div>
                                             )}
                                         </div>
-                                        {assessment?.notes && (
-                                            <div className="mt-1.5 text-xs italic" style={{ color: theme.textLight }}>
-                                                {assessment.notes}
+                                        <div className="flex flex-wrap gap-3 text-xs" style={{ color: theme.textLight }}>
+                                            {(pepLineage?.vial?.mg || vial.mg) && <span className="flex items-center gap-1"><FlaskConical size={11} />{pepLineage?.vial?.mg || vial.mg}mg</span>}
+                                            {(vendorInfo?.name || vial.vendor) && <span className="flex items-center gap-1"><Store size={11} />{vendorInfo?.name || vial.vendor}</span>}
+                                            {(pepLineage?.vial?.cost || vial.cost) && <span className="flex items-center gap-1"><DollarSign size={11} />${Number(pepLineage?.vial?.cost || vial.cost).toFixed(2)}</span>}
+                                            {vial.reconstitutionDate && <span>Recon: {formatMMDDYYYY(vial.reconstitutionDate)}</span>}
+                                        </div>
+                                        {orderInfo && (
+                                            <div className="flex flex-wrap gap-3 text-xs mt-1.5 pt-1.5" style={{ color: theme.textLight, borderTop: `1px solid ${theme.border}` }}>
+                                                <span className="flex items-center gap-1"><Truck size={11} />Order {orderInfo.orderNumber || orderInfo.id?.slice(-6)}</span>
+                                                {orderInfo.date && <span>{formatMMDDYYYY(orderInfo.date)}</span>}
+                                                {orderInfo.tracking && <span className="truncate max-w-[120px]">Track: {orderInfo.tracking}</span>}
+                                                {orderInfo.status && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium uppercase" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                                        {orderInfo.status}
+                                                    </span>
+                                                )}
                                             </div>
+                                        )}
+                                        {assessment?.notes && (
+                                            <div className="mt-1 text-xs italic" style={{ color: theme.textLight }}>{assessment.notes}</div>
                                         )}
                                     </div>
                                 );
                             })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Vials Added During Protocol */}
-                {vialsAddedDuring && vialsAddedDuring.length > 0 && (
-                    <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <Package size={16} />
-                            Vials Added During Protocol
-                        </h3>
-                        <div className="space-y-2">
-                            {vialsAddedDuring.map((vial, index) => {
-                                const stockpileItem = stockpile?.find(s => s.id === vial.vialId || s.id === vial.stockpileId);
-                                return (
-                                    <div key={index} className="p-4 rounded-lg content-section">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1">
-                                                <div className="font-medium mb-1" style={{ color: theme.text }}>
+                            {vialsAddedDuring && vialsAddedDuring.length > 0 && (
+                                <>
+                                    <div className="text-[10px] font-medium uppercase tracking-wider mt-2 ml-1" style={{ color: theme.textLight }}>Added during protocol</div>
+                                    {vialsAddedDuring.map((vial, index) => {
+                                        const stockpileItem = stockpile?.find(s => s.id === vial.vialId || s.id === vial.stockpileId);
+                                        return (
+                                            <div key={`va-${index}`} className="p-3 rounded-lg content-section">
+                                                <div className="font-medium text-sm mb-0.5" style={{ color: theme.text }}>
                                                     {vial.name || stockpileItem?.name || 'Unknown Peptide'}
                                                 </div>
                                                 <div className="flex flex-wrap gap-3 text-xs" style={{ color: theme.textLight }}>
-                                                    {vial.mg && (<span className="flex items-center gap-1"><FlaskConical size={12} />{vial.mg}mg</span>)}
+                                                    {vial.mg && <span className="flex items-center gap-1"><FlaskConical size={11} />{vial.mg}mg</span>}
                                                     {vial.vendor && <span>{vial.vendor}</span>}
+                                                    {vial.addedDate && <span>Added: {formatMMDDYYYY(vial.addedDate)}</span>}
+                                                    {vial.reconstitutionDate && <span>Recon: {formatMMDDYYYY(vial.reconstitutionDate)}</span>}
                                                 </div>
-                                                {vial.addedDate && (
-                                                    <div className="mt-2 text-xs" style={{ color: theme.textLight }}>Added: {formatMMDDYYYY(vial.addedDate)}</div>
-                                                )}
-                                                {vial.reconstitutionDate && (
-                                                    <div className="mt-1 text-xs" style={{ color: theme.textLight }}>Reconstituted: {formatMMDDYYYY(vial.reconstitutionDate)}</div>
-                                                )}
                                             </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })}
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
 
-                {/* Linked Items / Delivery Methods */}
-                {Object.keys(linkedItems).length > 0 && (
+                {/* ─── DELIVERY & RECONSTITUTION ─── */}
+                {(Object.keys(linkedItems).length > 0 || reconstitutionData || (skippedReconstitution && Object.keys(skippedReconstitution).length > 0)) && (
                     <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <Link2 size={16} />
-                            Linked Items & Delivery
-                        </h3>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <Link2 size={26} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Delivery & Recon</h4>
+                                <div className="flex items-center gap-2 ml-0.5">
+                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Methods & Documentation</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             {Object.entries(linkedItems).map(([peptideId, item]) => {
                                 const peptide = protocolData?.peptides?.find(p => (p.id || `peptide-${protocolData.peptides.indexOf(p)}`) === peptideId);
                                 const deliveryMethod = item.deliveryMethod;
                                 if (!deliveryMethod && item.status !== 'linked' && item.status !== 'skipped') return null;
+                                const statusLabel = item.status === 'linked' ? 'Linked' : item.status === 'skipped' ? 'Skipped Recon' : item.status || 'N/A';
+                                const deliveryLabel = formatDeliveryMethod(deliveryMethod);
+                                const routeLabel = deliveryMethod?.administrationRoute?.toUpperCase();
+                                const infoLine = [deliveryLabel, routeLabel].filter(Boolean).join(' · ');
+                                const pepLineage = lineage?.[peptideId];
+                                const reconSnapshot = pepLineage?.recon;
                                 return (
                                     <div key={peptideId} className="p-3 rounded-lg content-section">
-                                        <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>
-                                            {peptide?.name || 'Peptide'}
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <div className="font-medium text-sm" style={{ color: theme.text }}>{peptide?.name || 'Peptide'}</div>
+                                            <div className="px-2 py-0.5 rounded-md text-[10px] font-semibold" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>{statusLabel}</div>
                                         </div>
-                                        <div className="space-y-0.5 text-xs" style={{ color: theme.textLight }}>
-                                            <div>
-                                                <span className="font-medium" style={{ color: theme.text }}>Status:</span>{' '}
-                                                {item.status === 'linked' ? 'Linked to Stockpile' : item.status === 'skipped' ? 'Skipped Recon' : item.status || 'N/A'}
+                                        {infoLine && <div className="text-xs" style={{ color: theme.textLight }}>{infoLine}</div>}
+                                        {deliveryMethod?.penType && (
+                                            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                                                Pen: {deliveryMethod.penType === 'bird-pen' ? 'Bird Pen' : deliveryMethod.penType.charAt(0).toUpperCase() + deliveryMethod.penType.slice(1)}
+                                                {deliveryMethod.penColor ? ` (${deliveryMethod.penColor})` : ''}
                                             </div>
-                                            {deliveryMethod && (
-                                                <>
-                                                    <div>
-                                                        <span className="font-medium" style={{ color: theme.text }}>Delivery:</span>{' '}
-                                                        {formatDeliveryMethod(deliveryMethod)}
-                                                    </div>
-                                                    {deliveryMethod.administrationRoute && (
-                                                        <div>
-                                                            <span className="font-medium" style={{ color: theme.text }}>Route:</span>{' '}
-                                                            {deliveryMethod.administrationRoute.toUpperCase()}
-                                                        </div>
-                                                    )}
-                                                    {deliveryMethod.penType && (
-                                                        <div>
-                                                            <span className="font-medium" style={{ color: theme.text }}>Pen Type:</span>{' '}
-                                                            {deliveryMethod.penType === 'bird-pen' ? 'Bird Pen' : deliveryMethod.penType.charAt(0).toUpperCase() + deliveryMethod.penType.slice(1)}
-                                                        </div>
-                                                    )}
-                                                    {deliveryMethod.penColor && (
-                                                        <div>
-                                                            <span className="font-medium" style={{ color: theme.text }}>Pen Color:</span>{' '}
-                                                            {deliveryMethod.penColor}
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                            {item.documentation && Array.isArray(item.documentation) && item.documentation.length > 0 && (
-                                                <div className="mt-1">
-                                                    <span className="font-medium" style={{ color: theme.text }}>Documentation:</span>{' '}
-                                                    {item.documentation.length} file{item.documentation.length !== 1 ? 's' : ''} attached
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
+                                        {reconSnapshot && (
+                                            <div className="flex flex-wrap gap-3 text-xs mt-1.5 pt-1.5" style={{ color: theme.textLight, borderTop: `1px solid ${theme.border}` }}>
+                                                {reconSnapshot.water && <span className="flex items-center gap-1"><Droplets size={11} />{reconSnapshot.water}mL BAC water</span>}
+                                                {reconSnapshot.concentration && <span>{reconSnapshot.concentration}</span>}
+                                                {reconSnapshot.reconStrategy && <span className="capitalize">{reconSnapshot.reconStrategy}</span>}
+                                                {reconSnapshot.date && <span>Recon: {formatMMDDYYYY(reconSnapshot.date)}</span>}
+                                            </div>
+                                        )}
+                                        {item.documentation && Array.isArray(item.documentation) && item.documentation.length > 0 && (
+                                            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                                                {item.documentation.length} file{item.documentation.length !== 1 ? 's' : ''} attached
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Reconstitution Data */}
-                {reconstitutionData && (
-                    <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <FlaskConical size={16} />
-                            Reconstitution Details
-                        </h3>
-                        <div className="p-4 rounded-lg content-section">
-                            {reconstitutionData.reconStrategy && (
-                                <div className="mb-1.5 text-sm" style={{ color: theme.text }}>
-                                    <span className="font-medium">Strategy:</span>{' '}
-                                    <span style={{ color: theme.textLight }}>{reconstitutionData.reconStrategy === 'separate' ? 'Separate' : 'Blended'}</span>
-                                </div>
-                            )}
-                            {reconstitutionData.date && (
-                                <div className="text-sm" style={{ color: theme.text }}>
-                                    <span className="font-medium">Reconstituted:</span>{' '}
-                                    <span style={{ color: theme.textLight }}>{formatMMDDYYYY(reconstitutionData.date)}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Skipped Reconstitution Data */}
-                {skippedReconstitution && Object.keys(skippedReconstitution).length > 0 && (
-                    <div>
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.text }}>
-                            <FlaskConical size={16} />
-                            Skipped Reconstitution
-                        </h3>
-                        <div className="space-y-2">
-                            {Object.entries(skippedReconstitution).map(([peptideId, data]) => (
-                                <div key={peptideId} className="p-4 rounded-lg content-section">
-                                    <div className="font-medium mb-1.5" style={{ color: theme.text }}>{data.peptideName || 'Unknown Peptide'}</div>
-                                    {data.deliveryMethod && (
-                                        <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
-                                            <div>
-                                                <span className="font-medium">Delivery Method:</span>{' '}
-                                                {formatDeliveryMethod(data.deliveryMethod)}
+                            {reconstitutionData && (
+                                <div className="p-3 rounded-lg content-section">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <div className="font-medium text-sm" style={{ color: theme.text }}>Reconstitution</div>
+                                        {reconstitutionData.reconStrategy && (
+                                            <div className="px-2 py-0.5 rounded-md text-[10px] font-semibold" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                                {reconstitutionData.reconStrategy === 'separate' ? 'Separate' : 'Blended'}
                                             </div>
-                                            {data.deliveryMethod.administrationRoute && (
-                                                <div><span className="font-medium">Route:</span> {data.deliveryMethod.administrationRoute.toUpperCase()}</div>
-                                            )}
-                                            {data.deliveryMethod.penType && (
-                                                <div>
-                                                    <span className="font-medium">Pen Type:</span>{' '}
-                                                    {data.deliveryMethod.penType === 'bird-pen' ? 'Bird Pen' : data.deliveryMethod.penType.charAt(0).toUpperCase() + data.deliveryMethod.penType.slice(1)}
-                                                </div>
-                                            )}
-                                            {data.deliveryMethod.penColor && (
-                                                <div><span className="font-medium">Pen Color:</span> {data.deliveryMethod.penColor}</div>
-                                            )}
+                                        )}
+                                    </div>
+                                    {reconstitutionData.date && (
+                                        <div className="text-xs" style={{ color: theme.textLight }}>Reconstituted: {formatMMDDYYYY(reconstitutionData.date)}</div>
+                                    )}
+                                </div>
+                            )}
+                            {skippedReconstitution && Object.entries(skippedReconstitution).map(([peptideId, data]) => (
+                                <div key={`sr-${peptideId}`} className="p-3 rounded-lg content-section">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <div className="font-medium text-sm" style={{ color: theme.text }}>{data.peptideName || 'Unknown'}</div>
+                                        <div className="px-2 py-0.5 rounded-md text-[10px] font-semibold" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}>Skipped</div>
+                                    </div>
+                                    {data.deliveryMethod && (
+                                        <div className="text-xs" style={{ color: theme.textLight }}>
+                                            {formatDeliveryMethod(data.deliveryMethod)}
+                                            {data.deliveryMethod.administrationRoute ? ` · ${data.deliveryMethod.administrationRoute.toUpperCase()}` : ''}
                                         </div>
                                     )}
                                 </div>
@@ -598,117 +761,110 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 )}
 
-                {/* Follow-Up Assessment Section */}
-                {followUpNote ? (
-                    <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                                <FileText size={16} />
-                                Follow-Up Assessment
-                            </h3>
-                            <button
-                                onClick={handleEditFollowUp}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 btn-primary-inset"
-                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                            >
-                                <Edit3 size={14} />
-                                Edit Assessment
-                            </button>
-                        </div>
-                        <div
-                            className="p-4 rounded-lg content-section"
-                            style={{ border: `2px solid ${theme.primary}`, borderLeft: `4px solid ${theme.primary}` }}
-                        >
-                            {followUpNote.rating && (
-                                <div className="mb-2 flex items-center justify-center gap-2">
-                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Protocol Rating:</span>
-                                    <div className="flex items-center gap-1">
-                                        {[1, 2, 3, 4, 5].map(n => (
-                                            <Star key={n} size={18} style={{ fill: followUpNote.rating >= n ? theme.primary : 'none', color: followUpNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border), strokeWidth: 1.5 }} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {followUpNote.content && (
-                                <p className="text-sm whitespace-pre-wrap mb-2" style={{ color: theme.text }}>{followUpNote.content}</p>
-                            )}
-                            {followUpNote.tags && followUpNote.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                    {followUpNote.tags.map(tagId => (
-                                        <span key={tagId} className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-                                            {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            {followUpNote.linkedDate && (
-                                <div className="mt-2 text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
-                                    <Calendar size={12} />
-                                    Linked to calendar: {formatMMDDYYYY(followUpNote.linkedDate)}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                                <FileText size={16} />
-                                Follow-Up Assessment
-                            </h3>
-                            <div className="px-2.5 py-1 rounded-lg flex items-center gap-1.5" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)', color: theme.textLight }}>
-                                <span className="font-medium text-xs">No Follow-Up</span>
+                {/* ─── FOLLOW-UP & NOTES ─── */}
+                <div>
+                    <div className="flex items-center gap-2.5 mb-3">
+                        <Star size={26} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Assessment</h4>
+                            <div className="flex items-center gap-2 ml-0.5">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Follow-Up & Notes</span>
                             </div>
                         </div>
-                        <div className="flex justify-center">
+                    </div>
+
+                    {followUpNote ? (
+                        <div className="mb-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Follow-Up</span>
+                                <button
+                                    onClick={handleEditFollowUp}
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 btn-primary-inset"
+                                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                >
+                                    <Edit3 size={11} />
+                                    Edit
+                                </button>
+                            </div>
+                            <div
+                                className="p-4 rounded-lg content-section"
+                                style={{ borderLeft: `3px solid ${theme.primary}` }}
+                            >
+                                {followUpNote.rating && (
+                                    <div className="mb-2 flex items-center gap-2">
+                                        <div className="flex items-center gap-0.5">
+                                            {[1, 2, 3, 4, 5].map(n => (
+                                                <Star key={n} size={16} style={{ fill: followUpNote.rating >= n ? theme.primary : 'none', color: followUpNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border), strokeWidth: 1.5 }} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {followUpNote.content && (
+                                    <p className="text-sm whitespace-pre-wrap mb-2" style={{ color: theme.text }}>{followUpNote.content}</p>
+                                )}
+                                {followUpNote.tags && followUpNote.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {followUpNote.tags.map(tagId => (
+                                            <span key={tagId} className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                                                {tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {followUpNote.linkedDate && (
+                                    <div className="mt-2 text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                                        <Calendar size={12} />
+                                        Linked: {formatMMDDYYYY(followUpNote.linkedDate)}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mb-3 flex justify-center">
                             <button
                                 onClick={handleEditFollowUp}
-                                className="px-6 py-3 rounded-lg text-base font-semibold transition-all flex items-center gap-2 btn-primary-inset"
+                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 btn-primary-inset"
                                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                             >
-                                <Edit3 size={18} />
+                                <Edit3 size={16} />
                                 Add Follow-Up Assessment
                             </button>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Notes Section */}
-                {Array.isArray(notes) && notes.length > 0 && (
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                                <FileText size={16} />
-                                Notes ({notes.length})
-                            </h3>
-                            <div className="flex items-center gap-2">
-                                {!followUpNote && (
-                                    <button
-                                        onClick={handleEditFollowUp}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 mr-2 btn-primary-inset"
-                                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                                    >
-                                        <Edit3 size={14} />
-                                        Add Follow-Up
-                                    </button>
-                                )}
+                    {Array.isArray(notes) && notes.length > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Notes ({notes.length})</span>
                                 <div className="flex items-center gap-2">
-                                    <Filter size={14} style={{ color: theme.textLight }} />
-                                    <div className="w-40">
-                                        <CustomDropdown
-                                            value={noteFilter}
-                                            onChange={setNoteFilter}
-                                            options={[
-                                                { value: 'all', label: 'All Notes' },
-                                                { value: 'during', label: 'During Protocol' },
-                                                { value: 'follow_up', label: 'Follow-Up' }
-                                            ]}
-                                            theme={theme}
-                                        />
+                                    {!followUpNote && (
+                                        <button
+                                            onClick={handleEditFollowUp}
+                                            className="px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 btn-primary-inset"
+                                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                        >
+                                            <Edit3 size={11} />
+                                            Follow-Up
+                                        </button>
+                                    )}
+                                    <div className="flex items-center gap-1.5">
+                                        <Filter size={12} style={{ color: theme.textLight }} />
+                                        <div className="w-36">
+                                            <CustomDropdown
+                                                value={noteFilter}
+                                                onChange={setNoteFilter}
+                                                options={[
+                                                    { value: 'all', label: 'All Notes' },
+                                                    { value: 'during', label: 'During Protocol' },
+                                                    { value: 'follow_up', label: 'Follow-Up' }
+                                                ]}
+                                                theme={theme}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         <div className="space-y-2">
                             {filteredNotes.length === 0 ? (
                                 <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
@@ -760,60 +916,10 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                             )}
                         </div>
                     </div>
-                )}
-            </div>
-
-            {/* Footer Action Bar */}
-            <div className="flex items-center justify-between pt-3 mt-4" style={{
-                borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`
-            }}>
-                <button
-                    onClick={handleDelete}
-                    className="p-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 text-xs font-medium"
-                    style={{ 
-                        background: terracottaGradient,
-                        color: '#ffffff',
-                        border: 'none',
-                        boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
-                >
-                    <Trash2 size={14} />
-                    Delete
-                </button>
-
-                <div className="flex items-center gap-2">
-                    {onEdit && protocol && (
-                        <button
-                            onClick={handleEdit}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5"
-                            style={{ 
-                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                                color: theme.text,
-                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`
-                            }}
-                        >
-                            <Edit3 size={14} />
-                            Edit Protocol
-                        </button>
-                    )}
-                    {canRestore && onRestore && (
-                        <button
-                            onClick={handleRestore}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 btn-primary-inset"
-                            style={{ 
-                                backgroundColor: theme.primary,
-                                color: theme.textOnPrimary
-                            }}
-                        >
-                            <RotateCcw size={14} />
-                            Restore Protocol
-                        </button>
                     )}
                 </div>
             </div>
-            
+
             {/* Follow-Up Modal */}
             {protocol && (
                 <ProtocolFollowUpModal

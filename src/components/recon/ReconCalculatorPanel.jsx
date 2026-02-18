@@ -1304,7 +1304,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 style={{
                   backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                   color: theme.primary,
-                  border: `1.5px solid ${theme.primary}20`
+                  border: `1.5px solid ${theme.primary}20`,
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
@@ -1357,8 +1358,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pipette' ? 'text-white shadow-sm' : ''}`}
-                    style={deliveryMethod === 'pipette' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pipette' ? 'text-white' : ''}`}
+                    style={deliveryMethod === 'pipette' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
                     onMouseEnter={(e) => {
                         if (deliveryMethod !== 'pipette') {
                             e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -1387,8 +1388,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pen' ? 'text-white shadow-sm' : ''}`}
-                    style={deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pen' ? 'text-white' : ''}`}
+                    style={deliveryMethod === 'pen' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
                     onMouseEnter={(e) => {
                         if (deliveryMethod !== 'pen') {
                             e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -1414,8 +1415,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'nasal' ? 'text-white shadow-sm' : ''}`}
-                    style={deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'nasal' ? 'text-white' : ''}`}
+                    style={deliveryMethod === 'nasal' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
                     onMouseEnter={(e) => {
                         if (deliveryMethod !== 'nasal') {
                             e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -1444,8 +1445,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'topical' ? 'text-white shadow-sm' : ''}`}
-                    style={deliveryMethod === 'topical' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'topical' ? 'text-white' : ''}`}
+                    style={deliveryMethod === 'topical' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
                     onMouseEnter={(e) => {
                         if (deliveryMethod !== 'topical') {
                             e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
@@ -1484,12 +1485,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                 }}
                                 className={`flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-300 ${
                                     administrationRoute === route 
-                                        ? 'text-white shadow-md' 
+                                        ? 'text-white' 
                                         : 'text-gray-500 hover:text-gray-700'
                                 }`}
                                 style={administrationRoute === route ? { 
                                     backgroundColor: theme.primary,
-                                    boxShadow: `0 4px 12px -2px ${theme.primary}50`
+                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
                                 } : {}}
                             >
                                 {route}
@@ -1988,7 +1989,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 style={{ 
                   backgroundColor: theme.isDark ? theme.background : theme.secondary + '30',
                   borderColor: theme.border,
-                  color: theme.primary 
+                  color: theme.primary,
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
@@ -2005,14 +2007,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
 
-        {/* Step 3: Results - always show so calculation is visible (in sidebar and in modal above footer) */}
+        {/* Step 3: Results - show inline only when NOT in modal (modal has fixed footer with same summary) */}
+        {!onCalcUpdate && (
         <div>
           <div className="my-2 border-t opacity-50" style={{ borderColor: theme.border }} />
           <div 
             className={`rounded-2xl p-4 pb-3 relative overflow-hidden group transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
             style={{ 
-              backgroundColor: theme.isDark ? theme.background : theme.primary + '05',
-              ...(compact ? { border: 'none', boxShadow: 'none' } : { border: `1px solid ${theme.primary}15` })
+              backgroundColor: theme.isDark ? 'rgba(127, 158, 149, 0.35)' : 'rgba(127, 158, 149, 0.38)',
+              ...(compact ? { border: 'none', boxShadow: 'none' } : { border: `1px solid ${theme.primary}40`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' })
             }}
           >
             {/* Subtle background decoration */}
@@ -2051,6 +2054,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             </div>
           </div>
         </div>
+        )}
         
         {!hideSaveButton && onSave && (
         <div className="mt-1 flex justify-center">

@@ -4,10 +4,10 @@ import { Zap } from '../../icons/lucide-safe';
 import { useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
+import { subscribe as paymentSubscribe } from '../../services/payment/paymentService';
 import { useAppContext } from '../../context/AppContext';
 import { useFirebase } from '../../context/FirebaseContext';
-import { isAndroid, isIOS } from '../../utils/platform';
-import { getAndroidSubscriptionMessage, getNativeSubscriptionMessage } from '../../utils/paymentCompliance';
+import { isAndroid, isIOS, isNative } from '../../utils/platform';
 
 export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -70,79 +70,46 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   };
 
   const handleSelectPlan = async (planType) => {
-    console.log('🎯 ConversionWidget: Plan selected:', planType);
     setIsProcessing(true);
     
-    // Set a timeout to reset processing state if something goes wrong
     const timeoutId = setTimeout(() => {
-      console.warn('⚠️ ConversionWidget: Checkout timeout, resetting processing state');
       setIsProcessing(false);
       setCheckoutTimeoutId(null);
-    }, 10000); // 10 second timeout
+    }, 10000);
     
     setCheckoutTimeoutId(timeoutId);
     
     try {
-      // Map plan types to Stripe price IDs
-      const priceIds = {
-        monthly: STRIPE_CONFIG.prices.monthly,
-        annual: STRIPE_CONFIG.prices.annual,
-        lifetime: STRIPE_CONFIG.prices.lifetime
-      };
-      
-      console.log('🎯 ConversionWidget: Price IDs:', priceIds);
-      
-      const priceId = priceIds[planType];
-      
-      if (!priceId) {
-        console.warn('⚠️ ConversionWidget: No price ID found for plan:', planType);
-        console.log('🎯 ConversionWidget: Falling back to demo mode for plan:', planType);
-        
-        // Show demo message but still attempt Stripe checkout with fallback
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: `🎭 Demo: ${planType.toUpperCase()} plan selected. Attempting Stripe checkout...`, type: 'info' } 
-        }));
-        
-        // Still try to create checkout session even without price ID
-        try {
-          await createCheckoutSession('demo_price', user?.email || 'demo@example.com', user?.uid || 'demo_user');
-        } catch (error) {
-          console.error('❌ ConversionWidget: Demo checkout failed:', error);
-          setIsProcessing(false);
+      if (isNative()) {
+        await paymentSubscribe(planType, {
+          userEmail: user?.email || '',
+          userId: user?.uid || '',
+        });
+      } else {
+        const priceId = STRIPE_CONFIG.prices[planType];
+        if (!priceId) {
+          throw new Error(`No price ID configured for plan: ${planType}`);
         }
-        return;
+        await createCheckoutSession(priceId, user?.email, user?.uid);
       }
       
-      console.log('🎯 ConversionWidget: Creating checkout for price ID:', priceId);
-      
-      // Create Stripe checkout session - return to dashboard after cancel/success
-      await createCheckoutSession(priceId, user?.email, user?.uid);
-      
-      // Reset processing state after successful checkout creation
       clearTimeout(timeoutId);
       setCheckoutTimeoutId(null);
       setIsProcessing(false);
     } catch (error) {
-      // Always reset processing state on error
       clearTimeout(timeoutId);
       setCheckoutTimeoutId(null);
       setIsProcessing(false);
       
-      // Check if this is a user navigation error (abandoned cart)
       const isUserNavigation = error?.message?.includes('Failed to redirect') || 
                                error?.message?.includes('redirect');
       
       if (isUserNavigation) {
-        // User abandoned the cart - this is normal, don't log as error
-        console.log('ℹ️ ConversionWidget: User returned from checkout (normal behavior)');
-        return; // Silent return, no error needed
+        return;
       }
       
-      // Only log and show errors for actual problems
-      console.error('❌ ConversionWidget: Error creating checkout:', error);
+      console.error('ConversionWidget: Checkout error:', error);
       
-      // Only show toast if stripe service didn't already handle it
-      // (stripe service shows toasts for auth errors, config errors, etc.)
       if (!error?.code && !error?.message?.includes('authenticated') && !error?.message?.includes('not configured')) {
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { message: 'Checkout failed. Please try again.', type: 'error' } 
@@ -307,82 +274,71 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             <div className="space-y-2 pt-2">
               <h4 className="font-semibold text-xs" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>Continue Your Research</h4>
               
-              {/* Native app compliance: Show text-only message, hide Stripe buttons */}
-              {(isAndroid() || isIOS()) ? (
-                <div className="p-3 rounded-lg text-center text-xs" style={{ 
-                  backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
-                  color: theme.isDark ? '#d1d5db' : '#6b7280'
-                }}>
-                  {getNativeSubscriptionMessage()}
-                </div>
-              ) : (
-                /* All Plans in 3 Columns - Web only */
-                <div className="grid grid-cols-3 gap-2 relative">
-                  {/* Monthly Plan */}
+              <div className="grid grid-cols-3 gap-2 relative">
+                {/* Monthly Plan */}
+                <button
+                  onClick={() => !isProcessing && handleSelectPlan('monthly')}
+                  disabled={isProcessing}
+                  className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
+                  style={{ 
+                    border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
+                  }}
+                >
+                  <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
+                  <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
+                  <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                    {isProcessing ? '...' : 'Select →'}
+                  </div>
+                </button>
+
+                {/* Annual Plan */}
+                <div className="relative">
                   <button
-                    onClick={() => !isProcessing && handleSelectPlan('monthly')}
+                    onClick={() => !isProcessing && handleSelectPlan('annual')}
                     disabled={isProcessing}
-                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
+                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
+                    style={{ 
+                      border: theme.isDark ? `2px solid #d97706` : `2px solid ${theme.primary}`,
+                      backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
+                    }}
+                  >
+                    <div className="pt-2">
+                      <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
+                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.success }}>Best value</div>
+                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                        {isProcessing ? '...' : 'Select →'}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Lifetime Plan */}
+                <div className="relative">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', fontSize: '10px' }}>
+                      Limited
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => !isProcessing && handleSelectPlan('lifetime')}
+                    disabled={isProcessing}
+                    className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
                     style={{ 
                       border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
                       backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                     }}
                   >
-                    <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
-                    <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
-                    <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                      {isProcessing ? '...' : 'Select →'}
+                    <div className="pt-2">
+                      <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
+                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
+                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
+                        {isProcessing ? '...' : 'Select →'}
+                      </div>
                     </div>
                   </button>
-
-                  {/* Annual Plan */}
-                  <div className="relative">
-                    <button
-                      onClick={() => !isProcessing && handleSelectPlan('annual')}
-                      disabled={isProcessing}
-                      className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
-                      style={{ 
-                        border: theme.isDark ? `2px solid #d97706` : `2px solid ${theme.primary}`,
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
-                      }}
-                    >
-                      <div className="pt-2">
-                        <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
-                        <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.success }}>Best value</div>
-                        <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                          {isProcessing ? '...' : 'Select →'}
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Lifetime Plan */}
-                  <div className="relative">
-                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
-                      <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', fontSize: '10px' }}>
-                        Limited
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => !isProcessing && handleSelectPlan('lifetime')}
-                      disabled={isProcessing}
-                      className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
-                      style={{ 
-                        border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
-                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
-                      }}
-                    >
-                      <div className="pt-2">
-                        <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
-                        <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
-                        <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
-                          {isProcessing ? '...' : 'Select →'}
-                        </div>
-                      </div>
-                    </button>
-                  </div>
                 </div>
-              )}
+              </div>
             </div>
     </div>
   );

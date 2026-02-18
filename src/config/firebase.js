@@ -4,6 +4,7 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
+import { getAnalytics, isSupported as isAnalyticsSupported, logEvent as firebaseLogEvent } from 'firebase/analytics';
 import { getEnvVar } from './appConfig.js';
 
 // Your web app's Firebase configuration
@@ -31,6 +32,26 @@ export const functions = getFunctions(app, 'us-central1');
 
 // Initialize Storage
 export const storage = getStorage(app);
+
+// Initialize Analytics (non-blocking, only in browser environments that support it)
+let analytics = null;
+isAnalyticsSupported().then(supported => {
+  if (supported) {
+    analytics = getAnalytics(app);
+  }
+}).catch(() => {});
+
+export { analytics };
+
+/**
+ * Log a custom event to Firebase Analytics (payment funnel, etc.)
+ * Safe to call even if analytics isn't initialized yet.
+ */
+export function logAnalyticsEvent(eventName, params = {}) {
+  if (analytics) {
+    firebaseLogEvent(analytics, eventName, params);
+  }
+}
 
 // Emulators disabled - using production Firebase services
 // if (import.meta.env.DEV && typeof window !== 'undefined') {

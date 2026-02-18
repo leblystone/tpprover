@@ -17,6 +17,7 @@ export const adminPrimaryTabs = [
       { id: 'support', label: 'Support', path: `${ADMIN_BASE}/overview/support` },
       { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
+      { id: 'revenue', label: 'Revenue', path: `${ADMIN_BASE}/overview/revenue` },
       { id: 'automation', label: 'Automation', path: `${ADMIN_BASE}/overview/automation` },
     ],
   },
