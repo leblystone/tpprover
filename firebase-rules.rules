@@ -118,6 +118,11 @@ service cloud.firestore {
     // User app data - protocols, vendors, orders, etc.
     match /userData/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Cloud backup snapshots (up to 3 per user)
+      match /snapshots/{snapshotId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // User preferences - theme, settings

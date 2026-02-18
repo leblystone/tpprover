@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, addDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
@@ -1172,5 +1172,184 @@ export function subscribeToAppData(userId, callback) {
   } catch (error) {
     console.error('❌ Error setting up app data subscription:', error);
     return () => {};
+  }
+}
+
+// ─── Cloud Backup Snapshots ─────────────────────────────────────────────────
+
+const MAX_SNAPSHOTS = 3;
+
+/**
+ * Save a cloud backup snapshot. Prunes old snapshots beyond MAX_SNAPSHOTS.
+ * Called once per app visit to maintain a rolling history of 3 restore points.
+ * @param {string} userId
+ * @param {Object} appData - Full app data to back up
+ * @param {string} reason - 'visit' | 'pre_destructive' | 'manual'
+ * @returns {boolean} success
+ */
+export async function saveCloudSnapshot(userId, appData, reason = 'visit') {
+  try {
+    const snapshotsRef = collection(db, COLLECTIONS.USER_DATA, userId, 'snapshots');
+
+    const arrayKeys = [
+      'protocols', 'orders', 'stockpile', 'vendors', 'supplements',
+      'reconItems', 'reconHistory', 'metrics', 'scheduledBuys',
+      'protocolHistory', 'wishlist', 'userNotes', 'userGoals',
+      'injectionHistory', 'stockpileHistory'
+    ];
+    const objectKeys = [
+      'calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone',
+      'injectionStats'
+    ];
+
+    const itemCounts = {};
+    let totalItems = 0;
+    arrayKeys.forEach(k => {
+      const len = Array.isArray(appData[k]) ? appData[k].length : 0;
+      itemCounts[k] = len;
+      totalItems += len;
+    });
+    objectKeys.forEach(k => {
+      const len = (appData[k] && typeof appData[k] === 'object') ? Object.keys(appData[k]).length : 0;
+      itemCounts[k] = len;
+      totalItems += len;
+    });
+
+    const cleanedData = deepCleanData(appData);
+
+    const snapshotDoc = {
+      data: cleanedData,
+      timestamp: serverTimestamp(),
+      createdAt: new Date().toISOString(),
+      reason,
+      itemCounts,
+      totalItems,
+      userId,
+      version: APP_VERSION
+    };
+
+    const estimatedSize = estimateDocSize(snapshotDoc);
+    if (estimatedSize > FIRESTORE_DOC_SIZE_LIMIT) {
+      console.error(`🚨 Snapshot too large (${(estimatedSize / 1024).toFixed(0)}KB). Skipping.`);
+      return false;
+    }
+
+    await addDoc(snapshotsRef, snapshotDoc);
+    console.log(`📸 Cloud snapshot saved (${reason}) — ${totalItems} items`);
+
+    await pruneCloudSnapshots(userId);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to save cloud snapshot:', error);
+    return false;
+  }
+}
+
+/**
+ * Load cloud snapshot metadata for listing (does NOT return full data).
+ * Returns up to MAX_SNAPSHOTS entries sorted newest-first.
+ */
+export async function loadCloudSnapshotList(userId) {
+  try {
+    const snapshotsRef = collection(db, COLLECTIONS.USER_DATA, userId, 'snapshots');
+    const q = query(snapshotsRef, orderBy('createdAt', 'desc'), limit(MAX_SNAPSHOTS));
+    const snap = await getDocs(q);
+
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        timestamp: data.timestamp,
+        createdAt: data.createdAt,
+        reason: data.reason,
+        itemCounts: data.itemCounts || {},
+        totalItems: data.totalItems || 0,
+        version: data.version
+      };
+    });
+  } catch (error) {
+    console.error('❌ Failed to load cloud snapshot list:', error);
+    return [];
+  }
+}
+
+/**
+ * Load a single snapshot's full data for restoration.
+ */
+export async function loadCloudSnapshot(userId, snapshotId) {
+  try {
+    const snapshotRef = doc(db, COLLECTIONS.USER_DATA, userId, 'snapshots', snapshotId);
+    const snap = await getDoc(snapshotRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Failed to load cloud snapshot:', error);
+    return null;
+  }
+}
+
+/**
+ * Remove snapshots beyond the keep limit (oldest first).
+ */
+async function pruneCloudSnapshots(userId, keepCount = MAX_SNAPSHOTS) {
+  try {
+    const snapshotsRef = collection(db, COLLECTIONS.USER_DATA, userId, 'snapshots');
+    const q = query(snapshotsRef, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+
+    if (snap.docs.length <= keepCount) return;
+
+    const toDelete = snap.docs.slice(keepCount);
+    await Promise.all(toDelete.map(d => deleteDoc(d.ref)));
+    console.log(`🧹 Pruned ${toDelete.length} old cloud snapshot(s)`);
+  } catch (error) {
+    console.error('❌ Failed to prune cloud snapshots:', error);
+  }
+}
+
+/**
+ * Check whether a visit backup has already been created this session.
+ * Uses sessionStorage so each browser tab / app open gets exactly one backup.
+ * Returns true if a backup should be created (i.e. not yet done this session).
+ */
+export function shouldCreateVisitBackup() {
+  try {
+    if (sessionStorage.getItem('tpprover_visit_backup_done')) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mark the visit backup as done for this session.
+ */
+export function markVisitBackupDone() {
+  try {
+    sessionStorage.setItem('tpprover_visit_backup_done', Date.now().toString());
+  } catch { /* sessionStorage unavailable */ }
+}
+
+/**
+ * Get the lastUpdated timestamp from the main userData document (the live cloud sync time).
+ */
+export async function getLastCloudSyncTime(userId) {
+  try {
+    const userDoc = getUserDoc(userId, COLLECTIONS.USER_DATA);
+    const snap = await getDoc(userDoc);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.lastUpdated) {
+        if (data.lastUpdated.toMillis) return data.lastUpdated.toMillis();
+        if (data.lastUpdated.toDate) return data.lastUpdated.toDate().getTime();
+        return new Date(data.lastUpdated).getTime();
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Failed to get last cloud sync time:', error);
+    return null;
   }
 }

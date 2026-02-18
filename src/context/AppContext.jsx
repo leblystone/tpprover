@@ -9,7 +9,8 @@ import {
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps,
   mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker,
-  mergeTaskCompletion
+  mergeTaskCompletion,
+  saveCloudSnapshot, shouldCreateVisitBackup, markVisitBackupDone
 } from '../services/cloudStorage';
 import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
 import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
@@ -1862,6 +1863,12 @@ export function AppProvider({ children }) {
                     try { localStorage.removeItem('tpprover_sync_pending'); } catch (e) {}
                     // Notify other tabs that data was saved
                     try { window.dispatchEvent(new Event('tpp:sync-complete')); } catch (e) {}
+
+                    // Create a visit backup once per session (fire-and-forget)
+                    if (shouldCreateVisitBackup()) {
+                        markVisitBackupDone();
+                        saveCloudSnapshot(userId, userData, 'visit').catch(() => {});
+                    }
                 }).catch(error => {
                     // Already logged in the queue, just log final failure
                     console.error('❌ Auto-sync failed after retry:', error.message);

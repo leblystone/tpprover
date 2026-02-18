@@ -393,8 +393,7 @@ export default function SettingsNotifications() {
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 border shadow-sm shrink-0"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -609,138 +608,6 @@ export default function SettingsNotifications() {
           </div>
         </div>
 
-        {/* Test & Diagnostics */}
-        {settings.notifications.push && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <Zap size={14} style={{ color: theme.primary }} />
-              <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-                Test & Diagnostics
-              </h4>
-            </div>
-
-            <div 
-              className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm space-y-3"
-              style={{ borderColor: 'transparent' }}
-            >
-              {/* Send Test Notification */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSendTestNotification}
-                  disabled={testState.loading}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
-                  style={{ 
-                    backgroundColor: theme.primary, 
-                    color: theme.textOnPrimary,
-                    opacity: testState.loading ? 0.7 : 1
-                  }}
-                >
-                  {testState.loading ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <Send size={15} />
-                  )}
-                  {testState.loading ? 'Sending...' : 'Send Test Notification'}
-                </button>
-              </div>
-
-              {/* Test Result */}
-              {testState.result && (
-                <div 
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
-                  style={{ 
-                    backgroundColor: testState.result.type === 'success' ? '#10b98120' : '#ef444420',
-                    color: testState.result.type === 'success' ? '#10b981' : '#ef4444'
-                  }}
-                >
-                  {testState.result.type === 'success' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                  {testState.result.message}
-                </div>
-              )}
-
-              {/* Run Diagnostics */}
-              <button
-                onClick={handleRunDiagnostics}
-                disabled={diagState.loading}
-                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all active:scale-[0.98] border"
-                style={{ 
-                  borderColor: theme.border,
-                  backgroundColor: 'transparent',
-                  color: theme.text,
-                  opacity: diagState.loading ? 0.7 : 1
-                }}
-              >
-                {diagState.loading ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Bug size={13} />
-                )}
-                {diagState.loading ? 'Checking...' : 'Run Diagnostics'}
-              </button>
-
-              {/* Diagnostic Results */}
-              {diagState.open && diagState.data && (
-                <div 
-                  className="rounded-xl border p-3 space-y-2 text-[11px] font-mono"
-                  style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)' }}
-                >
-                  <div className="text-xs font-semibold font-sans mb-2" style={{ color: theme.text }}>
-                    Notification Diagnostics
-                  </div>
-                  
-                  {diagState.data.error ? (
-                    <div style={{ color: '#ef4444' }}>Error: {diagState.data.error}</div>
-                  ) : (
-                    <>
-                      <DiagRow label="Platform" value={`${diagState.data.platform} (${diagState.data.isNative ? 'native' : 'web'})`} theme={theme} />
-                      <DiagRow label="Device Timezone" value={diagState.data.browserTimezone} theme={theme} />
-                      <DiagRow label="Stored Timezone" value={diagState.data.localStorageTimezone} theme={theme} ok={diagState.data.timezonesMatch} />
-                      <DiagRow label="Firestore Timezone" value={diagState.data.firestore?.storedTimezone || 'N/A'} theme={theme} ok={diagState.data.firestoreTimezoneMatch} />
-                      <DiagRow label="Permission" value={diagState.data.notificationPermission} theme={theme} ok={diagState.data.notificationPermission === 'granted'} />
-                      <DiagRow label="Firebase User" value={diagState.data.firebaseUser} theme={theme} ok={!diagState.data.firebaseUser.includes('NOT')} />
-                      
-                      {diagState.data.firestore && !diagState.data.firestore.error && (
-                        <>
-                          <div className="h-px my-1" style={{ backgroundColor: theme.border + '40' }} />
-                          <DiagRow label="FCM Token" value={diagState.data.firestore.hasFcmToken ? 'Present' : 'MISSING'} theme={theme} ok={diagState.data.firestore.hasFcmToken} />
-                          {!diagState.data.firestore.hasFcmToken && (
-                            <button
-                              onClick={handleFixToken}
-                              disabled={testState.loading}
-                              className="w-full py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-[0.98]"
-                              style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
-                            >
-                              {testState.loading ? <><Loader2 size={11} className="animate-spin inline mr-1" /> Registering...</> : <><Wrench size={11} className="inline mr-1" /> Fix: Re-register FCM Token</>}
-                            </button>
-                          )}
-                          <DiagRow label="Push Enabled" value={diagState.data.firestore.pushEnabled ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.pushEnabled} />
-                          <DiagRow label="Research Reminders" value={diagState.data.firestore.researchReminders ? 'Yes' : 'No'} theme={theme} ok={diagState.data.firestore.researchReminders} />
-                          <DiagRow label="AM Enabled" value={`${diagState.data.firestore.amEnabled ? 'Yes' : 'No'} @ ${diagState.data.firestore.amTime}`} theme={theme} />
-                          <DiagRow label="PM Enabled" value={`${diagState.data.firestore.pmEnabled ? 'Yes' : 'No'} @ ${diagState.data.firestore.pmTime}`} theme={theme} />
-                        </>
-                      )}
-                      
-                      <div className="h-px my-1" style={{ backgroundColor: theme.border + '40' }} />
-                      <DiagRow label="Local Time" value={diagState.data.localTime} theme={theme} />
-                    </>
-                  )}
-                  
-                  <button
-                    onClick={() => setDiagState(prev => ({ ...prev, open: false }))}
-                    className="w-full text-center py-1 text-[10px] font-bold uppercase tracking-wider opacity-50 hover:opacity-100 transition-opacity mt-1"
-                    style={{ color: theme.text }}
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-
-              <p className="text-[10px] opacity-40 text-center leading-relaxed" style={{ color: theme.text }}>
-                Test sends a real push notification via Firebase. Diagnostics show what the server sees when deciding to send your reminders.
-              </p>
-            </div>
-          </div>
-        )}
 
       </div>
 
