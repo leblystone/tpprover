@@ -11,9 +11,12 @@ import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
 
 function useLocal(key, fallback) {
-  const [state, setState] = useState(fallback)
-  useEffect(() => { try { const raw = localStorage.getItem(key); if (raw) setState(JSON.parse(raw)) } catch {} }, [key])
-  return state
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
 }
 
 export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false }) {
@@ -954,9 +957,11 @@ function WashoutComparison({ data, color, theme }) {
 function ToggleTabs({ value, onChange, options, theme }) {
   return (
     <div
-      className="flex gap-2 p-1 w-full overflow-x-auto hide-scrollbar snap-x"
+      className="grid gap-1 p-1 rounded-xl w-full"
       style={{
-        WebkitOverflowScrolling: 'touch',
+        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
+        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.04)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
       }}
       role="tablist"
     >
@@ -966,11 +971,11 @@ function ToggleTabs({ value, onChange, options, theme }) {
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            className="px-4 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-200 focus:outline-none active:scale-95 whitespace-nowrap flex-shrink-0 snap-start"
+            className="py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
             style={{
-              backgroundColor: isActive ? '#445952' : (theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
-              color: isActive ? '#fff' : theme.text,
-              border: isActive ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
+              backgroundColor: isActive ? '#445952' : 'transparent',
+              color: isActive ? '#fff' : theme.textLight,
+              border: isActive ? '1px solid #3B4240' : '1px solid transparent',
               boxShadow: isActive
                 ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
                 : 'none',

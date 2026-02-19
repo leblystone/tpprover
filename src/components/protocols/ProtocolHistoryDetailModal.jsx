@@ -382,67 +382,65 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             maxHeight="90vh"
             footer={footerContent}
         >
-            <div className="space-y-6">
-                {/* Timeline / Date Range - kept compact */}
-                <div className="md:hidden">
-                    <div className="p-3 rounded-lg content-section">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Calendar size={16} style={{ color: theme.primary }} />
-                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Date Range</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <Clock size={14} style={{ color: theme.primary }} />
-                                <span className="text-xs font-medium" style={{ color: theme.textLight }}>Duration:</span>
-                                <span className="text-sm font-semibold" style={{ color: theme.text }}>{getDuration()}</span>
+            <div className="space-y-0">
+                {/* Date & Status — accordion */}
+                <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <button
+                        type="button"
+                        onClick={() => setExpandedSections(prev => ({ ...prev, date: !prev.date }))}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Calendar size={20} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5 text-left">
+                                <h4 className="text-base font-semibold" style={{ color: theme.text }}>Date & Status</h4>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Range & completion</span>
                             </div>
                         </div>
-                        <div className="mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(startDate)}</div>
+                        {expandedSections.date ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                    </button>
+                    <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.date ? '400px' : '0', opacity: expandedSections.date ? 1 : 0 }}>
+                        <div className="px-3 pb-3 pt-1 border-t" style={{ borderColor: theme.border }}>
+                            <div className="md:hidden">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Date Range</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Clock size={14} style={{ color: theme.primary }} />
+                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>{getDuration()}</span>
+                                    </div>
+                                </div>
+                                <div className="mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(startDate)}</div>
+                                        {endDate && (<><div className="flex-1 h-px" style={{ backgroundColor: theme.border }} /><div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(endDate)}</div></>)}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-center mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}><StatusBadge info={statusInfo} endLabel={endTypeLabel} /></div>
+                            </div>
+                            <div className="hidden md:grid grid-cols-3 gap-4">
+                                <div className="p-3 rounded-lg content-section">
+                                    <div className="flex items-center gap-2 mb-1.5"><Calendar size={16} style={{ color: theme.primary }} /><span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Start Date</span></div>
+                                    <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(startDate)}</div>
+                                </div>
                                 {endDate && (
-                                    <>
-                                        <div className="flex-1 h-px" style={{ backgroundColor: theme.border }}></div>
+                                    <div className="p-4 rounded-lg content-section">
+                                        <div className="flex items-center gap-2 mb-1.5"><Calendar size={16} style={{ color: theme.primary }} /><span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>End Date</span></div>
                                         <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(endDate)}</div>
-                                    </>
+                                    </div>
                                 )}
+                                <div className="p-3 rounded-lg content-section">
+                                    <div className="flex items-center gap-2 mb-1.5"><Clock size={16} style={{ color: theme.primary }} /><span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Duration</span></div>
+                                    <div className="text-sm font-semibold mb-2" style={{ color: theme.text }}>{getDuration()}</div>
+                                    <div className="flex items-center justify-end mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${theme.border}` }}><StatusBadge info={statusInfo} endLabel={endTypeLabel} /></div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center justify-center mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
-                            <StatusBadge info={statusInfo} endLabel={endTypeLabel} />
-                        </div>
-                    </div>
-                </div>
-                <div className="hidden md:grid grid-cols-3 gap-4">
-                    <div className="p-3 rounded-lg content-section">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <Calendar size={16} style={{ color: theme.primary }} />
-                            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Start Date</span>
-                        </div>
-                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(startDate)}</div>
-                    </div>
-                    {endDate && (
-                        <div className="p-4 rounded-lg content-section">
-                            <div className="flex items-center gap-2 mb-1.5">
-                                <Calendar size={16} style={{ color: theme.primary }} />
-                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>End Date</span>
-                            </div>
-                            <div className="text-sm font-semibold" style={{ color: theme.text }}>{formatMMDDYYYY(endDate)}</div>
-                        </div>
-                    )}
-                    <div className="p-3 rounded-lg content-section">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <Clock size={16} style={{ color: theme.primary }} />
-                            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Duration</span>
-                        </div>
-                        <div className="text-sm font-semibold mb-2" style={{ color: theme.text }}>{getDuration()}</div>
-                        <div className="flex items-center justify-end mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${theme.border}` }}>
-                            <StatusBadge info={statusInfo} endLabel={endTypeLabel} />
                         </div>
                     </div>
                 </div>
 
-                {/* ─── PROTOCOL ACTIVITY (same UI as active protocol Activity tab) ─── */}
+                {/* Protocol Activity — accordion */}
                 {timelineEvents.length > 0 && (() => {
                     const getTimelineColor = (idx, total) => {
                         const light = [127, 158, 149];
@@ -454,18 +452,23 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         return `rgb(${r}, ${g}, ${b})`;
                     };
                     return (
-                        <div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <Clock size={18} style={{ color: '#445952' }} />
-                                <div className="flex flex-col gap-0">
-                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Activity</h4>
-                                    <div className="flex items-center gap-2 ml-0.5">
-                                        <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: '#6B7F77' }}></div>
-                                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Most Recent First</span>
+                        <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <button
+                                type="button"
+                                onClick={() => setExpandedSections(prev => ({ ...prev, activity: !prev.activity }))}
+                                className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Clock size={20} style={{ color: '#445952' }} />
+                                    <div className="flex flex-col gap-0.5 text-left">
+                                        <h4 className="text-base font-semibold" style={{ color: theme.text }}>Protocol Activity</h4>
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Most recent first</span>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="space-y-0">
+                                {expandedSections.activity ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                            </button>
+                            <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.activity ? '2000px' : '0', opacity: expandedSections.activity ? 1 : 0 }}>
+                                <div className="px-3 pb-3 pt-2 border-t space-y-0" style={{ borderColor: theme.border }}>
                                 {timelineEvents.map((ev, idx) => {
                                     const Icon = ev.icon;
                                     const isLast = idx === timelineEvents.length - 1;
@@ -507,25 +510,31 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                         </div>
                                     );
                                 })}
+                                </div>
                             </div>
                         </div>
                     );
                 })()}
 
-                {/* ─── PEPTIDES — DOSAGE & SCHEDULE ─── */}
+                {/* Peptide(s) — accordion */}
                 {protocolData?.peptides && protocolData.peptides.length > 0 && (
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <Pill size={26} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                                <div className="flex items-center gap-2 ml-0.5">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Dosage & Schedule</span>
+                    <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <button
+                            type="button"
+                            onClick={() => setExpandedSections(prev => ({ ...prev, peptides: !prev.peptides }))}
+                            className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Pill size={20} style={{ color: theme.primary }} />
+                                <div className="flex flex-col gap-0.5 text-left">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>Peptide(s)</h4>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Dosage & schedule</span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
+                            {expandedSections.peptides ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                        </button>
+                        <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.peptides ? '800px' : '0', opacity: expandedSections.peptides ? 1 : 0 }}>
+                            <div className="px-3 pb-3 pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
                             {protocolData.peptides.map((pep, idx) => {
                                 const formatFrequency = (freq) => {
                                     if (!freq) return null;
@@ -577,24 +586,30 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     </div>
                                 );
                             })}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* ─── VIALS ─── */}
+                {/* Vials — accordion */}
                 {((vials && vials.length > 0) || (vialsAddedDuring && vialsAddedDuring.length > 0)) && (
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <Package size={26} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vials</h4>
-                                <div className="flex items-center gap-2 ml-0.5">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Stockpile & Assessment</span>
+                    <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <button
+                            type="button"
+                            onClick={() => setExpandedSections(prev => ({ ...prev, vials: !prev.vials }))}
+                            className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Package size={20} style={{ color: theme.primary }} />
+                                <div className="flex flex-col gap-0.5 text-left">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>Vials</h4>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Stockpile & assessment</span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
+                            {expandedSections.vials ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                        </button>
+                        <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.vials ? '2000px' : '0', opacity: expandedSections.vials ? 1 : 0 }}>
+                            <div className="px-3 pb-3 pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
                             {vials && vials.length > 0 && vials.map((vial, index) => {
                                 const stockpileItem = stockpile?.find(s => s.id === vial.vialId || s.id === vial.stockpileId);
                                 const assessment = vialAssessment?.[vial.vialId];
@@ -701,24 +716,30 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     })}
                                 </>
                             )}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* ─── DELIVERY & RECONSTITUTION ─── */}
+                {/* Delivery & Recon — accordion */}
                 {(Object.keys(linkedItems).length > 0 || reconstitutionData || (skippedReconstitution && Object.keys(skippedReconstitution).length > 0)) && (
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <Link2 size={26} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Delivery & Recon</h4>
-                                <div className="flex items-center gap-2 ml-0.5">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Methods & Documentation</span>
+                    <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <button
+                            type="button"
+                            onClick={() => setExpandedSections(prev => ({ ...prev, delivery: !prev.delivery }))}
+                            className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Link2 size={20} style={{ color: theme.primary }} />
+                                <div className="flex flex-col gap-0.5 text-left">
+                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>Delivery & Recon</h4>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Methods & documentation</span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
+                            {expandedSections.delivery ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                        </button>
+                        <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.delivery ? '1500px' : '0', opacity: expandedSections.delivery ? 1 : 0 }}>
+                            <div className="px-3 pb-3 pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
                             {Object.entries(linkedItems).map(([peptideId, item]) => {
                                 const peptide = protocolData?.peptides?.find(p => (p.id || `peptide-${protocolData.peptides.indexOf(p)}`) === peptideId);
                                 const deliveryMethod = item.deliveryMethod;
@@ -787,23 +808,29 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     )}
                                 </div>
                             ))}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* ─── FOLLOW-UP & NOTES ─── */}
-                <div>
-                    <div className="flex items-center gap-2.5 mb-3">
-                        <Star size={26} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Assessment</h4>
-                            <div className="flex items-center gap-2 ml-0.5">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Follow-Up & Notes</span>
+                {/* Assessment — accordion */}
+                <div className="rounded-lg border mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <button
+                        type="button"
+                        onClick={() => setExpandedSections(prev => ({ ...prev, assessment: !prev.assessment }))}
+                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Star size={20} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0.5 text-left">
+                                <h4 className="text-base font-semibold" style={{ color: theme.text }}>Assessment</h4>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Follow-up & notes</span>
                             </div>
                         </div>
-                    </div>
-
+                        {expandedSections.assessment ? <ChevronDown size={18} style={{ color: theme.textLight }} /> : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                    </button>
+                    <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expandedSections.assessment ? '2000px' : '0', opacity: expandedSections.assessment ? 1 : 0 }}>
+                        <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
                     {followUpNote ? (
                         <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
@@ -947,6 +974,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                         </div>
                     </div>
                     )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
