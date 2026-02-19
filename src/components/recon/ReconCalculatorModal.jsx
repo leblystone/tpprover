@@ -258,22 +258,17 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       maxHeight="90vh"
       footer={
         <div 
-          className="w-full space-y-2 pt-2"
-          style={{ 
-            backgroundColor: theme.isDark ? '#2D3B36' : '#C5D9D3',
-            marginTop: -12,
-            paddingTop: 14,
-            borderTop: `3px solid ${theme.primary || '#7F9E95'}`
+          className="w-full space-y-2"
+          style={{
+            backgroundColor: theme.isDark ? '#1E2A24' : '#DDE8E5',
+            margin: '-12px -24px',
+            padding: '12px 24px',
+            width: 'calc(100% + 48px)',
           }}
         >
           {/* Compact calculated results row */}
           <div 
-            className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
-            style={{ 
-              backgroundColor: theme.isDark ? '#3D4F48' : '#B0C4BE',
-              border: `1px solid ${theme.primary}50`,
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
-            }}
+            className="flex items-center justify-between text-center py-1.5 px-3"
           >
             <div className="flex-1">
               <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
@@ -281,7 +276,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                 {typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
               </div>
             </div>
-            <div className="flex-1 border-x" style={{ borderColor: theme.primary + '15' }}>
+            <div className="flex-1">
               <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Doses/Vial</div>
               <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
                 {typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}

@@ -153,9 +153,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   }
                 }, 100);
               }} 
-              className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+              className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-black dark:text-white"
             >
-              Remove
+              Cancel
             </button>
           )}
         </div>
@@ -171,7 +171,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               color: theme?.textOnPrimary || '#ffffff'
             }}
           >
-            Update Profile
+            Save Vendor
           </button>
         </div>
       </div>
@@ -209,7 +209,6 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               />
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold ml-1 opacity-60" style={{ color: theme.text }}>Vendor Rating</span>
               <style>{`
                 @keyframes starPulse {
                   0%, 100% { transform: scale(1); }
@@ -276,7 +275,6 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           
           {/* Category Selection */}
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold ml-1 opacity-60" style={{ color: theme.text }}>Research Channel</span>
             <div className="flex w-full rounded-xl p-1.5" style={{ 
               backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
               border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}`
@@ -290,7 +288,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   style={{ 
                     backgroundColor: form.type === k ? theme?.primary : 'transparent', 
                     color: form.type === k ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'),
-                    boxShadow: form.type === k ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: form.type === k ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none'
                   }}
                 >
                   {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
@@ -434,7 +432,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]" 
               style={{ 
                 backgroundColor: `${theme.primary}15`,
-                color: theme.primary 
+                color: theme.primary,
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
               }} 
               onClick={addContact}
             >
@@ -485,7 +484,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   style={{
                     backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
                     borderColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'),
-                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
+                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none'
                   }}
                 >
                   <Icon size={20} className="mb-2" style={{ color: isSelected ? theme.textOnPrimary : 'inherit' }} />
