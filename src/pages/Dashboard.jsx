@@ -455,9 +455,10 @@ export default function Dashboard() {
           });
         }
       })
-      // Inject first-day Wash-Out reminders
+      // Inject first-day Wash-Out reminders (only for actively tracked protocols)
       for (const p of protocols) {
         if (!p?.washout?.enabled || !p?.startDate) continue
+        if (p.active === false && !p.endType) continue
         // compute end date from either endDate or duration
         let end = p.endDate ? parseDateString(p.endDate) : null
         if (!end && p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {

@@ -1206,8 +1206,13 @@ export default function EmailTemplateManager({ theme }) {
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
+            <optgroup label="Campaigns">
+              {Object.entries(templates).filter(([key]) => ['winBack', 'trialExpiredSurvey'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
             <optgroup label="Custom & Announcements">
-              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail', 'trialExpiredSurvey'].includes(key)).map(([key, template]) => (
+              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
