@@ -496,7 +496,9 @@ export default function Calendar() {
             }
             
             // Wash-out chips (enriched with half-life data for gradient rendering)
+            // Only show washout for protocols that are active (projected) or were properly ended
             for (const p of prots) {
+              if (p.active === false && !p.endType) continue
               const { washStart, washEnd } = getWindows(p)
               if (washStart && washEnd) {
                 const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())

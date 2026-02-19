@@ -2101,12 +2101,12 @@ exports.sendWinBackEmail = async (userEmail, userName = null, promoCode = null) 
   try {
     const customTemplate = await loadEmailTemplate('winBack');
     if (customTemplate) {
-      const subject = customTemplate.subject || "We miss you! Here's a reason to come back";
+      const subject = customTemplate.subject || 'The doors are open — and we saved you a spot';
       const html = generateEmailHTML(customTemplate, { userName, promoCode });
       return sendEmail(userEmail, subject, html);
     }
   } catch (e) { /* ignore */ }
-  const subject = "We miss you! Here's a reason to come back - The Pep Planner";
+  const subject = 'The doors are open — and we saved you a spot';
   const html = emailTemplates.winBackEmail(userName, promoCode);
   return sendEmail(userEmail, subject, html);
 };
