@@ -257,14 +257,22 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       theme={theme}
       maxHeight="90vh"
       footer={
-        <div className="w-full space-y-2">
+        <div 
+          className="w-full space-y-2 pt-2"
+          style={{ 
+            backgroundColor: theme.isDark ? '#2D3B36' : '#C5D9D3',
+            marginTop: -12,
+            paddingTop: 14,
+            borderTop: `3px solid ${theme.primary || '#7F9E95'}`
+          }}
+        >
           {/* Compact calculated results row */}
           <div 
             className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
             style={{ 
-              backgroundColor: theme.isDark ? 'rgba(127, 158, 149, 0.35)' : 'rgba(127, 158, 149, 0.38)',
-              border: `1px solid ${theme.primary}40`,
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
+              backgroundColor: theme.isDark ? '#3D4F48' : '#B0C4BE',
+              border: `1px solid ${theme.primary}50`,
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
             }}
           >
             <div className="flex-1">

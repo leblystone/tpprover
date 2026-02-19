@@ -414,7 +414,7 @@ export default function BottomSheet({
           <div 
             className={`py-3 flex items-center justify-end gap-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-t'}`}
             style={{ 
-              backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
+              backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : '#F0F2F0',
               ...(seamlessContent ? {} : { borderColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : (theme?.border || 'rgba(0,0,0,0.1)') }),
               // Add bottom padding for Android navigation bar on mobile devices
               // Only adds extra padding when safe-area-bottom is detected (e.g., Samsung with gesture nav)
