@@ -248,6 +248,7 @@ class UnifiedNotificationService {
       // Calculate protocol windows (same logic as Calendar.jsx getWindows)
       for (const p of protocols) {
         if (!p?.startDate || !p?.washout?.enabled) continue;
+        if (p.active === false && !p.endType) continue;
         
         const startDt = parseDateString(p.startDate);
         if (!startDt) continue;

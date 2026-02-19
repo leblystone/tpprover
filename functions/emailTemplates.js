@@ -4579,7 +4579,6 @@ exports.emailChangeVerificationEmailV2 = (newEmail, oldEmail) => {
  * Win-back email -- honest, confident re-engagement for users who couldn't subscribe
  */
 exports.winBackEmail = (userName = null, promoCode = null) => {
-  const greeting = userName ? `Hey ${userName}` : 'Hey there';
 
   const content = `
     <div style="padding: 0 8px;">
@@ -4588,17 +4587,12 @@ exports.winBackEmail = (userName = null, promoCode = null) => {
       </h1>
 
       <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        ${greeting},
-      </p>
-
-      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        Real talk &mdash; when you signed up for The Pep Planner, we weren't fully ready for you.
-        Subscriptions weren't set up properly, and if you tried to upgrade&hellip; yeah, that didn't work. Our bad.
+        When you signed up for The Pep Planner, subscriptions weren't fully set up yet &mdash;
+        and if you tried to upgrade, it didn't work. That's on us.
       </p>
 
       <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 20px 0;">
-        But we didn't sit around. While we were sorting that out, we went heads-down building.
-        Here's what's changed:
+        We've spent the time since then building. A lot has changed &mdash; here's the short version:
       </p>
 
       <!-- What's new -->

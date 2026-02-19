@@ -311,8 +311,10 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         if (!psOnly) continue;
         const inRange = (psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
         const active = p.active !== false;
+        const wasTracked = !active && p.endDate;
 
-        if (!inRange || !active) continue;
+        if (!inRange) continue;
+        if (!active && !wasTracked) continue;
 
         const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
         
