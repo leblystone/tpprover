@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatMMDDYYYY, parseDateString, normalizeToMidnight } from '../../utils/date';
+import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
@@ -544,6 +544,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                             <button
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
+                                                                                    const isResuming = !!peptide.titrationHeldAt;
                                                                                     const updatedPeptides = p.peptides.map(pep => {
                                                                                         if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
                                                                                         if (pep.titrationHeldAt) {
@@ -568,7 +569,14 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                                             };
                                                                                         }
                                                                                     });
-                                                                                    onUpdateProtocol({ ...p, peptides: updatedPeptides });
+                                                                                    const phaseEvent = {
+                                                                                        type: isResuming ? 'resumed' : 'held',
+                                                                                        peptideId: peptide.id,
+                                                                                        peptideName: peptide.name,
+                                                                                        phaseIndex: currentPhase.phaseIndex,
+                                                                                        date: getLocalTimestamp()
+                                                                                    };
+                                                                                    onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent });
                                                                                 }}
                                                                                 className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
                                                                                 style={{
@@ -597,14 +605,20 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                                         e.stopPropagation();
                                                                                         const updatedPeptides = p.peptides.map(pep => {
                                                                                             if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
-                                                                                            // Add remaining days to offset to jump to next phase
                                                                                             return {
                                                                                                 ...pep,
-                                                                                                titrationHeldAt: null, // Clear hold if active
+                                                                                                titrationHeldAt: null,
                                                                                                 titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) + (currentPhase.daysRemainingInPhase || 0)
                                                                                             };
                                                                                         });
-                                                                                        onUpdateProtocol({ ...p, peptides: updatedPeptides });
+                                                                                        const phaseEvent = {
+                                                                                            type: 'next_phase',
+                                                                                            peptideId: peptide.id,
+                                                                                            peptideName: peptide.name,
+                                                                                            phaseIndex: currentPhase.phaseIndex,
+                                                                                            date: getLocalTimestamp()
+                                                                                        };
+                                                                                        onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent });
                                                                                     }}
                                                                                     className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
                                                                                     style={{

@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -34,7 +34,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries, addPhaseEvent } from '../utils/protocolHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
@@ -1783,7 +1783,13 @@ export default function Protocols() {
                           onEditClick={handleEditClick}
                           onHistoryClick={setHistoryProtocol}
                           hasDraftStart={hasDraftStart(p.id)}
-                          onUpdateProtocol={updateProtocolWithForceSync}
+                          onUpdateProtocol={(updated, meta) => {
+                            updateProtocolWithForceSync(updated);
+                            if (meta?.phaseEvent) {
+                              const activeEntry = findActiveProtocolHistoryEntry(updated.id);
+                              if (activeEntry) addPhaseEvent(activeEntry.id, meta.phaseEvent);
+                            }
+                          }}
                         />
                       ))}
                     </div>
@@ -3649,11 +3655,16 @@ export default function Protocols() {
                       });
                     }
 
-                    if (protocolData?.peptides) {
-                      protocolData.peptides.forEach(pep => {
-                        if (pep.titrationHeldAt) {
-                          const phaseIdx = pep.titrationPhaseIndex ?? 0;
-                          ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, color: '#eab308', label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}.`, detail: null });
+                    if (he.phaseEvents?.length > 0) {
+                      he.phaseEvents.forEach(evt => {
+                        const phaseNum = (evt.phaseIndex ?? 0) + 1;
+                        const name = evt.peptideName || 'peptide';
+                        if (evt.type === 'held') {
+                          ev.push({ date: evt.date, sort: 4, type: 'hold', icon: Pause, label: `Phase ${phaseNum} held for ${name}.`, detail: null });
+                        } else if (evt.type === 'resumed') {
+                          ev.push({ date: evt.date, sort: 4, type: 'resumed', icon: Play, label: `Phase ${phaseNum} resumed for ${name}.`, detail: null });
+                        } else if (evt.type === 'next_phase') {
+                          ev.push({ date: evt.date, sort: 4, type: 'next_phase', icon: SkipForward, label: `Phase ${phaseNum} skipped; Phase ${phaseNum + 1} started for ${name}.`, detail: null });
                         }
                       });
                     }

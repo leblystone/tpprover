@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp, Check, Pause, Play, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
+import { getLocalTimestamp } from '../../utils/date';
 
 /**
  * Protocol Summary Card - Shows full protocol overview
@@ -360,7 +361,16 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                                         };
                                                     }
                                                 });
-                                                onUpdateProtocol({ ...protocol, peptides: updatedPeptides });
+                                                const pepData = protocol.peptides[pep.peptideIndex];
+                                                const isResuming = !!pepData?.titrationHeldAt;
+                                                const phaseEvent = {
+                                                    type: isResuming ? 'resumed' : 'held',
+                                                    peptideId: pepData?.id,
+                                                    peptideName: pepData?.name,
+                                                    phaseIndex: pep.currentPhaseInfo.phaseIndex,
+                                                    date: getLocalTimestamp()
+                                                };
+                                                onUpdateProtocol({ ...protocol, peptides: updatedPeptides }, { phaseEvent });
                                             }}
                                             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
                                             style={{
@@ -394,7 +404,15 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                                             titrationDaysOffset: (Number(peptide.titrationDaysOffset) || 0) + (pep.currentPhaseInfo.daysRemainingInPhase || 0)
                                                         };
                                                     });
-                                                    onUpdateProtocol({ ...protocol, peptides: updatedPeptides });
+                                                    const pepData = protocol.peptides[pep.peptideIndex];
+                                                    const phaseEvent = {
+                                                        type: 'next_phase',
+                                                        peptideId: pepData?.id,
+                                                        peptideName: pepData?.name,
+                                                        phaseIndex: pep.currentPhaseInfo.phaseIndex,
+                                                        date: getLocalTimestamp()
+                                                    };
+                                                    onUpdateProtocol({ ...protocol, peptides: updatedPeptides }, { phaseEvent });
                                                 }}
                                                 className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
                                                 style={{

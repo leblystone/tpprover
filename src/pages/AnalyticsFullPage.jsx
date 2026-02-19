@@ -50,23 +50,19 @@ export default function AnalyticsFullPage() {
         </h1>
       </div>
 
-      {/* Tab bar in its own card */}
-      <div
-        className="content-section px-3 py-2 mb-3 flex flex-wrap gap-1.5"
-        style={{ border: `1px solid ${borderStyle}` }}
-      >
+      {/* Tab toggles */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
         {TAB_OPTIONS.map(opt => {
           const isActive = activeTab === opt.value;
           return (
             <button
               key={opt.value}
               onClick={() => setActiveTab(opt.value)}
-              className="px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
+              className="px-3 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
               style={{
-                backgroundColor: isActive ? '#445952' : 'transparent',
+                backgroundColor: isActive ? '#445952' : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
                 color: isActive ? '#fff' : (theme?.textLight || '#888'),
-                border: isActive ? '1px solid #3B4240' : '1px solid transparent',
-                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none',
               }}
             >
               {opt.label}

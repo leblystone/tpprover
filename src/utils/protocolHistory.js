@@ -128,6 +128,34 @@ export function updateProtocolHistoryEntry(historyId, updates) {
 }
 
 /**
+ * Append a phase lifecycle event (held, resumed, next_phase) to an active history entry
+ * @param {string} historyId - The history entry ID
+ * @param {{ type: 'held'|'resumed'|'next_phase', peptideId?: string, peptideName?: string, phaseIndex: number, date?: string }} event
+ * @returns {boolean} Success status
+ */
+export function addPhaseEvent(historyId, event) {
+    try {
+        const allHistory = getProtocolHistory();
+        const entry = allHistory.find(e => e.id === historyId);
+        if (!entry) return false;
+        if (!Array.isArray(entry.phaseEvents)) entry.phaseEvents = [];
+        entry.phaseEvents.push({
+            type: event.type,
+            peptideId: event.peptideId ?? null,
+            peptideName: event.peptideName ?? null,
+            phaseIndex: event.phaseIndex ?? 0,
+            date: event.date || getLocalTimestamp()
+        });
+        entry.updatedAt = getLocalTimestamp();
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return true;
+    } catch (error) {
+        console.error('Error adding phase event:', error);
+        return false;
+    }
+}
+
+/**
  * Restore a protocol history entry (re-activate an accidentally ended protocol)
  * Clears endDate, completionStatus, and endType so the entry becomes active again
  * @param {string} historyId - The history entry ID to restore
