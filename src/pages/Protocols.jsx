@@ -3111,9 +3111,13 @@ export default function Protocols() {
                             protocol={manageConfirm}
                             startDate={manageConfirm?.startDate || getLocalDateString()}
                             theme={theme}
-                            onUpdateProtocol={(updated) => {
+                            onUpdateProtocol={(updated, meta) => {
                               updateProtocolWithForceSync(updated);
                               setManageConfirm(updated);
+                              if (meta?.phaseEvent) {
+                                const activeEntry = findActiveProtocolHistoryEntry(updated.id);
+                                if (activeEntry) addPhaseEvent(activeEntry.id, meta.phaseEvent);
+                              }
                             }}
                           />
                         </div>

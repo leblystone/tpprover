@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight, Pause, SkipForward } from 'lucide-react';
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
@@ -139,11 +139,16 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             });
         }
 
-        if (protocolData?.peptides?.length) {
-            protocolData.peptides.forEach(pep => {
-                if (pep.titrationHeldAt) {
-                    const phaseIdx = pep.titrationPhaseIndex ?? 0;
-                    ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}.`, detail: null });
+        if (he.phaseEvents?.length > 0) {
+            he.phaseEvents.forEach(evt => {
+                const phaseNum = (evt.phaseIndex ?? 0) + 1;
+                const name = evt.peptideName || 'peptide';
+                if (evt.type === 'held') {
+                    ev.push({ date: evt.date, sort: 4, type: 'hold', icon: Pause, label: `Phase ${phaseNum} held for ${name}.`, detail: null });
+                } else if (evt.type === 'resumed') {
+                    ev.push({ date: evt.date, sort: 4, type: 'resumed', icon: Play, label: `Phase ${phaseNum} resumed for ${name}.`, detail: null });
+                } else if (evt.type === 'next_phase') {
+                    ev.push({ date: evt.date, sort: 4, type: 'next_phase', icon: SkipForward, label: `Phase ${phaseNum} skipped; Phase ${phaseNum + 1} started for ${name}.`, detail: null });
                 }
             });
         }
