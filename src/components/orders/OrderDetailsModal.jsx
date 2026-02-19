@@ -371,23 +371,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm"
+                className="text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-2 hover:underline"
                 style={{
-                  background: isDeleting 
-                    ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
-                    : 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                  color: '#ffffff',
-                  border: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isDeleting) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isDeleting) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                  }
+                  color: theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.55)',
+                  background: 'none',
+                  border: 'none',
+                  padding: '0 4px'
                 }}
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
@@ -404,18 +393,19 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 style={{ 
                   background: isSavingToOrders ? theme.secondary : `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`,
                   color: theme?.textOnPrimary || '#ffffff',
-                  border: 'none'
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)'
                 }}
                 onMouseEnter={(e) => {
                   if (!isSavingToOrders) {
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.boxShadow = `inset 0 2px 4px rgba(0,0,0,0.15), ${theme.isDark ? '0 10px 25px rgba(0,0,0,0.5)' : '0 10px 25px rgba(0,0,0,0.15)'}`;
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isSavingToOrders) {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.15)';
                   }
                 }}
               >
@@ -460,9 +450,9 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                       }}
                       className="text-[10px] px-2 py-1 rounded-md transition-all hover:opacity-80 font-semibold uppercase tracking-wider"
                       style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                      title="Autofill category from selected vendor"
+                      title="Category was automatically applied"
                     >
-                      Autofill Category
+                      Auto-applied
                     </button>
                   )}
                 </div>
@@ -496,7 +486,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
                         className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center"
                         style={form.category === k 
-                          ? { backgroundColor: theme?.primary, color: '#ffffff' } 
+                          ? { backgroundColor: theme?.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } 
                           : { color: theme.text }
                         }
                         onMouseEnter={(e) => {
@@ -561,7 +551,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               className="mt-3 px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all"
               style={{ 
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
-                color: theme.text 
+                color: theme.text,
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
               }}
               onClick={addItem}
               onMouseEnter={(e) => {
@@ -658,7 +649,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 }}
                   className="flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap"
                   style={(form.status || (order ? null : 'Order Placed')) === opt.value 
-                    ? { backgroundColor: theme?.primary, color: '#ffffff' } 
+                    ? { backgroundColor: theme?.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } 
                     : { color: theme.text }
                   }
                   onMouseEnter={(e) => {
