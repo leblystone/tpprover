@@ -89,6 +89,7 @@ export default function Protocols() {
   const [reconPrefill, setReconPrefill] = useState(null);
   const [showDateChangeTip, setShowDateChangeTip] = useState(false);
   const [dateTipPos, setDateTipPos] = useState(null);
+  const [pastRunsExpanded, setPastRunsExpanded] = useState(false);
   const dateChangeTipTimer = useRef(null);
   const dateRowRef = useRef(null);
   
@@ -1300,7 +1301,7 @@ export default function Protocols() {
     }
     if (opts?.manage) {
       setManageConfirm(protocol);
-      // Close any other open modals
+      setPastRunsExpanded(false);
       setStartConfirm(null);
       setEditing(null);
     } else {
@@ -3762,14 +3763,21 @@ export default function Protocols() {
                           })}
                         </div>
 
-                        {/* Past Completed Runs divider */}
+                        {/* Past Completed Runs — collapsible */}
                         {timelineEntriesForManage.length > 0 && (
                           <div className="pt-3">
-                            <div className="flex items-center gap-2 mb-3">
+                            <button
+                              type="button"
+                              onClick={() => setPastRunsExpanded(prev => !prev)}
+                              className="w-full flex items-center gap-2 mb-1 group"
+                            >
                               <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent 0%, ${theme.border} 20%, ${theme.border} 80%, transparent 100%)` }}></div>
-                              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>Past Runs</span>
+                              <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: theme.textLight }}>
+                                Past Runs ({timelineEntriesForManage.filter(e => e.type !== 'header').length})
+                                {pastRunsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              </span>
                               <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent 0%, ${theme.border} 20%, ${theme.border} 80%, transparent 100%)` }}></div>
-                            </div>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -3786,8 +3794,8 @@ export default function Protocols() {
                   return null;
                 })()}
 
-                {/* Past completed entries */}
-                {timelineEntriesForManage.length > 0 && (
+                {/* Past completed entries — collapsed by default */}
+                {timelineEntriesForManage.length > 0 && pastRunsExpanded && (
                   <div className="space-y-3">
                     {timelineEntriesForManage.map((entry) => {
                       if (entry.type === 'header') {

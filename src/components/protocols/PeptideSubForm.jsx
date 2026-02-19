@@ -210,22 +210,22 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 <button
                     type="button"
                     onClick={() => toggleSection(sectionKey)}
-                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
+                    className="w-full px-3 py-2 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
                 >
                     {isOpen ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
                     {Icon && <Icon size={14} style={{ color: theme.primary, opacity: 0.9 }} />}
                     <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>{title}</span>
                     {!isOpen && <span className="text-[11px] ml-auto truncate max-w-[50%]" style={{ color: theme.textLight }}>{summary}</span>}
                 </button>
-                {isOpen && <div className="px-3 pb-3 pt-0 border-t space-y-2" style={{ borderColor: cardBorder }}>{children}</div>}
+                {isOpen && <div className="px-3 pb-2 pt-1 border-t space-y-2" style={{ borderColor: cardBorder }}>{children}</div>}
             </div>
         );
     };
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-2">
                 {/* Peptide Name — subtle tint strip */}
-                <div className="rounded-lg px-3 py-2 border" style={{ backgroundColor: cardTint, borderColor: cardBorder }}>
+                <div className="rounded-lg px-3 py-1.5 border" style={{ backgroundColor: cardTint, borderColor: cardBorder }}>
                     <TextInput 
                         label="Peptide Name" 
                         value={item.name || ''} 
@@ -418,7 +418,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
 
                     {/* Titration Schedule Editor - show when Titration is selected (data preserved when switching to Fixed Dose) */}
                     {(item.dosageScheduleType === 'titration' || (item.titration && item.titration.length > 0)) && (
-                        <div className="mt-2">
+                        <div className="mt-1">
                             <DosingScheduleEditor
                                 titration={item.titration}
                                 onChange={(newTitration) => {
@@ -488,7 +488,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
 
                 {/* DELIVERY & FREQUENCY - collapsible sections, side by side on desktop when both shown */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 pt-0">
                         {/* Delivery Column — collapsible */}
                         <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Pipette}>
                                 <div className="space-y-2">

@@ -619,11 +619,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     // Main content that can be rendered with or without BottomSheet wrapper
     const editorContent = (
-        <div className={embedded ? "space-y-3 w-full max-w-full overflow-x-hidden" : "space-y-3"}>
+        <div className={embedded ? "space-y-2 w-full max-w-full overflow-x-hidden" : "space-y-2"}>
                 {/* PROTOCOL INFO Section — tinted card */}
-                <div className="rounded-xl p-3.5 border" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    <div className="flex items-center gap-2 mb-3">
-                        <BookOpenCheck size={22} style={{ color: theme.primary }} />
+                <div className="rounded-xl p-3 border" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <BookOpenCheck size={18} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0">
                             <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
                             <div className="flex items-center gap-2 ml-0.5">
@@ -634,7 +634,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                     {/* Protocol Name - Full Width */}
                     <div className="w-full">
                         <TextInput
@@ -666,10 +666,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
 
                 {/* Peptides Section - Accordion Structure — tinted card */}
-                <div className="rounded-xl p-3.5 border space-y-3" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
+                <div className="rounded-xl p-3 border space-y-2" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
                     {/* Section Header */}
                     <div className="flex items-center gap-2">
-                        <TestTube size={22} style={{ color: theme.primary }} />
+                        <TestTube size={18} style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0">
                             <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
                             <div className="flex items-center gap-2 ml-0.5">
@@ -717,8 +717,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
                     {/* Shared Settings + Frequency & Schedule for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
-                        <div className="space-y-3">
-                            <div className="p-2.5 rounded-lg border text-xs" 
+                        <div className="space-y-2">
+                            <div className="p-2 rounded-lg border text-xs" 
                                  style={{ borderColor: theme.primary + '20', backgroundColor: theme.primary + '05' }}>
                                 <p className="font-medium" style={{ color: theme.text }}>
                                     <span className="font-bold uppercase mr-1" style={{ color: theme.primary }}>Blended:</span>
@@ -726,7 +726,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </p>
                             </div>
                             {/* Blend-level Frequency & Schedule - always visible so schedule is set and shown on cards */}
-                            <div className="p-3 rounded-lg border space-y-3" style={{ borderColor: theme.border }}>
+                            <div className="p-2.5 rounded-lg border space-y-2" style={{ borderColor: theme.border }}>
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
@@ -904,7 +904,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             opacity: isExpanded ? 1 : 0
                                         }}
                                     >
-                                        <div className="px-3 pb-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+                                        <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
                                             <PeptideSubForm
                                                 item={p}
                                                 index={index}
@@ -923,34 +923,34 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         })}
                     </div>
 
-                    {/* Add Peptide Button — matches Save Protocol styling with inset + outer shadow */}
-                    <div className="flex justify-center pt-1">
+                    {/* Add Peptide Button — compact */}
+                    <div className="flex justify-center">
                         <button
                             type="button"
                             onClick={addPeptide}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95"
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
                             style={{ 
                                 background: getPrimaryActionGradient(false),
                                 color: theme?.textOnPrimary || '#ffffff',
                                 border: 'none',
                                 boxShadow: theme?.isDark
-                                    ? 'inset 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(0,0,0,0.15), 0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                    : 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08), 0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                    ? 'inset 0 1px 3px rgba(0,0,0,0.25), 0 2px 8px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                    : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px rgba(127, 158, 149, 0.2), 0 0 0 1px rgba(127, 158, 149, 0.1)'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
                                 e.currentTarget.style.boxShadow = theme?.isDark
-                                    ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 6px 25px rgba(127, 158, 149, 0.5), 0 0 0 1px rgba(127, 158, 149, 0.2)'
-                                    : 'inset 0 2px 4px rgba(0,0,0,0.1), 0 6px 25px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.15)';
+                                    ? 'inset 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.2)'
+                                    : 'inset 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.15)';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
                                 e.currentTarget.style.boxShadow = theme?.isDark
-                                    ? 'inset 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 2px rgba(0,0,0,0.15), 0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                    : 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08), 0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)';
+                                    ? 'inset 0 1px 3px rgba(0,0,0,0.25), 0 2px 8px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
+                                    : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px rgba(127, 158, 149, 0.2), 0 0 0 1px rgba(127, 158, 149, 0.1)';
                             }}
                         >
-                            <PlusCircle size={18} />
+                            <PlusCircle size={14} />
                             <span className="uppercase tracking-wider">Add Peptide</span>
                         </button>
                     </div>
@@ -964,7 +964,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                         <div className="flex items-center gap-2 flex-1">
-                            <CalendarClock size={22} style={{ color: theme.primary }} />
+                            <CalendarClock size={18} style={{ color: theme.primary }} />
                             <div className="flex flex-col gap-0 flex-1">
                                 <div className="flex items-center gap-2">
                                     <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
@@ -995,9 +995,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             opacity: isTimelineExpanded ? 1 : 0
                         }}
                     >
-                        <div className="px-3 pb-2 pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-3">
+                        <div className="px-3 pb-2 pt-1 border-t space-y-2" style={{ borderColor: theme.border }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
@@ -1143,8 +1143,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             )}
                         </div>
                         
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
@@ -1301,7 +1301,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                         <div className="flex items-center gap-2 flex-1">
-                            <ImageUp size={22} style={{ color: theme.primary }} />
+                            <ImageUp size={18} style={{ color: theme.primary }} />
                             <div className="flex flex-col gap-0 flex-1">
                                 <div className="flex items-center gap-2">
                                     <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
@@ -1332,8 +1332,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             opacity: isAdditionalDetailsExpanded ? 1 : 0
                         }}
                     >
-                        <div className="px-3 pb-2 pt-0 border-t" style={{ borderColor: theme.border }}>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start pt-2">
+                        <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start pt-1">
                                 <div className="space-y-3">
                                     <TextInput 
                                         label="Notes"
@@ -1366,7 +1366,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
                 {/* Delete Section - Only show for existing protocols */}
                 {form?.id && onDelete && (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                    <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
                         <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">

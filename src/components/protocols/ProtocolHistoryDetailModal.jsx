@@ -382,7 +382,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             onClose={onClose}
             onBack={onClose}
             title={`${protocolData?.protocolName || currentHistoryEntry?.protocolName || 'Protocol'} Cycle`}
-            titleExtra={protocolData?.purpose ? <span className="block text-xs font-normal opacity-90 mt-0.5">{protocolData.purpose}</span> : null}
+            titleExtra={null}
             theme={theme}
             maxHeight="90vh"
             footer={footerContent}

@@ -111,6 +111,7 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
   }
   
   saveTaskCompletion(completionData);
+  localStorage.setItem('tpprover_task_completion_lastUpdate', String(Date.now()));
   console.log('💾 Saved to localStorage');
   
   // Sync with calendar done system
