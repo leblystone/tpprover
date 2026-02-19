@@ -2661,12 +2661,12 @@ exports.bulkWinBackCampaign = onSchedule({
     const now = new Date();
     const fourteenDaysAgo = new Date(now);
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    const sixtyDaysAgo = new Date(now);
-    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const oneEightyDaysAgo = new Date(now);
+    oneEightyDaysAgo.setDate(oneEightyDaysAgo.getDate() - 180);
 
-    // Find users whose subscriptions ended between 14 and 60 days ago
+    // Target: expired/canceled subs AND expired trials (users who couldn't subscribe)
     const usersSnapshot = await db.collection('users')
-      .where('subscription.status', 'in', ['canceled', 'expired'])
+      .where('subscription.status', 'in', ['canceled', 'expired', 'trialing'])
       .get();
 
     let sent = 0;
@@ -2680,17 +2680,27 @@ exports.bulkWinBackCampaign = onSchedule({
 
       if (!userEmail) { skipped++; continue; }
 
-      // Check if subscription ended in the 14-60 day window
+      // Skip users with active paid subscriptions or lifetime access
+      if (subscription.status === 'active' && subscription.interval !== 'trial') { skipped++; continue; }
+      if (subscription.hasLifetimeAccess) { skipped++; continue; }
+
+      // For trialing users: only target if their trial has already expired
+      if (subscription.status === 'trialing') {
+        const trialEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+        if (!trialEnd || trialEnd > now) { skipped++; continue; }
+      }
+
+      // Check if their access ended in the 14–180 day window
       const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
-      if (!periodEnd || periodEnd > fourteenDaysAgo || periodEnd < sixtyDaysAgo) {
+      const createdAt = userData.createdAt ? new Date(userData.createdAt) : null;
+      const relevantDate = periodEnd || createdAt;
+
+      if (!relevantDate || relevantDate > fourteenDaysAgo || relevantDate < oneEightyDaysAgo) {
         skipped++;
         continue;
       }
 
-      // Skip if they had a trial only (never paid)
-      if (subscription.interval === 'trial') { skipped++; continue; }
-
-      // Check if we already sent a win-back email recently (within 30 days)
+      // Skip if already sent a win-back in the last 60 days
       const recentEmailQuery = await db.collection('emailHistory')
         .where('recipientEmail', '==', userEmail)
         .where('type', '==', 'winBack')
@@ -2699,7 +2709,7 @@ exports.bulkWinBackCampaign = onSchedule({
 
       if (!recentEmailQuery.empty) {
         const lastSent = recentEmailQuery.docs[0].data()?.sentAt?.toDate?.();
-        if (lastSent && (now - lastSent) < 30 * 24 * 60 * 60 * 1000) {
+        if (lastSent && (now - lastSent) < 60 * 24 * 60 * 60 * 1000) {
           skipped++;
           continue;
         }

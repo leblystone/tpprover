@@ -5,7 +5,7 @@ import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import TimePicker15Min from '../common/inputs/TimePicker15Min';
-import { Pen, Droplets, Pipette, ChevronDown, TrendingUp, Hand, SprayCan, Beaker, Bell } from 'lucide-react';
+import { Pen, Droplets, Pipette, ChevronDown, ChevronRight, TrendingUp, Hand, SprayCan, Beaker, Bell, Clock } from 'lucide-react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
@@ -20,6 +20,14 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     const penTypeDropdownRef = React.useRef(null);
     const penTypeButtonRef = React.useRef(null);
     const penTypeListRef = React.useRef(null);
+
+    // Collapsible sub-sections: only one open at a time (accordion), dosage open by default
+    const [openSections, setOpenSections] = useState({ dosage: true, halfLife: false, delivery: false, frequency: false });
+    const toggleSection = (key) => setOpenSections(prev => {
+        const willBeOpen = !prev[key];
+        if (willBeOpen) return { dosage: false, halfLife: false, delivery: false, frequency: false, [key]: true };
+        return { ...prev, [key]: false };
+    });
     
     useEffect(() => {
         try {
@@ -155,10 +163,69 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
         }
     }, [isPenTypeDropdownOpen]);
 
+    // Summary lines when sections are collapsed
+    const dosageSummary = (() => {
+        if (item.titration && item.titration.length > 0) return `Titration (${item.titration.length} phase${item.titration.length > 1 ? 's' : ''})`;
+        const amt = item.dosage?.amount;
+        const unit = item.dosage?.unit || 'mcg';
+        const u = item.unitValue ? `${item.unitValue} units` : '';
+        if (amt) return `${amt} ${unit}${u ? ` · ${u}` : ''}`;
+        return 'No dosage set';
+    })();
+    const halfLifeSummary = (() => {
+        const v = item.halfLife?.value;
+        if (!v) return '—';
+        const u = item.halfLife?.unit === 'days' ? 'd' : 'h';
+        return `${v} ${u}`;
+    })();
+    const deliverySummary = (() => {
+        const d = item.deliveryMethod || 'pipette';
+        if (d === 'pipette') return `Syringe, ${item.injectionType || 'SubQ'}`;
+        if (d === 'pen') return `Pen${item.penType ? ` · ${penTypes.find(t => t.id === item.penType)?.name || 'Other'}` : ''}`;
+        if (d === 'nasal') return 'Nasal';
+        if (d === 'topical') return 'Topical';
+        return '—';
+    })();
+    const frequencySummary = (() => {
+        const f = item.frequency || { type: 'daily', time: ['AM'] };
+        const t = Array.isArray(f.time) && f.time.length ? f.time.join('/') : 'AM';
+        if (f.type === 'daily') return `Daily ${t}`;
+        if (f.type === 'weekly') return `Weekly (${(f.days || []).join(', ') || '—'}) ${t}`;
+        if (f.type === 'cycle') return `Cycle ${f.onDays || '?'} on / ${f.offDays || '?'} off ${t}`;
+        if (f.type === 'custom') return `Every ${f.customDays || '?'} days ${t}`;
+        return '—';
+    })();
+
+    const cardTint = theme.isDark ? theme.primary + '0c' : theme.primary + '06';
+    const cardBorder = theme.isDark ? theme.primary + '18' : theme.primary + '10';
+    const accentDark = theme.primaryDark || theme.primary;
+    const accentLight = theme.primaryLight || theme.primary + '99';
+    const accentGradient = `linear-gradient(180deg, ${accentDark} 0%, ${accentLight} 100%)`;
+
+    const CollapsibleSection = ({ sectionKey, title, summary, icon: Icon, children }) => {
+        const isOpen = openSections[sectionKey];
+        return (
+            <div className="rounded-lg overflow-hidden relative" style={{ borderColor: cardBorder, backgroundColor: cardTint, borderWidth: '1px 1px 1px 0', borderStyle: 'solid' }}>
+                <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[3px]" style={{ background: accentGradient }} aria-hidden />
+                <button
+                    type="button"
+                    onClick={() => toggleSection(sectionKey)}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
+                >
+                    {isOpen ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
+                    {Icon && <Icon size={14} style={{ color: theme.primary, opacity: 0.9 }} />}
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>{title}</span>
+                    {!isOpen && <span className="text-[11px] ml-auto truncate max-w-[50%]" style={{ color: theme.textLight }}>{summary}</span>}
+                </button>
+                {isOpen && <div className="px-3 pb-3 pt-0 border-t space-y-2" style={{ borderColor: cardBorder }}>{children}</div>}
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-3">
-                {/* Peptide Information */}
-                <div>
+                {/* Peptide Name — subtle tint strip */}
+                <div className="rounded-lg px-3 py-2 border" style={{ backgroundColor: cardTint, borderColor: cardBorder }}>
                     <TextInput 
                         label="Peptide Name" 
                         value={item.name || ''} 
@@ -171,13 +238,9 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                     />
                 </div>
 
-                {/* Dosage Type Toggle & Input */}
+                {/* Dosage Schedule — collapsible */}
+                <CollapsibleSection sectionKey="dosage" title="Dosage Schedule" summary={dosageSummary} icon={Pipette}>
                 <div className="space-y-2">
-                    <div>
-                        <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                            Dosage Schedule
-                        </span>
-                    </div>
                     
                     {/* Dosage Type Toggle - preserve both fixed and titration data when switching */}
                     {(() => {
@@ -369,19 +432,66 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         </div>
                     )}
                 </div>
+                </CollapsibleSection>
 
-                {/* DELIVERY & FREQUENCY - Side by Side on Desktop */}
+                {/* Half-Life (Optional) — collapsible */}
+                <CollapsibleSection sectionKey="halfLife" title="Half-Life (optional)" summary={halfLifeSummary} icon={Clock}>
+                    <div className="flex items-stretch rounded-lg"
+                        style={{
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7'}`,
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.inputBackground || '#fff')
+                        }}
+                    >
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            value={item.halfLife?.value || ''}
+                            onChange={e => onChange({ ...item, halfLife: { ...(item.halfLife || { unit: 'hours' }), value: e.target.value } })}
+                            placeholder="e.g., 4"
+                            className="flex-1 py-2.5 outline-none min-w-0 rounded-l-lg text-sm"
+                            style={{
+                                backgroundColor: 'transparent',
+                                color: theme.isDark ? theme.text : '#181A18',
+                                border: 'none',
+                                paddingLeft: '12px',
+                                paddingRight: '8px'
+                            }}
+                        />
+                        <div className="flex rounded-r-lg overflow-hidden"
+                            style={{
+                                borderLeft: theme.isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0eee7',
+                            }}
+                        >
+                            {['hours', 'days'].map(u => {
+                                const active = (item.halfLife?.unit || 'hours') === u;
+                                return (
+                                    <button
+                                        key={u}
+                                        type="button"
+                                        onClick={() => onChange({ ...item, halfLife: { ...(item.halfLife || { value: '' }), unit: u } })}
+                                        className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all"
+                                        style={{
+                                            backgroundColor: active ? '#445952' : (theme.isDark ? 'rgba(255,255,255,0.05)' : (theme.cardBackground || '#f9fafb')),
+                                            color: active ? '#fff' : theme.textLight,
+                                            border: 'none',
+                                        }}
+                                    >
+                                        {u === 'hours' ? 'Hrs' : 'Days'}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </CollapsibleSection>
+
+                {/* DELIVERY & FREQUENCY - collapsible sections, side by side on desktop when both shown */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
-                        {/* Delivery Column */}
-                        <div className="space-y-2">
-                            <div>
-                                <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Delivery Method {protocolType === 'blended' && <span className="lowercase">(shared)</span>}
-                                </span>
-                            </div>
-
-                            <div className="space-y-2">
+                        {/* Delivery Column — collapsible */}
+                        <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Pipette}>
+                                <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-1.5">
                                     <button 
                                         type="button"
@@ -604,17 +714,11 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                         />
                                     </div>
                                 )}
-                            </div>
-                        </div>
+                                </div>
+                        </CollapsibleSection>
 
-                        {/* Frequency Column */}
-                        <div className="space-y-2">
-                            <div>
-                                <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Frequency & Schedule
-                                </span>
-                            </div>
-
+                        {/* Frequency Column — collapsible */}
+                        <CollapsibleSection sectionKey="frequency" title="Frequency & Schedule" summary={frequencySummary} icon={Bell}>
                             <div className="space-y-2">
                                 <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle'].map(type => (
@@ -784,7 +888,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </CollapsibleSection>
                     </div>
                 )}
 

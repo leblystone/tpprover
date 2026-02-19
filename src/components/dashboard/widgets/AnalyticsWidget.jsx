@@ -58,16 +58,19 @@ const AnalyticsWidget = ({ widget, theme }) => {
   }, []);
 
   const complianceData = useMemo(() => {
-    let planned = 0, done = 0;
+    let planned30 = 0, done30 = 0;
     const last7 = [];
-    for (let i = 6; i >= 0; i--) {
+
+    for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const r = countDayTasks(d, protocols, supplements, reconItems, taskCompletion);
-      planned += r.planned;
-      done += r.done;
-      last7.push({ date: d, planned: r.planned, done: r.done, completed: r.planned === 0 || r.done === r.planned });
+      planned30 += r.planned;
+      done30 += r.done;
+      if (i < 7) {
+        last7.push({ date: d, planned: r.planned, done: r.done, completed: r.planned === 0 || r.done === r.planned });
+      }
     }
-    const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
+    const pct = planned30 > 0 ? Math.round((done30 / planned30) * 100) : 0;
 
     let streak = 0;
     for (let i = 0; i < 90; i++) {
@@ -76,7 +79,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
       if (r.planned > 0 && r.done === r.planned) streak++;
       else if (r.planned > 0) break;
     }
-    return { pct, streak, hasData: planned > 0, last7 };
+    return { pct, streak, hasData: planned30 > 0, last7 };
   }, [protocols, supplements, reconItems, taskCompletion]);
 
   const spendingData = useMemo(() => {
@@ -172,9 +175,9 @@ const AnalyticsWidget = ({ widget, theme }) => {
                 </span>
                 {complianceData.hasData && <span className="text-[9px]" style={{ color: theme.textLight }}>30d</span>}
               </span>
-              {complianceData.streak > 0 && (
+              {complianceData.hasData && (
                 <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                  <Zap size={9} /> {complianceData.streak}d
+                  <Zap size={9} /> {complianceData.streak}d streak
                 </span>
               )}
             </div>

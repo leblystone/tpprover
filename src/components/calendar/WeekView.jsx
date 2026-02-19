@@ -674,10 +674,40 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
           )}
           
           {dayScheduled?.washout?.length > 0 && (
-            <div className="p-1.5 rounded-lg text-center mt-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
-              <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
-                Washout: {dayScheduled.washout.join(', ')}
-              </span>
+            <div className="space-y-1 mt-1">
+              {dayScheduled.washout.map((w, wIdx) => {
+                const isObj = typeof w === 'object' && w !== null;
+                const name = isObj ? w.name : w;
+                const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
+                return (
+                  <div key={wIdx} className="rounded-lg overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
+                    <div className="px-1.5 py-1 text-center">
+                      <span className="text-[10px] font-semibold" style={{ color: theme.textLight }}>
+                        W: {name}
+                      </span>
+                    </div>
+                    {hasHalfLife && (
+                      <div className="px-1.5 pb-1">
+                        {w.halfLives.map((hl, hlIdx) => {
+                          const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
+                          const elapsedHours = w.dayIndex * 24;
+                          const remaining = Math.pow(0.5, elapsedHours / hlHours);
+                          const pct = Math.round(remaining * 100);
+                          const barColor = theme.isDark ? 'rgba(200,122,92,0.7)' : '#c87a5c';
+                          return (
+                            <div key={hlIdx} className="h-1.5 rounded-full overflow-hidden mt-0.5" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                              <div className="h-full rounded-full" style={{
+                                width: `${Math.max(2, pct)}%`,
+                                background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
+                              }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

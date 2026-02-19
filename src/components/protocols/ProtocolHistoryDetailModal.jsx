@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot } from 'lucide-react';
+import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
@@ -12,6 +12,14 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     const [protocol, setProtocol] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [noteFilter, setNoteFilter] = useState('during');
+    const [expandedSections, setExpandedSections] = useState({
+        date: true,
+        activity: true,
+        peptides: false,
+        vials: false,
+        delivery: false,
+        assessment: false
+    });
     
     React.useEffect(() => {
         const handleHistoryUpdate = () => {
@@ -60,14 +68,30 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         return allProtocols.some(p => p.id === currentHistoryEntry.protocolId);
     }, [currentHistoryEntry, protocols]);
 
+    const NOTE_LABELS = [
+        { id: 'progress', label: 'Progress' },
+        { id: 'side_effects', label: 'Side Effects' },
+        { id: 'adjustment', label: 'Adjustment' },
+        { id: 'observation', label: 'Observation' },
+        { id: 'question', label: 'Question' }
+    ];
+
     const timelineEvents = useMemo(() => {
         if (!currentHistoryEntry) return [];
         const ev = [];
         const he = currentHistoryEntry;
         const lin = he.lineage || {};
+        const protocolData = he.protocolData || {};
+        const linkedItems = protocolData.linkedItems || {};
+        const startDate = he.startDate;
 
-        if (he.startDate) {
-            ev.push({ date: he.startDate, sort: 0, type: 'start', icon: Play, color: '#10b981', label: 'Protocol started' });
+        if (startDate) {
+            const peptideNames = protocolData?.peptides?.map(p => p.name).filter(Boolean).join(', ');
+            const doseInfo = protocolData?.peptides?.map(p => {
+                if (!p.dosage?.amount) return null;
+                return `${p.name || 'peptide'} @ ${p.dosage.amount} ${p.dosage.unit || 'mcg'}`;
+            }).filter(Boolean).join(', ');
+            ev.push({ date: startDate, sort: 0, type: 'start', icon: Play, label: 'Protocol started.', detail: doseInfo || peptideNames || null });
         }
 
         if (he.vials?.length > 0) {
@@ -75,46 +99,31 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 const pepLin = Object.values(lin).find(l => l.vial?.stockpileId === v.vialId || l.vial?.stockpileId === v.stockpileId);
                 const vendor = pepLin?.vendor?.name || pepLin?.vial?.vendor || v.vendor;
                 const mg = pepLin?.vial?.mg || v.mg;
-                ev.push({
-                    date: he.startDate,
-                    sort: 1 + i,
-                    type: 'link',
-                    icon: Link2,
-                    color: '#6366f1',
-                    label: `Linked ${mg ? mg + 'mg ' : ''}${v.name || 'peptide'}${vendor ? ' from ' + vendor : ''}`
-                });
-            });
-        }
-
-        if (Object.keys(lin).length > 0) {
-            Object.values(lin).forEach(l => {
-                if (l.recon?.date) {
-                    const water = l.recon.water ? `${l.recon.water}mL BAC` : '';
-                    ev.push({
-                        date: l.recon.date,
-                        sort: 0,
-                        type: 'recon',
-                        icon: Droplets,
-                        color: '#0ea5e9',
-                        label: `Reconstituted ${l.peptideName || 'peptide'}${water ? ' — ' + water : ''}`
-                    });
+                const cost = pepLin?.vial?.cost || v.cost;
+                const reconSnap = pepLin?.recon;
+                const detail = [mg ? `${mg}mg` : null, vendor ? `from ${vendor}` : null, cost ? `$${Number(cost).toFixed(2)}` : null].filter(Boolean).join(' · ');
+                ev.push({ date: startDate, sort: 1 + i, type: 'link', icon: Link2, label: `${v.name || 'Vial'} linked.`, detail: detail || null });
+                if (reconSnap?.date) {
+                    const reconDetail = [reconSnap.water ? `${reconSnap.water}mL BAC water` : null, reconSnap.concentration || null].filter(Boolean).join(' · ');
+                    ev.push({ date: reconSnap.date, sort: 1.5 + i, type: 'recon', icon: Droplets, label: `${v.name || 'Vial'} reconstituted.`, detail: reconDetail || null });
                 }
             });
         }
 
-        const allLinked = he.protocolData?.linkedItems || {};
-        Object.values(allLinked).forEach(item => {
+        Object.entries(linkedItems).forEach(([pepId, item]) => {
+            const pep = protocolData?.peptides?.find(p => (p.id || `peptide-${(protocolData.peptides || []).indexOf(p)}`) === pepId);
+            const dm = item.deliveryMethod;
+            if (dm) {
+                const method = dm.deliveryMethod === 'pipette' ? 'Syringe' : dm.deliveryMethod ? dm.deliveryMethod.charAt(0).toUpperCase() + dm.deliveryMethod.slice(1) : '';
+                const route = dm.administrationRoute ? dm.administrationRoute.toUpperCase() : '';
+                const pen = dm.penType ? `${dm.penType === 'bird-pen' ? 'Bird Pen' : dm.penType.charAt(0).toUpperCase() + dm.penType.slice(1)}` : '';
+                if (method) ev.push({ date: startDate, sort: 2, type: 'delivery', icon: Pipette, label: `${pep?.name || 'Peptide'} delivery set to ${method}.`, detail: [route, pen].filter(Boolean).join(' · ') || null });
+            }
             if (item.vialHistory?.length > 0) {
                 item.vialHistory.forEach(hv => {
                     if (hv.usedAt) {
-                        ev.push({
-                            date: hv.usedAt,
-                            sort: 3,
-                            type: 'vial_finished',
-                            icon: CircleDot,
-                            color: '#f97316',
-                            label: `Finished ${hv.mg ? hv.mg + 'mg ' : ''}${hv.name || 'vial'}${hv.vendor ? ' from ' + hv.vendor : ''}`
-                        });
+                        const finDetail = [hv.mg ? `${hv.mg}mg` : null, hv.vendor ? `from ${hv.vendor}` : null].filter(Boolean).join(' · ');
+                        ev.push({ date: hv.usedAt, sort: 3, type: 'vial_finished', icon: CircleDot, label: `${hv.name || 'Vial'} marked as finished.`, detail: finDetail || null });
                     }
                 });
             }
@@ -122,45 +131,38 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
 
         if (he.vialsAddedDuring?.length > 0) {
             he.vialsAddedDuring.forEach(v => {
-                ev.push({
-                    date: v.addedDate || he.endDate || he.startDate,
-                    sort: 0,
-                    type: 'add_vial',
-                    icon: Plus,
-                    color: '#8b5cf6',
-                    label: `Added ${v.mg ? v.mg + 'mg ' : ''}${v.name || 'peptide'}${v.vendor ? ' from ' + v.vendor : ''}`
-                });
+                const addDetail = [v.mg ? `${v.mg}mg` : null, v.vendor ? `from ${v.vendor}` : null].filter(Boolean).join(' · ');
+                ev.push({ date: v.addedDate || startDate, sort: 0, type: 'add_vial', icon: Plus, label: `${v.name || 'Vial'} added mid-protocol.`, detail: addDetail || null });
+                if (v.reconstitutionDate) {
+                    ev.push({ date: v.reconstitutionDate, sort: 0.5, type: 'recon', icon: Droplets, label: `${v.name || 'Vial'} reconstituted.`, detail: null });
+                }
+            });
+        }
+
+        if (protocolData?.peptides?.length) {
+            protocolData.peptides.forEach(pep => {
+                if (pep.titrationHeldAt) {
+                    const phaseIdx = pep.titrationPhaseIndex ?? 0;
+                    ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}.`, detail: null });
+                }
             });
         }
 
         if (he.notes?.length > 0) {
             he.notes.forEach(n => {
-                const snippet = n.content ? (n.content.length > 35 ? '"' + n.content.slice(0, 35) + '..."' : '"' + n.content + '"') : '';
+                const snippet = n.content ? (n.content.length > 50 ? n.content.slice(0, 50) + '...' : n.content) : '';
+                const tagNames = n.tags?.length > 0 ? n.tags.map(tid => NOTE_LABELS.find(t => t.id === tid)?.label).filter(Boolean).join(', ') : null;
                 if (n.type === 'follow_up') {
-                    ev.push({
-                        date: n.createdAt || n.linkedDate || he.endDate,
-                        sort: 10,
-                        type: 'follow_up',
-                        icon: Star,
-                        color: '#f59e0b',
-                        label: `Follow-up assessment added${snippet ? ' ' + snippet : ''}`
-                    });
+                    ev.push({ date: n.createdAt || n.linkedDate || he.endDate, sort: 10, type: 'follow_up', icon: Star, label: `Follow-up assessment added. ${snippet || ''}`.trim(), detail: tagNames });
                 } else {
-                    ev.push({
-                        date: n.createdAt || n.linkedDate,
-                        sort: 0,
-                        type: 'note',
-                        icon: StickyNote,
-                        color: '#a78bfa',
-                        label: `Added note${snippet ? ' ' + snippet : ''}`
-                    });
+                    ev.push({ date: n.createdAt || n.linkedDate, sort: 0, type: 'note', icon: StickyNote, label: `Note added. ${snippet || ''}`.trim(), detail: tagNames });
                 }
             });
         }
 
         if (he.endDate) {
-            const endLabel = he.endType === 'completed' ? 'Protocol completed' : he.endType === 'manual' ? 'Protocol manually ended' : 'Protocol ended';
-            ev.push({ date: he.endDate, sort: 5, type: 'end', icon: CalendarX, color: '#ef4444', label: endLabel });
+            const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
+            ev.push({ date: he.endDate, sort: 10, type: 'end', icon: CalendarX, label: endLabel, detail: null });
         }
 
         if (he.vialAssessment && Object.keys(he.vialAssessment).length > 0) {
@@ -170,18 +172,17 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                 sort: 6,
                 type: 'assessment',
                 icon: ClipboardCheck,
-                color: '#10b981',
-                label: `Vial assessment completed (${count} vial${count !== 1 ? 's' : ''})`
+                label: `Vial assessment completed (${count} vial${count !== 1 ? 's' : ''}).`,
+                detail: null
             });
         }
 
         ev.sort((a, b) => {
             const da = new Date(a.date || 0);
             const db = new Date(b.date || 0);
-            if (da.getTime() !== db.getTime()) return da - db;
-            return (a.sort || 0) - (b.sort || 0);
+            if (da.getTime() !== db.getTime()) return db - da;
+            return (b.sort || 0) - (a.sort || 0);
         });
-
         return ev;
     }, [currentHistoryEntry]);
     
@@ -375,7 +376,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             open={open}
             onClose={onClose}
             onBack={onClose}
-            title={`Protocol Details - ${formatMMDDYYYY(startDate)}`}
+            title={`${protocolData?.protocolName || currentHistoryEntry?.protocolName || 'Protocol'} Cycle`}
+            titleExtra={protocolData?.purpose ? <span className="block text-xs font-normal opacity-90 mt-0.5">{protocolData.purpose}</span> : null}
             theme={theme}
             maxHeight="90vh"
             footer={footerContent}
@@ -440,96 +442,75 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 </div>
 
-                {/* ─── ACTIVITY TIMELINE ─── */}
-                {timelineEvents.length > 0 && (
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <Clock size={26} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Activity Timeline</h4>
-                                <div className="flex items-center gap-2 ml-0.5">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Protocol Lifecycle</span>
+                {/* ─── PROTOCOL ACTIVITY (same UI as active protocol Activity tab) ─── */}
+                {timelineEvents.length > 0 && (() => {
+                    const getTimelineColor = (idx, total) => {
+                        const light = [127, 158, 149];
+                        const dark = [68, 89, 82];
+                        const t = total <= 1 ? 0 : idx / (total - 1);
+                        const r = Math.round(light[0] + (dark[0] - light[0]) * t);
+                        const g = Math.round(light[1] + (dark[1] - light[1]) * t);
+                        const b = Math.round(light[2] + (dark[2] - light[2]) * t);
+                        return `rgb(${r}, ${g}, ${b})`;
+                    };
+                    return (
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Clock size={18} style={{ color: '#445952' }} />
+                                <div className="flex flex-col gap-0">
+                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Activity</h4>
+                                    <div className="flex items-center gap-2 ml-0.5">
+                                        <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: '#6B7F77' }}></div>
+                                        <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Most Recent First</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="p-4 rounded-lg content-section">
-                            <div className="relative">
-                                <div
-                                    className="absolute left-[9px] top-2 bottom-2 w-px"
-                                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
-                                />
-                                <div className="space-y-0">
-                                    {timelineEvents.map((ev, idx) => {
-                                        const Icon = ev.icon;
-                                        const isLast = idx === timelineEvents.length - 1;
-                                        return (
-                                            <div key={idx} className={`relative flex items-start gap-3 ${isLast ? '' : 'pb-3'}`}>
+                            <div className="space-y-0">
+                                {timelineEvents.map((ev, idx) => {
+                                    const Icon = ev.icon;
+                                    const isLast = idx === timelineEvents.length - 1;
+                                    const sageColor = getTimelineColor(idx, timelineEvents.length);
+                                    return (
+                                        <div key={idx}>
+                                            <div
+                                                className="flex items-start gap-3 p-2.5 rounded-lg"
+                                                style={{
+                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.008)',
+                                                }}
+                                            >
                                                 <div
-                                                    className="relative z-10 flex-shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center"
+                                                    className="flex-shrink-0 w-[28px] h-[28px] rounded-full flex items-center justify-center mt-0.5"
                                                     style={{
-                                                        backgroundColor: ev.color + '20',
-                                                        border: `1.5px solid ${ev.color}50`
+                                                        backgroundColor: sageColor + '20',
+                                                        border: `1.5px solid ${sageColor}50`,
                                                     }}
                                                 >
-                                                    <Icon size={10} style={{ color: ev.color }} />
+                                                    <Icon size={14} style={{ color: sageColor }} />
                                                 </div>
-                                                <div className="flex-1 min-w-0 pt-px">
+                                                <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">
-                                                        <span className="text-xs leading-snug" style={{ color: theme.text }}>{ev.label}</span>
-                                                        {ev.date && (
-                                                            <span className="text-[10px] flex-shrink-0 tabular-nums" style={{ color: theme.textLight }}>
-                                                                {formatMMDDYYYY(ev.date)}
-                                                            </span>
-                                                        )}
+                                                        <span className="text-xs font-medium leading-snug" style={{ color: theme.text }}>{ev.label}</span>
+                                                        {ev.date && <span className="text-[10px] flex-shrink-0 tabular-nums pt-px" style={{ color: theme.textLight }}>{formatMMDDYYYY(ev.date)}</span>}
                                                     </div>
+                                                    {ev.detail && (
+                                                        <div className="text-[11px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>{ev.detail}</div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            {!isLast && (
+                                                <div className="flex items-center gap-3 py-1 mx-1">
+                                                    <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
+                                                    <ChevronUp size={14} style={{ color: sageColor, opacity: 0.5 }} />
+                                                    <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* ─── PROTOCOL INFO ─── */}
-                {protocolData && (
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <FlaskConical size={26} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
-                                <div className="flex items-center gap-2 ml-0.5">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Name & Purpose</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-lg content-section space-y-3">
-                            {protocolData.protocolName && (
-                                <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.protocolName}</div>
-                            )}
-                            {protocolData.purpose && (
-                                <div className="text-xs" style={{ color: theme.textLight }}>{protocolData.purpose}</div>
-                            )}
-                            <div className="flex flex-wrap gap-x-6 gap-y-2">
-                                {protocolData.duration && !protocolData.duration.noEnd && (
-                                    <div>
-                                        <div className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Planned</div>
-                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.duration.count} {protocolData.duration.unit}</div>
-                                    </div>
-                                )}
-                                {protocolData.peptides && protocolData.peptides.length > 0 && (
-                                    <div>
-                                        <div className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Peptides</div>
-                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>{protocolData.peptides.length}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {/* ─── PEPTIDES — DOSAGE & SCHEDULE ─── */}
                 {protocolData?.peptides && protocolData.peptides.length > 0 && (

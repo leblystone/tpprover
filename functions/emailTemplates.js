@@ -4576,83 +4576,86 @@ exports.emailChangeVerificationEmailV2 = (newEmail, oldEmail) => {
 };
 
 /**
- * Win-back email -- re-engage churned users with 14-day trial + pricing
+ * Win-back email -- honest, confident re-engagement for users who couldn't subscribe
  */
 exports.winBackEmail = (userName = null, promoCode = null) => {
   const greeting = userName ? `Hey ${userName}` : 'Hey there';
-  const promoSection = promoCode ? `
-    <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
-      <p style="font-size: 14px; color: ${MODERN_COLORS.textLight}; margin: 0 0 8px 0;">Your exclusive code:</p>
-      <p style="font-size: 28px; font-weight: 700; color: ${MODERN_COLORS.primary}; margin: 0; letter-spacing: 2px;">${promoCode}</p>
-      <p style="font-size: 13px; color: ${MODERN_COLORS.textLight}; margin: 8px 0 0 0;">Apply at checkout for 1 free month</p>
-    </div>
-  ` : '';
 
   const content = `
     <div style="padding: 0 8px;">
-      <h1 style="font-size: 26px; font-weight: 700; color: ${MODERN_COLORS.heading}; margin: 0 0 16px 0; line-height: 1.3;">
-        We miss you!
+      <h1 style="font-size: 26px; font-weight: 700; color: ${MODERN_COLORS.heading}; margin: 0 0 20px 0; line-height: 1.3;">
+        The doors are open.
       </h1>
 
-      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        ${greeting}, it's been a while since you've used The Pep Planner and we wanted to check in.
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
+        ${greeting},
       </p>
 
-      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        We've been hard at work adding new features &mdash; smarter protocol tracking, better analytics,
-        and a completely refreshed experience. We'd love for you to give it another shot.
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
+        Real talk &mdash; when you signed up for The Pep Planner, we weren't fully ready for you.
+        Subscriptions weren't set up properly, and if you tried to upgrade&hellip; yeah, that didn't work. Our bad.
       </p>
 
-      <!-- 14-day trial banner -->
-      <div style="background: linear-gradient(135deg, ${MODERN_COLORS.primary}15, ${MODERN_COLORS.primary}08); border: 2px solid ${MODERN_COLORS.primary}30; border-radius: 16px; padding: 28px; margin: 28px 0; text-align: center;">
-        <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: ${MODERN_COLORS.primary}; margin: 0 0 8px 0;">Welcome Back Gift</p>
-        <p style="font-size: 32px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0 0 6px 0; line-height: 1.2;">14 Days Free</p>
-        <p style="font-size: 15px; color: ${MODERN_COLORS.textLight}; margin: 0;">Your account has been reactivated &mdash; no card needed. Just log in and start tracking.</p>
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 20px 0;">
+        But we didn't sit around. While we were sorting that out, we went heads-down building.
+        Here's what's changed:
+      </p>
+
+      <!-- What's new -->
+      <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 24px; margin: 0 0 24px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding: 8px 0; font-size: 15px; line-height: 1.5; color: ${MODERN_COLORS.text};">
+              <span style="color: ${MODERN_COLORS.primary}; font-weight: 700;">&#10003;</span>&nbsp;&nbsp;Completely rebuilt protocol tracking with smart dosing schedules
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 15px; line-height: 1.5; color: ${MODERN_COLORS.text};">
+              <span style="color: ${MODERN_COLORS.primary}; font-weight: 700;">&#10003;</span>&nbsp;&nbsp;New analytics dashboard &mdash; actually see your research trends
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 15px; line-height: 1.5; color: ${MODERN_COLORS.text};">
+              <span style="color: ${MODERN_COLORS.primary}; font-weight: 700;">&#10003;</span>&nbsp;&nbsp;Redesigned reconstitution calculator
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 15px; line-height: 1.5; color: ${MODERN_COLORS.text};">
+              <span style="color: ${MODERN_COLORS.primary}; font-weight: 700;">&#10003;</span>&nbsp;&nbsp;Real-time sync across all your devices
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-size: 15px; line-height: 1.5; color: ${MODERN_COLORS.text};">
+              <span style="color: ${MODERN_COLORS.primary}; font-weight: 700;">&#10003;</span>&nbsp;&nbsp;Subscriptions that actually work (finally)
+            </td>
+          </tr>
+        </table>
       </div>
 
-      ${promoSection}
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 8px 0;">
+        The app you signed up for? It's grown up.
+      </p>
 
-      <!-- Pricing cards -->
-      <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: ${MODERN_COLORS.textLight}; margin: 28px 0 16px 0; text-align: center;">When you're ready, pick a plan</p>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
-        <tr>
-          <td width="33%" style="padding: 0 4px;" valign="top">
-            <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 20px 12px; text-align: center;">
-              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.textLight}; margin: 0 0 4px 0;">Monthly</p>
-              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$3.99</p>
-              <p style="font-size: 12px; color: ${MODERN_COLORS.textLight}; margin: 4px 0 0 0;">/month</p>
-            </div>
-          </td>
-          <td width="33%" style="padding: 0 4px;" valign="top">
-            <div style="background: ${MODERN_COLORS.primary}10; border: 2px solid ${MODERN_COLORS.primary}40; border-radius: 12px; padding: 20px 12px; text-align: center;">
-              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.primary}; margin: 0 0 4px 0;">Annual</p>
-              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$36.99</p>
-              <p style="font-size: 12px; color: ${MODERN_COLORS.primary}; margin: 4px 0 0 0;">Save $10.89/yr</p>
-            </div>
-          </td>
-          <td width="33%" style="padding: 0 4px;" valign="top">
-            <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 20px 12px; text-align: center;">
-              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.textLight}; margin: 0 0 4px 0;">Lifetime</p>
-              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$99.99</p>
-              <p style="font-size: 12px; color: ${MODERN_COLORS.textLight}; margin: 4px 0 0 0;">one-time</p>
-            </div>
-          </td>
-        </tr>
-      </table>
+      <!-- Reactivation notice -->
+      <div style="background: linear-gradient(135deg, ${MODERN_COLORS.primary}12, ${MODERN_COLORS.primary}06); border: 2px solid ${MODERN_COLORS.primary}25; border-radius: 16px; padding: 28px; margin: 24px 0; text-align: center;">
+        <p style="font-size: 15px; color: ${MODERN_COLORS.text}; margin: 0 0 6px 0; line-height: 1.5;">
+          We've unlocked your account with <strong style="color: ${MODERN_COLORS.primary};">14 days of full access</strong>
+          so you can see everything that's changed.
+        </p>
+        <p style="font-size: 14px; color: ${MODERN_COLORS.textLight}; margin: 0;">
+          No card needed &mdash; just log in.
+        </p>
+      </div>
 
       <div style="text-align: center; margin: 32px 0;">
         <a href="https://thepepplanner.com/app" style="display: inline-block; background: ${MODERN_COLORS.primary}; color: #fff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
-          Start Your 14-Day Trial
+          Log In &amp; Explore
         </a>
       </div>
 
-      <p style="font-size: 13px; line-height: 1.5; color: ${MODERN_COLORS.textLight}; margin: 0 0 24px 0; text-align: center;">
-        No credit card required. Your trial starts the moment you log in.
-      </p>
-
-      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 24px 0 0 0;">
-        Hope to see you soon!<br>
-        <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">&mdash; The Pep Planner Team</span>
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 24px 0 0 0;">
+        &mdash; <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">Lea</span><br>
+        <span style="font-size: 14px; color: ${MODERN_COLORS.textLight};">Founder, The Pep Planner</span>
       </p>
     </div>
   `;

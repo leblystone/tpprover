@@ -847,12 +847,57 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               </div>
             )}
             
-            {/* Washout indicator */}
+            {/* Washout indicator with optional half-life decay gradient */}
             {dayScheduled?.washout?.length > 0 && (
-              <div className="p-2 rounded text-center" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary }}>
-                <span className="text-sm font-semibold" style={{ color: theme.textLight }}>
-                  Washout: {dayScheduled.washout.join(', ')}
-                </span>
+              <div className="space-y-1.5">
+                {dayScheduled.washout.map((w, wIdx) => {
+                  const isObj = typeof w === 'object' && w !== null;
+                  const name = isObj ? w.name : w;
+                  const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
+
+                  return (
+                    <div key={wIdx} className="rounded-lg overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary }}>
+                      <div className="px-3 py-2 text-center">
+                        <span className="text-sm font-semibold" style={{ color: theme.textLight }}>
+                          Washout: {name}
+                        </span>
+                        {isObj && (
+                          <span className="text-xs ml-1.5" style={{ color: theme.textLight, opacity: 0.6 }}>
+                            Day {w.dayIndex + 1} of {w.totalDays}
+                          </span>
+                        )}
+                      </div>
+                      {hasHalfLife && (
+                        <div className="px-3 pb-2 space-y-1">
+                          {w.halfLives.map((hl, hlIdx) => {
+                            const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
+                            const elapsedHours = w.dayIndex * 24;
+                            const remaining = Math.pow(0.5, elapsedHours / hlHours);
+                            const pct = Math.round(remaining * 100);
+                            const barColor = theme.isDark ? 'rgba(200,122,92,0.7)' : '#c87a5c';
+                            return (
+                              <div key={hlIdx}>
+                                {w.halfLives.length > 1 && (
+                                  <div className="text-[10px] font-medium mb-0.5" style={{ color: theme.textLight }}>{hl.name}</div>
+                                )}
+                                <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                                  <div className="h-full rounded-full transition-all" style={{
+                                    width: `${Math.max(2, pct)}%`,
+                                    background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
+                                  }} />
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-[10px]" style={{ color: theme.textLight }}>~{pct}% remaining</span>
+                                  <span className="text-[10px]" style={{ color: theme.textLight }}>{hl.value}{hl.unit === 'days' ? 'd' : 'h'} t½</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

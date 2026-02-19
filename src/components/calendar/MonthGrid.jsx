@@ -364,7 +364,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     <div className="mt-auto flex items-end gap-1">
                                         {/* Washout indicator - left side */}
                                         {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
-                                            <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={`Washout: ${sched.washout.join(', ')}`}>
+                                            <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={`Washout: ${sched.washout.map(w => typeof w === 'object' && w !== null ? w.name : w).join(', ')}`}>
                                                 W
                                             </span>
                                         )}

@@ -524,19 +524,25 @@ const DEFAULT_TEMPLATES = {
     ]
   },
   winBack: {
-    name: 'Win-Back Campaign (Churned Users)',
-    subject: "We miss you! Here's a reason to come back - The Pep Planner",
-    heading: 'We miss you!',
-    greeting: 'Hey %USERNAME%, it\'s been a while since you\'ve used The Pep Planner and we wanted to check in.',
-    mainMessage: 'We\'ve been hard at work adding new features — smarter protocol tracking, better analytics, and a completely refreshed experience. We\'d love for you to give it another shot.',
-    ctaText: 'Start Your 14-Day Trial',
+    name: 'Win-Back Campaign (Lapsed Users)',
+    subject: 'The doors are open — and we saved you a spot',
+    heading: 'The doors are open.',
+    greeting: 'Hey %USERNAME%, real talk — when you signed up for The Pep Planner, we weren\'t fully ready for you. Subscriptions weren\'t set up properly, and if you tried to upgrade… yeah, that didn\'t work. Our bad.',
+    mainMessage: 'But we didn\'t sit around. While we were sorting that out, we went heads-down building. The app you signed up for? It\'s grown up.',
+    ctaText: 'Log In & Explore',
     ctaLink: 'https://thepepplanner.com/app',
-    highlightTitle: 'Welcome Back Gift',
-    highlightMessage: '14 Days Free — Your account has been reactivated. No card needed. Just log in and start tracking.',
-    showFeatures: false,
-    featuresTitle: '',
-    features: [],
-    postCtaNote: 'No credit card required. Your trial starts the moment you log in.'
+    highlightTitle: '14 Days of Full Access',
+    highlightMessage: 'We\'ve unlocked your account so you can see everything that\'s changed. No card needed — just log in.',
+    showFeatures: true,
+    featuresTitle: "Here's what's changed:",
+    features: [
+      '✓ Completely rebuilt protocol tracking with smart dosing schedules',
+      '✓ New analytics dashboard — actually see your research trends',
+      '✓ Redesigned reconstitution calculator',
+      '✓ Real-time sync across all your devices',
+      '✓ Subscriptions that actually work (finally)'
+    ],
+    postCtaNote: ''
   }
 };
 

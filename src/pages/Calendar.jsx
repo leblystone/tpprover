@@ -495,13 +495,35 @@ export default function Calendar() {
               next[key] = { ...(next[key] || {}), times, bySlot: mergedBySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
             }
             
-            // Wash-out chips
+            // Wash-out chips (enriched with half-life data for gradient rendering)
             for (const p of prots) {
               const { washStart, washEnd } = getWindows(p)
               if (washStart && washEnd) {
                 const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-                if (dOnly >= new Date(washStart.getFullYear(), washStart.getMonth(), washStart.getDate()) && dOnly <= new Date(washEnd.getFullYear(), washEnd.getMonth(), washEnd.getDate())) {
-                  next[key] = { ...(next[key] || {}), washout: [ ...(next[key]?.washout || []), (p.protocolName || 'Protocol') ] }
+                const wStart = new Date(washStart.getFullYear(), washStart.getMonth(), washStart.getDate())
+                const wEnd = new Date(washEnd.getFullYear(), washEnd.getMonth(), washEnd.getDate())
+                if (dOnly >= wStart && dOnly <= wEnd) {
+                  const totalDays = Math.max(1, Math.round((wEnd - wStart) / 86400000) + 1)
+                  const dayIndex = Math.round((dOnly - wStart) / 86400000)
+                  const pepHalfLives = (p.peptides || [])
+                    .filter(pep => pep.halfLife && pep.halfLife.value && parseFloat(pep.halfLife.value) > 0)
+                    .map(pep => ({
+                      name: pep.name,
+                      value: parseFloat(pep.halfLife.value),
+                      unit: pep.halfLife.unit || 'hours'
+                    }))
+                  next[key] = {
+                    ...(next[key] || {}),
+                    washout: [
+                      ...(next[key]?.washout || []),
+                      {
+                        name: p.protocolName || 'Protocol',
+                        dayIndex,
+                        totalDays,
+                        halfLives: pepHalfLives.length > 0 ? pepHalfLives : null
+                      }
+                    ]
+                  }
                 }
               }
             }

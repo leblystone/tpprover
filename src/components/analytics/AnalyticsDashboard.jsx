@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity } from 'lucide-react'
+import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
 import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
 import { getTaskCompletion, generateTaskId } from '../../utils/taskCompletion'
@@ -243,6 +244,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
             { label: 'Spending', value: 'spending' },
             { label: 'Inventory', value: 'inventory' },
             { label: 'Protocols', value: 'protocols' },
+            { label: 'Half-Life', value: 'halflife' },
           ]}
         />
 
@@ -251,6 +253,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
           {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
           {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} />}
           {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
+          {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
         </div>
       </div>
 
@@ -457,17 +460,17 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     <div className="space-y-4">
       {/* Hero metrics grid */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
-          <div className="text-lg font-bold" style={{ color: theme.text }}>{formatCurrency(extra.thisMonthSpend)}</div>
-          <div className="text-[10px]" style={{ color: theme.textLight }}>This Month</div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-lg font-bold text-white">{formatCurrency(extra.thisMonthSpend)}</div>
+          <div className="text-[10px] text-white/80">This Month</div>
         </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
-          <div className="text-lg font-bold" style={{ color: theme.text }}>{formatCurrency(stats.lastMonthSpend)}</div>
-          <div className="text-[10px]" style={{ color: theme.textLight }}>Last Month</div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-lg font-bold text-white">{formatCurrency(stats.lastMonthSpend)}</div>
+          <div className="text-[10px] text-white/80">Last Month</div>
         </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
-          <div className="text-lg font-bold" style={{ color: theme.primary }}>{formatCurrency(stats.totalSpend)}</div>
-          <div className="text-[10px]" style={{ color: theme.textLight }}>All-Time</div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-lg font-bold text-white">{formatCurrency(stats.totalSpend)}</div>
+          <div className="text-[10px] text-white/80">All-Time</div>
         </div>
       </div>
 
@@ -719,16 +722,241 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
   )
 }
 
+/* ─────────────────── HALF-LIFE TAB ─────────────────── */
+
+const DECAY_COLORS = ['#7F9E95', '#c87a5c', '#6B8DD6', '#D4A85C', '#9B7FC4', '#5CA8C8', '#C45C7A', '#5CC88D']
+
+function HalfLifeTab({ theme, protocols, subtleBg, borderColor }) {
+  const peptideData = useMemo(() => {
+    const items = []
+    const active = (protocols || []).filter(p => p.active !== false)
+    for (const p of active) {
+      if (!p.peptides || !Array.isArray(p.peptides)) continue
+      for (const pep of p.peptides) {
+        const hlHours = getHalfLifeInHours(pep)
+        if (hlHours <= 0) continue
+        items.push({
+          name: pep.name || 'Unnamed',
+          protocolName: p.protocolName || p.name || 'Protocol',
+          halfLifeHours: hlHours,
+          halfLifeDisplay: pep.halfLife,
+          clearanceHours: getClearanceTimeHours(hlHours),
+          washout: p.washout,
+          duration: p.duration,
+        })
+      }
+    }
+    return items
+  }, [protocols])
+
+  if (peptideData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-10">
+        <Activity size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
+        <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No half-life data</div>
+        <div className="text-xs px-4" style={{ color: theme.textLight }}>
+          Add half-life values to your peptides in the protocol editor to see decay visualizations here.
+        </div>
+      </div>
+    )
+  }
+
+  const maxClearance = Math.max(...peptideData.map(p => p.clearanceHours))
+  const chartHours = maxClearance
+
+  return (
+    <div className="space-y-4">
+      {/* Decay Curve Chart */}
+      <SectionCard title="Decay Curves" theme={theme} borderColor={borderColor}>
+        <DecayCurveChart peptides={peptideData} totalHours={chartHours} theme={theme} />
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
+          {peptideData.map((p, i) => (
+            <div key={`${p.name}-${i}`} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DECAY_COLORS[i % DECAY_COLORS.length] }} />
+              <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{p.name}</span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* Compound Cards */}
+      <div className="space-y-2">
+        {peptideData.map((p, i) => (
+          <CompoundCard key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} subtleBg={subtleBg} />
+        ))}
+      </div>
+
+      {/* Washout vs Clearance Comparison */}
+      {peptideData.some(p => p.washout?.enabled) && (
+        <SectionCard title="Washout vs Clearance" theme={theme} borderColor={borderColor}>
+          <div className="space-y-3">
+            {peptideData.filter(p => p.washout?.enabled).map((p, i) => (
+              <WashoutComparison key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} />
+            ))}
+          </div>
+        </SectionCard>
+      )}
+    </div>
+  )
+}
+
+function DecayCurveChart({ peptides, totalHours, theme }) {
+  const W = 400, H = 160, PAD_L = 35, PAD_R = 10, PAD_T = 10, PAD_B = 25
+  const chartW = W - PAD_L - PAD_R
+  const chartH = H - PAD_T - PAD_B
+
+  const curves = useMemo(() => {
+    return peptides.map((p, idx) => {
+      const points = buildDecayCurve(p.halfLifeHours, totalHours, 80)
+      const pathPoints = points.map(pt => {
+        const x = PAD_L + (pt.hour / totalHours) * chartW
+        const y = PAD_T + (1 - pt.level) * chartH
+        return `${x},${y}`
+      })
+      return { path: `M${pathPoints.join(' L')}`, color: DECAY_COLORS[idx % DECAY_COLORS.length] }
+    })
+  }, [peptides, totalHours, chartW, chartH])
+
+  const yTicks = [0, 25, 50, 75, 100]
+  const xTickCount = Math.min(6, Math.max(3, Math.ceil(totalHours / 24)))
+  const xTicks = Array.from({ length: xTickCount + 1 }, (_, i) => Math.round((i / xTickCount) * totalHours))
+
+  return (
+    <div className="w-full overflow-hidden">
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="rounded">
+        {/* Grid lines */}
+        {yTicks.map(pct => {
+          const y = PAD_T + (1 - pct / 100) * chartH
+          return (
+            <g key={`y-${pct}`}>
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke={theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth="0.5" />
+              <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="8" fill={theme.textLight}>{pct}%</text>
+            </g>
+          )
+        })}
+
+        {/* 50% reference line (highlighted) */}
+        <line x1={PAD_L} y1={PAD_T + 0.5 * chartH} x2={W - PAD_R} y2={PAD_T + 0.5 * chartH}
+          stroke={theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'} strokeWidth="0.75" strokeDasharray="4,3" />
+
+        {/* X-axis ticks */}
+        {xTicks.map(h => {
+          const x = PAD_L + (h / totalHours) * chartW
+          return (
+            <text key={`x-${h}`} x={x} y={H - 4} textAnchor="middle" fontSize="8" fill={theme.textLight}>
+              {h < 24 ? `${h}h` : `${(h / 24).toFixed(h % 24 === 0 ? 0 : 1)}d`}
+            </text>
+          )
+        })}
+
+        {/* Curve area fills */}
+        {curves.map((c, idx) => {
+          const points = buildDecayCurve(peptides[idx].halfLifeHours, totalHours, 80)
+          const pathPoints = points.map(pt => {
+            const x = PAD_L + (pt.hour / totalHours) * chartW
+            const y = PAD_T + (1 - pt.level) * chartH
+            return `${x},${y}`
+          })
+          const areaPath = `M${PAD_L},${PAD_T + chartH} L${pathPoints.join(' L')} L${PAD_L + chartW},${PAD_T + chartH} Z`
+          return <path key={`area-${idx}`} d={areaPath} fill={c.color} opacity="0.08" />
+        })}
+
+        {/* Curve lines */}
+        {curves.map((c, idx) => (
+          <path key={`line-${idx}`} d={c.path} fill="none" stroke={c.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+function CompoundCard({ data, color, theme, subtleBg }) {
+  const hlLabel = data.halfLifeDisplay?.unit === 'days'
+    ? `${data.halfLifeDisplay.value} day${data.halfLifeDisplay.value !== '1' ? 's' : ''}`
+    : `${data.halfLifeDisplay?.value || '?'} hour${data.halfLifeDisplay?.value !== '1' ? 's' : ''}`
+
+  return (
+    <div className="p-3 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+        <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{data.name}</span>
+        <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: theme.textLight }}>{data.protocolName}</span>
+      </div>
+
+      {/* Gradient decay bar */}
+      <div className="h-3 rounded-full overflow-hidden mb-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}>
+        <div className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${color} 0%, ${color}60 40%, ${color}15 75%, transparent 100%)`, width: '100%' }} />
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-3 text-[11px]">
+        <div className="flex items-center gap-1">
+          <Clock size={10} style={{ color: theme.textLight }} />
+          <span style={{ color: theme.textLight }}>Half-life:</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{hlLabel}</span>
+        </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <span style={{ color: theme.textLight }}>~99% clearance:</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{formatHalfLifeTime(data.clearanceHours)}</span>
+        </div>
+      </div>
+
+      {data.washout?.enabled && (
+        <div className="flex items-center gap-1 text-[11px] mt-1">
+          <span style={{ color: theme.textLight }}>Washout set:</span>
+          <span className="font-semibold" style={{ color: theme.text }}>
+            {data.washout.count || data.washout.duration || '?'} {data.washout.unit || 'weeks'}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WashoutComparison({ data, color, theme }) {
+  const washoutUnit = String(data.washout?.unit || 'week').toLowerCase()
+  const washoutCount = Number(data.washout?.count || data.washout?.duration || 0)
+  let washoutHours = 0
+  if (washoutUnit.includes('day')) washoutHours = washoutCount * 24
+  else if (washoutUnit.includes('week')) washoutHours = washoutCount * 7 * 24
+  else if (washoutUnit.includes('month')) washoutHours = washoutCount * 30 * 24
+
+  const clearanceHours = data.clearanceHours
+  const maxHours = Math.max(washoutHours, clearanceHours, 1)
+
+  return (
+    <div>
+      <div className="text-xs font-medium mb-1.5" style={{ color: theme.text }}>{data.name}</div>
+      <div className="space-y-1.5">
+        {/* Washout bar */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-16 text-right" style={{ color: theme.textLight }}>Washout</span>
+          <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, (washoutHours / maxHours) * 100)}%`, backgroundColor: theme.isDark ? 'rgba(200,122,92,0.6)' : '#c87a5c' }} />
+          </div>
+          <span className="text-[10px] w-10 text-right font-medium" style={{ color: theme.text }}>{formatHalfLifeTime(washoutHours)}</span>
+        </div>
+        {/* Clearance bar */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] w-16 text-right" style={{ color: theme.textLight }}>Clearance</span>
+          <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, (clearanceHours / maxHours) * 100)}%`, backgroundColor: color }} />
+          </div>
+          <span className="text-[10px] w-10 text-right font-medium" style={{ color: theme.text }}>{formatHalfLifeTime(clearanceHours)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─────────────────── SHARED UI COMPONENTS ─────────────────── */
 
 function ToggleTabs({ value, onChange, options, theme }) {
   return (
     <div
-      className="grid gap-1.5 p-1 rounded-xl w-full"
+      className="flex gap-2 p-1 w-full overflow-x-auto hide-scrollbar snap-x"
       style={{
-        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
-        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+        WebkitOverflowScrolling: 'touch',
       }}
       role="tablist"
     >
@@ -738,14 +966,14 @@ function ToggleTabs({ value, onChange, options, theme }) {
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            className="py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
+            className="px-4 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-200 focus:outline-none active:scale-95 whitespace-nowrap flex-shrink-0 snap-start"
             style={{
-              backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+              backgroundColor: isActive ? '#445952' : (theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
               color: isActive ? '#fff' : theme.text,
-              border: isActive ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border}`,
+              border: isActive ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
               boxShadow: isActive
                 ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
-                : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+                : 'none',
             }}
             role="tab"
             aria-selected={isActive}
@@ -758,19 +986,33 @@ function ToggleTabs({ value, onChange, options, theme }) {
   )
 }
 
-function MetricCard({ icon, label, value, theme }) {
+function MetricCard({ icon, label, value, theme, bgColor, textColor }) {
+  const isCustomColor = !!bgColor;
+  const cardBg = bgColor || (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)');
+  const cardBorder = isCustomColor ? 'transparent' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`;
+  const cardShadow = isCustomColor ? 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' : 'none';
+  const labelColor = isCustomColor ? 'rgba(255,255,255,0.8)' : theme.textLight;
+  const valueColor = textColor || (isCustomColor ? '#ffffff' : theme.text);
+
+  let displayIcon = icon;
+  if (icon && isCustomColor && React.isValidElement(icon)) {
+    const existingStyle = icon.props.style || {};
+    displayIcon = React.cloneElement(icon, { style: { ...existingStyle, color: valueColor } });
+  }
+
   return (
     <div
       className="flex items-center gap-2.5 p-3 rounded-xl"
       style={{
-        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+        border: cardBorder,
+        backgroundColor: cardBg,
+        boxShadow: cardShadow,
       }}
     >
-      {icon && <div>{icon}</div>}
+      {displayIcon && <div>{displayIcon}</div>}
       <div>
-        <div className="text-xs" style={{ color: theme.textLight }}>{label}</div>
-        <div className="text-lg font-bold" style={{ color: theme.text }}>{value}</div>
+        <div className="text-xs" style={{ color: labelColor }}>{label}</div>
+        <div className="text-lg font-bold" style={{ color: valueColor }}>{value}</div>
       </div>
     </div>
   )

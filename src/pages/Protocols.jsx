@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -3738,7 +3738,7 @@ export default function Protocols() {
                                 {!isLast && (
                                   <div className="flex items-center gap-3 py-1 mx-1">
                                     <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
-                                    <ChevronDown size={14} style={{ color: sageColor, opacity: 0.5 }} />
+                                    <ChevronUp size={14} style={{ color: sageColor, opacity: 0.5 }} />
                                     <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
                                   </div>
                                 )}

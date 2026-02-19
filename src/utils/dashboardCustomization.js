@@ -272,7 +272,7 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.ANALYTICS,
     title: 'Analytics',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 5, y: 1 },
+    position: { x: 5, y: 0 },
     enabled: true,
     settings: {}
   },
@@ -559,7 +559,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.10'; // UPDATED: Research Glossary widget hidden (under construction)
+    const currentVersion = '3.11'; // UPDATED: Analytics widget moved above spending
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
