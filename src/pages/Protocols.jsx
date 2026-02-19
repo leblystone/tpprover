@@ -222,7 +222,7 @@ export default function Protocols() {
       window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
       loadNotesForManage();
       setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
-      setShowLinkedDate(false);
+      setShowLinkedDate(true);
       setShowAddNoteForm(false);
     } else {
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -3600,7 +3600,7 @@ export default function Protocols() {
                         if (!p.dosage?.amount) return null;
                         return `${p.name || 'peptide'} @ ${p.dosage.amount} ${p.dosage.unit || 'mcg'}`;
                       }).filter(Boolean).join(', ');
-                      ev.push({ date: startDate, sort: 0, type: 'start', icon: Play, color: '#10b981', label: 'Protocol started', detail: doseInfo || peptideNames || null });
+                      ev.push({ date: startDate, sort: 0, type: 'start', icon: Play, color: '#10b981', label: 'Protocol started.', detail: doseInfo || peptideNames || null });
                     }
 
                     if (he.vials?.length > 0) {
@@ -3611,10 +3611,10 @@ export default function Protocols() {
                         const cost = pepLin?.vial?.cost || v.cost;
                         const reconSnap = pepLin?.recon;
                         let detail = [mg ? `${mg}mg` : null, vendor ? `from ${vendor}` : null, cost ? `$${Number(cost).toFixed(2)}` : null].filter(Boolean).join(' · ');
-                        ev.push({ date: startDate, sort: 1 + i, type: 'link', icon: Link2, color: '#6366f1', label: `${v.name || 'Vial'} linked`, detail: detail || null });
+                        ev.push({ date: startDate, sort: 1 + i, type: 'link', icon: Link2, color: '#6366f1', label: `${v.name || 'Vial'} linked.`, detail: detail || null });
                         if (reconSnap?.date) {
                           const reconDetail = [reconSnap.water ? `${reconSnap.water}mL BAC water` : null, reconSnap.concentration || null].filter(Boolean).join(' · ');
-                          ev.push({ date: reconSnap.date, sort: 1.5 + i, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted`, detail: reconDetail || null });
+                          ev.push({ date: reconSnap.date, sort: 1.5 + i, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted.`, detail: reconDetail || null });
                         }
                       });
                     }
@@ -3627,13 +3627,13 @@ export default function Protocols() {
                         const route = dm.administrationRoute ? dm.administrationRoute.toUpperCase() : '';
                         const pen = dm.penType ? `${dm.penType === 'bird-pen' ? 'Bird Pen' : dm.penType.charAt(0).toUpperCase() + dm.penType.slice(1)}` : '';
                         const detail = [method, route, pen].filter(Boolean).join(' · ');
-                        if (detail) ev.push({ date: startDate, sort: 2, type: 'delivery', icon: Pipette, color: '#445952', label: `${pep?.name || 'Peptide'} delivery: ${method}`, detail: route || pen ? [route, pen].filter(Boolean).join(' · ') : null });
+                        if (detail) ev.push({ date: startDate, sort: 2, type: 'delivery', icon: Pipette, color: '#445952', label: `${pep?.name || 'Peptide'} delivery set to ${method}.`, detail: route || pen ? [route, pen].filter(Boolean).join(' · ') : null });
                       }
                       if (item.vialHistory?.length > 0) {
                         item.vialHistory.forEach(hv => {
                           if (hv.usedAt) {
                             const finDetail = [hv.mg ? `${hv.mg}mg` : null, hv.vendor ? `from ${hv.vendor}` : null].filter(Boolean).join(' · ');
-                            ev.push({ date: hv.usedAt, sort: 3, type: 'vial_finished', icon: CircleDot, color: '#f97316', label: `${hv.name || 'Vial'} marked as finished`, detail: finDetail || null });
+                            ev.push({ date: hv.usedAt, sort: 3, type: 'vial_finished', icon: CircleDot, color: '#f97316', label: `${hv.name || 'Vial'} marked as finished.`, detail: finDetail || null });
                           }
                         });
                       }
@@ -3642,9 +3642,9 @@ export default function Protocols() {
                     if (he.vialsAddedDuring?.length > 0) {
                       he.vialsAddedDuring.forEach(v => {
                         const addDetail = [v.mg ? `${v.mg}mg` : null, v.vendor ? `from ${v.vendor}` : null].filter(Boolean).join(' · ');
-                        ev.push({ date: v.addedDate || startDate, sort: 0, type: 'add_vial', icon: Plus, color: '#8b5cf6', label: `${v.name || 'Vial'} added mid-protocol`, detail: addDetail || null });
+                        ev.push({ date: v.addedDate || startDate, sort: 0, type: 'add_vial', icon: Plus, color: '#8b5cf6', label: `${v.name || 'Vial'} added mid-protocol.`, detail: addDetail || null });
                         if (v.reconstitutionDate) {
-                          ev.push({ date: v.reconstitutionDate, sort: 0.5, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted`, detail: null });
+                          ev.push({ date: v.reconstitutionDate, sort: 0.5, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted.`, detail: null });
                         }
                       });
                     }
@@ -3653,7 +3653,7 @@ export default function Protocols() {
                       protocolData.peptides.forEach(pep => {
                         if (pep.titrationHeldAt) {
                           const phaseIdx = pep.titrationPhaseIndex ?? 0;
-                          ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, color: '#eab308', label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}`, detail: null });
+                          ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, color: '#eab308', label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}.`, detail: null });
                         }
                       });
                     }
@@ -3662,54 +3662,72 @@ export default function Protocols() {
                       he.notes.forEach(n => {
                         const snippet = n.content ? (n.content.length > 50 ? n.content.slice(0, 50) + '...' : n.content) : '';
                         const tagNames = n.tags?.length > 0 ? n.tags.map(tid => { const l = NOTE_LABELS.find(t => t.id === tid); return l?.label; }).filter(Boolean).join(', ') : null;
-                        ev.push({ date: n.createdAt || n.linkedDate, sort: 0, type: 'note', icon: StickyNote, color: '#a78bfa', label: `Note: ${snippet || 'added'}`, detail: tagNames });
+                        ev.push({ date: n.createdAt || n.linkedDate, sort: 0, type: 'note', icon: StickyNote, color: '#a78bfa', label: `Note added. ${snippet || ''}`.trim(), detail: tagNames });
                       });
                     }
 
                     if (he.endDate) {
-                      const endLabel = he.endType === 'completed' ? 'Protocol completed' : he.endType === 'manual' ? 'Protocol ended early' : 'Protocol ended';
+                      const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
                       ev.push({ date: he.endDate, sort: 10, type: 'end', icon: CalendarX, color: '#ef4444', label: endLabel, detail: null });
                     }
 
-                    ev.sort((a, b) => { const da = new Date(a.date || 0); const db = new Date(b.date || 0); if (da.getTime() !== db.getTime()) return da - db; return (a.sort || 0) - (b.sort || 0); });
+                    ev.sort((a, b) => { const da = new Date(a.date || 0); const db = new Date(b.date || 0); if (da.getTime() !== db.getTime()) return db - da; if (a.sort !== undefined && b.sort !== undefined) return (b.sort || 0) - (a.sort || 0); return 0; });
                     return ev;
                   };
 
                   const tlEvents = buildDetailedTimeline();
 
+                  const getTimelineColor = (idx, total) => {
+                    const light = [127, 158, 149];
+                    const dark = [68, 89, 82];
+                    const t = total <= 1 ? 0 : idx / (total - 1);
+                    const r = Math.round(light[0] + (dark[0] - light[0]) * t);
+                    const g = Math.round(light[1] + (dark[1] - light[1]) * t);
+                    const b = Math.round(light[2] + (dark[2] - light[2]) * t);
+                    return `rgb(${r}, ${g}, ${b})`;
+                  };
+
                   if (tlEvents.length > 0) {
-                    const startDate = activeEntry?.startDate || manageConfirm?.startDate;
-                    const daysActive = startDate ? Math.max(0, Math.ceil((new Date() - new Date(startDate)) / (1000 * 60 * 60 * 24))) : null;
                     return (
                       <div>
+                        {/* Section Header */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock size={18} style={{ color: '#445952' }} />
+                          <div className="flex flex-col gap-0">
+                            <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Activity</h4>
+                            <div className="flex items-center gap-2 ml-0.5">
+                              <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: '#6B7F77' }}></div>
+                              <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>Most Recent First</span>
+                            </div>
+                          </div>
+                        </div>
 
-                        {/* Single Detailed Timeline */}
-                        <div className="relative pl-7">
-                          <div className="absolute left-[9px] top-1 bottom-1 w-px" style={{ background: `linear-gradient(to bottom, #445952, #6B7F77, ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'})` }} />
-                          <div className="space-y-0">
-                            {tlEvents.map((ev, idx) => {
-                              const Icon = ev.icon;
-                              const isLast = idx === tlEvents.length - 1;
-                              const isStart = ev.type === 'start';
-                              const isEnd = ev.type === 'end';
-                              return (
-                                <div key={idx} className={`relative flex items-start ${isLast ? '' : 'pb-4'}`}>
+                        {/* Timeline Events */}
+                        <div className="space-y-0">
+                          {tlEvents.map((ev, idx) => {
+                            const Icon = ev.icon;
+                            const isLast = idx === tlEvents.length - 1;
+                            const sageColor = getTimelineColor(idx, tlEvents.length);
+                            return (
+                              <div key={idx}>
+                                <div
+                                  className="flex items-start gap-3 p-2.5 rounded-lg"
+                                  style={{
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.008)',
+                                  }}
+                                >
                                   <div
-                                    className="absolute flex-shrink-0 flex items-center justify-center rounded-full"
+                                    className="flex-shrink-0 w-[28px] h-[28px] rounded-full flex items-center justify-center mt-0.5"
                                     style={{
-                                      left: '-22px',
-                                      width: isStart || isEnd ? '22px' : '18px',
-                                      height: isStart || isEnd ? '22px' : '18px',
-                                      top: isStart || isEnd ? '0px' : '2px',
-                                      backgroundColor: ev.color + (isStart || isEnd ? '25' : '15'),
-                                      border: `1.5px solid ${ev.color}${isStart || isEnd ? '60' : '40'}`,
+                                      backgroundColor: sageColor + '20',
+                                      border: `1.5px solid ${sageColor}50`,
                                     }}
                                   >
-                                    <Icon size={isStart || isEnd ? 11 : 9} style={{ color: ev.color }} />
+                                    <Icon size={14} style={{ color: sageColor }} />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">
-                                      <span className={`${isStart || isEnd ? 'text-xs font-semibold' : 'text-xs'} leading-snug`} style={{ color: theme.text }}>{ev.label}</span>
+                                      <span className="text-xs font-medium leading-snug" style={{ color: theme.text }}>{ev.label}</span>
                                       {ev.date && <span className="text-[10px] flex-shrink-0 tabular-nums pt-px" style={{ color: theme.textLight }}>{formatMMDDYYYY(ev.date)}</span>}
                                     </div>
                                     {ev.detail && (
@@ -3717,9 +3735,16 @@ export default function Protocols() {
                                     )}
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
+                                {!isLast && (
+                                  <div className="flex items-center gap-3 py-1 mx-1">
+                                    <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
+                                    <ChevronDown size={14} style={{ color: sageColor, opacity: 0.5 }} />
+                                    <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 25%, ${theme.isDark ? 'rgba(127,158,149,0.3)' : 'rgba(68,89,82,0.15)'} 75%, transparent)` }} />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {/* Past Completed Runs divider */}

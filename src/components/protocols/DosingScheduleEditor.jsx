@@ -71,12 +71,12 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
     }, [openDropdowns, durationUnitDropdowns]);
 
     const getPhaseColor = (index, total) => {
-        const darkSage = [68, 89, 82];
         const lightSage = [127, 158, 149];
+        const darkSage = [68, 89, 82];
         const t = total <= 1 ? 0 : index / (total - 1);
-        const r = Math.round(darkSage[0] + (lightSage[0] - darkSage[0]) * t);
-        const g = Math.round(darkSage[1] + (lightSage[1] - darkSage[1]) * t);
-        const b = Math.round(darkSage[2] + (lightSage[2] - darkSage[2]) * t);
+        const r = Math.round(lightSage[0] + (darkSage[0] - lightSage[0]) * t);
+        const g = Math.round(lightSage[1] + (darkSage[1] - lightSage[1]) * t);
+        const b = Math.round(lightSage[2] + (darkSage[2] - lightSage[2]) * t);
         return `rgb(${r}, ${g}, ${b})`;
     };
 
