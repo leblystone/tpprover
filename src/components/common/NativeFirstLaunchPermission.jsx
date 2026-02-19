@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, Sparkles, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import logo from '../../assets/tpp_logo.png';
 
 /**
  * NativeFirstLaunchPermission
@@ -238,16 +237,6 @@ export default function NativeFirstLaunchPermission({ theme }) {
 
         {/* Content */}
         <div className="p-6 text-center">
-          {/* Logo */}
-          <div className="flex justify-center -mt-14 mb-4">
-            <img 
-              src={logo} 
-              alt="The Pep Planner" 
-              className="w-16 h-16 rounded-full border-4 border-white shadow-lg object-cover"
-              style={{ backgroundColor: safeTheme.primary }}
-            />
-          </div>
-
           <h2 className="text-xl font-bold mb-2" style={{ color: safeTheme.text }}>
             Never Miss a Dose
           </h2>

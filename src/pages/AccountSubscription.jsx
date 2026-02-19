@@ -70,6 +70,14 @@ export default function AccountSubscription() {
           userEmail: firebaseUser?.email || '',
           userId: firebaseUser?.uid || '',
         })
+        // Reload subscription after successful native purchase
+        try {
+          const { loadUserSubscription } = await import('../services/cloudStorage')
+          const updatedSub = await loadUserSubscription(firebaseUser.uid)
+          setSub(updatedSub)
+        } catch (reloadErr) {
+          console.warn('Could not reload subscription after purchase:', reloadErr)
+        }
       } else {
         let priceId = STRIPE_CONFIG.prices[planKey]
         if (planKey === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
@@ -207,6 +215,33 @@ export default function AccountSubscription() {
       if (sub?.hasLifetimeAccess || sub?.interval === 'lifetime' || sub?.plan === 'lifetime') {
         console.log('💳 [BILLING] Detected lifetime access - routing to lifetime billing')
         navigate('/app/account/subscription/lifetime-billing')
+        return
+      }
+
+      // Redemption code purchases (physical cards) — no recurring billing
+      if (sub?.source === 'annual-kit' || sub?.source === 'lifetime-kit' || 
+          sub?.lifetimeReason?.toLowerCase().includes('kit redemption')) {
+        console.log('💳 [BILLING] Detected redemption code purchase')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Your access was activated with a redemption code. This is a one-time purchase with no recurring billing. Refer to your redemption card for details.', 
+            type: 'info',
+            duration: 6000
+          } 
+        }))
+        return
+      }
+
+      // Gift access — no billing to manage
+      if (sub?.type === 'gift' || sub?.giftId) {
+        console.log('💳 [BILLING] Detected gift access')
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'This access was gifted to you! There is no billing to manage — enjoy your gift!', 
+            type: 'info',
+            duration: 5000
+          } 
+        }))
         return
       }
       
@@ -350,7 +385,7 @@ export default function AccountSubscription() {
         // Get Squarespace site URL from config
         const { getEnvVar } = await import('../config/appConfig')
         const squarespaceSiteUrl = getEnvVar('VITE_SQUARESPACE_SITE_URL') || 'https://www.thepepplanner.com'
-        const portalUrl = `${squarespaceSiteUrl}/account/subscriptions`
+        const portalUrl = `${squarespaceSiteUrl}/account`
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
@@ -437,9 +472,31 @@ export default function AccountSubscription() {
 
   // Determine subscription status
   const getStatus = () => {
-    if (!sub) return { label: 'Trial Expired', type: 'expired' }
+    if (isLoading) return { label: 'Loading...', type: 'loading' }
+    if (!sub) return { label: 'No Active Subscription', type: 'expired' }
     if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) return { label: 'Lifetime Access', type: 'lifetime' }
-    if (sub.status === 'trialing') return { label: 'Active Trial', type: 'trial' }
+    if (sub.status === 'trialing') {
+      const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
+      const now = new Date()
+      if (endDate && endDate > now) {
+        const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)))
+        return { label: `Active Trial · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`, type: 'trial' }
+      }
+      return { label: 'Trial Expired', type: 'expired' }
+    }
+    if (sub.status === 'canceled') {
+      const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
+      const now = new Date()
+      if (endDate && endDate > now) {
+        const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)))
+        const planLabel = sub.interval === 'year' ? 'Annual' : 'Monthly'
+        return { label: `${planLabel} · Cancels in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`, type: sub.interval === 'year' ? 'annual' : 'monthly' }
+      }
+      return { label: 'Subscription Ended', type: 'expired' }
+    }
+    if (sub.status === 'past_due') return { label: 'Payment Issue', type: 'past_due' }
+    if (sub.status === 'on_hold') return { label: 'On Hold', type: 'expired' }
+    if (sub.status === 'paused') return { label: 'Paused', type: 'expired' }
     if (sub.interval === 'month') return { label: 'Monthly Plan', type: 'monthly' }
     if (sub.interval === 'year') return { label: 'Annual Plan', type: 'annual' }
     return { label: 'Active', type: 'active' }
@@ -449,7 +506,12 @@ export default function AccountSubscription() {
 
   const getSource = () => {
     if (!sub) return ''
-    console.log('Subscription data:', sub) // Debug log
+    // Redemption codes (physical cards)
+    if (sub.source === 'annual-kit') return 'VIA REDEMPTION CODE'
+    if (sub.source === 'lifetime-kit') return 'VIA REDEMPTION CODE'
+    if (sub.lifetimeReason?.toLowerCase().includes('kit redemption')) return 'VIA REDEMPTION CODE'
+    // Gift access
+    if (sub.type === 'gift' || sub.giftId) return 'VIA GIFT'
     // Check paymentProvider field (used by backend)
     if (sub.paymentProvider === 'googleplay') return 'VIA GOOGLE PLAY'
     if (sub.paymentProvider === 'apple') return 'VIA APPLE'
@@ -460,7 +522,6 @@ export default function AccountSubscription() {
     if (sub.source === 'apple') return 'VIA APPLE'
     if (sub.source === 'squarespace') return 'VIA SQUARESPACE'
     if (sub.source === 'stripe' || sub.paymentMethodId) return 'VIA STRIPE'
-    if (sub.interval === 'lifetime' && !sub.paymentMethodId && !sub.paymentProvider) return 'LIFETIME KIT REDEMPTION'
     return ''
   }
 
@@ -491,21 +552,11 @@ export default function AccountSubscription() {
 
       {/* SUBSCRIPTION STATUS */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
-              Subscription Status
-            </h2>
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80 transition-all"
-            style={{ backgroundColor: 'transparent', border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}` }}
-          >
-            <RefreshCw size={12} className="opacity-60" style={{ color: theme.text }} />
-            <span className="text-xs font-medium opacity-60" style={{ color: theme.text }}>SYNC</span>
-          </button>
+        <div className="flex items-center gap-2">
+          <TrendingUp size={14} className="opacity-40" style={{ color: theme.text }} />
+          <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+            Subscription Status
+          </h2>
         </div>
 
         {/* Status Card */}
@@ -535,19 +586,25 @@ export default function AccountSubscription() {
             <div 
               className="px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide"
               style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-                color: theme.text,
-                opacity: 0.6
+                backgroundColor: status.type === 'loading' ? 'transparent'
+                  : ['expired', 'past_due'].includes(status.type) 
+                    ? (theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)')
+                    : (theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'),
+                color: ['expired', 'past_due'].includes(status.type) ? '#ef4444' : theme.text,
+                opacity: status.type === 'loading' ? 0 : 0.6
               }}
             >
-              ACTIVE
+              {status.type === 'loading' ? '' 
+                : status.type === 'expired' ? 'EXPIRED'
+                : status.type === 'past_due' ? 'ACTION NEEDED'
+                : 'ACTIVE'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* RESTORE PURCHASES (Android + iOS native) */}
-      {typeof window !== 'undefined' && window.Capacitor && (
+      {/* RESTORE PURCHASES (Android + iOS native only, hidden when user has active paid subscription) */}
+      {isNative() && !['active', 'lifetime', 'monthly', 'annual'].includes(status.type) && (
         <div 
           className="p-4 rounded-2xl"
           style={{ 
@@ -605,31 +662,49 @@ export default function AccountSubscription() {
             </h2>
           </div>
 
-          {/* Beta Pricing Banner - Always show for beta users */}
-          <div 
-            className="p-4 rounded-2xl text-center"
-            style={{ 
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`
-            }}
-          >
-            <div className="flex items-center justify-center gap-2.5 mb-1.5">
-              <Lock size={20} style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' }} />
-              <h3 className="text-base font-semibold tracking-wide" style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)' }}>
-                BETA PRICING LOCKED
-              </h3>
-            </div>
-            <p className="text-sm" style={{ color: theme.isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)' }}>
-              Early adopters are grandfathered in at these rates forever.
-            </p>
-          </div>
-
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Monthly Plan */}
+            {status.type !== 'monthly' && pricing.monthly && (
+              <div 
+                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
+                style={{ 
+                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Monthly Plan</h3>
+                  <CreditCard size={20} className="opacity-40" style={{ color: theme.text }} />
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
+                      {formatCurrency(pricing.monthly.founderPrice)}
+                    </span>
+                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/month</span>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                    CANCEL ANYTIME
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSelectPlan('monthly')}
+                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
+                  style={{ 
+                    backgroundColor: 'transparent',
+                    color: theme.text,
+                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
+                  }}
+                >
+                  Select Monthly
+                </button>
+              </div>
+            )}
+
             {/* Annual Plan */}
             {status.type !== 'annual' && pricing.annual && (
               <div 
-                className="content-section p-6 rounded-3xl border relative"
+                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
                 style={{ 
                   borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                 }}
@@ -677,7 +752,7 @@ export default function AccountSubscription() {
             {/* Lifetime Plan */}
             {pricing.lifetime && (
               <div 
-                className="content-section p-6 rounded-3xl border relative"
+                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
                 style={{ 
                   borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                 }}
@@ -724,10 +799,11 @@ export default function AccountSubscription() {
       )}
 
       {/* Bottom Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
+      <div className="pt-6">
         <button
           onClick={handleManageBilling}
-          className="content-section flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
+          disabled={!sub || status.type === 'expired' || status.type === 'trial'}
+          className="content-section w-full flex items-center justify-between p-5 rounded-2xl transition-all text-left disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ 
             border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
           }}
@@ -740,35 +816,21 @@ export default function AccountSubscription() {
               <Settings size={20} className="opacity-60" style={{ color: theme.text }} />
             </div>
             <div>
-              <div className="font-semibold text-base" style={{ color: theme.text }}>Manage Billing</div>
-              {getSource() && (
+              <div className="font-semibold text-base" style={{ color: theme.text }}>
+                {getSource() === 'VIA REDEMPTION CODE' ? 'Purchase Details' 
+                  : getSource() === 'VIA GIFT' ? 'Gift Details'
+                  : 'Manage Billing'}
+              </div>
+              {getSource() ? (
                 <div className="text-xs opacity-60" style={{ color: theme.text }}>{getSource()}</div>
+              ) : (
+                <div className="text-xs opacity-40" style={{ color: theme.text }}>Subscribe to a plan first</div>
               )}
             </div>
           </div>
-          <ExternalLink size={16} className="opacity-40" style={{ color: theme.text }} />
-        </button>
-        
-        <button
-          onClick={() => setShowGiftModal(true)}
-          className="content-section flex items-center justify-between p-5 rounded-2xl transition-all hover:opacity-80 text-left"
-          style={{ 
-            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <div 
-              className="p-2.5 rounded-xl"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
-            >
-              <Gift size={20} className="opacity-60" style={{ color: theme.text }} />
-            </div>
-            <div>
-              <div className="font-semibold text-base" style={{ color: theme.text }}>Give a Gift</div>
-              <div className="text-xs opacity-60" style={{ color: theme.text }}>Share research tools</div>
-            </div>
-          </div>
-          <ArrowLeft size={16} className="opacity-40 rotate-180" style={{ color: theme.text }} />
+          {getSource() !== 'VIA REDEMPTION CODE' && getSource() !== 'VIA GIFT' && (
+            <ExternalLink size={16} className="opacity-40" style={{ color: theme.text }} />
+          )}
         </button>
       </div>
 

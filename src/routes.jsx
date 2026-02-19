@@ -14,6 +14,7 @@ const LandingWrapper = lazyWithRetry(() => import('./components/common/LandingWr
 const Landing = lazyWithRetry(() => import('./pages/Landing.jsx'), 'Landing')
 const Home = lazyWithRetry(() => import('./pages/Home.jsx'), 'Home')
 const Dashboard = lazyWithRetry(() => import('./pages/CustomizableDashboard.jsx'), 'CustomizableDashboard')
+const AnalyticsFullPage = lazyWithRetry(() => import('./pages/AnalyticsFullPage.jsx'), 'AnalyticsFullPage')
 const Orders = lazyWithRetry(() => import('./pages/Orders.jsx'), 'Orders')
 const Protocols = lazyWithRetry(() => import('./pages/Protocols.jsx'), 'Protocols')
 const Vendors = lazyWithRetry(() => import('./pages/Vendors.jsx'), 'Vendors')
@@ -303,6 +304,7 @@ export const router = createBrowserRouter([
           { path: 'trial-expired', element: <TrialExpired /> },
           { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
+          { path: 'dashboard/analytics', element: <AnalyticsFullPage /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },
           { path: 'vendors', element: <Vendors /> },

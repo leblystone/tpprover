@@ -8,16 +8,34 @@
 /**
  * Determine the original subscription platform
  * @param {Object} subscription - Subscription object from Firestore
- * @returns {string} 'stripe' | 'googleplay' | 'apple' | 'admin' | 'unknown'
+ * @returns {string} 'stripe' | 'googleplay' | 'apple' | 'squarespace' | 'redemption' | 'gift' | 'admin' | 'unknown'
  */
 export function getSubscriptionPlatform(subscription) {
   if (!subscription) {
     return 'unknown';
   }
 
-  // Check for explicit paymentProvider field (new field)
+  // Check for explicit paymentProvider field (most reliable)
   if (subscription.paymentProvider) {
     return subscription.paymentProvider;
+  }
+
+  // Redemption codes (physical cards) — annual-kit or lifetime-kit
+  if (subscription.source === 'annual-kit' || subscription.source === 'lifetime-kit') {
+    return 'redemption';
+  }
+  if (subscription.lifetimeReason?.toLowerCase().includes('kit redemption')) {
+    return 'redemption';
+  }
+
+  // Gift access
+  if (subscription.type === 'gift' || subscription.giftId) {
+    return 'gift';
+  }
+
+  // Squarespace
+  if (subscription.source === 'squarespace' || subscription.squarespaceOrderId || subscription.squarespaceSubscriptionId) {
+    return 'squarespace';
   }
 
   // Legacy detection: Check for platform-specific fields
@@ -64,6 +82,9 @@ export function getPlatformDisplayName(platform) {
     stripe: 'Web (Stripe)',
     googleplay: 'Google Play',
     apple: 'App Store',
+    squarespace: 'Squarespace',
+    redemption: 'Redemption Code',
+    gift: 'Gift',
     admin: 'Admin Grant',
     unknown: 'Unknown'
   };
@@ -84,6 +105,24 @@ export function canManageBillingOnPlatform(subscription, currentPlatform) {
     return {
       canManage: false,
       reason: 'This subscription was granted by an administrator and cannot be managed.',
+      redirectUrl: null
+    };
+  }
+
+  // Redemption code purchases — one-time, no recurring billing
+  if (subPlatform === 'redemption') {
+    return {
+      canManage: false,
+      reason: 'This access was activated with a redemption code. It is a one-time purchase with no recurring billing. Please refer to your redemption card for details.',
+      redirectUrl: null
+    };
+  }
+
+  // Gift access — granted by another user
+  if (subPlatform === 'gift') {
+    return {
+      canManage: false,
+      reason: 'This access was gifted to you. There is no billing to manage — enjoy your gift!',
       redirectUrl: null
     };
   }
@@ -144,6 +183,14 @@ export function canManageBillingOnPlatform(subscription, currentPlatform) {
         redirectUrl: 'https://apps.apple.com/account/subscriptions'
       };
     }
+  }
+
+  if (subPlatform === 'squarespace') {
+    return {
+      canManage: true,
+      reason: 'Manage via Squarespace Account',
+      redirectUrl: 'https://www.thepepplanner.com/account'
+    };
   }
 
   return {
@@ -250,6 +297,30 @@ function getDetailedInstructions(subPlatform, currentPlatform) {
       'Visit appleid.apple.com',
       'Sign in with your Apple ID',
       'Go to Subscriptions and find "The Pep Planner"'
+    ];
+  }
+
+  if (subPlatform === 'squarespace') {
+    return [
+      'Visit thepepplanner.com and sign in to your account',
+      'Go to Account > Subscriptions to manage your plan',
+      'You can cancel, upgrade, or update payment from there'
+    ];
+  }
+
+  if (subPlatform === 'redemption') {
+    return [
+      'Your access was activated with a physical redemption code',
+      'This is a one-time purchase with no recurring billing',
+      'Refer to your original redemption card for purchase details'
+    ];
+  }
+
+  if (subPlatform === 'gift') {
+    return [
+      'Your access was gifted to you by another user',
+      'There is no billing to manage for gifted access',
+      'Contact support if you have questions'
     ];
   }
 

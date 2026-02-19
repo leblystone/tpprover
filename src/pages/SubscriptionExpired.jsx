@@ -1,6 +1,6 @@
 // Subscription Ended - Resubscribe Page
 import React, { useState } from 'react';
-import { CreditCard, Download, Trash2, Eye, BookOpenCheck, FileText } from 'lucide-react';
+import { CreditCard, Download, Trash2, Eye, BookOpenCheck, FileText, Crown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
@@ -56,10 +56,10 @@ export default function SubscriptionExpired() {
   };
   const discountActive = discount > 0;
 
-  const [isCheckoutProcessing, setIsCheckoutProcessing] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState(null);
 
   const handleSubscribe = async (plan) => {
-    if (isCheckoutProcessing) {
+    if (processingPlan) {
       return;
     }
 
@@ -71,7 +71,7 @@ export default function SubscriptionExpired() {
         return;
       }
 
-      setIsCheckoutProcessing(true);
+      setProcessingPlan(plan.key);
       await subscribe(plan.key, {
         userEmail: user.email,
         userId: user.uid || user.email,
@@ -81,13 +81,18 @@ export default function SubscriptionExpired() {
         },
         founderOffer: founderOffer
       });
+      // Purchase succeeded -- navigate to the app
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '🎉 Subscription reactivated! Welcome back.', type: 'success' }
+      }));
+      navigate('/app');
     } catch (error) {
       console.error('Subscription error:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: error.message || 'Unable to resubscribe. Please try again.', type: 'error' } 
       }));
     } finally {
-      setIsCheckoutProcessing(false);
+      setProcessingPlan(null);
     }
   };
 
@@ -173,97 +178,150 @@ export default function SubscriptionExpired() {
     <div className="page-bg min-h-screen flex flex-col items-center justify-center p-4 lg:p-8">
       <div className="w-full max-w-4xl space-y-4">
         {/* Header */}
-        <div className="text-center mb-4">
-          <div className="flex items-center justify-center mb-3">
-            <div 
-              className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-              style={{ backgroundColor: theme.primary }}
-            >
-              <BookOpenCheck size={28} style={{ color: theme.textOnPrimary || '#ffffff' }} />
+        <div className="flex items-center gap-4 mb-2">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Subscription Has Ended</h1>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                {subscriptionEndDate 
+                  ? `Ended ${subscriptionEndDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Resubscribe to continue`
+                  : 'Resubscribe to continue your research'
+                }
+              </span>
             </div>
           </div>
-          <h1 className="text-3xl mb-1" style={{ color: theme.primaryDark }}>
-            Subscription Has Ended
-          </h1>
-          <p className="text-base" style={{ color: theme.textLight }}>
-            Resubscribe to continue your research
-          </p>
-          {subscriptionEndDate && (
-            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-              Your subscription ended on {subscriptionEndDate.toLocaleDateString('en-US', { 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}
-            </p>
-          )}
         </div>
+        <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
-        {/* Subscription Section (Conversion First) */}
+        {/* Subscription Section */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`content-section relative rounded-2xl border-2 p-5 flex flex-col transition-all hover:shadow-md ${isCheckoutProcessing ? 'opacity-60 cursor-wait' : ''}`}
-                  style={{
-                    borderColor: plan.popular ? theme?.primary : (theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'),
-                  }}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span 
-                        className="px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter"
-                        style={{ 
-                          backgroundColor: theme?.primary, 
-                          color: theme?.textOnPrimary || '#ffffff' 
-                        }}
-                      >
-                        {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="text-center flex-1">
-                    <h3 className="text-lg mb-1" style={{ color: theme.primaryDark }}>
-                      {plan.name}
-                    </h3>
-                    
-                    <div className="mb-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <span className="text-2xl" style={{ color: theme.primary }}>
-                          {discountActive ? plan.display.founder : plan.display.base}
-                        </span>
-                        <span className="text-[10px] opacity-60" style={{ color: theme.textLight }}>
-                          {plan.intervalLabel}
-                        </span>
-                      </div>
-                      {discountActive && (
-                        <p className="text-[10px] line-through opacity-40" style={{ color: theme.textLight }}>
-                          Regularly {plan.display.base}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <p className="text-[11px] mb-4 leading-snug" style={{ color: theme.textLight }}>
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => !isCheckoutProcessing && handleSubscribe(plan)}
-                    disabled={isCheckoutProcessing}
-                    className="w-full py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
-                    style={{
-                      backgroundColor: theme.primary,
-                      color: theme.textOnPrimary || '#ffffff'
-                    }}
-                  >
-                    <CreditCard size={16} />
-                    {isCheckoutProcessing ? 'Processing…' : plan.cta}
-                  </button>
+            {/* Monthly Plan */}
+            <div 
+              className={`content-section p-6 rounded-3xl border relative btn-primary-inset ${processingPlan && processingPlan !== 'monthly' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              style={{ 
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Monthly Plan</h3>
+                <CreditCard size={20} className="opacity-40" style={{ color: theme.text }} />
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-4xl font-bold" style={{ color: theme.text }}>
+                    {planPricing.monthly.base}
+                  </span>
+                  <span className="text-sm opacity-40" style={{ color: theme.text }}>/month</span>
                 </div>
-            ))}
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                  CANCEL ANYTIME
+                </p>
+              </div>
+              <button
+                onClick={() => !processingPlan && handleSubscribe(plans[0])}
+                disabled={!!processingPlan}
+                className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm disabled:opacity-60"
+                style={{ 
+                  backgroundColor: 'transparent',
+                  color: theme.text,
+                  border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
+                }}
+              >
+                {processingPlan === 'monthly' ? 'Processing...' : 'Select Monthly'}
+              </button>
+            </div>
+
+            {/* Annual Plan */}
+            <div 
+              className={`content-section p-6 rounded-3xl border relative btn-primary-inset ${processingPlan && processingPlan !== 'annual' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              style={{ 
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              }}
+            >
+              <div 
+                className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-tighter"
+                style={{ 
+                  backgroundColor: theme.primary,
+                  color: '#ffffff'
+                }}
+              >
+                Best Value
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Annual Plan</h3>
+                <Crown size={20} className="opacity-40" style={{ color: theme.text }} />
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-4xl font-bold" style={{ color: theme.text }}>
+                    {planPricing.annual.base}
+                  </span>
+                  <span className="text-sm opacity-40" style={{ color: theme.text }}>/year</span>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.primary }}>
+                  SAVE {planPricing.annual.savings}
+                </p>
+              </div>
+              <button
+                onClick={() => !processingPlan && handleSubscribe(plans[1])}
+                disabled={!!processingPlan}
+                className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm disabled:opacity-60"
+                style={{ 
+                  backgroundColor: 'transparent',
+                  color: theme.text,
+                  border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
+                }}
+              >
+                {processingPlan === 'annual' ? 'Processing...' : 'Select Annual'}
+              </button>
+            </div>
+
+            {/* Lifetime Plan */}
+            <div 
+              className={`content-section p-6 rounded-3xl border relative btn-primary-inset ${processingPlan && processingPlan !== 'lifetime' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              style={{ 
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              }}
+            >
+              <div 
+                className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                style={{ 
+                  backgroundColor: theme.primary,
+                  color: '#ffffff'
+                }}
+              >
+                LIMITED TIME
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Lifetime Plan</h3>
+                <Sparkles size={20} className="opacity-40" style={{ color: theme.text }} />
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-4xl font-bold" style={{ color: theme.text }}>
+                    {planPricing.lifetime.base}
+                  </span>
+                  <span className="text-sm opacity-40" style={{ color: theme.text }}>/once</span>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
+                  ONE-TIME COST
+                </p>
+              </div>
+              <button
+                onClick={() => !processingPlan && handleSubscribe(plans[2])}
+                disabled={!!processingPlan}
+                className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm disabled:opacity-60"
+                style={{ 
+                  backgroundColor: 'transparent',
+                  color: theme.text,
+                  border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
+                }}
+              >
+                {processingPlan === 'lifetime' ? 'Processing...' : 'Select Lifetime'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -287,7 +345,7 @@ export default function SubscriptionExpired() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={() => setShowDataModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] btn-primary-inset"
               style={{
                 backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                 color: theme?.text
@@ -299,7 +357,7 @@ export default function SubscriptionExpired() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleExportCSV}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] btn-primary-inset"
                 style={{
                   backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                   color: theme?.text
@@ -310,7 +368,7 @@ export default function SubscriptionExpired() {
               </button>
               <button
                 onClick={handleExportPDF}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] btn-primary-inset"
                 style={{
                   backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                   color: theme?.text

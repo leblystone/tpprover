@@ -391,12 +391,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
-                                            color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border,
-                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pipette' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: (item.deliveryMethod || 'pipette') === 'pipette' ? '#fff' : theme.text,
+                                            border: (item.deliveryMethod || 'pipette') === 'pipette' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pipette' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
                                         <Pipette size={14} />
@@ -415,12 +415,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
-                                            color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.border,
-                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pen' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: (item.deliveryMethod || 'pipette') === 'pen' ? '#fff' : theme.text,
+                                            border: (item.deliveryMethod || 'pipette') === 'pen' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'pen' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
                                         <Pen size={14} />
@@ -439,12 +439,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
-                                            color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.border,
-                                            boxShadow: (item.deliveryMethod || 'pipette') === 'nasal' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: (item.deliveryMethod || 'pipette') === 'nasal' ? '#fff' : theme.text,
+                                            border: (item.deliveryMethod || 'pipette') === 'nasal' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'nasal' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
                                         <SprayCan size={14} />
@@ -464,12 +464,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             }
                                             onChange(updates);
                                         }}
-                                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-md border text-xs font-bold uppercase tracking-wider transition-all`}
+                                        className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                         style={{
-                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'topical' ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff'),
-                                            color: (item.deliveryMethod || 'pipette') === 'topical' ? theme.textOnPrimary : theme.text,
-                                            borderColor: (item.deliveryMethod || 'pipette') === 'topical' ? theme.primary : theme.border,
-                                            boxShadow: (item.deliveryMethod || 'pipette') === 'topical' ? (theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)') : 'none'
+                                            backgroundColor: (item.deliveryMethod || 'pipette') === 'topical' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: (item.deliveryMethod || 'pipette') === 'topical' ? '#fff' : theme.text,
+                                            border: (item.deliveryMethod || 'pipette') === 'topical' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: (item.deliveryMethod || 'pipette') === 'topical' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
                                         <Hand size={14} />
@@ -479,14 +479,18 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 
                                 {/* Pipette Injection Type Options */}
                                 {(item.deliveryMethod || 'pipette') === 'pipette' && (
-                                    <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                         {['SubQ', 'IM', 'IV'].map(type => (
                                             <button 
                                                 key={type}
                                                 type="button"
                                                 onClick={() => handleChange('injectionType', type)}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                                                style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary } : {}}
+                                                className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all active:scale-95"
+                                                style={{
+                                                    backgroundColor: (item.injectionType || 'SubQ') === type ? '#6B7F77' : 'transparent',
+                                                    color: (item.injectionType || 'SubQ') === type ? '#fff' : theme.textLight,
+                                                    boxShadow: (item.injectionType || 'SubQ') === type ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                                }}
                                             >
                                                 {type}
                                             </button>

@@ -21,7 +21,7 @@ export const WIDGET_TOOLTIPS = {
 [ClipboardList] Add follow-up assessments for completed protocols
 [ClipboardList] Click any item to take action`,
   
-  analytics: `[BarChart3] View comprehensive analytics including research compliance rates, spending trends, and inventory levels. Get insights into your research patterns`,
+  analytics: `[BarChart3] View comprehensive analytics: research consistency, spending, inventory, and protocol history. Use the expand icon for full-screen view.`,
   
   badges: `[Award] Track your achievement progress and unlock badges as you reach research milestones. Celebrate your consistency and dedication`,
   

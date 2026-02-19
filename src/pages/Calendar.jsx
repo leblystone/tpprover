@@ -978,7 +978,7 @@ export default function Calendar() {
   });
 
   return (
-    <section className="flex flex-col flex-1 min-h-0 px-2 sm:px-4 md:px-6 lg:px-8" style={{ overflow: 'hidden', background: 'transparent' }}>
+    <section className="flex flex-col flex-1 min-h-0 px-1 sm:px-2 md:px-3 lg:px-4" style={{ overflow: 'hidden', background: 'transparent' }}>
       <CalendarHeader
         currentDate={currentDate}
         weekStart={weekStart}

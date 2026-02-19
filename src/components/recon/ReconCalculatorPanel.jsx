@@ -1358,17 +1358,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pipette' ? 'text-white' : ''}`}
-                    style={deliveryMethod === 'pipette' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'pipette') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'pipette') {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                        }
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    style={{
+                        backgroundColor: deliveryMethod === 'pipette' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        color: deliveryMethod === 'pipette' ? '#fff' : theme.text,
+                        border: deliveryMethod === 'pipette' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        boxShadow: deliveryMethod === 'pipette' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                     }}
                 >
                     <Pipette size={14} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
@@ -1388,17 +1383,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'pen' ? 'text-white' : ''}`}
-                    style={deliveryMethod === 'pen' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'pen') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'pen') {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                        }
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    style={{
+                        backgroundColor: deliveryMethod === 'pen' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        color: deliveryMethod === 'pen' ? '#fff' : theme.text,
+                        border: deliveryMethod === 'pen' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        boxShadow: deliveryMethod === 'pen' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                     }}
                 >
                     <Pen size={14} className="flex-shrink-0" /> <span className="truncate">Pen</span>
@@ -1415,17 +1405,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'nasal' ? 'text-white' : ''}`}
-                    style={deliveryMethod === 'nasal' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'nasal') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'nasal') {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                        }
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    style={{
+                        backgroundColor: deliveryMethod === 'nasal' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        color: deliveryMethod === 'nasal' ? '#fff' : theme.text,
+                        border: deliveryMethod === 'nasal' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        boxShadow: deliveryMethod === 'nasal' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                     }}
                 >
                     <Wind size={14} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
@@ -1445,17 +1430,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-all ${deliveryMethod === 'topical' ? 'text-white' : ''}`}
-                    style={deliveryMethod === 'topical' ? { backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } : { color: theme.text }}
-                    onMouseEnter={(e) => {
-                        if (deliveryMethod !== 'topical') {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (deliveryMethod !== 'topical') {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                        }
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    style={{
+                        backgroundColor: deliveryMethod === 'topical' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        color: deliveryMethod === 'topical' ? '#fff' : theme.text,
+                        border: deliveryMethod === 'topical' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        boxShadow: deliveryMethod === 'topical' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                     }}
                 >
                     <Hand size={14} className="flex-shrink-0" /> <span className="truncate">Topical</span>
@@ -1466,10 +1446,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             {deliveryMethod === 'pipette' && (
                 <div className="mt-3">
                     <div 
-                        className="flex items-center gap-1.5 p-1.5 rounded-2xl" 
+                        className="flex items-center gap-1 p-1 rounded-lg" 
                         style={{ 
-                            backgroundColor: theme.isDark ? theme.background : theme.secondary + '40',
-                            border: `1px solid ${theme.border}`
+                            backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                         }}
                     >
                         {['subq', 'im', 'iv'].map(route => (
@@ -1483,15 +1463,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                     return { ...safePrev, administrationRoute: route };
                                   });
                                 }}
-                                className={`flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-300 ${
-                                    administrationRoute === route 
-                                        ? 'text-white' 
-                                        : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                                style={administrationRoute === route ? { 
-                                    backgroundColor: theme.primary,
-                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
-                                } : {}}
+                                className="flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: administrationRoute === route ? '#6B7F77' : 'transparent',
+                                    color: administrationRoute === route ? '#fff' : theme.textLight,
+                                    boxShadow: administrationRoute === route ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                }}
                             >
                                 {route}
                             </button>

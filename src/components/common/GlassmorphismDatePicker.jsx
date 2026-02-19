@@ -6,7 +6,7 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 const DROPDOWN_HEIGHT_COMPACT = 260;
 const DROPDOWN_HEIGHT_FULL = 320;
 
-export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false, preferOpenAbove = false }) {
+export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false, preferOpenAbove = false, onOpen }) {
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
         if (value) {
@@ -589,7 +589,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             {/* Trigger Button */}
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => { const next = !isOpen; setIsOpen(next); if (next && onOpen) onOpen(); }}
                 className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
                 style={{
                     border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0eee7',

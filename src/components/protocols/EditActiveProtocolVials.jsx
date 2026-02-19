@@ -1,16 +1,18 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package, Pill, FlaskConical } from 'lucide-react';
+import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package, Pill, FlaskConical, Archive } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { penColors } from '../../utils/penColors';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { formatMMDDYYYY } from '../../utils/date';
 
-const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linkedItem, onUpdate, theme }) => {
-    const [action, setAction] = useState(null); // 'select', 'add', null
+const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linkedItem, onUpdate, theme, onRequestRecon }) => {
+    const [action, setAction] = useState(null); // 'select', 'add', null, 'reconPrompt'
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
+    const [pendingReconVialId, setPendingReconVialId] = useState(null);
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState(false);
     const [penTypeDropdownUp, setPenTypeDropdownUp] = useState(false);
     const [penTypeDropdownPosition, setPenTypeDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -86,13 +88,57 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
         }
     }, [penTypeDropdownOpen]);
 
-    const handleSelectVial = (vialId) => {
-        onUpdate({
+    const archiveCurrentVial = () => {
+        if (!linkedItem?.vialId) return linkedItem;
+        const currentVial = stockpile.find(s => s.id === linkedItem.vialId);
+        const archivedEntry = {
+            vialId: linkedItem.vialId,
+            reconId: linkedItem.reconId || null,
+            deliveryMethod: linkedItem.deliveryMethod || null,
+            name: currentVial?.name || peptide.name,
+            mg: currentVial?.mg || null,
+            vendor: currentVial?.vendor || null,
+            cost: currentVial?.cost || null,
+            linkedAt: linkedItem.linkedAt || null,
+            usedAt: new Date().toISOString()
+        };
+        return {
             ...linkedItem,
+            vialHistory: [...(linkedItem.vialHistory || []), archivedEntry]
+        };
+    };
+
+    const snapshotVialDetails = (vialId) => {
+        const vial = stockpile.find(s => s.id === vialId);
+        if (!vial) return {};
+        return {
+            vialName: vial.name || null,
+            vialMg: vial.mg || null,
+            vialMgUnit: vial.mgUnit || 'mg',
+            vialVendor: vial.vendor || null,
+            vialVendorId: vial.vendorId || null,
+            vialCost: vial.cost || null,
+            vialOrderId: vial.orderId || null,
+            vialPurchaseDate: vial.purchaseDate || null,
+        };
+    };
+
+    const handleSelectVial = (vialId) => {
+        const base = linkedItem?.vialId && linkedItem.vialId !== vialId
+            ? archiveCurrentVial()
+            : linkedItem;
+        const details = snapshotVialDetails(vialId);
+        const updated = {
+            ...base,
+            ...details,
             status: 'linked',
-            vialId
-        });
-        setAction(null);
+            vialId,
+            reconId: null,
+            linkedAt: new Date().toISOString()
+        };
+        onUpdate(updated);
+        setAction('reconPrompt');
+        setPendingReconVialId(vialId);
     };
 
     const handleSaveNew = () => {
@@ -103,32 +149,50 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
             notes: "Added during protocol edit. Review details."
         };
         
-        // Add to stockpile
         const updatedStockpile = [newItem, ...stockpile];
-        // Save to localStorage
         try {
             localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedStockpile));
         } catch (e) {
             console.error('Failed to save stockpile:', e);
         }
         
-        // Update stockpile state
         if (setStockpile) {
             setStockpile(updatedStockpile);
         }
         
-        // Link the new vial
-        onUpdate({
-            ...linkedItem,
+        const base = linkedItem?.vialId
+            ? archiveCurrentVial()
+            : linkedItem;
+        const details = snapshotVialDetails(newItem.id);
+        const updated = {
+            ...base,
+            ...details,
+            vialName: newItem.name || peptide.name,
+            vialMg: newItem.mg || null,
+            vialVendor: newItem.vendor || null,
             status: 'linked',
-            vialId: newItem.id
-        });
+            vialId: newItem.id,
+            reconId: null,
+            linkedAt: new Date().toISOString()
+        };
+        onUpdate(updated);
         
-        // Note: Vial addition to history will be handled by parent component (Protocols.jsx)
-        // which has access to protocol.id and can call addVialToActiveProtocol
-        
-        setAction(null);
         setQuickAddForm({ mg: '', quantity: '1', vendor: '' });
+        setAction('reconPrompt');
+        setPendingReconVialId(newItem.id);
+    };
+
+    const handleMarkAsFinished = () => {
+        const updated = archiveCurrentVial();
+        onUpdate({
+            ...updated,
+            status: 'pending',
+            vialId: null,
+            reconId: null,
+            deliveryMethod: null,
+            linkedAt: null
+        });
+        setAction(null);
     };
 
     const handleUnlink = () => {
@@ -137,6 +201,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
             status: 'pending'
         });
     };
+
+    const vialHistory = linkedItem?.vialHistory || [];
 
     const handleSkip = () => {
         onUpdate({
@@ -164,6 +230,34 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
         const selectedVial = stockpile.find(item => item.id === linkedItem.vialId);
         return (
             <div className="space-y-3">
+                {/* Finished vials list */}
+                {vialHistory.length > 0 && (
+                    <div className="space-y-1.5">
+                        <div className="text-[10px] font-medium uppercase tracking-wider px-1" style={{ color: theme.textLight }}>
+                            Finished Vials ({vialHistory.length})
+                        </div>
+                        {vialHistory.map((hv, hi) => (
+                            <div key={hi} className="p-2.5 rounded-md" style={{
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`
+                            }}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Archive size={12} style={{ color: theme.textLight, opacity: 0.5 }} />
+                                        <span className="text-xs line-through" style={{ color: theme.textLight, opacity: 0.6 }}>
+                                            {hv.name || 'Peptide'}{hv.mg ? ` · ${hv.mg}mg` : ''}{hv.vendor ? ` · ${hv.vendor}` : ''}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] tabular-nums" style={{ color: theme.textLight, opacity: 0.4 }}>
+                                        {hv.usedAt ? formatMMDDYYYY(hv.usedAt) : ''}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Current active vial */}
                 <div className="p-3 rounded-md" style={{ 
                     backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
@@ -198,47 +292,88 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     )}
                     
                     {action === 'add' && (
-                        <div className="mt-2 space-y-2">
-                            {/* Search from stockpile option */}
-                            <div>
-                                <p className="text-xs font-medium mb-1" style={{ color: theme.text }}>Search from stockpile</p>
-                                <SearchableDropdown
-                                    options={vialOptions}
-                                    onChange={handleSelectVial}
-                                    theme={theme}
-                                    placeholder="Type to search your stockpile..."
-                                    idleMessage="Start typing to search your stockpile."
-                                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
-                                />
-                            </div>
-                            
-                            {/* Divider */}
+                        <div className="mt-2 space-y-2.5">
+                            <SearchableDropdown
+                                options={vialOptions}
+                                onChange={handleSelectVial}
+                                theme={theme}
+                                placeholder="Search stockpile..."
+                                idleMessage="Search your stockpile"
+                                emptyMessage="No matches found."
+                            />
                             <div className="flex items-center gap-2">
                                 <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
-                                <span className="text-xs" style={{ color: theme.textLight }}>OR</span>
+                                <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: theme.textLight }}>or create new</span>
                                 <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
                             </div>
-                            
-                            {/* Add new vial form */}
-                            <div className="space-y-1.5 p-2 rounded-md" style={{ backgroundColor: theme.isDark ? '#374151' : '#f9fafb' }}>
-                                <p className="text-xs font-medium" style={{ color: theme.text }}>Add New Vial</p>
-                                <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                                </div>
-                                <div className="flex items-center justify-end gap-2 mt-1.5">
-                                    <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
-                                    <button onClick={handleSaveNew} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
-                                </div>
+                            <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
+                                <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
+                                <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                            </div>
+                            <div className="flex items-center justify-end gap-2">
+                                <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Cancel</button>
+                                <button onClick={handleSaveNew} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}>Save & Link</button>
                             </div>
                         </div>
                     )}
                     
+                    {action === 'reconPrompt' && (
+                        <div className="mt-2 p-3 rounded-lg" style={{
+                            backgroundColor: theme.isDark ? 'rgba(200,122,92,0.10)' : 'rgba(200,122,92,0.06)',
+                            border: `1px solid ${theme.isDark ? 'rgba(181,104,74,0.35)' : 'rgba(163,90,63,0.25)'}`
+                        }}>
+                            <p className="text-xs font-medium mb-2" style={{ color: theme.text }}>
+                                Vial linked! Would you like to reconstitute it now?
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        setAction(null);
+                                        setPendingReconVialId(null);
+                                        if (onRequestRecon && pendingReconVialId) onRequestRecon(peptideId, pendingReconVialId);
+                                    }}
+                                    className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                                        color: '#ffffff',
+                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)'
+                                    }}
+                                >
+                                    Open Recon Calculator
+                                </button>
+                                <button
+                                    onClick={() => { setAction(null); setPendingReconVialId(null); }}
+                                    className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95"
+                                    style={{
+                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                                        color: theme.isDark ? '#ffffff' : theme.text,
+                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)'
+                                    }}
+                                >
+                                    Skip for Now
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {!action && (
-                        <div className="flex items-center gap-2 mt-2">
-                            <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New Vial</button>
-                            <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Change Vial</button>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <button
+                                onClick={handleMarkAsFinished}
+                                className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95 flex items-center gap-1.5"
+                                style={{
+                                    backgroundColor: theme.isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                                    color: theme.isDark ? '#fca5a5' : '#dc2626',
+                                    border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.2)' : '#fecaca'}`,
+                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 2px rgba(0,0,0,0.06)'
+                                }}
+                            >
+                                <Archive size={12} />
+                                Mark as Finished
+                            </button>
+                            <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Add New Vial</button>
+                            <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}>Change Vial</button>
                         </div>
                     )}
                     
@@ -251,47 +386,56 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                 { key: 'nasal', label: 'Nasal', Icon: Droplets },
                                 { key: 'oral', label: 'Oral', Icon: Pill },
                                 { key: 'topical', label: 'Topical', Icon: FlaskConical },
-                            ].map(({ key, label, Icon }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
-                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all"
-                                    style={{
-                                        backgroundColor: deliveryMethod.deliveryMethod === key ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                        color: deliveryMethod.deliveryMethod === key ? theme.textOnPrimary : theme.text,
-                                        borderColor: deliveryMethod.deliveryMethod === key ? theme.primary : theme.border
-                                    }}
-                                >
-                                    <Icon size={14} /> {label}
-                                </button>
-                            ))}
+                            ].map(({ key, label, Icon }) => {
+                                const isActive = deliveryMethod.deliveryMethod === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
+                                        className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                        style={{
+                                            backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: isActive ? '#fff' : theme.text,
+                                            border: isActive ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: isActive
+                                                ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
+                                                : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                        }}
+                                    >
+                                        <Icon size={14} /> {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                         
                         {/* Administration Route for Syringe */}
                         {deliveryMethod.deliveryMethod === 'pipette' && (
                             <div className="mt-3">
                                 <div 
-                                    className="flex items-center gap-1 p-1 rounded-md" 
+                                    className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
-                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >
-                                    {['subq', 'im', 'iv'].map(route => (
+                                    {['subq', 'im', 'iv'].map(route => {
+                                        const isActive = deliveryMethod.administrationRoute === route;
+                                        return (
                                         <button
                                             key={route}
                                             type="button"
                                             onClick={() => handleDeliveryMethodChange('administrationRoute', route)}
-                                            className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
-                                                deliveryMethod.administrationRoute === route 
-                                                    ? 'text-white shadow-sm' 
-                                                    : 'text-gray-600 hover:bg-gray-200'
-                                            }`}
-                                            style={deliveryMethod.administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                                            className="flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded-md transition-all active:scale-95"
+                                            style={{
+                                                backgroundColor: isActive ? '#6B7F77' : 'transparent',
+                                                color: isActive ? '#fff' : theme.textLight,
+                                                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                            }}
                                         >
                                             {route.toUpperCase()}
                                         </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -444,24 +588,14 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex-1">
                             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
-                            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                Skipped reconstitution. Select delivery method below.
-                            </p>
                         </div>
                         <button 
                             onClick={() => setAction('add')} 
-                            className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shadow-sm ml-2 flex items-center gap-1.5"
+                            className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all ml-2 flex items-center gap-1.5 active:scale-95"
                             style={{ 
                                 backgroundColor: theme.primary, 
-                                color: '#ffffff' 
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = `0 4px 8px ${theme.primary}40`;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '';
+                                color: '#ffffff',
+                                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)'
                             }}
                         >
                             <Package size={12} />
@@ -469,46 +603,32 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         </button>
                     </div>
                     
-                    {/* Add vial form */}
                     {action === 'add' && (
-                        <div className="mb-3 p-2.5 rounded-md border-2" style={{ 
+                        <div className="mb-3 p-2.5 rounded-md space-y-2.5" style={{ 
                             backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                            borderColor: theme.primary 
+                            border: `1px solid ${theme.border}`
                         }}>
-                            <p className="text-xs font-semibold mb-2" style={{ color: theme.primary }}>Add New Vial</p>
-                            
-                            {/* Search from stockpile option */}
-                            <div className="mb-2">
-                                <p className="text-xs font-medium mb-1" style={{ color: theme.text }}>Search from stockpile</p>
-                                <SearchableDropdown
-                                    options={vialOptions}
-                                    onChange={handleSelectVial}
-                                    theme={theme}
-                                    placeholder="Type to search your stockpile..."
-                                    idleMessage="Start typing to search your stockpile."
-                                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
-                                />
-                            </div>
-                            
-                            {/* Divider */}
-                            <div className="flex items-center gap-2 my-2">
+                            <SearchableDropdown
+                                options={vialOptions}
+                                onChange={handleSelectVial}
+                                theme={theme}
+                                placeholder="Search stockpile..."
+                                idleMessage="Search your stockpile"
+                                emptyMessage="No matches found."
+                            />
+                            <div className="flex items-center gap-2">
                                 <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
-                                <span className="text-xs" style={{ color: theme.textLight }}>OR</span>
+                                <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: theme.textLight }}>or create new</span>
                                 <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
                             </div>
-                            
-                            {/* Add new vial form */}
-                            <div className="space-y-1.5">
-                                <p className="text-xs font-medium" style={{ color: theme.text }}>Create New</p>
-                                <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                                </div>
+                            <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
+                                <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
+                                <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                             </div>
-                            <div className="mt-2 flex items-center justify-end gap-2">
-                                <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
-                                <button onClick={handleSaveNew} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
+                            <div className="flex items-center justify-end gap-2">
+                                <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Cancel</button>
+                                <button onClick={handleSaveNew} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}>Save & Link</button>
                             </div>
                         </div>
                     )}
@@ -522,47 +642,56 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                 { key: 'nasal', label: 'Nasal', Icon: Droplets },
                                 { key: 'oral', label: 'Oral', Icon: Pill },
                                 { key: 'topical', label: 'Topical', Icon: FlaskConical },
-                            ].map(({ key, label, Icon }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
-                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all"
-                                    style={{
-                                        backgroundColor: deliveryMethod.deliveryMethod === key ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
-                                        color: deliveryMethod.deliveryMethod === key ? theme.textOnPrimary : theme.text,
-                                        borderColor: deliveryMethod.deliveryMethod === key ? theme.primary : theme.border
-                                    }}
-                                >
-                                    <Icon size={14} /> {label}
-                                </button>
-                            ))}
+                            ].map(({ key, label, Icon }) => {
+                                const isActive = deliveryMethod.deliveryMethod === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
+                                        className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                        style={{
+                                            backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                            color: isActive ? '#fff' : theme.text,
+                                            border: isActive ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: isActive
+                                                ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
+                                                : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                        }}
+                                    >
+                                        <Icon size={14} /> {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                         
                         {/* Administration Route for Syringe */}
                         {deliveryMethod.deliveryMethod === 'pipette' && (
                             <div className="mt-3">
                                 <div 
-                                    className="flex items-center gap-1 p-1 rounded-md" 
+                                    className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
-                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >
-                                    {['subq', 'im', 'iv'].map(route => (
+                                    {['subq', 'im', 'iv'].map(route => {
+                                        const isActive = deliveryMethod.administrationRoute === route;
+                                        return (
                                         <button
                                             key={route}
                                             type="button"
                                             onClick={() => handleDeliveryMethodChange('administrationRoute', route)}
-                                            className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
-                                                deliveryMethod.administrationRoute === route 
-                                                    ? 'text-white shadow-sm' 
-                                                    : 'text-gray-600 hover:bg-gray-200'
-                                            }`}
-                                            style={deliveryMethod.administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                                            className="flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded-md transition-all active:scale-95"
+                                            style={{
+                                                backgroundColor: isActive ? '#6B7F77' : 'transparent',
+                                                color: isActive ? '#fff' : theme.textLight,
+                                                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                            }}
                                         >
                                             {route.toUpperCase()}
                                         </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -705,13 +834,41 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
         );
     }
 
+    const FinishedVialsList = () => vialHistory.length > 0 ? (
+        <div className="space-y-1.5 mb-2">
+            <div className="text-[10px] font-medium uppercase tracking-wider px-1" style={{ color: theme.textLight }}>
+                Finished Vials ({vialHistory.length})
+            </div>
+            {vialHistory.map((hv, hi) => (
+                <div key={hi} className="p-2.5 rounded-md" style={{
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`
+                }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Archive size={12} style={{ color: theme.textLight, opacity: 0.5 }} />
+                            <span className="text-xs line-through" style={{ color: theme.textLight, opacity: 0.6 }}>
+                                {hv.name || 'Peptide'}{hv.mg ? ` · ${hv.mg}mg` : ''}{hv.vendor ? ` · ${hv.vendor}` : ''}
+                            </span>
+                        </div>
+                        <span className="text-[10px] tabular-nums" style={{ color: theme.textLight, opacity: 0.4 }}>
+                            {hv.usedAt ? formatMMDDYYYY(hv.usedAt) : ''}
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    ) : null;
+
     // Pending state - no vial linked yet
     if (action === 'select') {
         return (
-            <div className="p-3 rounded-md" style={{ 
-                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-            }}>
+            <div className="space-y-0">
+                <FinishedVialsList />
+                <div className="p-3 rounded-md" style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                }}>
                 <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
                 <SearchableDropdown
                     options={vialOptions}
@@ -726,6 +883,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     <button onClick={() => setAction(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
                 </div>
             </div>
+            </div>
         );
     }
     
@@ -735,66 +893,59 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
             setAction(null);
         };
         return (
-            <div className="p-2 rounded-md" style={{ 
+            <div className="space-y-0">
+                <FinishedVialsList />
+            <div className="p-2.5 rounded-md space-y-2.5" style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                border: `1px solid ${theme.border}`
             }}>
-                <p className="font-semibold text-xs mb-2" style={{ color: theme.text }}>Add {peptide.name} to Stockpile</p>
-                
-                {/* Search from stockpile option */}
-                <div className="mb-2">
-                    <p className="text-xs font-medium mb-1" style={{ color: theme.text }}>Search from stockpile</p>
-                    <SearchableDropdown
-                        options={vialOptions}
-                        onChange={handleSelectVial}
-                        theme={theme}
-                        placeholder="Type to search your stockpile..."
-                        idleMessage="Start typing to search your stockpile."
-                        emptyMessage="No stockpile entries found. Keep typing to refine your search."
-                    />
-                </div>
-                
-                {/* Divider */}
-                <div className="flex items-center gap-2 my-2">
+                <SearchableDropdown
+                    options={vialOptions}
+                    onChange={handleSelectVial}
+                    theme={theme}
+                    placeholder="Search stockpile..."
+                    idleMessage="Search your stockpile"
+                    emptyMessage="No matches found."
+                />
+                <div className="flex items-center gap-2">
                     <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
-                    <span className="text-xs" style={{ color: theme.textLight }}>OR</span>
+                    <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: theme.textLight }}>or create new</span>
                     <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
                 </div>
-                
-                {/* Add new vial form */}
-                <div className="space-y-1.5">
-                    <p className="text-xs font-medium" style={{ color: theme.text }}>Add New Vial</p>
-                    <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                        <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                        <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                        <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-                    </div>
+                <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
+                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
+                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                 </div>
-                <div className="mt-2 flex items-center justify-end gap-2">
-                    <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
-                    <button onClick={handleSaveNewAndClose} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Cancel</button>
+                    <button onClick={handleSaveNewAndClose} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}>Save & Link</button>
                 </div>
+            </div>
             </div>
         );
     }
     
     // Default view with choices
     return (
-        <div className="p-3 rounded-md flex items-center justify-between" style={{ 
-            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-        }}>
-            <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
-            <div className="flex items-center gap-2">
-                <button onClick={handleSkip} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial</button>
+        <div className="space-y-0">
+            <FinishedVialsList />
+            <div className="p-3 rounded-md flex items-center justify-between" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
+                <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
+                <div className="flex items-center gap-2">
+                    <button onClick={handleSkip} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Skip</button>
+                    <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)' }}>Add New</button>
+                    <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all active:scale-95" style={{ backgroundColor: theme.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}>Select Vial</button>
+                </div>
             </div>
         </div>
     );
 };
 
-export default function EditActiveProtocolVials({ protocol, stockpile, setStockpile, theme, onUpdate }) {
+export default function EditActiveProtocolVials({ protocol, stockpile, setStockpile, theme, onUpdate, onRequestRecon }) {
     const [linkedItems, setLinkedItems] = useState(() => {
         // Initialize from protocol.linkedItems
         const items = {};
@@ -837,15 +988,6 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
 
     return (
         <div className="space-y-3">
-            <div 
-                className="text-xs text-center py-2 px-3 rounded-lg"
-                style={{ 
-                    backgroundColor: `${theme.info || theme.primary}10`,
-                    color: theme.textLight
-                }}
-            >
-                Link vials from your stockpile and manage delivery methods.
-            </div>
             {protocol.peptides.map((p, index) => {
                 const peptideId = p.id || `peptide-${index}`;
                 return (
@@ -858,6 +1000,7 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
                         linkedItem={linkedItems[peptideId] || { status: 'pending' }}
                         onUpdate={(updated) => handlePeptideUpdate(peptideId, updated)}
                         theme={theme}
+                        onRequestRecon={onRequestRecon}
                     />
                 );
             })}

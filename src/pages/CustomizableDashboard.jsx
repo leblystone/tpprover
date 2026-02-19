@@ -770,9 +770,10 @@ export default function CustomizableDashboard() {
     // Hide analytics-related widgets when analytics is disabled
     if (!analyticsEnabled) {
       const analyticsWidgetTypes = [
-        WIDGET_TYPES.COMPLIANCE,  // Research Consistency
-        WIDGET_TYPES.SPENDING,    // Spending
-        WIDGET_TYPES.LEAD_TIME    // Average Delivery
+        WIDGET_TYPES.ANALYTICS,   // Analytics Dashboard
+        WIDGET_TYPES.COMPLIANCE, // Research Consistency
+        WIDGET_TYPES.SPENDING,   // Spending
+        WIDGET_TYPES.LEAD_TIME   // Average Delivery
       ];
       if (analyticsWidgetTypes.includes(w.type)) {
         return false;

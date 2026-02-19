@@ -38,7 +38,14 @@ export function getPlanPricing(planKey, discountPercent) {
   }
 
   const founderPrice = getFounderPrice(plan.price, discountPercent);
-  const savings = Number((plan.price - founderPrice).toFixed(2));
+
+  let savings = 0;
+  if (planKey === 'annual') {
+    const monthlyEquivalent = SUBSCRIPTION_PLANS.monthly.price * 12;
+    savings = Number((monthlyEquivalent - founderPrice).toFixed(2));
+  } else {
+    savings = Number((plan.price - founderPrice).toFixed(2));
+  }
 
   return {
     ...plan,

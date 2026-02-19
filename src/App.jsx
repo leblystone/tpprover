@@ -107,26 +107,51 @@ function App() {
     }
   }, [theme, themeName]);
 
+  // Initialize status bar on mount - disable overlay so WebView starts below status bar
+  useEffect(() => {
+    const initStatusBar = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.show();
+
+        // Android 15+ (API 35) may enforce edge-to-edge despite opt-out.
+        // Detect if overlay is still active and apply a manual safe area.
+        if (Capacitor.getPlatform() === 'android') {
+          await new Promise(r => setTimeout(r, 150));
+          try {
+            const info = await StatusBar.getInfo();
+            if (info.overlays) {
+              document.documentElement.style.setProperty('--android-safe-area-top', '36px');
+            }
+          } catch {
+            // getInfo not available - apply safe default for Android
+            document.documentElement.style.setProperty('--android-safe-area-top', '36px');
+          }
+        }
+      } catch (e) {
+        console.warn('StatusBar init error:', e);
+        if (Capacitor.getPlatform() === 'android') {
+          document.documentElement.style.setProperty('--android-safe-area-top', '36px');
+        }
+      }
+    };
+    initStatusBar();
+  }, []);
+
   // Update status bar style based on theme (mobile apps only)
   useEffect(() => {
     const updateStatusBar = async () => {
-      // Only update on native mobile platforms (not PWA/web)
-      if (!Capacitor.isNativePlatform()) {
-        return;
-      }
+      if (!Capacitor.isNativePlatform()) return;
 
       try {
         const isDarkTheme = theme.isDark;
-        // Style.Dark = light text/icons (for dark backgrounds)
-        // Style.Light = dark text/icons (for light backgrounds)
         const statusBarStyle = isDarkTheme ? Style.Dark : Style.Light;
         const statusBarBgColor = isDarkTheme ? '#12161e' : theme.background;
 
         await StatusBar.setStyle({ style: statusBarStyle });
-        // Android also allows setting background color
         await StatusBar.setBackgroundColor({ color: statusBarBgColor });
       } catch (error) {
-        // Silently fail - status bar might not be available or plugin might not be ready
         console.warn('Status bar update skipped:', error.message);
       }
     };

@@ -539,7 +539,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                     </div>
                                                                     {/* Titration controls */}
                                                                     {onUpdateProtocol && isActive && (
-                                                                        <div className="flex items-center gap-1.5">
+                                                                        <div className="flex items-center justify-center gap-1.5">
                                                                             {/* Hold / Resume button */}
                                                                             <button
                                                                                 onClick={(e) => {

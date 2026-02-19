@@ -102,6 +102,24 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             });
         }
 
+        const allLinked = he.protocolData?.linkedItems || {};
+        Object.values(allLinked).forEach(item => {
+            if (item.vialHistory?.length > 0) {
+                item.vialHistory.forEach(hv => {
+                    if (hv.usedAt) {
+                        ev.push({
+                            date: hv.usedAt,
+                            sort: 3,
+                            type: 'vial_finished',
+                            icon: CircleDot,
+                            color: '#f97316',
+                            label: `Finished ${hv.mg ? hv.mg + 'mg ' : ''}${hv.name || 'vial'}${hv.vendor ? ' from ' + hv.vendor : ''}`
+                        });
+                    }
+                });
+            }
+        });
+
         if (he.vialsAddedDuring?.length > 0) {
             he.vialsAddedDuring.forEach(v => {
                 ev.push({
@@ -650,6 +668,37 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     </div>
                                 );
                             })}
+                            {/* Finished vials from vialHistory */}
+                            {(() => {
+                                const allFinished = Object.values(linkedItems).flatMap(item =>
+                                    (item.vialHistory || []).map(hv => hv)
+                                ).filter(hv => hv.usedAt);
+                                if (allFinished.length === 0) return null;
+                                return (
+                                    <>
+                                        <div className="text-[10px] font-medium uppercase tracking-wider mt-2 ml-1" style={{ color: theme.textLight }}>Finished during protocol</div>
+                                        {allFinished.map((hv, idx) => (
+                                            <div key={`hv-${idx}`} className="p-3 rounded-lg content-section" style={{ opacity: 0.55 }}>
+                                                <div className="flex items-center justify-between mb-0.5">
+                                                    <div className="font-medium text-sm line-through" style={{ color: theme.textLight }}>
+                                                        {hv.name || 'Unknown Peptide'}
+                                                    </div>
+                                                    <div className="px-2 py-0.5 rounded-md text-[10px] font-semibold" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}>
+                                                        Used
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-3 text-xs" style={{ color: theme.textLight }}>
+                                                    {hv.mg && <span className="flex items-center gap-1"><FlaskConical size={11} />{hv.mg}mg</span>}
+                                                    {hv.vendor && <span className="flex items-center gap-1"><Store size={11} />{hv.vendor}</span>}
+                                                    {hv.cost && <span className="flex items-center gap-1"><DollarSign size={11} />${Number(hv.cost).toFixed(2)}</span>}
+                                                    {hv.usedAt && <span>Finished: {formatMMDDYYYY(hv.usedAt)}</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                );
+                            })()}
+
                             {vialsAddedDuring && vialsAddedDuring.length > 0 && (
                                 <>
                                     <div className="text-[10px] font-medium uppercase tracking-wider mt-2 ml-1" style={{ color: theme.textLight }}>Added during protocol</div>

@@ -22,46 +22,41 @@ const updateVisualViewportInsets = () => {
 
   const root = document.documentElement;
   const viewport = window.visualViewport;
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isCapacitorNative = typeof window.Capacitor !== 'undefined' &&
+    window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
 
-  // Graceful fallback: if visualViewport API not available, set to 0
-  // The max() pattern in CSS ensures minimum padding still works
   if (!viewport) {
-    root.style.setProperty('--android-safe-area-top', '0px');
+    root.style.setProperty('--android-safe-area-top', isCapacitorNative && isAndroid ? '36px' : '0px');
     root.style.setProperty('--android-safe-area-right', '0px');
     root.style.setProperty('--android-safe-area-bottom', '0px');
     root.style.setProperty('--android-safe-area-left', '0px');
     return;
   }
 
-  // Measure the actual gap between window and viewport
-  // This works on ALL Android devices regardless of brand or size
-  const top = viewport.offsetTop;
   const left = viewport.offsetLeft;
   const widthGap = window.innerWidth - viewport.width;
   const heightGap = window.innerHeight - viewport.height;
 
-  // Calculate bottom safe area (navigation bar)
-  const bottomGap = heightGap - top;
-  
-  // Detect Android devices (including Pixel)
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  
-  // For Android devices with gesture navigation, visualViewport might not detect the gesture bar
-  // Pixel 8 Pro and similar devices often use gesture navigation where the bar is part of the viewport
-  // Always apply minimum safe area padding for Android mobile devices to ensure buttons aren't hidden
+  // visualViewport.offsetTop measures scroll offset, NOT status bar height.
+  // For top safe area on Android Capacitor, we rely on StatusBar plugin
+  // initialization in App.jsx which sets --android-safe-area-top directly
+  // when overlay is detected. Don't overwrite it to 0 here.
+  if (!isCapacitorNative || !isAndroid) {
+    const top = viewport.offsetTop;
+    root.style.setProperty('--android-safe-area-top', round(top));
+  }
+
+  const bottomGap = heightGap - viewport.offsetTop;
+
   let finalBottom = bottomGap;
   if (isAndroid && bottomGap === 0) {
-    // Check if we're in a mobile viewport (not desktop/tablet)
     const isMobileViewport = window.innerHeight < 1200;
-    
     if (isMobileViewport) {
-      // Pixel 8 Pro gesture bar is typically 20px
-      // Apply this padding to ensure bottom buttons aren't hidden by gesture navigation bars
       finalBottom = 20;
     }
   }
 
-  root.style.setProperty('--android-safe-area-top', round(top));
   root.style.setProperty('--android-safe-area-left', round(left));
   root.style.setProperty('--android-safe-area-right', round(widthGap - left));
   root.style.setProperty('--android-safe-area-bottom', round(finalBottom));

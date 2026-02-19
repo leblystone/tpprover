@@ -192,7 +192,7 @@ export const DEFAULT_WIDGETS = [
     title: 'Spending',
     size: WIDGET_SIZES.SMALL,
     position: { x: 5, y: 1 },
-    enabled: true,
+    enabled: false,
     settings: {}
   },
   // Row 2 - Wishlist before Upcoming Buys
@@ -202,7 +202,7 @@ export const DEFAULT_WIDGETS = [
     title: 'Research Consistency',
     size: WIDGET_SIZES.SMALL,
     position: { x: 0, y: 2 },
-    enabled: true,
+    enabled: false,
     settings: {}
   },
   {
@@ -265,6 +265,17 @@ export const DEFAULT_WIDGETS = [
     enabled: true,
     settings: {
       maxItems: 3
+    }
+  },
+  {
+    id: 'analytics',
+    type: WIDGET_TYPES.ANALYTICS,
+    title: 'Analytics Dashboard',
+    size: WIDGET_SIZES.LARGE,
+    position: { x: 4, y: 3 },
+    enabled: true,
+    settings: {
+      defaultTab: 'compliance'
     }
   },
   // Row 3
@@ -357,7 +368,8 @@ export const WIDGET_METADATA = {
       { key: 'defaultTab', label: 'Default tab', type: 'select', default: 'compliance', options: [
         { value: 'compliance', label: 'Compliance' },
         { value: 'spending', label: 'Spending' },
-        { value: 'inventory', label: 'Inventory' }
+        { value: 'inventory', label: 'Inventory' },
+        { value: 'protocols', label: 'Protocols' }
       ]}
     ]
   },

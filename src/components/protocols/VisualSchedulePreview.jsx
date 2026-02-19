@@ -221,7 +221,10 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                             border: `1px solid ${theme.border}`
                         }}
                     >
-                        <div className="flex items-center justify-between p-2.5">
+                        <div 
+                            className="flex items-center justify-between p-2.5 rounded-t-lg"
+                            style={{ backgroundColor: theme.isDark ? '#283040' : '#f0f1f3' }}
+                        >
                             <div>
                                 <div className="font-semibold" style={{ color: theme.text }}>{pep.name}</div>
                                 <div style={{ color: theme.textLight }}>
@@ -329,7 +332,7 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                 
                                 {/* Titration Controls */}
                                 {onUpdateProtocol && protocol.active && pep.currentPhaseInfo && (
-                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t" style={{ borderColor: `${theme.border}60` }}>
+                                    <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t" style={{ borderColor: `${theme.border}60` }}>
                                         {/* Hold / Resume */}
                                         <button
                                             onClick={() => {
@@ -412,15 +415,6 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
             </div>
             
             {/* Info footer */}
-            <div 
-                className="text-xs text-center p-2 rounded"
-                style={{ 
-                    backgroundColor: `${theme.info || theme.primary}10`,
-                    color: theme.textLight
-                }}
-            >
-                Tasks will appear on your Dashboard & Calendar
-            </div>
         </div>
     );
 };

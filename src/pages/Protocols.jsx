@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { formatMMDDYYYY, getLocalDateString, parseDateString, normalizeToMidnight } from '../utils/date'
@@ -33,7 +34,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, updateVialInActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries } from '../utils/protocolHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
@@ -44,6 +45,7 @@ import { toPng } from 'html-to-image';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import SharedProtocolCard from '../components/share/SharedProtocolCard';
+import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
 import { useRef, useMemo } from 'react';
 
 export default function Protocols() {
@@ -83,6 +85,12 @@ export default function Protocols() {
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [reconModalOpen, setReconModalOpen] = useState(false);
+  const [reconPrefill, setReconPrefill] = useState(null);
+  const [showDateChangeTip, setShowDateChangeTip] = useState(false);
+  const [dateTipPos, setDateTipPos] = useState(null);
+  const dateChangeTipTimer = useRef(null);
+  const dateRowRef = useRef(null);
   
   // Inline tab content state
   const [notes, setNotes] = useState([]);
@@ -2707,15 +2715,17 @@ export default function Protocols() {
           open={true}
           onClose={() => {
             setManageConfirm(null);
-            setManageTab('manage'); // Reset to manage tab when closing
-            setHistoryProtocol(null); // Ensure history modal is also closed
+            setManageTab('manage');
+            setHistoryProtocol(null);
             setHistoryFromManage(false);
+            setShowDateChangeTip(false);
           }}
           onBack={() => {
             setManageConfirm(null);
-            setManageTab('manage'); // Reset to manage tab when closing
-            setHistoryProtocol(null); // Ensure history modal is also closed
+            setManageTab('manage');
+            setHistoryProtocol(null);
             setHistoryFromManage(false);
+            setShowDateChangeTip(false);
           }}
           title={manageConfirm.protocolName || 'Protocol'}
           centerTitle={true}
@@ -2805,36 +2815,42 @@ export default function Protocols() {
                                                   protocolData: updatedProtocolData,
                                                   skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
                                               });
-                                              // Sync linked vials to history: update existing vials + add new ones
-                                              const existingVialIds = (activeHistoryEntry.vials || []).map(v => v.vialId);
+                                              // Sync linked vials to history
                                               Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                                  // Sync archived (finished) vials from vialHistory
+                                                  if (item.vialHistory?.length > 0) {
+                                                      item.vialHistory.forEach(hv => {
+                                                          if (hv.vialId) {
+                                                              const snapshot = {
+                                                                  vialId: hv.vialId,
+                                                                  stockpileId: hv.vialId,
+                                                                  name: hv.name || 'Unknown',
+                                                                  mg: hv.mg,
+                                                                  vendor: hv.vendor,
+                                                                  cost: hv.cost || 0,
+                                                                  usedAt: hv.usedAt
+                                                              };
+                                                              addVialToActiveProtocol(manageConfirm.id, snapshot);
+                                                          }
+                                                      });
+                                                  }
+                                                  // Sync currently active vial
                                                   if (item.status === 'linked' && item.vialId) {
                                                       const vial = stockpile.find(v => v.id === item.vialId);
-                                                      if (vial) {
-                                                          const vialSnapshot = {
-                                                              vialId: vial.id,
-                                                              stockpileId: vial.id,
-                                                              name: vial.name,
-                                                              mg: vial.mg,
-                                                              mgUnit: vial.mgUnit || 'mg',
-                                                              unit: vial.unit || 'vial',
-                                                              vendor: vial.vendor,
-                                                              cost: vial.cost || 0,
-                                                              orderId: vial.orderId || null,
-                                                              purchaseDate: vial.purchaseDate || null,
-                                                              documentation: vial.documentation || []
-                                                          };
-                                                          // Check if this peptide previously had a different vial
-                                                          const originalLinkedItems = activeHistoryEntry.protocolData?.linkedItems || {};
-                                                          const originalVialId = originalLinkedItems[peptideId]?.vialId;
-                                                          if (originalVialId && originalVialId !== item.vialId && existingVialIds.includes(originalVialId)) {
-                                                              // Vial was swapped — update the main vials array
-                                                              updateVialInActiveProtocol(manageConfirm.id, originalVialId, vialSnapshot);
-                                                          } else {
-                                                              // New vial or unchanged — add to vialsAddedDuring (deduplicates internally)
-                                                              addVialToActiveProtocol(manageConfirm.id, vialSnapshot);
-                                                          }
-                                                      }
+                                                      const vialSnapshot = {
+                                                          vialId: item.vialId,
+                                                          stockpileId: item.vialId,
+                                                          name: vial?.name || item.vialName || 'Unknown',
+                                                          mg: vial?.mg || item.vialMg,
+                                                          mgUnit: vial?.mgUnit || item.vialMgUnit || 'mg',
+                                                          unit: vial?.unit || 'vial',
+                                                          vendor: vial?.vendor || item.vialVendor,
+                                                          cost: vial?.cost || item.vialCost || 0,
+                                                          orderId: vial?.orderId || item.vialOrderId || null,
+                                                          purchaseDate: vial?.purchaseDate || item.vialPurchaseDate || null,
+                                                          documentation: vial?.documentation || []
+                                                      };
+                                                      addVialToActiveProtocol(manageConfirm.id, vialSnapshot);
                                                   }
                                               });
                                           }
@@ -3034,7 +3050,7 @@ export default function Protocols() {
                       <div className="flex flex-col gap-0.5 text-left">
                         <h4 className="text-base font-semibold" style={{ color: theme.text }}>Protocol Settings</h4>
                         <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                          Schedule Configuration
+                          Schedule to Calendar
                         </span>
                       </div>
                     </div>
@@ -3054,7 +3070,7 @@ export default function Protocols() {
                   >
                     <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
                       {/* Compact Start Date - Inline */}
-                      <div className="flex items-center gap-3 py-1">
+                      <div ref={dateRowRef} className="flex items-center gap-3 py-1">
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Calendar size={16} style={{ color: theme.primary }} />
                           <span className="text-sm font-semibold" style={{ color: theme.text }}>{manageConfirm?.active ? 'Started' : 'Start'}</span>
@@ -3062,20 +3078,22 @@ export default function Protocols() {
                         <div className="flex-1 min-w-0">
                           <GlassmorphismDatePicker
                             value={manageConfirm?.startDate || ''}
-                            onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
+                            onChange={(dateString) => {
+                              setManageConfirm(p => ({...p, startDate: dateString}));
+                            }}
+                            onOpen={() => {
+                              if (manageConfirm?.active && dateRowRef.current) {
+                                const rect = dateRowRef.current.getBoundingClientRect();
+                                setDateTipPos({ top: rect.top - 6, left: rect.left + rect.width / 2 });
+                                setShowDateChangeTip(true);
+                                if (dateChangeTipTimer.current) clearTimeout(dateChangeTipTimer.current);
+                                dateChangeTipTimer.current = setTimeout(() => setShowDateChangeTip(false), 3000);
+                              }
+                            }}
                             theme={theme}
                             placeholder="Select start date"
                           />
                         </div>
-                      </div>
-                      <div 
-                        className="text-xs text-center py-2 px-3 rounded-lg mt-2"
-                        style={{ 
-                          backgroundColor: `${theme.info || theme.primary}10`,
-                          color: theme.textLight
-                        }}
-                      >
-                        Changing this will reschedule all reseach for this protocol.
                       </div>
                       
                       {/* Schedule Preview */}
@@ -3114,7 +3132,7 @@ export default function Protocols() {
                           <div className="flex flex-col gap-0.5 text-left">
                             <h4 className="text-base font-semibold" style={{ color: theme.text }}>Vials & Delivery Methods</h4>
                             <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                              Active Inventory
+                              Link from Stockpile
                             </span>
                           </div>
                         </div>
@@ -3142,6 +3160,24 @@ export default function Protocols() {
                             onUpdate={(updatedLinkedItems) => {
                                 setManageConfirm(p => ({ ...p, linkedItems: updatedLinkedItems }));
                             }}
+                            onRequestRecon={(peptideId, vialId) => {
+                                const vial = stockpile.find(s => s.id === vialId);
+                                const linkedItem = manageConfirm?.linkedItems?.[peptideId];
+                                const peptide = manageConfirm?.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
+                                const name = peptide?.name || vial?.name || linkedItem?.vialName || '';
+                                const mg = vial?.mg || linkedItem?.vialMg || '';
+                                const vendor = vial?.vendor || linkedItem?.vialVendor || '';
+                                const vendorId = vial?.vendorId || linkedItem?.vialVendorId || null;
+                                const cost = vial?.cost || linkedItem?.vialCost || '';
+                                try { localStorage.removeItem('recon_form_new'); } catch {}
+                                setReconPrefill({
+                                    peptides: [{ id: 1, name, mg: String(mg), mgUnit: vial?.mgUnit || 'mg', dose: String(peptide?.dosage?.amount || ''), doseUnit: peptide?.dosage?.unit || 'mcg' }],
+                                    vendor: String(vendor),
+                                    vendorId,
+                                    cost: cost ? String(cost) : '',
+                                });
+                                setReconModalOpen(true);
+                            }}
                           />
                         </div>
                       </div>
@@ -3151,15 +3187,15 @@ export default function Protocols() {
                 {/* Page Break */}
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-                <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(239,68,68,0.3)' : '#fecaca', backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
+                <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
-                            <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#f87171' : '#dc2626' }}>End protocol early?</div>
-                            <div className="text-xs" style={{ color: theme.isDark ? '#fca5a5' : '#991b1b' }}>Ends today and starts washout period.</div>
+                            <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>End protocol early?</div>
+                            <div className="text-xs" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>Ends today and starts washout period.</div>
                         </div>
                         <button
                             className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
-                            style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                            style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}
                             onClick={() => {
                                 endProtocol(manageConfirm);
                                 setManageConfirm(null);
@@ -4113,6 +4149,40 @@ export default function Protocols() {
           cardProps={{ item: manageConfirm, theme, isPublicView: true }}
           shareData={{ ...manageConfirm, type: 'protocol' }}
         />
+      )}
+
+      <ReconCalculatorModal
+        open={reconModalOpen}
+        onClose={() => { setReconModalOpen(false); setReconPrefill(null); }}
+        theme={theme}
+        prefill={reconPrefill}
+      />
+
+      {showDateChangeTip && dateTipPos && createPortal(
+        <div
+          className="pointer-events-none"
+          style={{
+            position: 'fixed',
+            top: dateTipPos.top,
+            left: dateTipPos.left,
+            transform: `translate(-50%, -100%)`,
+            zIndex: 99999,
+          }}
+        >
+          <div
+            className="text-[11px] text-center py-1.5 px-4 rounded-lg whitespace-nowrap"
+            style={{
+              backgroundColor: theme.isDark ? '#2a2018' : '#fef6f2',
+              color: '#c87a5c',
+              border: '1px solid #c87a5c40',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              animation: 'fadeInDown 0.25s ease-out',
+            }}
+          >
+            This will reschedule all research for this protocol.
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )
