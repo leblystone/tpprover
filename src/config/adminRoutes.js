@@ -52,6 +52,7 @@ export const adminPrimaryTabs = [
     children: [
       { id: 'emails', label: 'Email Templates', path: `${ADMIN_BASE}/comms/emails` },
       { id: 'triggers', label: 'Email Triggers', path: `${ADMIN_BASE}/comms/triggers` },
+      { id: 'history', label: 'Send History', path: `${ADMIN_BASE}/comms/history` },
       { id: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/comms/notifications` },
     ],
   },
@@ -98,6 +99,7 @@ export const adminPaths = {
   // Comms paths
   commsEmails: `${ADMIN_BASE}/comms/emails`,
   commsTriggers: `${ADMIN_BASE}/comms/triggers`,
+  commsHistory: `${ADMIN_BASE}/comms/history`,
   commsNotifications: `${ADMIN_BASE}/comms/notifications`,
   // Legacy comms paths
   commsPush: `${ADMIN_BASE}/comms/notifications`,

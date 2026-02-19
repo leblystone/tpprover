@@ -110,8 +110,13 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                                 key={val}
                                 type="button"
                                 onClick={() => toggleSchedule(val)}
-                                className={`px-4 py-2 text-sm rounded-md border w-full ${schedule.includes(val) ? 'text-white' : ''}`}
-                                style={schedule.includes(val) ? { backgroundColor: theme.primary, borderColor: theme.primary } : { borderColor: theme.border }}
+                                className="px-4 py-2 text-sm font-medium rounded-lg w-full transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: schedule.includes(val) ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                    color: schedule.includes(val) ? '#fff' : theme.text,
+                                    border: schedule.includes(val) ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                    boxShadow: schedule.includes(val) ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                }}
                             >
                                 {val}
                             </button>
@@ -127,8 +132,13 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                                 key={day}
                                 type="button"
                                 onClick={() => toggleDay(day)}
-                                className={`px-2 py-2 text-xs rounded-md border ${days.includes(day) ? 'text-white' : ''}`}
-                                style={days.includes(day) ? { backgroundColor: theme.primary, borderColor: theme.primary } : { borderColor: theme.border }}
+                                className="px-2 py-2 text-xs font-bold rounded-md transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: days.includes(day) ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                    color: days.includes(day) ? '#fff' : theme.textLight,
+                                    border: days.includes(day) ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                    boxShadow: days.includes(day) ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                }}
                             >
                                 {day}
                             </button>
@@ -139,19 +149,26 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
 
                 <div>
                     <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Delivery Method</label>
-                    <div className="grid grid-cols-3 gap-2">
-                         {deliveryOptions.map(opt => (
-                            <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setDelivery(opt.value)}
-                                className={`flex flex-col items-center justify-center gap-1 p-3 text-sm rounded-md border ${delivery === opt.value ? 'text-white' : ''}`}
-                                style={delivery === opt.value ? { backgroundColor: theme.primary, borderColor: theme.primary } : { borderColor: theme.border }}
-                            >
-                                {opt.icon}
-                                {opt.label}
-                            </button>
-                        ))}
+                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                         {deliveryOptions.map(opt => {
+                            const isSelected = delivery === opt.value;
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setDelivery(opt.value)}
+                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
+                                    style={{
+                                        backgroundColor: isSelected ? '#445952' : 'transparent',
+                                        color: isSelected ? '#fff' : theme.textLight,
+                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                    }}
+                                >
+                                    {opt.icon}
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

@@ -1900,191 +1900,61 @@ export default function Recon() {
                     </div>
 
                     <div>
-                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.secondary || theme.cardBackground }}>
-                            <button 
-                                onClick={() => {
-                                    // Batch updates: change delivery method and revert sprays to mcg if needed
-                                    const updates = { deliveryMethod: 'pipette' };
-                                    if (editingItem?.doseUnit === 'sprays') {
-                                        updates.doseUnit = 'mcg';
-                                    }
-                                    updateEditingItem(updates);
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                    (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
-                                        ? 'text-white shadow-sm' 
-                                        : ''
-                                }`}
-                                style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                onMouseEnter={(e) => {
-                                    if ((editingItem?.deliveryMethod || 'pipette') !== 'pipette') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if ((editingItem?.deliveryMethod || 'pipette') !== 'pipette') {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                }}
-                            >
-                                <Pipette size={16} /> Syringe
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    // Batch updates: change delivery method and revert sprays to mcg if needed
-                                    const updates = { deliveryMethod: 'pen' };
-                                    if (editingItem?.doseUnit === 'sprays') {
-                                        updates.doseUnit = 'mcg';
-                                    }
-                                    updateEditingItem(updates);
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                    editingItem?.deliveryMethod === 'pen' 
-                                        ? 'text-white shadow-sm' 
-                                        : ''
-                                }`}
-                                style={editingItem?.deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                onMouseEnter={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'pen') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'pen') {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                }}
-                            >
-                                <PenTool size={16} /> Pen
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    // Batch updates: change delivery method and set to sprays for nasal
-                                    const updates = { deliveryMethod: 'nasal' };
-                                    if (editingItem?.doseUnit !== 'sprays') {
-                                        updates.doseUnit = 'sprays';
-                                    }
-                                    updateEditingItem(updates);
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                    editingItem?.deliveryMethod === 'nasal' 
-                                        ? 'text-white shadow-sm' 
-                                        : ''
-                                }`}
-                                style={editingItem?.deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                onMouseEnter={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'nasal') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'nasal') {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                }}
-                            >
-                                <Droplet size={16} /> Nasal
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    const updates = { deliveryMethod: 'topical' };
-                                    if (editingItem?.doseUnit === 'sprays') {
-                                        updates.doseUnit = 'mcg';
-                                    }
-                                    updateEditingItem(updates);
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                    editingItem?.deliveryMethod === 'topical' 
-                                        ? 'text-white shadow-sm' 
-                                        : ''
-                                }`}
-                                style={editingItem?.deliveryMethod === 'topical' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                onMouseEnter={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'topical') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (editingItem?.deliveryMethod !== 'topical') {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                }}
-                            >
-                                <Hand size={16} /> Topical
-                            </button>
+                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                            {[
+                                { key: 'pipette', label: 'Syringe', Icon: Pipette, sprays: false },
+                                { key: 'pen', label: 'Pen', Icon: PenTool, sprays: false },
+                                { key: 'nasal', label: 'Nasal', Icon: Droplet, sprays: true },
+                                { key: 'topical', label: 'Topical', Icon: Hand, sprays: false }
+                            ].map(({ key, label, Icon, sprays }) => {
+                                const isActive = (editingItem?.deliveryMethod || 'pipette') === key;
+                                return (
+                                    <button 
+                                        key={key}
+                                        onClick={() => {
+                                            const updates = { deliveryMethod: key };
+                                            if (sprays && editingItem?.doseUnit !== 'sprays') updates.doseUnit = 'sprays';
+                                            if (!sprays && editingItem?.doseUnit === 'sprays') updates.doseUnit = 'mcg';
+                                            updateEditingItem(updates);
+                                        }}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-95"
+                                        style={{
+                                            backgroundColor: isActive ? '#445952' : 'transparent',
+                                            color: isActive ? '#fff' : theme.text,
+                                            boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                                        }}
+                                    >
+                                        <Icon size={16} /> {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                         {(editingItem?.deliveryMethod === 'pipette' || !editingItem?.deliveryMethod) && (
                             <div className="mt-3">
                                 <div 
-                                    className="flex items-center gap-1 p-1 rounded-md" 
+                                    className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.secondary || theme.cardBackground,
-                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >
-                                    <button 
-                                        onClick={() => updateEditingItem({ administrationRoute: 'SubQ' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                            (editingItem?.administrationRoute || 'SubQ') === 'SubQ' 
-                                                ? 'text-white shadow-sm' 
-                                                : ''
-                                        }`}
-                                        style={(editingItem?.administrationRoute || 'SubQ') === 'SubQ' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                        onMouseEnter={(e) => {
-                                            if ((editingItem?.administrationRoute || 'SubQ') !== 'SubQ') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if ((editingItem?.administrationRoute || 'SubQ') !== 'SubQ') {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
-                                        }}
-                                    >
-                                        SubQ
-                                    </button>
-                                    <button 
-                                        onClick={() => updateEditingItem({ administrationRoute: 'IM' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                            editingItem?.administrationRoute === 'IM' 
-                                                ? 'text-white shadow-sm' 
-                                                : ''
-                                        }`}
-                                        style={editingItem?.administrationRoute === 'IM' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                        onMouseEnter={(e) => {
-                                            if (editingItem?.administrationRoute !== 'IM') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (editingItem?.administrationRoute !== 'IM') {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
-                                        }}
-                                    >
-                                        IM
-                                    </button>
-                                    <button 
-                                        onClick={() => updateEditingItem({ administrationRoute: 'IV' })}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                                            editingItem?.administrationRoute === 'IV' 
-                                                ? 'text-white shadow-sm' 
-                                                : ''
-                                        }`}
-                                        style={editingItem?.administrationRoute === 'IV' ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                        onMouseEnter={(e) => {
-                                            if (editingItem?.administrationRoute !== 'IV') {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (editingItem?.administrationRoute !== 'IV') {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
-                                        }}
-                                    >
-                                        IV
-                                    </button>
+                                    {['SubQ', 'IM', 'IV'].map(route => {
+                                        const isActive = (editingItem?.administrationRoute || 'SubQ') === route;
+                                        return (
+                                            <button 
+                                                key={route}
+                                                onClick={() => updateEditingItem({ administrationRoute: route })}
+                                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all active:scale-95"
+                                                style={{
+                                                    backgroundColor: isActive ? '#6B7F77' : 'transparent',
+                                                    color: isActive ? '#fff' : theme.textLight,
+                                                    boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                                }}
+                                            >
+                                                {route}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

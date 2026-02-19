@@ -5,6 +5,8 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Mail, RefreshCw, Search, Filter, CheckCircle, XCircle, Clock, User, FileText, Trash2, UserPlus, Gift, Bell, AlertCircle, Send, Loader } from 'lucide-react';
 
 const EMAIL_TYPE_LABELS = {
+  winBack: 'Win-Back Campaign',
+  trialExpiredSurvey: 'Trial Expired Survey',
   account_deletion: 'Account Deletion',
   in_depth_request: 'In-Depth Request',
   invite: 'Invite',
@@ -24,6 +26,8 @@ const EMAIL_TYPE_LABELS = {
 };
 
 const EMAIL_TYPE_ICONS = {
+  winBack: Gift,
+  trialExpiredSurvey: AlertCircle,
   account_deletion: Trash2,
   in_depth_request: FileText,
   invite: UserPlus,
@@ -43,6 +47,8 @@ const EMAIL_TYPE_ICONS = {
 };
 
 const EMAIL_TYPE_COLORS = {
+  winBack: '#ec4899',
+  trialExpiredSurvey: '#f97316',
   account_deletion: '#ef4444',
   in_depth_request: '#3b82f6',
   invite: '#10b981',
@@ -518,6 +524,23 @@ export default function EmailHistory({ theme }) {
                               <div>
                                 <strong style={{ color: theme.textLight }}>Signature:</strong>
                                 <div style={{ color: theme.text }} className="whitespace-pre-line">{email.customContent.signature}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {email.trialExtended && (
+                        <div>
+                          <div className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: theme.textLight }}>
+                            Win-Back Details:
+                          </div>
+                          <div className="p-3 rounded text-sm space-y-1" style={{ backgroundColor: '#fdf2f8' }}>
+                            <div style={{ color: '#9d174d' }}>
+                              <strong>14-day trial granted</strong>
+                            </div>
+                            {email.trialEndDate && (
+                              <div style={{ color: '#be185d' }}>
+                                Trial ends: {new Date(email.trialEndDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                               </div>
                             )}
                           </div>

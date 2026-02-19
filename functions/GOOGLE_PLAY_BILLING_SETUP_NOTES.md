@@ -45,12 +45,27 @@ Note: The entire JSON should be on a single line as a string.
 2. Use test products (auto-cancel after 5 minutes for subscriptions)
 3. Test on a physical device (emulators may have limitations)
 
+## Purchase Signature Verification (License Key)
+
+The RSA license key adds tamper-detection on top of the server-side API verification.
+
+1. Go to **Google Play Console → Your App → Monetization setup**
+2. Copy the **Base64 RSA public key** (under "Licensing")
+3. Store it as a Firebase secret:
+
+```bash
+firebase functions:secrets:set GOOGLE_PLAY_LICENSE_KEY
+# Paste the Base64 key string when prompted (no line breaks)
+```
+
+The function gracefully degrades — if the key isn't set yet, it logs a warning and continues. Once you set it, all purchases are cryptographically verified before processing.
+
 ## Important Notes
 
 - The service account must be linked to your Google Play Console account
 - The app must be published to at least the internal testing track
 - Product IDs must exactly match what's configured in Google Play Console
-- All purchases are verified on the backend for security
+- All purchases are double-verified: RSA signature + Google Play Developer API
 
 
 

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package } from 'lucide-react'
-import Tabs from '../common/Tabs'
 import { formatCurrency } from '../../utils/currencyUtils'
+import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
+import { getTaskCompletion, generateTaskId } from '../../utils/taskCompletion'
+import { toKey } from '../calendar/MonthGrid'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
@@ -13,16 +15,25 @@ function useLocal(key, fallback) {
   return state
 }
 
-export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false }) {
+export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false }) {
   const navigate = useNavigate()
   const protocols = useLocal('tpprover_protocols', [])
   const orders = useLocal('tpprover_orders', [])
   const stockpile = useLocal('tpprover_stockpile', [])
   const supplements = useLocal('tpprover_supplements', [])
-  const suppDone = useLocal('tpprover_supp_completions', {})
+  const reconItems = useLocal('tpprover_recon_items', [])
   const protocolHistory = useLocal('tpprover_protocol_history', [])
+  const goals = useLocal('tpprover_goals', [])
+  const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())
   const [activeTab, setActiveTab] = useState(defaultTab || 'compliance')
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
+
+  useEffect(() => {
+    const refresh = () => setTaskCompletion(getTaskCompletion())
+    window.addEventListener('tpp:task-completion-changed', refresh)
+    const interval = setInterval(refresh, 5000)
+    return () => { window.removeEventListener('tpp:task-completion-changed', refresh); clearInterval(interval) }
+  }, [])
 
   const stats = useMemo(() => {
     const delivered = orders.filter(o => o.status === 'Delivered').length
@@ -76,16 +87,26 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       }
     })
 
-    const days7 = [...Array(7)].map((_, i) => new Date(Date.now() - (6 - i) * 86400000).toISOString().slice(0, 10))
     let planned = 0, done = 0
-    for (const day of days7) {
-      const weekday = new Date(day).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-      for (const s of supplements) {
-        if (!s.days?.includes(weekday)) continue
-        if (s.schedule === 'AM') { planned += 1; if (suppDone?.[day]?.[`${s.id}_AM`]) done += 1 }
-        else if (s.schedule === 'PM') { planned += 1; if (suppDone?.[day]?.[`${s.id}_PM`]) done += 1 }
-        else if (s.schedule === 'BOTH') { planned += 2; if (suppDone?.[day]?.[`${s.id}_AM`]) done += 1; if (suppDone?.[day]?.[`${s.id}_PM`]) done += 1 }
-      }
+    for (let i = 6; i >= 0; i--) {
+      const d7 = new Date(); d7.setDate(d7.getDate() - i)
+      const dk = toKey(d7)
+      const sched = calculateScheduledTasksForDate(d7, protocols, supplements, reconItems)
+      Object.keys(sched.bySlot || {}).forEach(slot => {
+        const sl = sched.bySlot[slot]
+        ;(sl.peptides || []).forEach(pep => {
+          const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+          planned++
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) done++
+        })
+        ;(sl.supplements || []).forEach(supp => {
+          const tid = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: slot })
+          planned++
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) done++
+        })
+      })
     }
     const compliancePct = planned > 0 ? Math.round((done / planned) * 100) : 0
 
@@ -103,24 +124,51 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       lastMonthSpend, last90DaysSpend, totalSpend,
       compliancePct, avgLeadTime
     }
-  }, [protocols, orders, stockpile, supplements, suppDone])
+  }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion])
 
   const complianceData = useMemo(() => {
-    const days = [...Array(30)].map((_, i) => new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10))
+    const days = [...Array(30)].map((_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (29 - i))
+      return d
+    })
+
     let totalPlanned = 0, totalDone = 0
-    const dailyStats = days.map(day => {
-      const weekday = new Date(day).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+    const dailyStats = []
+
+    for (const day of days) {
+      const dateKey = toKey(day)
+      const scheduledData = calculateScheduledTasksForDate(day, protocols, supplements, reconItems)
+
       let dayPlanned = 0, dayDone = 0
-      for (const s of (supplements || [])) {
-        if (!s.days?.includes(weekday)) continue
-        if (s.schedule === 'AM') { dayPlanned += 1; if (suppDone?.[day]?.[`${s.id}_AM`]) dayDone += 1 }
-        else if (s.schedule === 'PM') { dayPlanned += 1; if (suppDone?.[day]?.[`${s.id}_PM`]) dayDone += 1 }
-        else if (s.schedule === 'BOTH') { dayPlanned += 2; if (suppDone?.[day]?.[`${s.id}_AM`]) dayDone += 1; if (suppDone?.[day]?.[`${s.id}_PM`]) dayDone += 1 }
-      }
+
+      Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
+        const slot = scheduledData.bySlot[timeSlot]
+
+        if (slot.peptides && Array.isArray(slot.peptides)) {
+          slot.peptides.forEach(pep => {
+            const taskId = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: timeSlot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+            dayPlanned++
+            const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId]
+            if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
+          })
+        }
+
+        if (slot.supplements && Array.isArray(slot.supplements)) {
+          slot.supplements.forEach(supp => {
+            const taskId = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: timeSlot })
+            dayPlanned++
+            const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId]
+            if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
+          })
+        }
+      })
+
       totalPlanned += dayPlanned
       totalDone += dayDone
-      return { date: day, planned: dayPlanned, done: dayDone, completed: dayPlanned === 0 || dayDone === dayPlanned }
-    })
+      dailyStats.push({ date: dateKey, planned: dayPlanned, done: dayDone, completed: dayPlanned === 0 || dayDone === dayPlanned })
+    }
+
     const compliancePct = totalPlanned > 0 ? Math.round((totalDone / totalPlanned) * 100) : 0
     let streak = 0
     for (let i = dailyStats.length - 1; i >= 0; i--) {
@@ -128,7 +176,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       else break
     }
     return { compliancePct, streak, hasData: totalPlanned > 0, dailyStats }
-  }, [supplements, suppDone])
+  }, [protocols, supplements, reconItems, taskCompletion])
 
   const protocolHistoryStats = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
@@ -143,53 +191,53 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
     return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a'
   }
 
-  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : theme.primary + '08'
-  const cardBg = theme.isDark ? theme.cardBackground : theme.cardBackground || '#ffffff'
-  const borderColor = theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border
+  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
+  const borderColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            Analytics
-            <TrendingUp size={18} style={{ color: theme.primary }} />
-          </h3>
-          <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
-            {showFullScreenLink && (
-              <button
-                type="button"
-                onClick={() => navigate('/app/dashboard/analytics')}
-                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                style={{
-                  color: '#ffffff',
-                  backgroundColor: theme.primary,
-                  width: '28px',
-                  height: '28px',
-                  padding: 0,
-                  border: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                aria-label="Open full-screen analytics"
-              >
-                <Maximize2 size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
-              </button>
-            )}
+    <div className={fullPage ? '' : 'h-full flex flex-col'}>
+      {/* Widget header (hidden in full page mode - page handles its own header) */}
+      {!fullPage && (
+        <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+              Analytics
+              <TrendingUp size={18} style={{ color: theme.primary }} />
+            </h3>
+            <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
+              {showFullScreenLink && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/dashboard/analytics')}
+                  className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                  style={{
+                    color: '#ffffff',
+                    backgroundColor: theme.primary,
+                    width: '28px',
+                    height: '28px',
+                    padding: 0,
+                    border: 'none',
+                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+                  aria-label="Open full-screen analytics"
+                >
+                  <Maximize2 size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        {/* Tabs */}
-        <Tabs
+      <div className={fullPage ? '' : 'flex-1 overflow-y-auto px-4 py-3'}>
+        {/* Toggle tabs */}
+        <ToggleTabs
           value={activeTab}
           onChange={setActiveTab}
           theme={theme}
-          stretch
           options={[
             { label: 'Consistency', value: 'compliance' },
             { label: 'Spending', value: 'spending' },
@@ -199,10 +247,10 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         />
 
         <div className="mt-4">
-          {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} />}
-          {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
+          {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} />}
+          {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
           {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} />}
-          {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} subtleBg={subtleBg} borderColor={borderColor} />}
+          {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
         </div>
       </div>
 
@@ -216,8 +264,56 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
 }
 
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
-function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) {
+function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals }) {
   const last7 = data.dailyStats?.slice(-7) || []
+  const last14 = data.dailyStats?.slice(-14) || []
+
+  const extra = useMemo(() => {
+    const ds = data.dailyStats || []
+    const withTasks = ds.filter(d => d.planned > 0)
+    const perfectDays = withTasks.filter(d => d.completed).length
+    const missedDays = withTasks.filter(d => d.done === 0).length
+    const partialDays = withTasks.filter(d => d.done > 0 && !d.completed).length
+    const totalTasks = ds.reduce((s, d) => s + d.planned, 0)
+    const totalDone = ds.reduce((s, d) => s + d.done, 0)
+    const avgPerDay = withTasks.length > 0 ? (totalTasks / withTasks.length).toFixed(1) : '0'
+
+    const bestDay = withTasks.length > 0
+      ? withTasks.reduce((best, d) => {
+          const pct = d.planned > 0 ? d.done / d.planned : 0
+          return pct > (best.planned > 0 ? best.done / best.planned : 0) ? d : best
+        }, withTasks[0])
+      : null
+    const bestDayLabel = bestDay ? new Date(bestDay.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—'
+
+    const byWeekday = {}
+    for (const d of ds) {
+      const wd = new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })
+      if (!byWeekday[wd]) byWeekday[wd] = { planned: 0, done: 0 }
+      byWeekday[wd].planned += d.planned
+      byWeekday[wd].done += d.done
+    }
+    const weekdayPcts = Object.entries(byWeekday)
+      .filter(([, v]) => v.planned > 0)
+      .map(([day, v]) => ({ day, pct: Math.round((v.done / v.planned) * 100) }))
+      .sort((a, b) => b.pct - a.pct)
+
+    const suppCount = (supplements || []).length
+    const activeProtocols = (protocols || []).filter(p => p.active !== false).length
+    const goalsCompleted = (goals || []).filter(g => g.completed).length
+    const goalsTotal = (goals || []).length
+
+    const first14 = data.dailyStats?.slice(0, 14) || []
+    const second14 = data.dailyStats?.slice(14) || []
+    const pct1 = first14.filter(d => d.planned > 0).length > 0
+      ? Math.round(first14.reduce((s, d) => s + d.done, 0) / Math.max(1, first14.reduce((s, d) => s + d.planned, 0)) * 100) : null
+    const pct2 = second14.filter(d => d.planned > 0).length > 0
+      ? Math.round(second14.reduce((s, d) => s + d.done, 0) / Math.max(1, second14.reduce((s, d) => s + d.planned, 0)) * 100) : null
+    const trendDir = pct1 !== null && pct2 !== null ? (pct2 >= pct1 ? 'up' : 'down') : null
+    const trendDiff = pct1 !== null && pct2 !== null ? Math.abs(pct2 - pct1) : 0
+
+    return { perfectDays, missedDays, partialDays, totalTasks, totalDone, avgPerDay, bestDayLabel, weekdayPcts, suppCount, activeProtocols, goalsCompleted, goalsTotal, trendDir, trendDiff }
+  }, [data, supplements, protocols, goals])
 
   return (
     <div className="space-y-4">
@@ -229,13 +325,14 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) 
         </div>
       ) : (
         <>
-          {/* Hero percentage + streak */}
+          {/* Hero row */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>
-                {data.compliancePct}%
+              <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
+              <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                30-day compliance
+                {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
               </div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>30-day compliance</div>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
               <Zap size={14} style={{ color: theme.primary }} />
@@ -244,8 +341,16 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) 
             </div>
           </div>
 
+          {/* 30-day summary row */}
+          <div className="grid grid-cols-4 gap-2">
+            <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
+            <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
+            <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
+            <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
+          </div>
+
           {/* 7-day dot grid */}
-          <div className="rounded-lg p-3" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg }}>
             <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
             <div className="flex items-center justify-between">
               {last7.map((day) => {
@@ -259,15 +364,11 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) 
                     <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
                     <div style={{
                       width: 10, height: 10, borderRadius: '50%',
-                      backgroundColor: !hasTasks
-                        ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-                        : isComplete ? theme.primary
-                        : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640')
-                        : 'transparent',
-                      border: !hasTasks ? 'none'
-                        : isComplete ? 'none'
-                        : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
+                      backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                        : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
+                      border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
                     }} />
+                    {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
                   </div>
                 )
               })}
@@ -278,6 +379,45 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) 
           <SectionCard title="30-Day Trend" theme={theme} borderColor={borderColor}>
             <ComplianceTrend data={data.dailyStats} theme={theme} />
           </SectionCard>
+
+          {/* Compliance by weekday */}
+          {extra.weekdayPcts.length > 0 && (
+            <SectionCard title="Compliance by Day of Week" theme={theme} borderColor={borderColor}>
+              <div className="space-y-1.5">
+                {extra.weekdayPcts.map(({ day, pct }) => (
+                  <div key={day} className="flex items-center gap-2 text-xs">
+                    <span className="w-8 text-right font-medium" style={{ color: theme.textLight }}>{day}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                      <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: getColor(pct) }} />
+                    </div>
+                    <span className="w-8 text-right font-medium" style={{ color: getColor(pct) }}>{pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Research snapshot */}
+          <SectionCard title="Research Snapshot" theme={theme} borderColor={borderColor}>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span style={{ color: theme.textLight }}>Supplements</span>
+                <span className="font-semibold" style={{ color: theme.text }}>{extra.suppCount}</span>
+              </div>
+              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span style={{ color: theme.textLight }}>Active Protocols</span>
+                <span className="font-semibold" style={{ color: theme.text }}>{extra.activeProtocols}</span>
+              </div>
+              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span style={{ color: theme.textLight }}>Best Day</span>
+                <span className="font-semibold" style={{ color: theme.text }}>{extra.bestDayLabel}</span>
+              </div>
+              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span style={{ color: theme.textLight }}>Goals</span>
+                <span className="font-semibold" style={{ color: theme.text }}>{extra.goalsCompleted}/{extra.goalsTotal}</span>
+              </div>
+            </div>
+          </SectionCard>
         </>
       )}
     </div>
@@ -285,38 +425,72 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor }) 
 }
 
 /* ─────────────────── SPENDING TAB ─────────────────── */
-function SpendingTab({ theme, stats, orders, subtleBg, borderColor, onShowBreakdown }) {
+function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown }) {
+  const extra = useMemo(() => {
+    const now = new Date()
+    const thisMonthKey = now.toISOString().slice(0, 7)
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    let thisMonthSpend = 0
+    orders.forEach(o => {
+      let cost = 0
+      if (o.items && o.items.length > 0) cost = o.items.reduce((s, item) => s + ((parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)), 0)
+      else cost = parseFloat(String(o.cost).replace(/[^0-9.]/g, '')) || 0
+      const d = o.date ? new Date(o.date) : null
+      if (d && d >= thisMonthStart) thisMonthSpend += cost
+    })
+
+    const totalOrders = orders.length
+    const avgOrderCost = totalOrders > 0 ? stats.totalSpend / totalOrders : 0
+    const uniqueVendors = new Set(orders.map(o => o.vendor || o.vendorName).filter(Boolean)).size
+    const uniquePeptides = new Set()
+    orders.forEach(o => {
+      if (o.items && o.items.length > 0) o.items.forEach(item => { if (item.name) uniquePeptides.add(item.name) })
+      else if (o.peptide) uniquePeptides.add(o.peptide)
+    })
+
+    const stockpileValue = (stockpile || []).reduce((s, item) => s + ((parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)), 0)
+
+    return { thisMonthSpend, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue }
+  }, [orders, stats, stockpile])
+
   return (
     <div className="space-y-4">
-      {/* Hero metric */}
-      <div className="text-center">
-        <div className="text-2xl font-bold mb-0.5" style={{ color: theme.text }}>
-          {formatCurrency(stats.lastMonthSpend)}
+      {/* Hero metrics grid */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
+          <div className="text-lg font-bold" style={{ color: theme.text }}>{formatCurrency(extra.thisMonthSpend)}</div>
+          <div className="text-[10px]" style={{ color: theme.textLight }}>This Month</div>
         </div>
-        <div className="text-sm" style={{ color: theme.textLight }}>Last Month</div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
+          <div className="text-lg font-bold" style={{ color: theme.text }}>{formatCurrency(stats.lastMonthSpend)}</div>
+          <div className="text-[10px]" style={{ color: theme.textLight }}>Last Month</div>
+        </div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: subtleBg }}>
+          <div className="text-lg font-bold" style={{ color: theme.primary }}>{formatCurrency(stats.totalSpend)}</div>
+          <div className="text-[10px]" style={{ color: theme.textLight }}>All-Time</div>
+        </div>
       </div>
 
-      {/* Secondary rows - matching SpendingWidget */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center p-2.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span className="text-sm" style={{ color: theme.text }}>Last 90 Days</span>
-          <span className="text-sm font-semibold" style={{ color: theme.text }}>{formatCurrency(stats.last90DaysSpend)}</span>
-        </div>
-        <div className="flex justify-between items-center p-2.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span className="text-sm" style={{ color: theme.text }}>Total Overall</span>
-          <span className="text-sm font-semibold" style={{ color: theme.primary }}>{formatCurrency(stats.totalSpend)}</span>
-        </div>
-        <button
-          type="button"
-          onClick={onShowBreakdown}
-          className="text-xs py-1 rounded text-center w-full transition-opacity"
-          style={{ color: theme.isDark ? theme.textLight : theme.primary }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-        >
-          View breakdown &middot; By vendor &amp; peptide
-        </button>
+      {/* Secondary summary */}
+      <div className="grid grid-cols-2 gap-2">
+        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
+        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
+        <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
+        <MetricCard label="Vendors Used" value={extra.uniqueVendors} theme={theme} />
+        <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
+        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
       </div>
+
+      <button
+        type="button"
+        onClick={onShowBreakdown}
+        className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium"
+        style={{ color: theme.isDark ? theme.textLight : theme.primary }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+      >
+        View full breakdown &middot; By vendor &amp; peptide
+      </button>
 
       {/* Charts */}
       <SectionCard title="Monthly Spend Trend" theme={theme} borderColor={borderColor}>
@@ -345,14 +519,50 @@ function SpendingTab({ theme, stats, orders, subtleBg, borderColor, onShowBreakd
 
 /* ─────────────────── INVENTORY TAB ─────────────────── */
 function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }) {
+  const extra = useMemo(() => {
+    const totalItems = (stockpile || []).length
+    const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
+    const totalValue = (stockpile || []).reduce((s, item) => s + ((parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)), 0)
+    const uniqueNames = new Set((stockpile || []).map(s => s.name).filter(Boolean)).size
+    const pendingOrders = orders.filter(o => { const st = (o.status || '').toLowerCase(); return !st.includes('delivered') }).length
+
+    let fastestDelivery = Infinity, slowestDelivery = 0
+    for (const o of orders) {
+      if (!o.shipDate || !o.deliveryDate) continue
+      const d = Math.max(0, Math.round((new Date(o.deliveryDate) - new Date(o.shipDate)) / 86400000))
+      fastestDelivery = Math.min(fastestDelivery, d)
+      slowestDelivery = Math.max(slowestDelivery, d)
+    }
+
+    const byName = {};
+    (stockpile || []).forEach(s => {
+      const n = s.name || 'Unknown'
+      if (!byName[n]) byName[n] = { qty: 0, value: 0 }
+      byName[n].qty += (parseFloat(s.quantity) || 0)
+      byName[n].value += (parseFloat(s.cost) || 0) * (parseFloat(s.quantity) || 0)
+    })
+    const topByQty = Object.entries(byName).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5)
+    const topByValue = Object.entries(byName).sort((a, b) => b[1].value - a[1].value).slice(0, 5)
+
+    return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue }
+  }, [stockpile, orders])
+
   return (
     <div className="space-y-4">
       {/* Hero stat cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<Package size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<FlaskConical size={16} style={{ color: theme.primary }} />} label="Supplements" value={stats.supplementCount} theme={theme} subtleBg={subtleBg} />
+      <div className="grid grid-cols-3 gap-2">
+        <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
+        <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
+        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
+        <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
+        <MetricCard icon={<Package size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
+        <MetricCard label="In Transit" value={extra.pendingOrders} theme={theme} />
+        {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
+        {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -364,6 +574,31 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }
         </SectionCard>
       </div>
 
+      {extra.topByQty.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <SectionCard title="Top Items by Quantity" theme={theme} borderColor={borderColor}>
+            <div className="space-y-1.5">
+              {extra.topByQty.map(([name, v]) => (
+                <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                  <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+                  <span className="font-semibold" style={{ color: theme.textLight }}>{v.qty} vials</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+          <SectionCard title="Top Items by Value" theme={theme} borderColor={borderColor}>
+            <div className="space-y-1.5">
+              {extra.topByValue.map(([name, v]) => (
+                <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                  <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+                  <span className="font-semibold" style={{ color: theme.primary }}>{formatCurrency(v.value)}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
+
       <SectionCard title="Low Stock Items" theme={theme} borderColor={borderColor}>
         <LowStockList stockpile={stockpile} theme={theme} />
       </SectionCard>
@@ -372,18 +607,68 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }
 }
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
-function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, subtleBg, borderColor }) {
-  const totalCompleted = (protocolHistory || []).filter(h => h.endDate && !h.isMock).length
-  const allTime = (protocolHistory || []).filter(h => !h.isMock).length
+function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor }) {
+  const extra = useMemo(() => {
+    const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
+    const totalCompleted = ended.length
+    const allTime = (protocolHistory || []).filter(h => !h.isMock).length
+
+    const durations = ended.filter(h => h.startDate).map(h => Math.round((new Date(h.endDate).getTime() - new Date(h.startDate).getTime()) / 86400000)).filter(d => d > 0)
+    const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null
+    const longestProtocol = durations.length > 0 ? Math.max(...durations) : null
+    const shortestProtocol = durations.length > 0 ? Math.min(...durations) : null
+
+    const uniqueProtocolNames = new Set(ended.map(h => h.protocolName).filter(Boolean)).size
+
+    const peptideFreq = {}
+    for (const p of (protocols || [])) {
+      if (p.peptides && Array.isArray(p.peptides)) {
+        p.peptides.forEach(pep => {
+          if (pep.name) peptideFreq[pep.name] = (peptideFreq[pep.name] || 0) + 1
+        })
+      }
+    }
+    const topPeptides = Object.entries(peptideFreq).sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+    const deliveryMethods = {}
+    for (const p of (protocols || [])) {
+      if (p.peptides && Array.isArray(p.peptides)) {
+        p.peptides.forEach(pep => {
+          const m = pep.deliveryMethod || 'pipette'
+          deliveryMethods[m] = (deliveryMethods[m] || 0) + 1
+        })
+      }
+    }
+    const deliveryMethodList = Object.entries(deliveryMethods).sort((a, b) => b[1] - a[1])
+
+    const completionRate = ended.length > 0
+      ? Math.round(ended.filter(h => (h.completionStatus || h.endType) === 'completed').length / ended.length * 100)
+      : null
+
+    const notesCount = ended.reduce((s, h) => s + (Array.isArray(h.notes) ? h.notes.length : 0), 0)
+
+    return { totalCompleted, allTime, avgDuration, longestProtocol, shortestProtocol, uniqueProtocolNames, topPeptides, deliveryMethodList, completionRate, notesCount }
+  }, [protocolHistory, protocols])
+
+  const deliveryLabel = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' }
 
   return (
     <div className="space-y-4">
       {/* Hero stat cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <MetricCard icon={<FlaskConical size={16} className="text-indigo-400" />} label="Total Completed" value={totalCompleted} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<Clock size={16} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<CheckCircle size={16} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} subtleBg={subtleBg} />
-        <MetricCard icon={<TrendingUp size={16} style={{ color: theme.primary }} />} label="All-Time" value={allTime} theme={theme} subtleBg={subtleBg} />
+      <div className="grid grid-cols-3 gap-2">
+        <MetricCard icon={<FlaskConical size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
+        <MetricCard icon={<Clock size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
+        <MetricCard icon={<CheckCircle size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <MetricCard label="All-Time Entries" value={extra.allTime} theme={theme} />
+        <MetricCard label="Unique Protocols" value={extra.uniqueProtocolNames} theme={theme} />
+        {extra.avgDuration !== null && <MetricCard label="Avg Duration" value={`${extra.avgDuration}d`} theme={theme} />}
+        {extra.completionRate !== null && <MetricCard label="Completion Rate" value={`${extra.completionRate}%`} theme={theme} />}
+        {extra.longestProtocol !== null && <MetricCard label="Longest" value={`${extra.longestProtocol}d`} theme={theme} />}
+        {extra.shortestProtocol !== null && <MetricCard label="Shortest" value={`${extra.shortestProtocol}d`} theme={theme} />}
+        <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
       </div>
 
       <SectionCard title="Completed by Month" theme={theme} borderColor={borderColor}>
@@ -394,19 +679,94 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, sub
         <SectionCard title="Completion Status" theme={theme} borderColor={borderColor}>
           <ProtocolCompletionStatus protocolHistory={protocolHistory} theme={theme} />
         </SectionCard>
-        <SectionCard title="Avg Duration (days)" theme={theme} borderColor={borderColor}>
+        <SectionCard title="Avg Duration by Month" theme={theme} borderColor={borderColor}>
           <ProtocolDurationTrend protocolHistory={protocolHistory} theme={theme} />
         </SectionCard>
       </div>
+
+      {extra.topPeptides.length > 0 && (
+        <SectionCard title="Most Used Peptides (across protocols)" theme={theme} borderColor={borderColor}>
+          <div className="space-y-1.5">
+            {extra.topPeptides.map(([name, count]) => (
+              <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+                <span className="font-semibold" style={{ color: theme.textLight }}>{count} protocol{count !== 1 ? 's' : ''}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {extra.deliveryMethodList.length > 0 && (
+        <SectionCard title="Delivery Methods" theme={theme} borderColor={borderColor}>
+          <div className="space-y-1.5">
+            {extra.deliveryMethodList.map(([method, count]) => {
+              const total = extra.deliveryMethodList.reduce((s, [, c]) => s + c, 0)
+              return (
+                <div key={method} className="flex items-center gap-2 text-xs">
+                  <span className="w-16 text-right font-medium" style={{ color: theme.textLight }}>{deliveryLabel[method] || method}</span>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-2 rounded-full" style={{ width: `${(count / total) * 100}%`, backgroundColor: theme.primary }} />
+                  </div>
+                  <span className="w-8 text-right font-medium" style={{ color: theme.text }}>{Math.round((count / total) * 100)}%</span>
+                </div>
+              )
+            })}
+          </div>
+        </SectionCard>
+      )}
     </div>
   )
 }
 
 /* ─────────────────── SHARED UI COMPONENTS ─────────────────── */
 
-function MetricCard({ icon, label, value, theme, subtleBg }) {
+function ToggleTabs({ value, onChange, options, theme }) {
   return (
-    <div className="flex items-center gap-2.5 p-3 rounded-lg" style={{ backgroundColor: subtleBg }}>
+    <div
+      className="grid gap-1.5 p-1 rounded-xl w-full"
+      style={{
+        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
+        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+      }}
+      role="tablist"
+    >
+      {options.map(opt => {
+        const isActive = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className="py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
+            style={{
+              backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+              color: isActive ? '#fff' : theme.text,
+              border: isActive ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border}`,
+              boxShadow: isActive
+                ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
+                : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+            }}
+            role="tab"
+            aria-selected={isActive}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MetricCard({ icon, label, value, theme }) {
+  return (
+    <div
+      className="flex items-center gap-2.5 p-3 rounded-xl"
+      style={{
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+      }}
+    >
       {icon && <div>{icon}</div>}
       <div>
         <div className="text-xs" style={{ color: theme.textLight }}>{label}</div>
@@ -418,7 +778,13 @@ function MetricCard({ icon, label, value, theme, subtleBg }) {
 
 function SectionCard({ title, children, theme, borderColor, className = '' }) {
   return (
-    <div className={`p-3 rounded-lg border ${className}`} style={{ borderColor, backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff' }}>
+    <div
+      className={`p-3.5 rounded-xl ${className}`}
+      style={{
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+      }}
+    >
       <h4 className="text-xs font-semibold mb-2.5 uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
       {children}
     </div>
@@ -563,15 +929,26 @@ function SpendByPeptide({ orders, theme }) {
 
 function AvgCostPerMg({ orders, theme }) {
   const rows = useMemo(() => {
-    const agg = orders.reduce((acc, o) => {
-      const k = o.peptide || 'Unknown'
-      const mg = Number(String(o.mg).replace(/[^0-9.]/g, '')) || 0
-      const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
-      if (!acc[k]) acc[k] = { mg: 0, cost: 0 }
-      acc[k].mg += mg
-      acc[k].cost += cost
-      return acc
-    }, {})
+    const agg = {}
+    for (const o of orders) {
+      if (o.items && o.items.length > 0) {
+        o.items.forEach(item => {
+          const k = item.name || 'Unknown'
+          const mg = parseFloat(item.mg) || 0
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
+          if (!agg[k]) agg[k] = { mg: 0, cost: 0 }
+          agg[k].mg += mg
+          agg[k].cost += cost
+        })
+      } else {
+        const k = o.peptide || 'Unknown'
+        const mg = Number(String(o.mg).replace(/[^0-9.]/g, '')) || 0
+        const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
+        if (!agg[k]) agg[k] = { mg: 0, cost: 0 }
+        agg[k].mg += mg
+        agg[k].cost += cost
+      }
+    }
     return Object.entries(agg)
       .filter(([, v]) => v.mg > 0)
       .map(([name, v]) => ({ name, rate: v.cost / v.mg }))
@@ -598,19 +975,39 @@ function AvgCostPerMg({ orders, theme }) {
 }
 
 function PeptideCostTrend({ orders, theme }) {
-  const peptides = useMemo(() => Array.from(new Set((orders || []).map(o => o.peptide).filter(Boolean))).sort(), [orders])
+  const peptides = useMemo(() => {
+    const names = new Set()
+    for (const o of (orders || [])) {
+      if (o.items && o.items.length > 0) {
+        o.items.forEach(item => { if (item.name) names.add(item.name) })
+      } else if (o.peptide) {
+        names.add(o.peptide)
+      }
+    }
+    return Array.from(names).sort()
+  }, [orders])
   const [sel, setSel] = useState(() => peptides[0] || '')
   const data = useMemo(() => {
-    const map = orders.filter(o => (o.peptide || '') === sel).reduce((acc, o) => {
+    const map = {}
+    for (const o of orders) {
       const key = (o.date || '').slice(0, 7)
-      const mg = Number(String(o.mg).replace(/[^0-9.]/g, '')) || 0
-      const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
-      if (!key) return acc
-      if (!acc[key]) acc[key] = { mg: 0, cost: 0 }
-      acc[key].mg += mg
-      acc[key].cost += cost
-      return acc
-    }, {})
+      if (!key) continue
+      if (o.items && o.items.length > 0) {
+        const match = o.items.find(item => item.name === sel)
+        if (!match) continue
+        const mg = parseFloat(match.mg) || 0
+        const cost = (parseFloat(match.price) || 0) * (parseInt(match.quantity, 10) || 1)
+        if (!map[key]) map[key] = { mg: 0, cost: 0 }
+        map[key].mg += mg
+        map[key].cost += cost
+      } else if ((o.peptide || '') === sel) {
+        const mg = Number(String(o.mg).replace(/[^0-9.]/g, '')) || 0
+        const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
+        if (!map[key]) map[key] = { mg: 0, cost: 0 }
+        map[key].mg += mg
+        map[key].cost += cost
+      }
+    }
     return Object.keys(map).sort().map(k => ({ x: k, rate: map[k].mg > 0 ? map[k].cost / map[k].mg : 0 }))
   }, [orders, sel])
   return (
@@ -784,9 +1181,17 @@ function ProtocolsCompletedByMonth({ protocolHistory, theme }) {
 function ProtocolCompletionStatus({ protocolHistory, theme }) {
   const rows = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
+    const labelMap = {
+      'completed': 'Completed',
+      'ended_early': 'Ended Early',
+      'stopped': 'Stopped Early',
+      'manual': 'Manually Ended',
+      'rescheduled': 'Rescheduled',
+      'unknown': 'Unknown',
+    }
     const statusCounts = ended.reduce((acc, h) => {
-      const s = h.completionStatus || h.endType || 'completed'
-      const label = s === 'completed' ? 'Completed' : s === 'stopped' || s === 'manual' ? 'Stopped early' : s === 'rescheduled' ? 'Rescheduled' : String(s)
+      const raw = h.completionStatus || h.endType || 'completed'
+      const label = labelMap[raw] || raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       acc[label] = (acc[label] || 0) + 1
       return acc
     }, {})

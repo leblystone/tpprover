@@ -2648,7 +2648,7 @@ exports.onUserCreated = onDocumentCreated(
 
 // Win-back campaign: email churned users who had a paid subscription that ended 14+ days ago
 exports.bulkWinBackCampaign = onSchedule({
-  schedule: '0 10 * * 1', // Every Monday at 10 AM UTC
+  schedule: '0 10 * * 5', // Every Friday at 10 AM UTC
   timeZone: 'UTC',
   memory: '512MiB',
   timeoutSeconds: 300,
@@ -2706,6 +2706,26 @@ exports.bulkWinBackCampaign = onSchedule({
       }
 
       try {
+        // Grant a 14-day trial extension so they can explore without paying immediately
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 14);
+        await db.collection('userSubscriptions').doc(userId).set({
+          subscription: {
+            status: 'trialing',
+            currentPeriodEnd: trialEnd.toISOString(),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            winBackTrialGranted: true,
+            winBackTrialGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }
+        }, { merge: true });
+        await db.collection('users').doc(userId).set({
+          subscription: {
+            status: 'trialing',
+            currentPeriodEnd: trialEnd.toISOString(),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          }
+        }, { merge: true });
+
         const userName = userData.displayName || userEmail.split('@')[0];
         await emailService.sendWinBackEmail(userEmail, userName, null);
 
@@ -2716,6 +2736,8 @@ exports.bulkWinBackCampaign = onSchedule({
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'sent',
           sentBy: 'scheduled',
+          trialExtended: true,
+          trialEndDate: trialEnd.toISOString(),
         });
 
         sent++;

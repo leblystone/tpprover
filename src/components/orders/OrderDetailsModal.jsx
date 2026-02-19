@@ -481,23 +481,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   />
                 </div>
                 <div className="lg:col-span-2">
-                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
+                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
-                        className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center"
-                        style={form.category === k 
-                          ? { backgroundColor: theme?.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } 
-                          : { color: theme.text }
-                        }
-                        onMouseEnter={(e) => {
-                          if (form.category !== k) {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (form.category !== k) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }
+                        className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center active:scale-95"
+                        style={{
+                          backgroundColor: form.category === k ? '#445952' : 'transparent',
+                          color: form.category === k ? '#fff' : theme.textLight,
+                          boxShadow: form.category === k ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                         }}>
                         {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
@@ -605,7 +596,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
           </div>
           <div className="space-y-3">
-            <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
+            <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
               {[
                 { label: 'Order Placed', value: 'Order Placed' },
                 { label: 'In Transit', value: 'Shipped' },
@@ -620,14 +611,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     status: opt.value, 
                     shipDate: opt.value==='Shipped' ? (form.shipDate || getLocalDateString()) : form.shipDate, 
                     deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate,
-                    // Mark this as a manual status change to prevent tracking sync from overriding
                     statusSource: 'manual',
                     statusManuallySetAt: now,
                     updatedAt: now
                   };
                   setForm(newForm);
                   
-                  // Show toast immediately if status changed to Shipped or Delivered
                   const statusChanged = previousStatus.toLowerCase() !== opt.value.toLowerCase();
                   if (statusChanged) {
                     if (opt.value.toLowerCase().includes('ship')) {
@@ -647,20 +636,11 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     }
                   }
                 }}
-                  className="flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap"
-                  style={(form.status || (order ? null : 'Order Placed')) === opt.value 
-                    ? { backgroundColor: theme?.primary, color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' } 
-                    : { color: theme.text }
-                  }
-                  onMouseEnter={(e) => {
-                    if ((form.status || (order ? null : 'Order Placed')) !== opt.value) {
-                      e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if ((form.status || (order ? null : 'Order Placed')) !== opt.value) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
+                  className="flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap active:scale-95"
+                  style={{
+                    backgroundColor: (form.status || (order ? null : 'Order Placed')) === opt.value ? '#445952' : 'transparent',
+                    color: (form.status || (order ? null : 'Order Placed')) === opt.value ? '#fff' : theme.textLight,
+                    boxShadow: (form.status || (order ? null : 'Order Placed')) === opt.value ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                   }}>
                   {opt.label}
                 </button>

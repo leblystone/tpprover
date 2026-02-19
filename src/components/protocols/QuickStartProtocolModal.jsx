@@ -256,11 +256,12 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                                     key={time}
                                     type="button"
                                     onClick={() => toggleTimeOfDay(time)}
-                                    className="flex-1 py-3 rounded-lg font-bold text-sm transition-all"
+                                    className="flex-1 py-3 rounded-lg font-bold text-sm transition-all active:scale-95"
                                     style={{
-                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary),
-                                        color: isSelected ? '#ffffff' : theme.text,
-                                        border: `2px solid ${isSelected ? theme.primary : 'transparent'}`
+                                        backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                        color: isSelected ? '#fff' : theme.text,
+                                        border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                     }}
                                 >
                                     <Clock size={14} className="inline mr-1" />

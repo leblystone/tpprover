@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -101,12 +101,12 @@ export default function Protocols() {
     tags: [], 
     linkedDate: getLocalDateString() 
   });
-  const [showLinkedDate, setShowLinkedDate] = useState(false);
+  const [showLinkedDate, setShowLinkedDate] = useState(true);
   
   // Reset showLinkedDate when form opens/closes
   useEffect(() => {
     if (!showAddNoteForm) {
-      setShowLinkedDate(false);
+      setShowLinkedDate(true);
     }
   }, [showAddNoteForm]);
   const [notesHistoryEntryId, setNotesHistoryEntryId] = useState(null);
@@ -118,12 +118,12 @@ export default function Protocols() {
   const [followUpProtocolForManage, setFollowUpProtocolForManage] = useState(null);
   const [followUpHistoryIdForManage, setFollowUpHistoryIdForManage] = useState(null);
   
-  const NOTE_TAGS = [
-    { id: 'progress', label: 'Progress Update' },
-    { id: 'side_effects', label: 'Side Effects' },
-    { id: 'adjustment', label: 'Dosage Adjustment' },
-    { id: 'observation', label: 'Observation' },
-    { id: 'question', label: 'Question' }
+  const NOTE_LABELS = [
+    { id: 'progress', label: 'Progress', icon: TrendingUp },
+    { id: 'side_effects', label: 'Side Effects', icon: AlertTriangle },
+    { id: 'adjustment', label: 'Adjustment', icon: Settings },
+    { id: 'observation', label: 'Observation', icon: Search },
+    { id: 'question', label: 'Question', icon: HelpCircle }
   ];
 
   // Debug: log protocol state when Protocols page is viewing protocols
@@ -2271,17 +2271,18 @@ export default function Protocols() {
                     updateReminderSetting('amTime', option.time);
                     setTimeModalOpen(prev => ({ ...prev, am: false }));
                   }}
-                  className="w-full px-4 py-3 rounded-lg text-left border transition-all flex items-center gap-3"
+                  className="w-full px-4 py-3 rounded-lg text-left transition-all flex items-center gap-3 active:scale-[0.98]"
                   style={{
-                    borderColor: isSelected ? theme.primary : theme.border,
-                    backgroundColor: isSelected ? `${theme.primary}10` : theme.cardBackground,
-                    color: theme.text
+                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                    color: isSelected ? '#fff' : theme.text,
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={20} style={{ color: isSelected ? theme.primary : theme.textLight }} />
+                  <Icon size={20} style={{ color: isSelected ? '#fff' : theme.textLight }} />
                   <span className="flex-1 font-medium">{option.label}</span>
                   {isSelected && (
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#fff' }} />
                   )}
                 </button>
               );
@@ -2351,17 +2352,18 @@ export default function Protocols() {
                     updateReminderSetting('pmTime', option.time);
                     setTimeModalOpen(prev => ({ ...prev, pm: false }));
                   }}
-                  className="w-full px-4 py-3 rounded-lg text-left border transition-all flex items-center gap-3"
+                  className="w-full px-4 py-3 rounded-lg text-left transition-all flex items-center gap-3 active:scale-[0.98]"
                   style={{
-                    borderColor: isSelected ? theme.primary : theme.border,
-                    backgroundColor: isSelected ? `${theme.primary}10` : theme.cardBackground,
-                    color: theme.text
+                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                    color: isSelected ? '#fff' : theme.text,
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={20} style={{ color: isSelected ? theme.primary : theme.textLight }} />
+                  <Icon size={20} style={{ color: isSelected ? '#fff' : theme.textLight }} />
                   <span className="flex-1 font-medium">{option.label}</span>
                   {isSelected && (
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#fff' }} />
                   )}
                 </button>
               );
@@ -3022,7 +3024,7 @@ export default function Protocols() {
                   { value: 'edit', label: 'Edit' },
                   { value: 'notes', label: 'Notes' },
                   { value: 'share', label: 'Share' },
-                  { value: 'history', label: 'History' }
+                  { value: 'history', label: 'Activity' }
                 ]}
                 theme={theme}
                 subtle={true}
@@ -3247,74 +3249,87 @@ export default function Protocols() {
             )}
 
             {manageTab === 'notes' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
 
                 {/* Add Note Form */}
                 {showAddNoteForm && (
-                  <div className="content-section p-4 rounded-lg space-y-4" style={{
-                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
-                  }}>
+                  <div className="space-y-3">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold" style={{ color: theme.text }}>New Note</h3>
+                      <div className="flex items-center gap-2">
+                        <NotebookPen size={22} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0">
+                          <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>New Note</h4>
+                          <div className="flex items-center gap-2 ml-0.5">
+                            <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                              Journal Entry
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                       <button
                         onClick={() => {
                           setShowAddNoteForm(false);
                           setNewNote({ content: '', tags: [], linkedDate: getLocalDateString() });
                         }}
-                        className="text-sm font-medium transition-opacity hover:opacity-70"
-                        style={{ 
-                          backgroundColor: 'transparent',
-                          color: theme.textLight,
-                          border: 'none',
-                          padding: '4px 8px'
-                        }}
+                        className="p-1.5 rounded-lg hover:opacity-70 transition-all"
+                        style={{ color: theme.textLight }}
                       >
-                        Cancel
+                        <X size={18} />
                       </button>
                     </div>
 
                     <textarea
                       value={newNote.content}
                       onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-                      placeholder="Add your note here..."
+                      placeholder={`${manageConfirm?.protocolName || 'Protocol'} note...`}
                       className="w-full p-3 rounded-lg text-sm resize-none"
-                      rows={4}
+                      rows={3}
                       style={{
                         backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)',
-                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#e8e6df'}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.06)',
                         color: theme.text
                       }}
                     />
 
+                    {/* Labels */}
                     <div>
-                      <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
-                        Tags
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {NOTE_TAGS.map(tag => (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => handleTagToggle(tag.id)}
-                            className="px-2 py-1 rounded text-xs font-medium transition-all"
-                            style={{
-                              backgroundColor: newNote.tags.includes(tag.id)
-                                ? theme.primary
-                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'),
-                              color: newNote.tags.includes(tag.id)
-                                ? theme.textOnPrimary
-                                : theme.text,
-                              border: `1px solid ${newNote.tags.includes(tag.id) ? theme.primary : theme.border}`
-                            }}
-                          >
-                            {tag.label}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Tag size={13} style={{ color: theme.primary }} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-50" style={{ color: theme.text }}>
+                          Labels
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                        {NOTE_LABELS.map(label => {
+                          const Icon = label.icon;
+                          const isSelected = newNote.tags.includes(label.id);
+                          return (
+                            <button
+                              key={label.id}
+                              type="button"
+                              onClick={() => handleTagToggle(label.id)}
+                              className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 active:scale-95"
+                              style={{
+                                backgroundColor: isSelected ? '#6B7F77' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                border: isSelected ? '1px solid #566D64' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
+                                color: isSelected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                                boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                              }}
+                            >
+                              <Icon size={15} className="mb-0.5" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">{label.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
+                    {/* Calendar Link */}
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-semibold mb-2" style={{ color: theme.text }}>
+                      <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer" style={{ color: theme.text }}>
                         <input
                           type="checkbox"
                           checked={showLinkedDate}
@@ -3322,7 +3337,7 @@ export default function Protocols() {
                           className="rounded"
                           style={{ accentColor: theme.primary }}
                         />
-                        <Calendar size={14} />
+                        <Calendar size={14} style={{ color: theme.primary }} />
                         <span>Show in calendar</span>
                       </label>
                       {showLinkedDate && (
@@ -3340,14 +3355,24 @@ export default function Protocols() {
 
                 {/* Edit Note Form */}
                 {editingNote && (
-                  <div className="content-section p-4 rounded-lg space-y-4" style={{
-                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
-                  }}>
+                  <div className="space-y-3">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold" style={{ color: theme.text }}>Edit Note</h3>
+                      <div className="flex items-center gap-2">
+                        <Edit3 size={22} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0">
+                          <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Edit Note</h4>
+                          <div className="flex items-center gap-2 ml-0.5">
+                            <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                            <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                              Journal Entry
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                       <button
                         onClick={() => setEditingNote(null)}
-                        className="p-1 rounded hover:bg-opacity-20"
+                        className="p-1.5 rounded-lg hover:opacity-70 transition-all"
                         style={{ color: theme.textLight }}
                       >
                         <X size={18} />
@@ -3357,45 +3382,53 @@ export default function Protocols() {
                     <textarea
                       value={editingNote.content || ''}
                       onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                      placeholder="Add your note here..."
+                      placeholder={`${manageConfirm?.protocolName || 'Protocol'} note...`}
                       className="w-full p-3 rounded-lg text-sm resize-none"
-                      rows={4}
+                      rows={3}
                       style={{
                         backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)',
-                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : '#e8e6df'}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.06)',
                         color: theme.text
                       }}
                     />
 
+                    {/* Labels */}
                     <div>
-                      <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
-                        Tags
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {NOTE_TAGS.map(tag => (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => handleTagToggle(tag.id, true)}
-                            className="px-2 py-1 rounded text-xs font-medium transition-all"
-                            style={{
-                              backgroundColor: editingNote.tags?.includes(tag.id)
-                                ? theme.primary
-                                : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'),
-                              color: editingNote.tags?.includes(tag.id)
-                                ? theme.textOnPrimary
-                                : theme.text,
-                              border: `1px solid ${editingNote.tags?.includes(tag.id) ? theme.primary : theme.border}`
-                            }}
-                          >
-                            {tag.label}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Tag size={13} style={{ color: theme.primary }} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-50" style={{ color: theme.text }}>
+                          Labels
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                        {NOTE_LABELS.map(label => {
+                          const Icon = label.icon;
+                          const isSelected = editingNote.tags?.includes(label.id);
+                          return (
+                            <button
+                              key={label.id}
+                              type="button"
+                              onClick={() => handleTagToggle(label.id, true)}
+                              className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 active:scale-95"
+                              style={{
+                                backgroundColor: isSelected ? '#6B7F77' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                border: isSelected ? '1px solid #566D64' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
+                                color: isSelected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                                boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                              }}
+                            >
+                              <Icon size={15} className="mb-0.5" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">{label.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
+                    {/* Calendar Link */}
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-semibold mb-2" style={{ color: theme.text }}>
+                      <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer" style={{ color: theme.text }}>
                         <input
                           type="checkbox"
                           checked={editingNote.showLinkedDate || false}
@@ -3406,7 +3439,7 @@ export default function Protocols() {
                           className="rounded"
                           style={{ accentColor: theme.primary }}
                         />
-                        <Calendar size={14} />
+                        <Calendar size={14} style={{ color: theme.primary }} />
                         <span>Show in calendar</span>
                       </label>
                       {editingNote.showLinkedDate && (
@@ -3419,68 +3452,74 @@ export default function Protocols() {
                         </div>
                       )}
                     </div>
-
-                    {/* Cancel button removed - use footer Cancel instead */}
                   </div>
                 )}
 
                 {/* Notes List */}
                 {!showAddNoteForm && !editingNote && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {notes.length === 0 ? (
                       <div className="text-center py-8" style={{ color: theme.textLight }}>
-                        <FileText size={48} className="mx-auto mb-3 opacity-50" />
-                        <p>No notes yet. Add your first note to track progress!</p>
+                        <NotebookPen size={40} className="mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium opacity-60">No notes yet</p>
+                        <p className="text-xs opacity-40 mt-1">Add your first note to track progress</p>
                       </div>
                     ) : (
-                      notes.map((note) => (
+                      notes.map((note, noteIdx) => (
                         <div
                           key={note.id}
-                          className="content-section p-4 rounded-lg"
+                          className="rounded-lg overflow-hidden flex"
                           style={{
-                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}`
                           }}
                         >
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex-1">
-                              <div className="text-xs mb-1" style={{ color: theme.textLight }}>
-                                {formatMMDDYYYY(note.createdAt)}
+                          <div className="w-1 flex-shrink-0 rounded-l-lg" style={{ background: `linear-gradient(to bottom, #445952, #6B7F77)` }} />
+                          <div className="flex-1 min-w-0 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ color: theme.textLight }}>
+                                <span>{formatMMDDYYYY(note.createdAt)}</span>
                                 {note.linkedDate && (
-                                  <span className="ml-2 flex items-center gap-1">
-                                    <Calendar size={12} />
-                                    Linked to {formatMMDDYYYY(note.linkedDate)}
+                                  <span className="flex items-center gap-1 opacity-70">
+                                    <Calendar size={10} />
+                                    {formatMMDDYYYY(note.linkedDate)}
                                   </span>
                                 )}
                               </div>
                               {note.content && (
-                                <p className="text-sm mt-2 whitespace-pre-wrap" style={{ color: theme.text }}>
+                                <p className="text-sm mt-1.5 whitespace-pre-wrap leading-relaxed" style={{ color: theme.text }}>
                                   {note.content}
                                 </p>
                               )}
                               {note.tags && note.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mt-2">
                                   {note.tags.map(tagId => {
-                                    const tag = NOTE_TAGS.find(t => t.id === tagId);
-                                    return tag ? (
+                                    const label = NOTE_LABELS.find(t => t.id === tagId);
+                                    if (!label) return null;
+                                    const LabelIcon = label.icon;
+                                    return (
                                       <span
                                         key={tagId}
-                                        className="px-2 py-0.5 rounded text-xs font-medium"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider"
                                         style={{
-                                          backgroundColor: theme.primary + '20',
-                                          color: theme.primary
+                                          backgroundColor: '#6B7F77' + '18',
+                                          color: '#6B7F77',
+                                          border: '1px solid #6B7F7720'
                                         }}
                                       >
-                                        {tag.label}
+                                        <LabelIcon size={10} />
+                                        {label.label}
                                       </span>
-                                    ) : null;
+                                    );
                                   })}
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-0.5 flex-shrink-0">
                               <button
                                 onClick={() => handleEditNote({ ...note, showLinkedDate: !!note.linkedDate })}
-                                className="p-1.5 rounded hover:bg-opacity-20 transition-all"
+                                className="p-1.5 rounded-lg hover:opacity-70 transition-all"
                                 style={{ color: theme.textLight }}
                                 title="Edit note"
                               >
@@ -3488,13 +3527,14 @@ export default function Protocols() {
                               </button>
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
-                                className="p-1.5 rounded hover:bg-opacity-20 transition-all"
+                                className="p-1.5 rounded-lg hover:opacity-70 transition-all"
                                 style={{ color: theme.textLight }}
                                 title="Delete note"
                               >
                                 <Trash2 size={14} />
                               </button>
                             </div>
+                          </div>
                           </div>
                         </div>
                       ))
@@ -3540,219 +3580,217 @@ export default function Protocols() {
             )}
 
             {manageTab === 'history' && (
-              <div className="relative">
+              <div className="space-y-3">
                 {(() => {
-                  // Helper function to get icon for completion status
-                  const getStatusIcon = (status) => {
-                    switch (status) {
-                      case 'completed':
-                        return CheckCircle2;
-                      case 'ended_early':
-                        return XCircle;
-                      case 'rescheduled':
-                        return Clock;
-                      default:
-                        return FlaskConical;
+                  const activeEntry = manageConfirm?.id ? findActiveProtocolHistoryEntry(manageConfirm.id) : null;
+                  const isActive = manageConfirm?.active === true || !!activeEntry;
+                  const protocolData = activeEntry?.protocolData || manageConfirm;
+                  const linkedItems = activeEntry?.protocolData?.linkedItems || manageConfirm?.linkedItems || {};
+                  const lineage = activeEntry?.lineage || {};
+
+                  const buildDetailedTimeline = () => {
+                    if (!activeEntry && !isActive) return [];
+                    const ev = [];
+                    const he = activeEntry || {};
+                    const startDate = he.startDate || manageConfirm?.startDate;
+
+                    if (startDate) {
+                      const peptideNames = protocolData?.peptides?.map(p => p.name).filter(Boolean).join(', ');
+                      const doseInfo = protocolData?.peptides?.map(p => {
+                        if (!p.dosage?.amount) return null;
+                        return `${p.name || 'peptide'} @ ${p.dosage.amount} ${p.dosage.unit || 'mcg'}`;
+                      }).filter(Boolean).join(', ');
+                      ev.push({ date: startDate, sort: 0, type: 'start', icon: Play, color: '#10b981', label: 'Protocol started', detail: doseInfo || peptideNames || null });
                     }
+
+                    if (he.vials?.length > 0) {
+                      he.vials.forEach((v, i) => {
+                        const pepLin = Object.values(lineage).find(l => l.vial?.stockpileId === v.vialId || l.vial?.stockpileId === v.stockpileId);
+                        const vendor = pepLin?.vendor?.name || pepLin?.vial?.vendor || v.vendor;
+                        const mg = pepLin?.vial?.mg || v.mg;
+                        const cost = pepLin?.vial?.cost || v.cost;
+                        const reconSnap = pepLin?.recon;
+                        let detail = [mg ? `${mg}mg` : null, vendor ? `from ${vendor}` : null, cost ? `$${Number(cost).toFixed(2)}` : null].filter(Boolean).join(' · ');
+                        ev.push({ date: startDate, sort: 1 + i, type: 'link', icon: Link2, color: '#6366f1', label: `${v.name || 'Vial'} linked`, detail: detail || null });
+                        if (reconSnap?.date) {
+                          const reconDetail = [reconSnap.water ? `${reconSnap.water}mL BAC water` : null, reconSnap.concentration || null].filter(Boolean).join(' · ');
+                          ev.push({ date: reconSnap.date, sort: 1.5 + i, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted`, detail: reconDetail || null });
+                        }
+                      });
+                    }
+
+                    Object.entries(linkedItems).forEach(([pepId, item]) => {
+                      const pep = protocolData?.peptides?.find(p => (p.id || `peptide-${protocolData.peptides.indexOf(p)}`) === pepId);
+                      const dm = item.deliveryMethod;
+                      if (dm) {
+                        const method = dm.deliveryMethod === 'pipette' ? 'Syringe' : dm.deliveryMethod ? dm.deliveryMethod.charAt(0).toUpperCase() + dm.deliveryMethod.slice(1) : '';
+                        const route = dm.administrationRoute ? dm.administrationRoute.toUpperCase() : '';
+                        const pen = dm.penType ? `${dm.penType === 'bird-pen' ? 'Bird Pen' : dm.penType.charAt(0).toUpperCase() + dm.penType.slice(1)}` : '';
+                        const detail = [method, route, pen].filter(Boolean).join(' · ');
+                        if (detail) ev.push({ date: startDate, sort: 2, type: 'delivery', icon: Pipette, color: '#445952', label: `${pep?.name || 'Peptide'} delivery: ${method}`, detail: route || pen ? [route, pen].filter(Boolean).join(' · ') : null });
+                      }
+                      if (item.vialHistory?.length > 0) {
+                        item.vialHistory.forEach(hv => {
+                          if (hv.usedAt) {
+                            const finDetail = [hv.mg ? `${hv.mg}mg` : null, hv.vendor ? `from ${hv.vendor}` : null].filter(Boolean).join(' · ');
+                            ev.push({ date: hv.usedAt, sort: 3, type: 'vial_finished', icon: CircleDot, color: '#f97316', label: `${hv.name || 'Vial'} marked as finished`, detail: finDetail || null });
+                          }
+                        });
+                      }
+                    });
+
+                    if (he.vialsAddedDuring?.length > 0) {
+                      he.vialsAddedDuring.forEach(v => {
+                        const addDetail = [v.mg ? `${v.mg}mg` : null, v.vendor ? `from ${v.vendor}` : null].filter(Boolean).join(' · ');
+                        ev.push({ date: v.addedDate || startDate, sort: 0, type: 'add_vial', icon: Plus, color: '#8b5cf6', label: `${v.name || 'Vial'} added mid-protocol`, detail: addDetail || null });
+                        if (v.reconstitutionDate) {
+                          ev.push({ date: v.reconstitutionDate, sort: 0.5, type: 'recon', icon: Droplets, color: '#0ea5e9', label: `${v.name || 'Vial'} reconstituted`, detail: null });
+                        }
+                      });
+                    }
+
+                    if (protocolData?.peptides) {
+                      protocolData.peptides.forEach(pep => {
+                        if (pep.titrationHeldAt) {
+                          const phaseIdx = pep.titrationPhaseIndex ?? 0;
+                          ev.push({ date: pep.titrationHeldAt, sort: 4, type: 'hold', icon: Clock, color: '#eab308', label: `Phase ${phaseIdx + 1} held for ${pep.name || 'peptide'}`, detail: null });
+                        }
+                      });
+                    }
+
+                    if (he.notes?.length > 0) {
+                      he.notes.forEach(n => {
+                        const snippet = n.content ? (n.content.length > 50 ? n.content.slice(0, 50) + '...' : n.content) : '';
+                        const tagNames = n.tags?.length > 0 ? n.tags.map(tid => { const l = NOTE_LABELS.find(t => t.id === tid); return l?.label; }).filter(Boolean).join(', ') : null;
+                        ev.push({ date: n.createdAt || n.linkedDate, sort: 0, type: 'note', icon: StickyNote, color: '#a78bfa', label: `Note: ${snippet || 'added'}`, detail: tagNames });
+                      });
+                    }
+
+                    if (he.endDate) {
+                      const endLabel = he.endType === 'completed' ? 'Protocol completed' : he.endType === 'manual' ? 'Protocol ended early' : 'Protocol ended';
+                      ev.push({ date: he.endDate, sort: 10, type: 'end', icon: CalendarX, color: '#ef4444', label: endLabel, detail: null });
+                    }
+
+                    ev.sort((a, b) => { const da = new Date(a.date || 0); const db = new Date(b.date || 0); if (da.getTime() !== db.getTime()) return da - db; return (a.sort || 0) - (b.sort || 0); });
+                    return ev;
                   };
 
-                  if (timelineEntriesForManage.length > 0) {
+                  const tlEvents = buildDetailedTimeline();
+
+                  if (tlEvents.length > 0) {
+                    const startDate = activeEntry?.startDate || manageConfirm?.startDate;
+                    const daysActive = startDate ? Math.max(0, Math.ceil((new Date() - new Date(startDate)) / (1000 * 60 * 60 * 24))) : null;
                     return (
-                      <div className="relative">
-                        {/* Timeline entries */}
-                        <div className="space-y-3">
-                          {timelineEntriesForManage.map((entry, index) => {
-                            if (entry.type === 'header') {
-                              // Month/Year header - simplified without timeline node
+                      <div>
+
+                        {/* Single Detailed Timeline */}
+                        <div className="relative pl-7">
+                          <div className="absolute left-[9px] top-1 bottom-1 w-px" style={{ background: `linear-gradient(to bottom, #445952, #6B7F77, ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'})` }} />
+                          <div className="space-y-0">
+                            {tlEvents.map((ev, idx) => {
+                              const Icon = ev.icon;
+                              const isLast = idx === tlEvents.length - 1;
+                              const isStart = ev.type === 'start';
+                              const isEnd = ev.type === 'end';
                               return (
-                                <div key={entry.key} className="relative flex items-center mb-3 mt-4 first:mt-0">
-                                  <h3 
-                                    className="text-sm font-semibold uppercase tracking-wider"
-                                    style={{ color: theme.textLight }}
-                                  >
-                                    {entry.month} {entry.year}
-                                  </h3>
-                                </div>
-                              );
-                            } else {
-                              // Protocol entry
-                              const historyEntry = entry.historyEntry;
-                              const statusBadge = getStatusBadge(entry.completionStatus);
-                              const StatusIcon = statusBadge?.icon;
-                              const TimelineIcon = getStatusIcon(entry.completionStatus);
-                              const isHovered = hoveredHistoryId === historyEntry.id;
-                              
-                              return (
-                                <div 
-                                  key={historyEntry.id} 
-                                  className="relative group"
-                                  onMouseEnter={() => setHoveredHistoryId(historyEntry.id)}
-                                  onMouseLeave={() => setHoveredHistoryId(null)}
-                                >
-                                  {/* Floating icon node - only visible on hover */}
-                                  {isHovered && (
-                                    <div 
-                                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20"
-                                      style={{ 
-                                        backgroundColor: theme.isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                                        backdropFilter: 'blur(10px)',
-                                        border: `2px solid ${theme.primary}`,
-                                        boxShadow: theme.isDark 
-                                          ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
-                                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
-                                      }}
-                                    >
-                                      <TimelineIcon 
-                                        size={18} 
-                                        style={{ color: theme.primary }}
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  {/* Protocol card with glassmorphism */}
-                                  <button
-                                    onClick={() => setSelectedHistoryEntryForManage(historyEntry)}
-                                    className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
-                                    style={{ 
-                                      backgroundColor: theme.isDark 
-                                        ? 'rgba(31, 41, 55, 0.6)' 
-                                        : 'rgba(255, 255, 255, 0.7)',
-                                      backdropFilter: 'blur(20px)',
-                                      WebkitBackdropFilter: 'blur(20px)',
-                                      border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
-                                      boxShadow: theme.isDark 
-                                        ? '0 4px 16px rgba(0, 0, 0, 0.3)' 
-                                        : '0 4px 16px rgba(0, 0, 0, 0.08)'
+                                <div key={idx} className={`relative flex items-start ${isLast ? '' : 'pb-4'}`}>
+                                  <div
+                                    className="absolute flex-shrink-0 flex items-center justify-center rounded-full"
+                                    style={{
+                                      left: '-22px',
+                                      width: isStart || isEnd ? '22px' : '18px',
+                                      height: isStart || isEnd ? '22px' : '18px',
+                                      top: isStart || isEnd ? '0px' : '2px',
+                                      backgroundColor: ev.color + (isStart || isEnd ? '25' : '15'),
+                                      border: `1.5px solid ${ev.color}${isStart || isEnd ? '60' : '40'}`,
                                     }}
                                   >
-                                    <div className="flex gap-4 p-4">
-                                      {/* Main content */}
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1.5">
-                                          {manageConfirm?.emoji && (
-                                            <span className="text-xl">{manageConfirm.emoji}</span>
-                                          )}
-                                          <span className="font-semibold text-base" style={{ color: theme.text }}>
-                                            {historyEntry.protocolName || manageConfirm?.protocolName || manageConfirm?.name || 'Unnamed Protocol'}
-                                          </span>
-                                        </div>
-                                        
-                                        {/* Status badge - inline */}
-                                        {statusBadge && StatusIcon && (
-                                          <div className="inline-block mt-1.5">
-                                            <span 
-                                              className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
-                                              style={{ 
-                                                backgroundColor: statusBadge.bgColor,
-                                                color: statusBadge.textColor
-                                              }}
-                                            >
-                                              <StatusIcon size={12} />
-                                              {statusBadge.label}
-                                            </span>
-                                          </div>
-                                        )}
-                                        
-                                        {/* Terracotta Follow-Up Assessment Prompt Button */}
-                                        {(() => {
-                                          const hasFollowUp = historyEntry.notes && 
-                                            Array.isArray(historyEntry.notes) && 
-                                            historyEntry.notes.some(n => n.type === 'follow_up');
-                                          if (!hasFollowUp && historyEntry.endDate) {
-                                            return (
-                                              <div className="mt-2">
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFollowUpProtocolForManage(manageConfirm);
-                                                    setFollowUpHistoryIdForManage(historyEntry.id);
-                                                  }}
-                                                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
-                                                  style={{
-                                                    background: terracottaGradient,
-                                                    color: '#ffffff',
-                                                    boxShadow: theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.15)'
-                                                  }}
-                                                  onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = terracottaHoverGradient;
-                                                  }}
-                                                  onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = terracottaGradient;
-                                                  }}
-                                                >
-                                                  <FileText size={12} />
-                                                  Complete Follow-Up
-                                                </button>
-                                              </div>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                      
-                                      {/* Sidebar with dates and duration */}
-                                      <div className="flex-shrink-0 w-32 text-right space-y-0.5 border-l pl-4" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
-                                        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
-                                          {entry.startDate}
-                                        </div>
-                                        <div className="text-xs" style={{ color: theme.textLight }}>
-                                          →
-                                        </div>
-                                        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
-                                          {entry.endDate}
-                                        </div>
-                                        {entry.durationDays > 0 && (
-                                          <div className="pt-1.5 mt-1.5 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
-                                            <div className="text-xs font-semibold" style={{ color: theme.text }}>
-                                              {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                            </div>
-                                          </div>
-                                        )}
-                                        <div className="pt-1.5 flex justify-end">
-                                          <ChevronDown 
-                                            size={16} 
-                                            className="transform rotate-[-90deg] opacity-50"
-                                            style={{ color: theme.textLight }}
-                                          />
-                                        </div>
-                                      </div>
+                                    <Icon size={isStart || isEnd ? 11 : 9} style={{ color: ev.color }} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <span className={`${isStart || isEnd ? 'text-xs font-semibold' : 'text-xs'} leading-snug`} style={{ color: theme.text }}>{ev.label}</span>
+                                      {ev.date && <span className="text-[10px] flex-shrink-0 tabular-nums pt-px" style={{ color: theme.textLight }}>{formatMMDDYYYY(ev.date)}</span>}
                                     </div>
-                                  </button>
+                                    {ev.detail && (
+                                      <div className="text-[11px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>{ev.detail}</div>
+                                    )}
+                                  </div>
                                 </div>
                               );
-                            }
-                          })}
+                            })}
+                          </div>
                         </div>
+
+                        {/* Past Completed Runs divider */}
+                        {timelineEntriesForManage.length > 0 && (
+                          <div className="pt-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent 0%, ${theme.border} 20%, ${theme.border} 80%, transparent 100%)` }}></div>
+                              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>Past Runs</span>
+                              <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent 0%, ${theme.border} 20%, ${theme.border} 80%, transparent 100%)` }}></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
-                  } else {
-                    // Check if protocol is currently active
-                    const isActive = manageConfirm?.active === true || (manageConfirm?.id && findActiveProtocolHistoryEntry(manageConfirm.id));
+                  } else if (!isActive && timelineEntriesForManage.length === 0) {
                     return (
-                      <div className="flex flex-col items-center justify-center py-4 px-6 text-center">
-                        <div
-                          className="px-4 py-2 rounded-full mb-3 max-w-md"
-                          style={{
-                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
-                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-                            display: 'inline-block'
-                          }}
-                        >
-                          <span className="text-sm font-medium text-center" style={{ color: theme.text }}>
-                            {isActive 
-                              ? (
-                                  <>
-                                    You're currently researching!<br />
-                                    History will be added once you complete the protocol.
-                                  </>
-                                )
-                              : "You haven't researched this one yet!"}
-                          </span>
-                        </div>
+                      <div className="text-center py-8" style={{ color: theme.textLight }}>
+                        <Clock size={40} className="mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-medium opacity-60">No activity yet</p>
+                        <p className="text-xs opacity-40 mt-1">Start researching to build your protocol activity log</p>
                       </div>
                     );
                   }
+                  return null;
                 })()}
+
+                {/* Past completed entries */}
+                {timelineEntriesForManage.length > 0 && (
+                  <div className="space-y-3">
+                    {timelineEntriesForManage.map((entry) => {
+                      if (entry.type === 'header') {
+                        return (
+                          <div key={entry.key} className="relative flex items-center mb-2 mt-3 first:mt-0">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>{entry.month} {entry.year}</h3>
+                          </div>
+                        );
+                      } else {
+                        const historyEntry = entry.historyEntry;
+                        const statusBadge = getStatusBadge(entry.completionStatus);
+                        const StatusIcon = statusBadge?.icon;
+                        return (
+                          <button
+                            key={historyEntry.id}
+                            onClick={() => setSelectedHistoryEntryForManage(historyEntry)}
+                            className="w-full text-left p-3 rounded-lg transition-all hover:opacity-90 active:scale-[0.99]"
+                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}` }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  {statusBadge && StatusIcon && (
+                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 w-fit" style={{ backgroundColor: statusBadge.bgColor, color: statusBadge.textColor }}>
+                                      <StatusIcon size={10} />{statusBadge.label}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs flex items-center gap-2" style={{ color: theme.textLight }}>
+                                  <span>{entry.startDate}</span>
+                                  <span>→</span>
+                                  <span>{entry.endDate}</span>
+                                  {entry.durationDays > 0 && <span className="font-semibold" style={{ color: theme.text }}>({entry.durationDays}d)</span>}
+                                </div>
+                              </div>
+                              <ChevronRight size={16} style={{ color: theme.textLight }} />
+                            </div>
+                          </button>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
               </div>
             )}
             </div>

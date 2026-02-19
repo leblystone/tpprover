@@ -1342,7 +1342,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             </div>
           </div>
           {/* 2x2 grid on mobile/compact so all 4 fit; single row on sm+ (non-compact) */}
-          <div className={`grid grid-cols-2 ${compact ? '' : 'sm:flex sm:flex-row'} gap-1.5 ${compact ? '' : 'sm:gap-1'} rounded-lg p-1`} style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+          <div className={`grid grid-cols-2 ${compact ? '' : 'sm:flex sm:flex-row'} gap-1.5 ${compact ? '' : 'sm:gap-1'}`}>
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');

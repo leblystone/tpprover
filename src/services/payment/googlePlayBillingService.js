@@ -153,6 +153,7 @@ async function verifyAndSyncPurchase(purchase, options) {
       orderId: purchase.orderId,
       packageName: purchase.packageName,
       signature: purchase.signature,
+      originalJson: purchase.originalJson,
       products: purchase.products,
       userId: options.userId,
       userEmail: options.userEmail,

@@ -1,15 +1,256 @@
-import React from 'react';
-import AnalyticsDashboard from '../../analytics/AnalyticsDashboard';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { TrendingUp, CheckCircle, DollarSign, FlaskConical, Zap, ChevronRight } from 'lucide-react';
+import ExpandableTooltip from '../../ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
+import { formatCurrency } from '../../../utils/currencyUtils';
+import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
+import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
+import { toKey } from '../../calendar/MonthGrid';
+
+function useLocal(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) {
+  const dateKey = toKey(day);
+  const scheduledData = calculateScheduledTasksForDate(day, protocols, supplements, reconItems);
+  let planned = 0, done = 0;
+
+  Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
+    const slot = scheduledData.bySlot[timeSlot];
+    (slot.peptides || []).forEach(pep => {
+      const taskId = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: timeSlot, protocolId: pep.protocolId, peptideId: pep.peptideId });
+      planned++;
+      const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId];
+      if (td === true || (td && typeof td === 'object' && td.completed)) done++;
+    });
+    (slot.supplements || []).forEach(supp => {
+      const taskId = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: timeSlot });
+      planned++;
+      const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId];
+      if (td === true || (td && typeof td === 'object' && td.completed)) done++;
+    });
+  });
+  return { planned, done };
+}
 
 const AnalyticsWidget = ({ widget, theme }) => {
-  const defaultTab = widget?.settings?.defaultTab || 'compliance';
+  const navigate = useNavigate();
+  const supplements = useLocal('tpprover_supplements', []);
+  const reconItems = useLocal('tpprover_recon_items', []);
+  const orders = useLocal('tpprover_orders', []);
+  const stockpile = useLocal('tpprover_stockpile', []);
+  const protocols = useLocal('tpprover_protocols', []);
+  const protocolHistory = useLocal('tpprover_protocol_history', []);
+  const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
+
+  useEffect(() => {
+    const refresh = () => setTaskCompletion(getTaskCompletion());
+    window.addEventListener('tpp:task-completion-changed', refresh);
+    const interval = setInterval(refresh, 5000);
+    return () => { window.removeEventListener('tpp:task-completion-changed', refresh); clearInterval(interval); };
+  }, []);
+
+  const complianceData = useMemo(() => {
+    let planned = 0, done = 0;
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const r = countDayTasks(d, protocols, supplements, reconItems, taskCompletion);
+      planned += r.planned;
+      done += r.done;
+      last7.push({ date: d, planned: r.planned, done: r.done, completed: r.planned === 0 || r.done === r.planned });
+    }
+    const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
+
+    let streak = 0;
+    for (let i = 0; i < 90; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const r = countDayTasks(d, protocols, supplements, reconItems, taskCompletion);
+      if (r.planned > 0 && r.done === r.planned) streak++;
+      else if (r.planned > 0) break;
+    }
+    return { pct, streak, hasData: planned > 0, last7 };
+  }, [protocols, supplements, reconItems, taskCompletion]);
+
+  const spendingData = useMemo(() => {
+    const now = new Date();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    let lastMonthSpend = 0, totalSpend = 0;
+    const ordersWithCosts = new Set();
+
+    orders.forEach(order => {
+      let itemsCost = 0;
+      if (order.items && order.items.length > 0) {
+        itemsCost = order.items.reduce((sum, item) => {
+          return sum + ((parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1));
+        }, 0);
+      } else if (order.cost) {
+        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
+      }
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+      const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
+      const totalCost = itemsCost + shippingCost;
+      if (totalCost > 0) {
+        ordersWithCosts.add(order.id);
+        const orderDate = order.date ? new Date(order.date) : null;
+        totalSpend += totalCost;
+        if (orderDate && orderDate >= lastMonthStart && orderDate <= lastMonthEnd) lastMonthSpend += totalCost;
+      }
+    });
+
+    stockpile.forEach(stockItem => {
+      const costPerVial = parseFloat(stockItem.cost) || 0;
+      const quantity = parseFloat(stockItem.quantity) || 0;
+      const stockItemTotal = costPerVial * quantity;
+      if (stockItemTotal > 0 && !(stockItem.orderId && ordersWithCosts.has(stockItem.orderId))) {
+        totalSpend += stockItemTotal;
+        const purchaseDate = stockItem.purchaseDate ? new Date(stockItem.purchaseDate) : null;
+        if (purchaseDate && purchaseDate >= lastMonthStart && purchaseDate <= lastMonthEnd) lastMonthSpend += stockItemTotal;
+      }
+    });
+
+    return { lastMonthSpend, totalSpend };
+  }, [orders, stockpile]);
+
+  const protocolData = useMemo(() => {
+    const active = protocols.filter(p => p.active !== false).length;
+    const completed = (protocolHistory || []).filter(h => h.endDate && !h.isMock).length;
+    return { active, completed };
+  }, [protocols, protocolHistory]);
+
+  const getComplianceColor = (pct) => {
+    if (pct >= 90) return theme.primary;
+    if (pct >= 70) return theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
+    return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
+  };
+
+  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : theme.primary + '08';
+
   return (
-    <div className="p-6 h-full">
-      <AnalyticsDashboard
-        theme={theme}
-        defaultTab={defaultTab}
-        showFullScreenLink
-      />
+    <div
+      className="h-full flex flex-col cursor-pointer transition-opacity hover:opacity-95"
+      onClick={() => navigate('/app/dashboard/analytics')}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/dashboard/analytics'); }}
+    >
+      {/* Header */}
+      <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+            Analytics
+            <TrendingUp size={18} style={{ color: theme.primary }} />
+          </h3>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
+          </div>
+        </div>
+      </div>
+
+      {/* Highlight metrics */}
+      <div className="flex-1 p-4 flex flex-col justify-between">
+        {/* Consistency section */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={15} style={{ color: theme.primary }} />
+              <span className="text-xs font-medium" style={{ color: theme.textLight }}>Consistency</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1">
+                <span className="text-sm font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
+                  {complianceData.hasData ? `${complianceData.pct}%` : '—'}
+                </span>
+                {complianceData.hasData && <span className="text-[9px]" style={{ color: theme.textLight }}>30d</span>}
+              </span>
+              {complianceData.streak > 0 && (
+                <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                  <Zap size={9} /> {complianceData.streak}d
+                </span>
+              )}
+            </div>
+          </div>
+          {complianceData.hasData && (
+            <div className="rounded-xl px-2.5 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.03)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center justify-between">
+                {complianceData.last7.map((day) => {
+                  const label = ['S','M','T','W','T','F','S'][day.date.getDay()];
+                  const hasTasks = day.planned > 0;
+                  const isComplete = day.completed && hasTasks;
+                  const isPartial = hasTasks && !day.completed && day.done > 0;
+                  return (
+                    <div key={day.date.toISOString()} className="flex flex-col items-center gap-0.5">
+                      <span className="text-[9px] font-medium" style={{ color: theme.textLight }}>{label}</span>
+                      <div style={{
+                        width: 9, height: 9, borderRadius: '50%',
+                        backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                          : isComplete ? theme.primary
+                          : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640')
+                          : 'transparent',
+                        border: !hasTasks ? 'none'
+                          : isComplete ? 'none'
+                          : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
+                      }} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Spending row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <DollarSign size={15} style={{ color: theme.primary }} />
+            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Last Month</span>
+          </div>
+          <span className="text-sm font-bold" style={{ color: theme.text }}>
+            {formatCurrency(spendingData.lastMonthSpend)}
+          </span>
+        </div>
+
+        {/* Protocols row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical size={15} style={{ color: theme.primary }} />
+            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Protocols</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: subtleBg, color: theme.text }}>
+              {protocolData.active} active
+            </span>
+            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: subtleBg, color: theme.textLight }}>
+              {protocolData.completed} done
+            </span>
+          </div>
+        </div>
+
+        {/* Total spend */}
+        <div className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+          <span className="text-xs" style={{ color: theme.textLight }}>Total Spent</span>
+          <span className="text-sm font-semibold" style={{ color: theme.primary }}>
+            {formatCurrency(spendingData.totalSpend)}
+          </span>
+        </div>
+
+        {/* View all link */}
+        <div className="flex items-center justify-center gap-1 mt-3">
+          <span className="text-xs" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>
+            View full analytics
+          </span>
+          <ChevronRight size={12} style={{ color: theme.isDark ? theme.textLight : theme.primary }} />
+        </div>
+      </div>
     </div>
   );
 };

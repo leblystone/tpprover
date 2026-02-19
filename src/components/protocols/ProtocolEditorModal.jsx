@@ -604,14 +604,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     // Main content that can be rendered with or without BottomSheet wrapper
     const editorContent = (
-        <div className={embedded ? "space-y-4 w-full max-w-full overflow-x-hidden" : "space-y-4"}>
+        <div className={embedded ? "space-y-3 w-full max-w-full overflow-x-hidden" : "space-y-3"}>
                 {/* PROTOCOL INFO Section Header */}
-                <div className="flex items-center gap-2 mb-1">
-                    <BookOpenCheck size={28} style={{ color: theme.primary }} />
-                    <div className="flex flex-col gap-0.5">
-                        <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
-                        <div className="flex items-center gap-2 ml-1">
-                            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                <div className="flex items-center gap-2">
+                    <BookOpenCheck size={22} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0">
+                        <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
+                        <div className="flex items-center gap-2 ml-0.5">
+                            <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                             <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                 Name & Purpose
                             </span>
@@ -654,12 +654,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Peptides Section - Accordion Structure */}
                 <div className="space-y-3">
                     {/* Section Header */}
-                    <div className="flex items-center gap-2 mb-1">
-                        <TestTube size={28} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                    <div className="flex items-center gap-2">
+                        <TestTube size={22} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0">
+                            <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
+                            <div className="flex items-center gap-2 ml-0.5">
+                                <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Dosage & Schedule
                                 </span>
@@ -672,7 +672,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         <div className="w-full">
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40 ml-1" style={{ color: theme.text }}>Type</span>
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {[
                                         { key: 'separate', name: 'Separate', icon: Ungroup },
                                         { key: 'blended', name: 'Blended', icon: Blend }
@@ -684,11 +684,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                 key={option.key}
                                                 type="button"
                                                 onClick={() => handleChange('protocolType', option.key)}
-                                                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all text-[10px] font-bold uppercase tracking-wider"
+                                                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all text-[10px] font-bold uppercase tracking-wider active:scale-95"
                                                 style={{
-                                                    backgroundColor: isSelected ? theme.primary : 'transparent',
-                                                    color: isSelected ? '#ffffff' : theme.textLight,
-                                                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                                    backgroundColor: isSelected ? '#445952' : 'transparent',
+                                                    color: isSelected ? '#fff' : theme.textLight,
+                                                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                                                 }}
                                             >
                                                 <Icon size={14} />
@@ -716,12 +716,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
-                                <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                                         <button key={type} type="button"
                                             onClick={() => handleSharedFrequencyChange('type', type)}
-                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${((form.sharedFrequency?.type || 'daily') === type ? 'text-white shadow-sm' : '')}`}
-                                            style={(form.sharedFrequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : { color: theme.textLight }}
+                                            className="flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
+                                            style={{
+                                                backgroundColor: (form.sharedFrequency?.type || 'daily') === type ? '#445952' : 'transparent',
+                                                color: (form.sharedFrequency?.type || 'daily') === type ? '#fff' : theme.textLight,
+                                                boxShadow: (form.sharedFrequency?.type || 'daily') === type ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                            }}
                                         >
                                             {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
                                         </button>
@@ -742,11 +746,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             const isSelected = days.some(d => norm(d) === day || d === day);
                                             return (
                                                 <button key={day} type="button" onClick={() => handleSharedFrequencyToggleDay(day)}
-                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded border transition-all"
+                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded-md transition-all active:scale-95"
                                                     style={{
-                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
-                                                        borderColor: isSelected ? theme.primary : theme.border,
-                                                        color: isSelected ? '#ffffff' : theme.textLight
+                                                        backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                                        border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                                        color: isSelected ? '#fff' : theme.textLight,
+                                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                                     }}
                                                 >
                                                     {day[0]}
@@ -764,13 +769,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         <span className="text-sm font-semibold" style={{ color: theme.text }}>Days</span>
                                     </div>
                                 )}
-                                <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['AM', 'PM'].map(t => {
                                         const active = Array.isArray(form.sharedFrequency?.time) ? form.sharedFrequency.time.includes(t) : (t === 'AM');
                                         return (
                                             <button key={t} type="button" onClick={() => handleSharedFrequencyTimeToggle(t)}
-                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
-                                                style={active ? { backgroundColor: theme.primary } : { color: theme.textLight }}
+                                                className="flex-1 py-1 text-xs font-bold rounded-md transition-all active:scale-95"
+                                                style={{
+                                                    backgroundColor: active ? '#6B7F77' : 'transparent',
+                                                    color: active ? '#fff' : theme.textLight,
+                                                    boxShadow: active ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                                }}
                                             >
                                                 {t}
                                             </button>
@@ -880,7 +889,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             opacity: isExpanded ? 1 : 0
                                         }}
                                     >
-                                        <div className="px-3 pb-3 pt-4 border-t" style={{ borderColor: theme.border }}>
+                                        <div className="px-3 pb-2 pt-2 border-t" style={{ borderColor: theme.border }}>
                                             <PeptideSubForm
                                                 item={p}
                                                 index={index}
@@ -890,6 +899,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                 isFirstPeptide={index === 0}
                                                 theme={theme}
                                                 isOnlyItem={form.peptides.length === 1}
+                                                linkedItems={form.linkedItems}
                                             />
                                         </div>
                                     </div>
@@ -923,10 +933,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                         <div className="flex items-center gap-2 flex-1">
-                            <CalendarClock size={28} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5 flex-1">
+                            <CalendarClock size={22} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
+                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Optional</span>
                                 </div>
                                 <div className="flex items-center gap-2 ml-1">
@@ -954,8 +964,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             opacity: isTimelineExpanded ? 1 : 0
                         }}
                     >
-                        <div className="px-3 pb-3 pt-4 border-t space-y-3" style={{ borderColor: theme.border }}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="px-3 pb-2 pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
@@ -1260,10 +1270,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                         <div className="flex items-center gap-2 flex-1">
-                            <ImageUp size={28} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0.5 flex-1">
+                            <ImageUp size={22} style={{ color: theme.primary }} />
+                            <div className="flex flex-col gap-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
+                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Optional</span>
                                 </div>
                                 <div className="flex items-center gap-2 ml-1">
@@ -1291,8 +1301,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             opacity: isAdditionalDetailsExpanded ? 1 : 0
                         }}
                     >
-                        <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-3">
+                        <div className="px-3 pb-2 pt-0 border-t" style={{ borderColor: theme.border }}>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start pt-2">
                                 <div className="space-y-3">
                                     <TextInput 
                                         label="Notes"
@@ -1325,34 +1335,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
                 {/* Delete Section - Only show for existing protocols */}
                 {form?.id && onDelete && (
-                    <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
-                        <div className="p-5 rounded-lg space-y-4" style={{ backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.05)' }}>
-                            <div>
-                                <h4 className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Delete Entire Protocol</h4>
-                                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                    This action cannot be undone.
-                                </p>
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                        <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>Delete Entire Protocol</div>
+                                    <div className="text-xs" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>This action cannot be undone.</div>
+                                </div>
+                                <button
+                                    onClick={() => onDelete?.(form)}
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
+                                    style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}
+                                >
+                                    Delete
+                                </button>
                             </div>
-                            <button
-                                onClick={() => onDelete?.(form)}
-                                className="w-full px-5 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                                style={{
-                                    background: terracottaGradient,
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = terracottaHoverGradient;
-                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = terracottaGradient;
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                }}
-                            >
-                                Delete Entire Protocol
-                            </button>
                         </div>
                     </div>
                 )}

@@ -6,6 +6,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const emailService = require('./emailService');
 
@@ -66,6 +67,50 @@ function getPlayDeveloperClient() {
   } catch (error) {
     logger.error('❌ Failed to initialize Google Play Developer client:', error);
     return null;
+  }
+}
+
+/**
+ * Verify the RSA signature of a Google Play purchase.
+ * Uses the Base64 RSA public key from Play Console (Monetization > Licensing).
+ * @param {string} originalJson - The raw JSON purchase data signed by Google
+ * @param {string} signature - The Base64-encoded RSA signature
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+function verifyPurchaseSignature(originalJson, signature) {
+  const licenseKey = process.env.GOOGLE_PLAY_LICENSE_KEY;
+
+  if (!licenseKey) {
+    logger.warn('⚠️ GOOGLE_PLAY_LICENSE_KEY not configured — skipping signature check');
+    return { valid: true, reason: 'key_not_configured' };
+  }
+
+  if (!originalJson || !signature) {
+    logger.error('❌ Missing originalJson or signature for verification');
+    return { valid: false, reason: 'missing_data' };
+  }
+
+  try {
+    const pemKey =
+      '-----BEGIN PUBLIC KEY-----\n' +
+      licenseKey.match(/.{1,64}/g).join('\n') +
+      '\n-----END PUBLIC KEY-----';
+
+    const verifier = crypto.createVerify('SHA1');
+    verifier.update(originalJson);
+
+    const isValid = verifier.verify(pemKey, signature, 'base64');
+
+    if (!isValid) {
+      logger.error('❌ Google Play purchase signature is INVALID — possible tampering');
+    } else {
+      logger.info('✅ Google Play purchase signature verified');
+    }
+
+    return { valid: isValid, reason: isValid ? 'verified' : 'invalid_signature' };
+  } catch (error) {
+    logger.error('❌ Signature verification threw an error:', error.message);
+    return { valid: false, reason: `verification_error: ${error.message}` };
   }
 }
 
@@ -240,7 +285,7 @@ function mapPurchaseToSubscription(verifiedPurchase, productId, options = {}) {
 exports.verifyGooglePlayPurchase = onCall(
   {
     cors: true,
-    secrets: ['GOOGLE_PLAY_SERVICE_ACCOUNT_KEY', 'RESEND_API_KEY'], // Add RESEND_API_KEY
+    secrets: ['GOOGLE_PLAY_SERVICE_ACCOUNT_KEY', 'GOOGLE_PLAY_LICENSE_KEY', 'RESEND_API_KEY'],
   },
   async (request) => {
     if (!request.auth) {
@@ -252,6 +297,7 @@ exports.verifyGooglePlayPurchase = onCall(
       orderId,
       packageName = 'com.thepepplanner.app',
       signature,
+      originalJson,
       products,
       userId,
       userEmail,
@@ -270,10 +316,17 @@ exports.verifyGooglePlayPurchase = onCall(
     logger.info(`🔍 Verifying Google Play purchase for user ${resolvedUserId}`);
 
     try {
-      const productId = products[0]; // Get first product ID
+      // Step 1: Verify the client-side RSA signature (tamper detection)
+      const sigResult = verifyPurchaseSignature(originalJson, signature);
+      if (!sigResult.valid) {
+        logger.error(`🚨 Signature verification FAILED for user ${resolvedUserId}: ${sigResult.reason}`);
+        throw new HttpsError('permission-denied', 'Purchase signature verification failed — possible tampering detected');
+      }
+
+      const productId = products[0];
       const productType = productId.includes('lifetime') ? 'inapp' : 'subs';
 
-      // Verify the purchase token with Google Play
+      // Step 2: Verify the purchase token with Google Play server-side API
       const verifiedPurchase = await verifyPurchaseToken(
         packageName,
         productId,

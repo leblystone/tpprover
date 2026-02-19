@@ -70,28 +70,40 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
         };
     }, [openDropdowns, durationUnitDropdowns]);
 
+    const getPhaseColor = (index, total) => {
+        const darkSage = [68, 89, 82];
+        const lightSage = [127, 158, 149];
+        const t = total <= 1 ? 0 : index / (total - 1);
+        const r = Math.round(darkSage[0] + (lightSage[0] - darkSage[0]) * t);
+        const g = Math.round(darkSage[1] + (lightSage[1] - darkSage[1]) * t);
+        const b = Math.round(darkSage[2] + (lightSage[2] - darkSage[2]) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+    };
+
     return (
         <div className="space-y-2">
             <div className="space-y-2">
                 {steps.map((step, index) => {
                 const isLastPhase = index === steps.length - 1;
                 const durationOptions = isLastPhase ? ['days', 'weeks', 'ongoing'] : durationUnits;
+                const phaseColor = getPhaseColor(index, steps.length);
                 return (
-                    <div key={index} className="px-3 py-2 rounded-lg" style={{backgroundColor: theme.cardBackground}}>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm font-medium" style={{ color: theme.text }}>Phase {index + 1}</div>
+                    <div key={index} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}` }}>
+                        <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: phaseColor }}>
+                            <div className="text-xs font-bold uppercase tracking-wider" style={{ color: '#fff' }}>Phase {index + 1}</div>
                             <button 
                                 type="button" 
                                 onClick={() => removeStep(index)} 
-                                className="text-red-500 hover:text-red-700 transition-colors"
+                                className="hover:opacity-70 transition-opacity"
+                                style={{ color: 'rgba(255,255,255,0.7)' }}
                             >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                             </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex gap-2 px-3 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
                             {/* Dose Input with Dropdown */}
-                            <div className="relative">
+                            <div className="relative flex-1 min-w-0">
                                 <div 
                                     className="flex items-stretch rounded-lg"
                                     style={{ 
@@ -116,13 +128,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                             }, 150);
                                         }}
                                         placeholder=" "
-                                        className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                        className="flex-1 py-2.5 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
                                             backgroundColor: 'transparent',
                                             color: theme.isDark ? theme.text : '#181A18',
                                             border: 'none',
-                                            paddingLeft: '12px',
-                                            paddingRight: '8px'
+                                            paddingLeft: '10px',
+                                            paddingRight: '4px'
                                         }}
                                     />
                                     
@@ -132,19 +144,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                         onClick={() => toggleDropdown(index)}
                                         onMouseDown={(e) => e.preventDefault()}
                                         onTouchStart={(e) => e.preventDefault()}
-                                        className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                        className="flex items-center justify-between gap-1 px-2 py-2.5 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                         data-dropdown-container
                                         style={{ 
                                             borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                             color: theme.isDark ? theme.text : '#181A18',
-                                            minWidth: '80px'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                            minWidth: '60px'
                                         }}
                                     >
                                         <span className="text-sm font-semibold">
@@ -210,11 +216,10 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                     htmlFor={`dose-input-${index}`}
                                     className="absolute pointer-events-none transition-all"
                                     style={{
-                                        fontSize: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '0.75rem' : '0.9375rem',
-                                        top: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '-8px' : '14px',
-                                        left: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '12px' : '16px',
-                                        right: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '85px' : 'auto',
-                                        padding: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '0 4px' : '0',
+                                        fontSize: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '0.65rem' : '0.8125rem',
+                                        top: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '-7px' : '11px',
+                                        left: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '10px' : '12px',
+                                        padding: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? '0 3px' : '0',
                                         background: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
                                         color: (focusedInputs[`dose-${index}`] || (step.dose && String(step.dose).trim())) ? theme.primary : (theme.textLight || theme.text),
                                         fontWeight: 500
@@ -225,7 +230,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                             </div>
 
                             {/* Duration Input with Single Pill */}
-                            <div className="relative">
+                            <div className="relative flex-1 min-w-0">
                                 <div 
                                     className="flex items-stretch rounded-lg"
                                     style={{ 
@@ -251,13 +256,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                                 }
                                             }, 150);
                                         }}
-                                        className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                        className="flex-1 py-2.5 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
                                             backgroundColor: 'transparent',
                                             color: theme.isDark ? theme.text : '#181A18',
                                             border: 'none',
-                                            paddingLeft: '12px',
-                                            paddingRight: '8px'
+                                            paddingLeft: '10px',
+                                            paddingRight: '4px'
                                         }}
                                     />
                                     
@@ -267,19 +272,13 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                         onClick={() => toggleDurationUnitDropdown(index)}
                                         onMouseDown={(e) => e.preventDefault()}
                                         onTouchStart={(e) => e.preventDefault()}
-                                        className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                        className="flex items-center justify-between gap-1 px-2 py-2.5 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                                         data-dropdown-container
                                         style={{ 
                                             borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                             color: theme.isDark ? theme.text : '#181A18',
-                                            minWidth: '95px'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                                            minWidth: '72px'
                                         }}
                                     >
                                         <span className="text-sm font-semibold">
@@ -355,11 +354,10 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                                     htmlFor={`duration-input-${index}`}
                                     className="absolute pointer-events-none transition-all"
                                     style={{
-                                        fontSize: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0.75rem' : '0.9375rem',
-                                        top: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '-8px' : '14px',
-                                        left: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '12px' : '16px',
-                                        right: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '95px' : 'auto',
-                                        padding: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0 4px' : '0',
+                                        fontSize: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0.65rem' : '0.8125rem',
+                                        top: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '-7px' : '11px',
+                                        left: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '10px' : '12px',
+                                        padding: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? '0 3px' : '0',
                                         background: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
                                         color: (focusedInputs[`duration-${index}`] || (step.durationCount && String(step.durationCount).trim()) || step.durationUnit === 'ongoing') ? theme.primary : (theme.textLight || theme.text),
                                         fontWeight: 500
@@ -376,14 +374,14 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
             <button 
                 type="button" 
                 onClick={addStep} 
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-xs font-semibold transition-all hover:opacity-90"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:opacity-90 active:scale-95"
                 style={{ 
-                    backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                    color: theme.primary,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#f5f4f0',
+                    color: '#6B7F77',
+                    border: `1px dashed ${theme.isDark ? 'rgba(107,127,119,0.3)' : 'rgba(107,127,119,0.25)'}`,
                 }}
             >
-                <PlusCircle size={14} /> Add Step
+                <PlusCircle size={14} /> Add Phase
             </button>
         </div>
     );

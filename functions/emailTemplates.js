@@ -4576,7 +4576,7 @@ exports.emailChangeVerificationEmailV2 = (newEmail, oldEmail) => {
 };
 
 /**
- * Win-back email -- re-engage churned users
+ * Win-back email -- re-engage churned users with 14-day trial + pricing
  */
 exports.winBackEmail = (userName = null, promoCode = null) => {
   const greeting = userName ? `Hey ${userName}` : 'Hey there';
@@ -4599,21 +4599,60 @@ exports.winBackEmail = (userName = null, promoCode = null) => {
       </p>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        We've been hard at work adding new features -- smarter protocol tracking, better analytics,
+        We've been hard at work adding new features &mdash; smarter protocol tracking, better analytics,
         and a completely refreshed experience. We'd love for you to give it another shot.
       </p>
 
+      <!-- 14-day trial banner -->
+      <div style="background: linear-gradient(135deg, ${MODERN_COLORS.primary}15, ${MODERN_COLORS.primary}08); border: 2px solid ${MODERN_COLORS.primary}30; border-radius: 16px; padding: 28px; margin: 28px 0; text-align: center;">
+        <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: ${MODERN_COLORS.primary}; margin: 0 0 8px 0;">Welcome Back Gift</p>
+        <p style="font-size: 32px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0 0 6px 0; line-height: 1.2;">14 Days Free</p>
+        <p style="font-size: 15px; color: ${MODERN_COLORS.textLight}; margin: 0;">Your account has been reactivated &mdash; no card needed. Just log in and start tracking.</p>
+      </div>
+
       ${promoSection}
+
+      <!-- Pricing cards -->
+      <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: ${MODERN_COLORS.textLight}; margin: 28px 0 16px 0; text-align: center;">When you're ready, pick a plan</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+        <tr>
+          <td width="33%" style="padding: 0 4px;" valign="top">
+            <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 20px 12px; text-align: center;">
+              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.textLight}; margin: 0 0 4px 0;">Monthly</p>
+              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$3.99</p>
+              <p style="font-size: 12px; color: ${MODERN_COLORS.textLight}; margin: 4px 0 0 0;">/month</p>
+            </div>
+          </td>
+          <td width="33%" style="padding: 0 4px;" valign="top">
+            <div style="background: ${MODERN_COLORS.primary}10; border: 2px solid ${MODERN_COLORS.primary}40; border-radius: 12px; padding: 20px 12px; text-align: center;">
+              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.primary}; margin: 0 0 4px 0;">Annual</p>
+              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$36.99</p>
+              <p style="font-size: 12px; color: ${MODERN_COLORS.primary}; margin: 4px 0 0 0;">Save $10.89/yr</p>
+            </div>
+          </td>
+          <td width="33%" style="padding: 0 4px;" valign="top">
+            <div style="background: ${MODERN_COLORS.secondary}; border-radius: 12px; padding: 20px 12px; text-align: center;">
+              <p style="font-size: 13px; font-weight: 600; color: ${MODERN_COLORS.textLight}; margin: 0 0 4px 0;">Lifetime</p>
+              <p style="font-size: 28px; font-weight: 800; color: ${MODERN_COLORS.heading}; margin: 0; line-height: 1.2;">$99.99</p>
+              <p style="font-size: 12px; color: ${MODERN_COLORS.textLight}; margin: 4px 0 0 0;">one-time</p>
+            </div>
+          </td>
+        </tr>
+      </table>
 
       <div style="text-align: center; margin: 32px 0;">
         <a href="https://thepepplanner.com/app" style="display: inline-block; background: ${MODERN_COLORS.primary}; color: #fff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
-          Come Back &amp; Explore
+          Start Your 14-Day Trial
         </a>
       </div>
 
-      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 32px 0 0 0;">
+      <p style="font-size: 13px; line-height: 1.5; color: ${MODERN_COLORS.textLight}; margin: 0 0 24px 0; text-align: center;">
+        No credit card required. Your trial starts the moment you log in.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 24px 0 0 0;">
         Hope to see you soon!<br>
-        <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">-- The Pep Planner Team</span>
+        <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">&mdash; The Pep Planner Team</span>
       </p>
     </div>
   `;

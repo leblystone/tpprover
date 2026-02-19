@@ -379,7 +379,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     
                     {/* Delivery Method Editor for Linked Vials */}
                     <div className="mt-3">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="flex flex-wrap justify-center gap-2">
                             {[
                                 { key: 'pipette', label: 'Syringe', Icon: Pipette },
                                 { key: 'pen', label: 'Pen', Icon: Pen },
@@ -392,8 +392,10 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                     <button
                                         key={key}
                                         onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
-                                        className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                        className="flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                                         style={{
+                                            flex: '0 1 calc(33.333% - 0.5rem)',
+                                            minWidth: '90px',
                                             backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                                             color: isActive ? '#fff' : theme.text,
                                             border: isActive ? '1px solid #3B4240' : `1px solid ${theme.border}`,
@@ -410,7 +412,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         
                         {/* Administration Route for Syringe */}
                         {deliveryMethod.deliveryMethod === 'pipette' && (
-                            <div className="mt-3">
+                            <div className="mt-3 pt-3 relative">
+                                <div className="absolute top-0 left-[5%] right-[5%] h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(127,158,149,0.2) 30%, rgba(127,158,149,0.3) 50%, rgba(127,158,149,0.2) 70%, transparent 100%)' }} />
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
@@ -442,7 +445,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         
                         {/* Pen Type and Color for Pen */}
                         {deliveryMethod.deliveryMethod === 'pen' && (
-                            <div className="mt-3">
+                            <div className="mt-3 pt-3 relative">
+                                <div className="absolute top-0 left-[5%] right-[5%] h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(127,158,149,0.2) 30%, rgba(127,158,149,0.3) 50%, rgba(127,158,149,0.2) 70%, transparent 100%)' }} />
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
                                     <div className="relative" ref={penTypeDropdownRef}>
@@ -635,7 +639,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     
                     {/* Delivery Method Selection */}
                     <div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="flex flex-wrap justify-center gap-2">
                             {[
                                 { key: 'pipette', label: 'Syringe', Icon: Pipette },
                                 { key: 'pen', label: 'Pen', Icon: Pen },
@@ -648,8 +652,10 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                     <button
                                         key={key}
                                         onClick={() => handleDeliveryMethodChange('deliveryMethod', key)}
-                                        className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                        className="flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                                         style={{
+                                            flex: '0 1 calc(33.333% - 0.5rem)',
+                                            minWidth: '90px',
                                             backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                                             color: isActive ? '#fff' : theme.text,
                                             border: isActive ? '1px solid #3B4240' : `1px solid ${theme.border}`,
@@ -666,7 +672,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         
                         {/* Administration Route for Syringe */}
                         {deliveryMethod.deliveryMethod === 'pipette' && (
-                            <div className="mt-3">
+                            <div className="mt-3 pt-3 relative">
+                                <div className="absolute top-0 left-[5%] right-[5%] h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(127,158,149,0.2) 30%, rgba(127,158,149,0.3) 50%, rgba(127,158,149,0.2) 70%, transparent 100%)' }} />
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
@@ -698,7 +705,8 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                         
                         {/* Pen Type and Color for Pen */}
                         {deliveryMethod.deliveryMethod === 'pen' && (
-                            <div className="mt-3">
+                            <div className="mt-3 pt-3 relative">
+                                <div className="absolute top-0 left-[5%] right-[5%] h-px" style={{ background: 'linear-gradient(to right, transparent 0%, rgba(127,158,149,0.2) 30%, rgba(127,158,149,0.3) 50%, rgba(127,158,149,0.2) 70%, transparent 100%)' }} />
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
                                     <div className="relative" ref={penTypeDropdownRef}>

@@ -333,6 +333,7 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
                 purchaseObj.put("packageName", purchase.getPackageName());
                 purchaseObj.put("purchaseToken", purchase.getPurchaseToken());
                 purchaseObj.put("signature", purchase.getSignature());
+                purchaseObj.put("originalJson", purchase.getOriginalJson());
                 purchaseObj.put("purchaseTime", purchase.getPurchaseTime());
                 
                 // Convert products list to JSArray
@@ -368,6 +369,7 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
             ret.put("packageName", purchase.getPackageName());
             ret.put("purchaseToken", purchase.getPurchaseToken());
             ret.put("signature", purchase.getSignature());
+            ret.put("originalJson", purchase.getOriginalJson());
             ret.put("purchaseTime", purchase.getPurchaseTime());
             
             // Convert products list to JSArray

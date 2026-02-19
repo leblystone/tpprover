@@ -445,18 +445,18 @@ const SegmentedControl = ({ label, value, onChange, options, theme }) => (
     <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
       {label}
     </div>
-    <div className="flex p-1 rounded-2xl gap-1" style={{ backgroundColor: theme.secondary }}>
+    <div className="flex p-1 rounded-xl gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
       {options.map(option => {
         const isSelected = value === option.value
         return (
           <button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all relative overflow-hidden"
+            className="flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
             style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? (theme.textOnPrimary || '#ffffff') : theme.text,
-              opacity: isSelected ? 1 : 0.6
+              backgroundColor: isSelected ? '#445952' : 'transparent',
+              color: isSelected ? '#fff' : theme.textLight,
+              boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
             }}
           >
             {option.label}

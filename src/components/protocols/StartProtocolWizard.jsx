@@ -1180,11 +1180,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                         }
                                                                     }));
                                                                 }}
-                                                                className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg border transition-all"
+                                                                className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg transition-all active:scale-95"
                                                                 style={{
-                                                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary),
-                                                                    color: isSelected ? '#ffffff' : theme.text,
-                                                                    borderColor: isSelected ? theme.primary : theme.border
+                                                                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                                                    color: isSelected ? '#fff' : theme.text,
+                                                                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                                                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                                                 }}
                                                             >
                                                                 <Icon size={16} />
@@ -1202,8 +1203,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         Route
                                                     </label>
                                                     <div className="flex gap-1 p-1 rounded-lg" style={{ 
-                                                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : '#ffffff',
-                                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                                     }}>
                                                         {['subq', 'im', 'iv'].map(route => {
                                                             const isSelected = deliveryData.administrationRoute === route;
@@ -1219,10 +1220,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                             }
                                                                         }));
                                                                     }}
-                                                                    className="flex-1 py-2 rounded text-xs font-bold uppercase transition-all"
+                                                                    className="flex-1 py-2 rounded-md text-xs font-bold uppercase transition-all active:scale-95"
                                                                     style={{
-                                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
-                                                                        color: isSelected ? '#ffffff' : theme.text
+                                                                        backgroundColor: isSelected ? '#6B7F77' : 'transparent',
+                                                                        color: isSelected ? '#fff' : theme.textLight,
+                                                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                                                                     }}
                                                                 >
                                                                     {route.toUpperCase()}

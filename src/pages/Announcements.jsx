@@ -103,10 +103,12 @@ export default function Announcements() {
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors`}
+            className="px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
             style={{ 
-              backgroundColor: filter === cat ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'), 
-              color: filter === cat ? theme.textOnPrimary : theme.text 
+              backgroundColor: filter === cat ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'), 
+              color: filter === cat ? '#fff' : theme.text,
+              border: filter === cat ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+              boxShadow: filter === cat ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
             }}
           >
             {cat}

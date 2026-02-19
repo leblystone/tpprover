@@ -275,20 +275,20 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           
           {/* Category Selection */}
           <div className="flex flex-col gap-2">
-            <div className="flex w-full rounded-xl p-1.5" style={{ 
-              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}`
+            <div className="flex w-full rounded-lg p-1 gap-1" style={{ 
+              backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
             }}>
               {['domestic','international','groupbuy'].map(k => (
                 <button 
                   key={k} 
                   type="button" 
                   onClick={() => setForm(prev => ({ ...prev, type: k }))}
-                  className="flex-1 text-center px-2 py-2 text-xs font-bold rounded-lg transition-all"
+                  className="flex-1 text-center px-2 py-2 text-xs font-bold rounded-md transition-all active:scale-95"
                   style={{ 
-                    backgroundColor: form.type === k ? theme?.primary : 'transparent', 
-                    color: form.type === k ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'),
-                    boxShadow: form.type === k ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                    backgroundColor: form.type === k ? '#445952' : 'transparent', 
+                    color: form.type === k ? '#fff' : theme.textLight,
+                    boxShadow: form.type === k ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                   }}
                 >
                   {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
@@ -480,15 +480,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   key={payment.key}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
-                  className="flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 border-2"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 active:scale-95"
                   style={{
-                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
-                    borderColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'),
-                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
-                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
+                    color: isSelected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={20} className="mb-2" style={{ color: isSelected ? theme.textOnPrimary : 'inherit' }} />
+                  <Icon size={20} className="mb-2" style={{ color: isSelected ? '#fff' : 'inherit' }} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">{payment.name}</span>
                 </button>
               )
@@ -535,14 +535,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   key={label}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
-                  className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 border-2"
+                  className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 active:scale-95"
                   style={{
-                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent'),
-                    borderColor: isSelected ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'),
-                    color: isSelected ? theme.textOnPrimary : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')
+                    backgroundColor: isSelected ? '#6B7F77' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                    border: isSelected ? '1px solid #566D64' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
+                    color: isSelected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={16} className="mb-1" style={{ color: isSelected ? theme.textOnPrimary : 'inherit' }} />
+                  <Icon size={16} className="mb-1" style={{ color: isSelected ? '#fff' : 'inherit' }} />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">{label}</span>
                 </button>
               )

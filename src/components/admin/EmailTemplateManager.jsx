@@ -522,6 +522,21 @@ const DEFAULT_TEMPLATES = {
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
       '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
+  },
+  winBack: {
+    name: 'Win-Back Campaign (Churned Users)',
+    subject: "We miss you! Here's a reason to come back - The Pep Planner",
+    heading: 'We miss you!',
+    greeting: 'Hey %USERNAME%, it\'s been a while since you\'ve used The Pep Planner and we wanted to check in.',
+    mainMessage: 'We\'ve been hard at work adding new features — smarter protocol tracking, better analytics, and a completely refreshed experience. We\'d love for you to give it another shot.',
+    ctaText: 'Start Your 14-Day Trial',
+    ctaLink: 'https://thepepplanner.com/app',
+    highlightTitle: 'Welcome Back Gift',
+    highlightMessage: '14 Days Free — Your account has been reactivated. No card needed. Just log in and start tracking.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'No credit card required. Your trial starts the moment you log in.'
   }
 };
 

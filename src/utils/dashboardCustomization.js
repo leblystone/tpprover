@@ -270,13 +270,11 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'analytics',
     type: WIDGET_TYPES.ANALYTICS,
-    title: 'Analytics Dashboard',
-    size: WIDGET_SIZES.LARGE,
-    position: { x: 4, y: 3 },
+    title: 'Analytics',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 5, y: 1 },
     enabled: true,
-    settings: {
-      defaultTab: 'compliance'
-    }
+    settings: {}
   },
   // Row 3
   {
@@ -360,18 +358,11 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.ANALYTICS]: {
-    title: 'Analytics Dashboard',
-    description: 'View compliance, spending, and inventory analytics',
-    icon: 'BarChart3',
-    availableSizes: [WIDGET_SIZES.LARGE, WIDGET_SIZES.FULL],
-    settings: [
-      { key: 'defaultTab', label: 'Default tab', type: 'select', default: 'compliance', options: [
-        { value: 'compliance', label: 'Compliance' },
-        { value: 'spending', label: 'Spending' },
-        { value: 'inventory', label: 'Inventory' },
-        { value: 'protocols', label: 'Protocols' }
-      ]}
-    ]
+    title: 'Analytics',
+    description: 'Quick snapshot of consistency, spending, and protocols. Tap to open full analytics.',
+    icon: 'TrendingUp',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
   },
   [WIDGET_TYPES.BADGES]: {
     title: 'Your Badges',

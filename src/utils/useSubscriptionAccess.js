@@ -417,18 +417,25 @@ export function useSubscriptionAccess() {
         }
 
         // Distinguish between trial expired vs paid subscription ended
-        const paidIntervals = ['month', 'monthly', 'year', 'annual'];
-        const hadPaidSubscription = paidIntervals.includes(effectiveSubscription.interval) ||
-                                     (effectiveSubscription.status === 'canceled' && effectiveSubscription.interval !== 'trial');
+        // Use status as the primary indicator, interval as secondary
+        const isTrial = effectiveSubscription.status === 'trialing' || 
+                        (effectiveSubscription.interval === 'trial' && effectiveSubscription.status !== 'canceled');
+        const hadPaidSubscription = !isTrial && (
+          effectiveSubscription.status === 'active' ||
+          effectiveSubscription.status === 'canceled' ||
+          effectiveSubscription.status === 'past_due' ||
+          effectiveSubscription.status === 'expired' ||
+          ['month', 'monthly', 'year', 'annual', 'lifetime'].includes(effectiveSubscription.interval)
+        );
+        const isSubscriptionEnded = hadPaidSubscription && timeLeft <= 0;
+        const isTrialExpired = isTrial && timeLeft <= 0;
         
-        const wasTrial = effectiveSubscription.status === 'trialing' || effectiveSubscription.interval === 'trial';
-        const isSubscriptionEnded = hadPaidSubscription && !wasTrial && timeLeft <= 0;
-        const isTrialExpired = wasTrial || (!hadPaidSubscription && timeLeft <= 0);
-        
+        // If neither trial nor paid detected, default to trial expired (no subscription)
+        const effectiveTrialExpired = isTrialExpired || (!isSubscriptionEnded && !isTrial && !hadPaidSubscription);
         console.log(`❌ ${isSubscriptionEnded ? 'Subscription ENDED' : 'Trial EXPIRED'} - READ-ONLY MODE`);
         setAccessInfo({
           hasAccess: false,
-          isTrialExpired: isTrialExpired && !isSubscriptionEnded,
+          isTrialExpired: effectiveTrialExpired && !isSubscriptionEnded,
           isSubscriptionEnded: isSubscriptionEnded,
           isReadOnly: true,
           showUpgradePrompt: true,

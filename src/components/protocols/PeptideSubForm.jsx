@@ -10,7 +10,7 @@ import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
 
-export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
+export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide, linkedItems }) {
     const { reconItems } = useAppContext();
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
@@ -156,7 +156,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     }, [isPenTypeDropdownOpen]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
                 {/* Peptide Information */}
                 <div>
                     <TextInput 
@@ -172,8 +172,8 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 </div>
 
                 {/* Dosage Type Toggle & Input */}
-                <div className="space-y-3">
-                    <div className="mb-1">
+                <div className="space-y-2">
+                    <div>
                         <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                             Dosage Schedule
                         </span>
@@ -184,15 +184,19 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         const isFixedDose = item.dosageScheduleType === 'fixed' || (!item.dosageScheduleType && (!item.titration || item.titration.length === 0));
                         const isTitration = item.dosageScheduleType === 'titration' || (!item.dosageScheduleType && item.titration && item.titration.length > 0);
                         return (
-                    <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                         <button 
                             type="button"
                             onClick={() => {
                                 const updated = { ...item, dosageScheduleType: 'fixed' };
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${isFixedDose ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                            style={isFixedDose ? { backgroundColor: theme.primary } : {}}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
+                            style={{
+                                backgroundColor: isFixedDose ? '#445952' : 'transparent',
+                                color: isFixedDose ? '#fff' : theme.textLight,
+                                boxShadow: isFixedDose ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                            }}
                         >
                             <Pipette size={12} />
                             Fixed Dose
@@ -206,8 +210,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 }
                                 onChange(updated);
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${isTitration ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                            style={isTitration ? { backgroundColor: theme.primary } : {}}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
+                            style={{
+                                backgroundColor: isTitration ? '#445952' : 'transparent',
+                                color: isTitration ? '#fff' : theme.textLight,
+                                boxShadow: isTitration ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                            }}
                         >
                             <TrendingUp size={12} />
                             Titration
@@ -304,8 +312,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         </div>
                     )}
 
-                    {/* Reconstitution info - show when a matching recon item exists */}
+                    {/* Reconstitution info - show when a matching recon item exists and recon wasn't skipped */}
                     {(() => {
+                        const peptideId = item.id || `peptide-${index}`;
+                        const linkedInfo = linkedItems?.[peptideId];
+                        if (linkedInfo?.status === 'skipped') return null;
+
                         const reconItem = reconItems?.find(r => {
                             if (!r.peptides || r.peptides.length === 0) return false;
                             const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim());
@@ -320,27 +332,21 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         if (totalMg <= 0 && water <= 0) return null;
                         return (
                             <div
+                                className="flex items-center gap-2 mt-1.5 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80 active:scale-[0.99]"
                                 style={{
-                                    fontSize: '11px',
-                                    marginTop: '6px',
-                                    padding: '6px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: theme.isDark ? 'rgba(140,166,140,0.10)' : 'rgba(140,166,140,0.08)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    cursor: 'pointer'
+                                    backgroundColor: theme.isDark ? 'rgba(68,89,82,0.15)' : 'rgba(68,89,82,0.06)',
+                                    border: `1px solid ${theme.isDark ? 'rgba(107,127,119,0.2)' : 'rgba(107,127,119,0.15)'}`,
                                 }}
                                 onClick={() => {
                                     try { window.location.href = '/app/recon'; } catch { /* noop */ }
                                 }}
                                 title="View or edit reconstitution details"
                             >
-                                <Beaker size={13} style={{ color: '#8ca68c', flexShrink: 0 }} />
-                                <span style={{ color: theme.textLight }}>
+                                <Beaker size={13} style={{ color: '#6B7F77', flexShrink: 0 }} />
+                                <span className="text-[11px] font-medium" style={{ color: theme.isDark ? '#8B9F98' : '#5F7F76' }}>
                                     Recon: {totalMg}{reconItem.mgUnit || 'mg'} + {water} mL
                                 </span>
-                                <span style={{ color: '#8ca68c', marginLeft: 'auto', fontWeight: 600 }}>
+                                <span className="text-[11px] font-bold ml-auto" style={{ color: '#6B7F77' }}>
                                     View →
                                 </span>
                             </div>
@@ -366,16 +372,16 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
 
                 {/* DELIVERY & FREQUENCY - Side by Side on Desktop */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
                         {/* Delivery Column */}
-                        <div className="space-y-3">
-                            <div className="mb-1">
+                        <div className="space-y-2">
+                            <div>
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Delivery Method {protocolType === 'blended' && <span className="lowercase">(shared)</span>}
                                 </span>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-1.5">
                                     <button 
                                         type="button"
@@ -602,22 +608,26 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         </div>
 
                         {/* Frequency Column */}
-                        <div className="space-y-3">
-                            <div className="mb-1">
+                        <div className="space-y-2">
+                            <div>
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="inline-flex w-full rounded-md p-1 gap-1" style={{ backgroundColor: theme.secondary }}>
+                            <div className="space-y-2">
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                                         <button 
                                             key={type} 
                                             type="button" 
                                             onClick={() => handleFrequencyChange('type', type)}
-                                            className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                                            style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
+                                            className="flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
+                                            style={{
+                                                backgroundColor: (item.frequency?.type || 'daily') === type ? '#445952' : 'transparent',
+                                                color: (item.frequency?.type || 'daily') === type ? '#fff' : theme.textLight,
+                                                boxShadow: (item.frequency?.type || 'daily') === type ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                            }}
                                         >
                                             {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
                                         </button>
@@ -637,11 +647,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             const isSelected = isDaySelected(day, item.frequency?.days);
                                             return (
                                                 <button key={day} type="button" onClick={() => toggleDay(day)}
-                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded border transition-all"
+                                                    className="flex-1 min-w-[35px] py-1 text-xs font-bold rounded-md transition-all active:scale-95"
                                                     style={{
-                                                        backgroundColor: isSelected ? theme.primary : 'transparent',
-                                                        borderColor: isSelected ? theme.primary : theme.border,
-                                                        color: isSelected ? '#ffffff' : theme.textLight
+                                                        backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                                        border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                                        color: isSelected ? '#fff' : theme.textLight,
+                                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                                     }}
                                                 >
                                                     {day[0]}
@@ -672,7 +683,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 )}
 
                                 {/* AM/PM Toggle - More compact */}
-                                <div className="inline-flex w-full rounded-md p-1 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['AM','PM'].map(t => {
                                         const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
                                         return (
@@ -680,19 +691,19 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                                 onClick={() => {
                                                     const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
                                                     const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                                    // Don't allow empty array - if user deselects the last option, keep the other one
-                                                    // If both are selected and user clicks one, remove it
-                                                    // If only one is selected and user clicks it, toggle to the other one
                                                     if (next.length === 0) {
-                                                        // If array becomes empty, toggle to the opposite option
                                                         const opposite = t === 'AM' ? ['PM'] : ['AM'];
                                                         handleFrequencyChange('time', opposite);
                                                     } else {
                                                         handleFrequencyChange('time', next);
                                                     }
                                                 }}
-                                                className={`flex-1 py-1 text-xs font-bold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500'}`}
-                                                style={active ? { backgroundColor: theme.primary } : {}}
+                                                className="flex-1 py-1 text-xs font-bold rounded-md transition-all active:scale-95"
+                                                style={{
+                                                    backgroundColor: active ? '#6B7F77' : 'transparent',
+                                                    color: active ? '#fff' : theme.textLight,
+                                                    boxShadow: active ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                                }}
                                             >
                                                 {t}
                                             </button>

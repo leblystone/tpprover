@@ -67,6 +67,7 @@ const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInAp
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
 const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
+const AdminCommsHistory = lazyWithRetry(() => import('./pages/admin/AdminCommsHistory.jsx'), 'AdminCommsHistory')
 // Settings components
 const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSettingsSecurity.jsx'), 'AdminSettingsSecurity')
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
@@ -151,6 +152,7 @@ export const router = createBrowserRouter([
       // Comms section
       { path: 'comms/emails', element: <AdminCommsEmails /> },
       { path: 'comms/triggers', element: <AdminCommsTriggers /> },
+      { path: 'comms/history', element: <AdminCommsHistory /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },
       { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
       // Legacy comms routes - redirect to new structure
