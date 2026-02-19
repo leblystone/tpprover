@@ -1,11 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 
+const TAB_OPTIONS = [
+  { label: 'Consistency', value: 'compliance' },
+  { label: 'Spending', value: 'spending' },
+  { label: 'Inventory', value: 'inventory' },
+  { label: 'Protocols', value: 'protocols' },
+  { label: 'Half-Life', value: 'halflife' },
+];
+
 export default function AnalyticsFullPage() {
   const navigate = useNavigate();
   const { theme } = useOutletContext() || { theme: {} };
+  const [activeTab, setActiveTab] = useState('compliance');
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
@@ -25,7 +34,7 @@ export default function AnalyticsFullPage() {
   return (
     <section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8 pb-8">
       {/* Back + Title */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
         <button
           type="button"
           onClick={() => navigate('/app/dashboard')}
@@ -41,12 +50,37 @@ export default function AnalyticsFullPage() {
         </h1>
       </div>
 
+      {/* Tab bar in its own card */}
+      <div
+        className="content-section px-3 py-2 mb-3 flex flex-wrap gap-1.5"
+        style={{ border: `1px solid ${borderStyle}` }}
+      >
+        {TAB_OPTIONS.map(opt => {
+          const isActive = activeTab === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setActiveTab(opt.value)}
+              className="px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
+              style={{
+                backgroundColor: isActive ? '#445952' : 'transparent',
+                color: isActive ? '#fff' : (theme?.textLight || '#888'),
+                border: isActive ? '1px solid #3B4240' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Main content in glass card */}
       <div
         className="content-section p-4 sm:p-6"
         style={{ border: `1px solid ${borderStyle}` }}
       >
-        <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage />
+        <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
     </section>
   );

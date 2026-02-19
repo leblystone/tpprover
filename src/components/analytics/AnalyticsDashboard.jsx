@@ -19,7 +19,7 @@ function useLocal(key, fallback) {
   }
 }
 
-export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false }) {
+export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, activeTab: controlledTab, onTabChange }) {
   const navigate = useNavigate()
   const protocols = useLocal('tpprover_protocols', [])
   const orders = useLocal('tpprover_orders', [])
@@ -29,7 +29,9 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const protocolHistory = useLocal('tpprover_protocol_history', [])
   const goals = useLocal('tpprover_goals', [])
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())
-  const [activeTab, setActiveTab] = useState(defaultTab || 'compliance')
+  const [internalTab, setInternalTab] = useState(defaultTab || 'compliance')
+  const activeTab = controlledTab || internalTab
+  const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
 
   useEffect(() => {
@@ -237,21 +239,23 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       )}
 
       <div className={fullPage ? '' : 'flex-1 overflow-y-auto px-4 py-3'}>
-        {/* Toggle tabs */}
-        <ToggleTabs
-          value={activeTab}
-          onChange={setActiveTab}
-          theme={theme}
-          options={[
-            { label: 'Consistency', value: 'compliance' },
-            { label: 'Spending', value: 'spending' },
-            { label: 'Inventory', value: 'inventory' },
-            { label: 'Protocols', value: 'protocols' },
-            { label: 'Half-Life', value: 'halflife' },
-          ]}
-        />
+        {/* Toggle tabs (only when NOT fullPage -- fullPage renders tabs externally) */}
+        {!fullPage && (
+          <ToggleTabs
+            value={activeTab}
+            onChange={setActiveTab}
+            theme={theme}
+            options={[
+              { label: 'Consistency', value: 'compliance' },
+              { label: 'Spending', value: 'spending' },
+              { label: 'Inventory', value: 'inventory' },
+              { label: 'Protocols', value: 'protocols' },
+              { label: 'Half-Life', value: 'halflife' },
+            ]}
+          />
+        )}
 
-        <div className="mt-4">
+        <div className={fullPage ? '' : 'mt-4'}>
           {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} />}
           {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
           {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} />}

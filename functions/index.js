@@ -2684,6 +2684,10 @@ exports.bulkWinBackCampaign = onSchedule({
       if (subscription.status === 'active' && subscription.interval !== 'trial') { skipped++; continue; }
       if (subscription.hasLifetimeAccess) { skipped++; continue; }
 
+      // Skip users who had a real paid subscription and canceled — they chose to leave
+      const paidIntervals = ['monthly', 'annual', 'yearly', 'lifetime'];
+      if (paidIntervals.includes(subscription.interval)) { skipped++; continue; }
+
       // For trialing users: only target if their trial has already expired
       if (subscription.status === 'trialing') {
         const trialEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
