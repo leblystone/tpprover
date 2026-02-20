@@ -111,7 +111,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5F5F0' }}>
+    <div className="min-h-screen landing-page-root" style={{ backgroundColor: '#F5F5F0', fontFamily: 'Poppins, sans-serif' }}>
       {/* Header */}
       <header className="pt-3 pb-3 md:pt-4 md:pb-3" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #DDE6DE' }}>
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
@@ -144,7 +144,7 @@ export default function Landing() {
               </button>
               <button
                 onClick={handleGetStarted}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md hover:shadow-lg"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md hover:shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
                 Sign Up
@@ -168,7 +168,7 @@ export default function Landing() {
               </button>
               <button
                 onClick={handleGetStarted}
-                className="px-6 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="px-6 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
                 Sign Up
@@ -183,16 +183,16 @@ export default function Landing() {
          <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
            {/* Mobile Title Section - Single Column */}
            <div className="text-center mb-8 md:hidden">
-             <h1 className="text-4xl font-bold leading-tight" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
+             <h1 className="text-4xl font-bold leading-tight" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
                <span className="block text-3xl">Welcome to your</span> <span className="block whitespace-nowrap text-5xl" style={{ color: '#1F2B2A' }}>Pep Planner!</span>
              </h1>
            </div>
            
           {/* Mobile Layout - Stacked */}
           <div className="md:hidden flex flex-col items-center gap-6">
-            {/* Today's Research Card - Mobile */}
+            {/* Today's Research Card - Mobile (matches app widget styling) */}
             <div className="w-full max-w-xs">
-              <div className="p-4 rounded-lg shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
+              <div className="p-4 rounded-xl glass-panel-depth widget-card-hover">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>Today's Research</h3>
                   <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#7F9E95' }}>
@@ -242,7 +242,7 @@ export default function Landing() {
               </p>
               <button
                 onClick={handleSignIn}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
@@ -266,10 +266,10 @@ export default function Landing() {
             <div className="flex flex-col h-full justify-between">
                {/* Section 1: Welcome Heading - Desktop Only */}
                <div className="flex flex-1 items-center justify-center mb-8 lg:mb-12 w-full">
-                 <h1 className="font-bold leading-tight text-center" style={{ color: '#7F9E95', fontFamily: 'Inter, sans-serif' }}>
-                   <span className="block text-xl md:text-2xl lg:text-3xl mb-1">Welcome to your</span>
-                   <span className="block text-4xl md:text-5xl lg:text-7xl whitespace-nowrap" style={{ color: '#1F2B2A' }}>Pep Planner!</span>
-                 </h1>
+<h1 className="font-bold leading-tight text-center" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
+                  <span className="block text-xl md:text-2xl lg:text-3xl mb-1">Welcome to your</span>
+                  <span className="block text-4xl md:text-5xl lg:text-7xl whitespace-nowrap" style={{ color: '#1F2B2A' }}>Pep Planner!</span>
+                </h1>
                </div>
                
                {/* Section 2: Blueprint Text - Desktop Only */}
@@ -284,7 +284,7 @@ export default function Landing() {
              <div className="flex flex-col items-center justify-center flex-1">
               <button
                 onClick={handleSignIn}
-                className="px-3 md:px-7 lg:px-10 py-2 md:py-3.5 lg:py-5 rounded-lg text-xs md:text-lg lg:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
+                className="px-3 md:px-7 lg:px-10 py-2 md:py-3.5 lg:py-5 rounded-lg text-xs md:text-lg lg:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
@@ -295,11 +295,11 @@ export default function Landing() {
              </div>
             </div>
 
-           {/* Right Side - Today's Research Visual */}
+           {/* Right Side - Today's Research Visual (matches app widget styling) */}
            <div className="flex justify-end items-center">
               <div className="w-full max-w-sm md:max-w-md">
-                {/* Today's Research Card */}
-                <div className="p-4 md:p-6 rounded-lg md:rounded-xl shadow-lg md:shadow-2xl" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Today's Research Card - same look as Dashboard Today's Research widget */}
+                <div className="p-4 md:p-6 rounded-xl glass-panel-depth widget-card-hover">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 md:mb-6">
                     <h3 className="text-sm md:text-xl font-semibold" style={{ color: '#2F3B3A' }}>Today's Research</h3>
@@ -390,7 +390,7 @@ export default function Landing() {
               onClick={() => setShowIOSPopup(true)}
             >
               <div 
-                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
+                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#4c6b52' }}
               >
                 <Apple className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
@@ -409,7 +409,7 @@ export default function Landing() {
               rel="noopener noreferrer"
             >
               <div 
-                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
+                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#364b3d' }}
               >
                 <Play className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
@@ -426,7 +426,7 @@ export default function Landing() {
               className="inline-block transition-transform hover:scale-105"
             >
               <div 
-                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg cursor-pointer"
+                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg cursor-pointer btn-primary-inset"
                 style={{ backgroundColor: '#2d3d34' }}
               >
                 <Monitor className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
@@ -492,7 +492,7 @@ export default function Landing() {
           </h2>
           <button
             onClick={handleSignIn}
-            className="px-7 sm:px-10 py-3.5 sm:py-5 rounded-lg text-lg sm:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center mx-auto group"
+            className="px-7 sm:px-10 py-3.5 sm:py-5 rounded-lg text-lg sm:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center mx-auto group btn-primary-inset"
             style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F0'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
@@ -662,7 +662,7 @@ export default function Landing() {
               </p>
               <button
                 onClick={() => setShowIOSPopup(false)}
-                className="w-full px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="w-full px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
                 Got it!

@@ -339,6 +339,13 @@ html, body {
   }
 }
 
+/* Landing page - Poppins as default font (match app UI) */
+html.landing-page-active,
+html.landing-page-active body,
+html.landing-page-active .min-h-screen {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif !important;
+}
+
 /* Enable scrolling on landing page */
 html.landing-page-active,
 html.landing-page-active body {
