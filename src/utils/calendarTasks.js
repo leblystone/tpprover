@@ -7,12 +7,18 @@ import { toKey } from '../components/calendar/MonthGrid';
 import { calculateRecon } from './recon';
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
+// Must handle: string dates, Date objects, Firebase Timestamps, numbers
 function parseDateString(dateString) {
     if (!dateString) return null;
     if (dateString instanceof Date) return dateString;
-    if (typeof dateString !== 'string') return new Date(dateString);
+    if (typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+        return dateString.toDate();
+    }
+    if (typeof dateString !== 'string') {
+        try { return new Date(dateString); } catch { return null; }
+    }
     const parts = dateString.split('-');
-    if (parts.length !== 3) return new Date(dateString); // Fallback for other formats
+    if (parts.length !== 3) return new Date(dateString);
     const [year, month, day] = parts.map(Number);
     return new Date(year, month - 1, day);
 }
@@ -143,13 +149,12 @@ function getWindows(p) {
         const startDt = parseDateString(p.startDate);
         let endDt = null;
         
-        // FIX: If duration is set to "no end" (ongoing), ignore endDate entirely
-        // Previously, protocols saved endDate = startDate even when "Ongoing" was selected,
-        // which caused scheduling to only work on day 1
         const isOngoing = p.duration?.noEnd === true;
+        const wasStopped = p.active === false && p.endDate;
         
-        if (isOngoing) {
-            // Ongoing protocol - no end date, runs forever
+        if (wasStopped) {
+            endDt = parseDateString(p.endDate);
+        } else if (isOngoing) {
             endDt = null;
         } else if (p.endDate) {
             endDt = parseDateString(p.endDate);
@@ -301,20 +306,17 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         }
     }
 
-    // Add protocols/peptides
+    // Add protocols/peptides — only explicitly active protocols generate tasks
     for (const p of protocols) {
+        if (p.active !== true) continue;
+
         const { start: ps, end: pe } = getWindows(p);
         const psOnly = ps ? normalizeToMidnight(ps) : null;
         const peOnly = pe ? normalizeToMidnight(pe) : null;
-        // FIX: If no start date exists, protocol should NOT be scheduled
-        // Previously (!null) evaluated to true, allowing ghost protocols through
         if (!psOnly) continue;
         const inRange = (psOnly <= dateNormalized) && (!peOnly || peOnly >= dateNormalized);
-        const active = p.active !== false;
-        const wasTracked = !active && p.endDate;
 
         if (!inRange) continue;
-        if (!active && !wasTracked) continue;
 
         const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
         

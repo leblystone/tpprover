@@ -40,10 +40,18 @@ function getProtocolColor(protocolName, theme) {
 }
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
+// Must handle: string dates, Date objects, Firebase Timestamps, numbers
 function parseDateString(dateString) {
     if (!dateString) return null;
+    if (dateString instanceof Date) return dateString;
+    if (typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+        return dateString.toDate();
+    }
+    if (typeof dateString !== 'string') {
+        try { return new Date(dateString); } catch { return null; }
+    }
     const parts = dateString.split('-');
-    if (parts.length !== 3) return new Date(dateString); // Fallback for other formats
+    if (parts.length !== 3) return new Date(dateString);
     const [year, month, day] = parts.map(Number);
     return new Date(year, month - 1, day);
 }
@@ -81,11 +89,12 @@ function getWindows(p) {
       if (!p?.startDate) return { start: null, end: null, washStart: null, washEnd: null }
       const startDt = parseDateString(p.startDate)
       let endDt = null;
-      // FIX: If duration is "ongoing" (noEnd), ignore endDate entirely
-      // Protocols were saving endDate = startDate even when "Ongoing" was selected
       const isOngoing = p.duration?.noEnd === true;
+      const wasStopped = p.active === false && p.endDate;
       
-      if (isOngoing) {
+      if (wasStopped) {
+        endDt = parseDateString(p.endDate);
+      } else if (isOngoing) {
         endDt = null;
       } else if (p.endDate) {
         endDt = parseDateString(p.endDate);
@@ -1002,7 +1011,7 @@ export default function Calendar() {
   });
 
   return (
-    <section className="flex flex-col flex-1 min-h-0 px-1 sm:px-2 md:px-3 lg:px-4" style={{ overflow: 'hidden', background: 'transparent' }}>
+    <section className="flex flex-col flex-1 min-h-0 w-full px-1.5 sm:px-2 md:px-3 lg:px-4" style={{ overflow: 'hidden', background: 'transparent' }}>
       <CalendarHeader
         currentDate={currentDate}
         weekStart={weekStart}
@@ -1021,7 +1030,7 @@ export default function Calendar() {
       />
       {viewMode === 'month' ? (
         <div 
-          className="content-section rounded-xl p-2 sm:p-4 flex-1 overflow-hidden min-h-0" 
+          className="content-section rounded-xl sm:rounded-xl p-0 sm:p-4 flex-1 overflow-hidden min-h-0" 
           style={{ 
             border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` 
           }}

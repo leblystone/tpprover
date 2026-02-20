@@ -564,7 +564,7 @@ function App() {
             />
           </div>
 
-          <main className={`flex-1 main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`} 
+          <main className={`flex-1 main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col calendar-page' : 'overflow-y-auto'}`} 
             style={{ 
               background: location.pathname.startsWith('/app')
                 ? (theme.isDark 

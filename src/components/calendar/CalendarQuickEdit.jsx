@@ -34,11 +34,12 @@ function getSupplementIcon(delivery, size = 16) {
 function parseDateString(dateString) {
     try {
         if (!dateString) return null;
-        // If it's already a Date object, return it
         if (dateString instanceof Date) return dateString;
-        // Ensure it's a string before trying to split
+        // Firebase Timestamp objects have a toDate() method
+        if (typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+            return dateString.toDate();
+        }
         if (typeof dateString !== 'string') {
-            // Try to convert to string or create new Date
             return new Date(dateString);
         }
         // Try to parse as YYYY-MM-DD format

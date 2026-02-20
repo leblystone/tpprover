@@ -257,6 +257,12 @@ html, body {
     overflow-x: hidden !important;
   }
 
+  /* Calendar needs tighter padding to maximize grid width on phones */
+  .main-content.calendar-page {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
   /* Dashboard grid spacing */
   .dashboard-grid {
     gap: 0.75rem !important;

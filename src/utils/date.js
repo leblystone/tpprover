@@ -74,9 +74,15 @@ export function formatMMDDYYYY(value) {
 export function parseDateString(dateString) {
     if (!dateString) return null;
     if (dateString instanceof Date) return dateString;
-    if (typeof dateString !== 'string') return new Date(dateString);
+    // Firebase Timestamp objects have a toDate() method
+    if (typeof dateString === 'object' && typeof dateString.toDate === 'function') {
+        return dateString.toDate();
+    }
+    if (typeof dateString !== 'string') {
+        try { return new Date(dateString); } catch { return null; }
+    }
     const parts = dateString.split('-');
-    if (parts.length !== 3) return new Date(dateString); // Fallback for other formats
+    if (parts.length !== 3) return new Date(dateString);
     const [year, month, day] = parts.map(Number);
     // Create date in local timezone (month is 0-indexed)
     return new Date(year, month - 1, day);

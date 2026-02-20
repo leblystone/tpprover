@@ -2648,7 +2648,7 @@ exports.onUserCreated = onDocumentCreated(
 
 // Win-back campaign: email churned users who had a paid subscription that ended 14+ days ago
 exports.bulkWinBackCampaign = onSchedule({
-  schedule: '0 10 * * 5', // Every Friday at 10 AM UTC
+  schedule: '0 17 * * 5', // Every Friday at 10 AM Mountain Time (17:00 UTC)
   timeZone: 'UTC',
   memory: '512MiB',
   timeoutSeconds: 300,
@@ -2679,6 +2679,9 @@ exports.bulkWinBackCampaign = onSchedule({
       const subscription = userData.subscription || {};
 
       if (!userEmail) { skipped++; continue; }
+
+      // Skip admin accounts
+      if (userData.role === 'admin') { skipped++; continue; }
 
       // Skip users with active paid subscriptions or lifetime access
       if (subscription.status === 'active' && subscription.interval !== 'trial') { skipped++; continue; }
@@ -2771,6 +2774,92 @@ exports.bulkWinBackCampaign = onSchedule({
     logger.error('❌ Win-back campaign failed:', error);
     return { success: false, error: error.message };
   }
+});
+
+// One-time admin function: grant 14-day trial to all lapsed trial users
+exports.grantBulkTrialExtension = onCall({
+  cors: true,
+}, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Must be authenticated');
+  const db = admin.firestore();
+  const userDoc = await db.collection('users').doc(request.auth.uid).get();
+  if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
+    throw new HttpsError('permission-denied', 'Admin access required');
+  }
+
+  const now = new Date();
+  const oneEightyDaysAgo = new Date(now);
+  oneEightyDaysAgo.setDate(oneEightyDaysAgo.getDate() - 180);
+
+  const usersSnapshot = await db.collection('users')
+    .where('subscription.status', 'in', ['canceled', 'expired', 'trialing'])
+    .get();
+
+  let granted = 0;
+  let skipped = 0;
+  const paidIntervals = ['monthly', 'annual', 'yearly', 'lifetime'];
+
+  for (const doc of usersSnapshot.docs) {
+    const userData = doc.data();
+    const sub = userData.subscription || {};
+    const userId = doc.id;
+
+    if (sub.hasLifetimeAccess) { skipped++; continue; }
+    if (paidIntervals.includes(sub.interval)) { skipped++; continue; }
+    if (sub.status === 'active' && sub.interval !== 'trial') { skipped++; continue; }
+
+    // Skip if trial is still active
+    if (sub.status === 'trialing') {
+      const trialEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+      if (trialEnd && trialEnd > now) { skipped++; continue; }
+    }
+
+    // Skip if already has a win-back trial that's still active
+    const subDoc = await db.collection('userSubscriptions').doc(userId).get();
+    if (subDoc.exists) {
+      const subData = subDoc.data()?.subscription || {};
+      if (subData.winBackTrialGranted && subData.currentPeriodEnd) {
+        const existingEnd = new Date(subData.currentPeriodEnd);
+        if (existingEnd > now) { skipped++; continue; }
+      }
+    }
+
+    // Check time window
+    const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+    const createdAt = userData.createdAt ? new Date(userData.createdAt) : null;
+    const relevantDate = periodEnd || createdAt;
+    if (!relevantDate || relevantDate > now || relevantDate < oneEightyDaysAgo) {
+      skipped++;
+      continue;
+    }
+
+    // Grant 14-day trial
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14);
+
+    await db.collection('userSubscriptions').doc(userId).set({
+      subscription: {
+        status: 'trialing',
+        currentPeriodEnd: trialEnd.toISOString(),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        winBackTrialGranted: true,
+        winBackTrialGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }
+    }, { merge: true });
+
+    await db.collection('users').doc(userId).set({
+      subscription: {
+        status: 'trialing',
+        currentPeriodEnd: trialEnd.toISOString(),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }
+    }, { merge: true });
+
+    granted++;
+  }
+
+  logger.info(`✅ Bulk trial extension complete. Granted: ${granted}, Skipped: ${skipped}`);
+  return { success: true, granted, skipped };
 });
 
 // Server-side trial expiry enforcement
