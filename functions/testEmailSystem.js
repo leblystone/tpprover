@@ -1397,6 +1397,59 @@ exports.testEmailSystem = onCall(
       if (!emailName || emailName === 'Trial Extension Email') {
         emailName = 'Trial Extension Email';
       }
+    } else if (templateType === 'winBack') {
+      logger.info('Testing win-back campaign email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom winBack template from Firestore...');
+        const customTemplate = await loadEmailTemplate('winBack');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom winBack template found in Firestore');
+          htmlContent = generateEmailHTML(customTemplate, { userName: 'Test User', userEmail: testEmail });
+          subjectText = customTemplate.subject || 'The doors are open — and we saved you a spot';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          htmlContent = generateEmailHTML(templateData, { userName: 'Test User', userEmail: testEmail });
+          subjectText = templateData.subject || 'The doors are open — and we saved you a spot';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendWinBackEmail fallback');
+          emailResult = await emailService.sendWinBackEmail(testEmail, 'Test User', null);
+          emailName = 'Win-Back Campaign Email';
+          if (emailResult) {
+            logger.info('✅ Win-back test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send win-back email');
+          }
+          results.tests.winBackEmail = { success: emailResult, message: emailResult ? 'Email sent successfully' : 'Email failed to send' };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sendResult = await sendEmailViaResend(testEmail, subjectText, htmlContent);
+          if (sendResult && sendResult.success) {
+            emailResult = true;
+            logger.info('✅ Win-back test email sent successfully');
+            logger.info(`📧 Email ID: ${sendResult.emailId}`);
+          } else {
+            emailResult = false;
+            logger.error('❌ Failed to send win-back email');
+          }
+        } else {
+          logger.error('❌ No HTML content generated for win-back email');
+          emailResult = false;
+        }
+      } catch (error) {
+        logger.error('❌ Win-back email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Win-Back Campaign Email';
     } else {
       // Default: send single generic test email instead of multiple
       logger.info('⚠️ Unknown template type, sending generic test email...');
