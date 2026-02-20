@@ -100,10 +100,12 @@ function getSubscriptionStatus(user) {
 
 export default function UserTable({ users, searchTerm, theme, onViewUser }) {
   const filteredUsers = users.filter(user => {
-    const term = searchTerm.toLowerCase();
+    if (!searchTerm?.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
     const email = user.email?.toLowerCase() || '';
     const name = user.displayName?.toLowerCase() || '';
-    return email.includes(term) || name.includes(term);
+    const uid = (user.uid || user.id || '').toLowerCase();
+    return email.includes(term) || name.includes(term) || uid.includes(term);
   });
 
   if (filteredUsers.length === 0) {

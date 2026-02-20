@@ -146,7 +146,7 @@ export default function AdminUsersSubscriptions() {
 
         <input
           type="text"
-          placeholder="Search users by email or name…"
+          placeholder="Search by email, name, or UID…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-3 rounded border mb-2"
