@@ -228,17 +228,13 @@ export default function Vendors() {
 			setShowAddModal(false)
 			setEditingVendor(null)
 		}}
-			onDelete={(id) => {
-				console.log('🗑️ Delete triggered for vendor ID:', id, 'editingVendor:', editingVendor);
-				// Use the ID from editingVendor if provided ID is missing
+			onDelete={async (id) => {
 				const targetId = id || editingVendor?.id;
-				if (targetId) {
-					deleteVendor(targetId);
-					setShowAddModal(false)
-					setEditingVendor(null)
-				} else {
-					console.error('❌ Cannot delete: No vendor ID available');
-				}
+				if (!targetId) return;
+				await deleteVendor(targetId);
+				setShowAddModal(false);
+				setEditingVendor(null);
+				window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Vendor deleted', type: 'success' } }));
 			}}
 			onForceDelete={(vendor) => {
 				// Silent fallback delete when normal delete fails (completely invisible to users)

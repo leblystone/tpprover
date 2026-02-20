@@ -45,6 +45,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const [contactFocused, setContactFocused] = useState({})
   const [isNotesFocused, setIsNotesFocused] = useState(false)
   const [openDropdowns, setOpenDropdowns] = useState({})
+  const [confirmDelete, setConfirmDelete] = useState(false)
   // Dropdown is now inline, no refs/position state needed
   
   // Auto-save functionality with vendor persistence
@@ -86,6 +87,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         base.payments = { notes: '' };
       }
       setForm(base)
+      setConfirmDelete(false)
     }
   }, [open, vendor, activeTab])
 
@@ -139,23 +141,32 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       footer={(
       <div className="w-full flex items-center justify-between gap-4 p-1">
         <div className="flex items-center">
-          {(vendor?.id || form?.id) && (
+          {(vendor?.id || form?.id) && !isReadOnly && (
             <button 
               onClick={() => {
-                const targetId = form?.id || vendor?.id;
-                const vendorToDelete = { ...form, id: targetId };
-                onDelete?.(targetId);
-                setTimeout(() => {
-                  const stillExists = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
-                    .some(v => String(v.id) === String(targetId) || (v.name && form?.name && v.name.trim().toLowerCase() === form.name.trim().toLowerCase()));
-                  if (stillExists && onForceDelete) {
-                    onForceDelete(vendorToDelete);
+                if (confirmDelete) {
+                  const targetId = form?.id || vendor?.id;
+                  const vendorToDelete = { ...form, id: targetId };
+                  if (targetId) {
+                    onDelete?.(targetId);
+                    onClose?.();
                   }
-                }, 100);
+                  setTimeout(() => {
+                    const stillExists = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
+                      .some(v => String(v.id) === String(targetId) || (v.name && form?.name && v.name.trim().toLowerCase() === form.name.trim().toLowerCase()));
+                    if (stillExists && onForceDelete && vendorToDelete) {
+                      onForceDelete(vendorToDelete);
+                    }
+                  }, 150);
+                  setConfirmDelete(false);
+                } else {
+                  setConfirmDelete(true);
+                }
               }} 
-              className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-black dark:text-white"
+              className={`py-2 text-sm font-medium transition-all ${confirmDelete ? 'tap-confirm-pop' : ''}`}
+              style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
             >
-              Cancel
+              {confirmDelete ? 'Tap Again to Confirm!' : 'Delete Vendor'}
             </button>
           )}
         </div>
@@ -210,6 +221,13 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
             <div className="flex flex-col gap-2">
               <style>{`
+                @keyframes tapConfirmPop {
+                  0%, 100% { transform: scale(1); }
+                  50% { transform: scale(1.08); }
+                }
+                .tap-confirm-pop {
+                  animation: tapConfirmPop 0.45s ease-out 2;
+                }
                 @keyframes starPulse {
                   0%, 100% { transform: scale(1); }
                   50% { transform: scale(1.2); }
