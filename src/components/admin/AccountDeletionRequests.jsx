@@ -70,33 +70,44 @@ export default function AccountDeletionRequests({ theme }) {
   };
 
   const handleApprove = async (request) => {
-    if (!window.confirm(`⚠️ Are you sure you want to DELETE this user's account?\n\nEmail: ${request.userEmail}\nThis will permanently delete all their data and cannot be undone.`)) {
-      return;
-    }
-
+    // No confirm dialog — user already requested deletion (privacy); one click to approve.
     setProcessingId(request.id);
 
     try {
       const functions = getFunctions();
       const adminTerminateUser = httpsCallable(functions, 'adminTerminateUser');
-      
+
       const result = await adminTerminateUser({
         userId: request.userId,
         email: request.userEmail
       });
 
       if (result.data.success) {
-        // Update request status
-        const requestRef = doc(db, 'accountDeletionRequests', request.id);
-        await updateDoc(requestRef, {
-          status: 'approved',
-          processedAt: new Date(),
-          processedBy: 'admin' // You could pass the admin's email here
-        });
+        const now = new Date();
+        // Optimistically move request out of pending so the list updates immediately
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === request.id
+              ? { ...r, status: 'approved', processedAt: now, processedBy: 'admin' }
+              : r
+          )
+        );
+
+        // Persist status in Firestore (best-effort; list already updated above)
+        try {
+          const requestRef = doc(db, 'accountDeletionRequests', request.id);
+          await updateDoc(requestRef, {
+            status: 'approved',
+            processedAt: now,
+            processedBy: 'admin'
+          });
+        } catch (updateErr) {
+          console.warn('Could not update deletion request status in Firestore:', updateErr);
+        }
 
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { 
-            message: `✅ Account deleted successfully! User ${request.userEmail} has been removed and sent a confirmation email.`, 
+          detail: {
+            message: `✅ Account deleted. ${request.userEmail} has been removed and sent a confirmation email.`,
             type: 'success',
             duration: 5000
           }
@@ -107,8 +118,8 @@ export default function AccountDeletionRequests({ theme }) {
     } catch (error) {
       console.error('Error approving deletion:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { 
-          message: `❌ Error deleting account: ${error.message}`, 
+        detail: {
+          message: `❌ Error deleting account: ${error.message}`,
           type: 'error',
           duration: 7000
         }
@@ -411,11 +422,17 @@ export default function AccountDeletionRequests({ theme }) {
                       <span>Source: {request.source || 'unknown'}</span>
                     </div>
 
-                    {request.subscriptionInfo?.hasSubscription && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <CreditCard size={14} style={{ color: '#ef4444' }} />
-                        <span className="text-xs font-semibold" style={{ color: '#ef4444' }}>
-                          Has Active Subscription (will be cancelled)
+                    {/* Subscription: always show status at request time so you can verify paid vs trial */}
+                    {request.subscriptionInfo != null && (
+                      <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: theme.textLight }}>
+                        <CreditCard size={14} style={{ opacity: 0.8 }} />
+                        <span>
+                          Subscription at request: <strong style={{ color: theme.text, textTransform: 'capitalize' }}>{request.subscriptionInfo.status || 'none'}</strong>
+                          {request.subscriptionInfo.hasSubscription && (
+                            <span className="ml-2 font-semibold" style={{ color: '#ef4444' }}>
+                              — Paid (will be cancelled)
+                            </span>
+                          )}
                         </span>
                       </div>
                     )}
@@ -494,7 +511,7 @@ export default function AccountDeletionRequests({ theme }) {
                     </span>
                   </div>
                   <span className="text-xs" style={{ color: theme.textLight }}>
-                    {request.processedAt?.toDate ? formatDateTime(request.processedAt.toDate()) : 'Unknown'}
+                    {request.processedAt ? formatDateTime(request.processedAt?.toDate ? request.processedAt.toDate() : request.processedAt) : 'Unknown'}
                   </span>
                 </div>
                 {request.rejectionReason && (

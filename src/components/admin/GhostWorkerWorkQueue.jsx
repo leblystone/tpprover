@@ -589,7 +589,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
           fontSize: '13px',
           cursor: 'pointer'
         }} onClick={() => setShowHistory(!showHistory)}>
-          ✅ {completedTickets.length} Done {showHistory ? '▼' : '▶'}
+          📁 {completedTickets.length} Archive {showHistory ? '▼' : '▶'}
         </div>
       </div>
 
@@ -775,35 +775,57 @@ export default function GhostWorkerWorkQueue({ theme }) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <History size={16} /> Completed
+            <History size={16} /> Archive
           </div>
 
-          {completedTickets.slice(0, 15).map((ticket, idx) => (
+          {completedTickets.slice(0, 50).map((ticket, idx) => (
             <div
               key={ticket.logId}
+              onClick={() => openTicket(ticket)}
               style={{
                 padding: '10px 14px',
-                borderBottom: idx < Math.min(completedTickets.length, 15) - 1 ? `1px solid ${t.border}` : 'none',
+                borderBottom: idx < Math.min(completedTickets.length, 50) - 1 ? `1px solid ${t.border}` : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                opacity: 0.75
+                opacity: 0.9,
+                cursor: 'pointer',
+                transition: 'background 0.15s'
               }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <CheckCircle2 size={16} style={{ color: '#10B981', flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontWeight: '500', color: t.text, fontSize: '13px' }}>#{ticket.ticketNumber}</span>
                 <span style={{ fontSize: '12px', color: t.textLight, marginLeft: '8px' }}>
-                  {formatDate(ticket.markedFixedAt)}
+                  Closed {formatDate(ticket.markedFixedAt)}
                 </span>
                 {ticket.adminNotes && (
-                  <span style={{ fontSize: '11px', color: t.textLight, marginLeft: '8px' }}>
-                    📝 {ticket.adminNotes.slice(0, 40)}...
+                  <span style={{ fontSize: '11px', color: t.textLight, marginLeft: '8px', display: 'block' }}>
+                    📝 {ticket.adminNotes.slice(0, 50)}{ticket.adminNotes.length > 50 ? '…' : ''}
                   </span>
                 )}
               </div>
               <button
-                onClick={() => reopenTicket(ticket)}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openTicket(ticket); }}
+                style={{
+                  padding: '4px 10px',
+                  backgroundColor: 'transparent',
+                  color: t.primary,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                View
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); reopenTicket(ticket); }}
                 style={{
                   padding: '4px 10px',
                   backgroundColor: 'transparent',
@@ -862,6 +884,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 <span style={{ fontSize: '14px', fontWeight: '600', color: t.text }}>
                   🎫 #{selectedTicket.ticketNumber}
                 </span>
+                {selectedTicket.markedFixed && (
+                  <span style={{
+                    fontSize: '10px',
+                    padding: '3px 8px',
+                    borderRadius: '10px',
+                    backgroundColor: '#D1FAE5',
+                    color: '#065F46',
+                    fontWeight: '600'
+                  }}>
+                    📁 Archived
+                  </span>
+                )}
                 <span style={{
                   fontSize: '11px',
                   padding: '3px 8px',
@@ -1002,7 +1036,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   }}>
                     {extractCustomerResponse(selectedTicket.responseContent) || 'No response available'}
                   </div>
-                  {extractCustomerResponse(selectedTicket.responseContent)?.trim() && !selectedTicket.responsePosted && (
+                  {extractCustomerResponse(selectedTicket.responseContent)?.trim() && !selectedTicket.responsePosted && !selectedTicket.markedFixed && (
                     <button
                       type="button"
                       onClick={sendGhostResponseToUser}
@@ -1215,7 +1249,8 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   )}
                   <div ref={conversationEndRef} />
                 </div>
-                {/* Quick responses + reply input — your replies appear in the thread above */}
+                {/* Quick responses + reply input — your replies appear in the thread above (hidden when viewing archive) */}
+                {!selectedTicket.markedFixed && (
                 <div style={{
                   padding: '8px 10px',
                   borderTop: `1px solid ${t.border}`,
@@ -1292,6 +1327,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
                     💡 Reply here — it appears in the thread above and notifies the user.
                   </p>
                 </div>
+                )}
               </div>
             </div>
 
@@ -1319,33 +1355,55 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 <ExternalLink size={11} /> view full ticket
               </span>
 
-              <Tooltip text="Close this support ticket. Does not notify the user.">
+              {selectedTicket.markedFixed ? (
                 <button
                   type="button"
-                  onClick={closeTicket}
-                  disabled={sending}
+                  onClick={closeModal}
                   style={{
                     padding: '6px 14px',
-                    backgroundColor: btnSuccess,
-                    color: '#fff',
+                    backgroundColor: t.border,
+                    color: t.text,
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '12px',
                     fontWeight: '600',
-                    cursor: sending ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    opacity: sending ? 0.7 : 1
+                    gap: '4px'
                   }}
                 >
-                  {sending ? (
-                    <>Closing . . .</>
-                  ) : (
-                    <><CheckCircle2 size={14} /> Close Ticket</>
-                  )}
+                  Close
                 </button>
-              </Tooltip>
+              ) : (
+                <Tooltip text="Close this support ticket. Does not notify the user.">
+                  <button
+                    type="button"
+                    onClick={closeTicket}
+                    disabled={sending}
+                    style={{
+                      padding: '6px 14px',
+                      backgroundColor: btnSuccess,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: sending ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      opacity: sending ? 0.7 : 1
+                    }}
+                  >
+                    {sending ? (
+                      <>Closing . . .</>
+                    ) : (
+                      <><CheckCircle2 size={14} /> Close Ticket</>
+                    )}
+                  </button>
+                </Tooltip>
+              )}
             </div>
           </div>
         </div>

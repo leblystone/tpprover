@@ -34,7 +34,6 @@ export default function Orders() {
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
-	const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'delivered'
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	const [deletingOrderId, setDeletingOrderId] = useState(null);
 	
@@ -438,15 +437,27 @@ export default function Orders() {
 	const filteredOrdersByCategory = useMemo(() => {
 		return filteredOrders.filter(o => {
 			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
-			if (categoryFilter !== 'all' && orderCategory !== categoryFilter) return false;
-			// Apply status filter
-			if (statusFilter === 'all') return true;
-			const orderStatus = (o.status || 'Order Placed').toLowerCase();
-			if (statusFilter === 'delivered') return orderStatus.includes('delivered');
-			if (statusFilter === 'active') return !orderStatus.includes('delivered');
-			return true;
+			return categoryFilter === 'all' || orderCategory === categoryFilter;
 		});
-	}, [filteredOrders, categoryFilter, statusFilter]);
+	}, [filteredOrders, categoryFilter]);
+
+	// Sort by tracking status (Order Placed → Shipped → Delivered) then by order date (newest first)
+	const statusRank = (status) => {
+		const s = (status || 'order placed').toLowerCase();
+		if (s.includes('delivered')) return 2;
+		if (s.includes('ship')) return 1;
+		return 0; // Order Placed / default
+	};
+	const sortedOrdersByCategory = useMemo(() => {
+		return [...filteredOrdersByCategory].sort((a, b) => {
+			const rankA = statusRank(a.status);
+			const rankB = statusRank(b.status);
+			if (rankA !== rankB) return rankA - rankB;
+			const dateA = new Date(a.date || a.updatedAt || 0).getTime();
+			const dateB = new Date(b.date || b.updatedAt || 0).getTime();
+			return dateB - dateA; // newer first
+		});
+	}, [filteredOrdersByCategory]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		if (!newOrder) {
@@ -698,18 +709,6 @@ export default function Orders() {
 		});
 		return { all, domestic, international, groupbuy };
 	}, [filteredOrders]);
-	// Status counts for current category only (so dropdown shows correct totals)
-	const ordersInCategory = useMemo(() => {
-		return filteredOrders.filter(o => {
-			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
-			return categoryFilter === 'all' || orderCategory === categoryFilter;
-		});
-	}, [filteredOrders, categoryFilter]);
-	const statusCounts = useMemo(() => {
-		const delivered = ordersInCategory.filter(o => (o.status || '').toLowerCase().includes('delivered')).length;
-		return { all: ordersInCategory.length, active: ordersInCategory.length - delivered, delivered };
-	}, [ordersInCategory]);
-
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 			<OrdersTipsBanner theme={theme} />
@@ -733,34 +732,17 @@ export default function Orders() {
 							customShadow={true}
 						/>
 					</div>
-					{ordersInCategory.length > 0 && (
-						<div className="flex-1 min-w-0" style={{ minWidth: '160px' }}>
-							<CustomDropdown
-								value={statusFilter}
-								onChange={setStatusFilter}
-								options={[
-									{ value: 'all', label: `All (${statusCounts.all})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
-									{ value: 'active', label: `Active (${statusCounts.active})`, icon: <Package size={16} style={{ color: theme.primary }} /> },
-									{ value: 'delivered', label: `Delivered (${statusCounts.delivered})`, icon: <Package size={16} style={{ color: theme.textLight }} /> }
-								]}
-								theme={theme}
-								placeholder="Status..."
-								outlined={true}
-								customShadow={true}
-							/>
-						</div>
-					)}
 				</div>
 			</div>
 
 			<div className="mt-6">
 				{categoryFilter === 'groupbuy' ? (
 					<div>
-						{filteredOrdersByCategory.length > 0 ? (
+						{sortedOrdersByCategory.length > 0 ? (
 							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 								<div className="lg:col-span-2">
 									<OrderList 
-										orders={filteredOrdersByCategory} 
+										orders={sortedOrdersByCategory} 
 										onEdit={(order) => { 
 											if (isReadOnly) {
 												setShowUpgradeModal(true);
@@ -819,9 +801,9 @@ export default function Orders() {
 						)}
 					</div>
 				) : (
-					filteredOrdersByCategory.length > 0 ? (
-						<OrderList 
-							orders={filteredOrdersByCategory} 
+					sortedOrdersByCategory.length > 0 ? (
+							<OrderList 
+								orders={sortedOrdersByCategory}
 							onEdit={(order) => { 
 								if (isReadOnly) {
 									setShowUpgradeModal(true);

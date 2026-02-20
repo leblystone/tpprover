@@ -1720,16 +1720,16 @@ exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
   const defaultTemplate = {
     heading: 'We\'re Sad to See You Go! 😢',
     greeting: `Hi ${userName || 'User'},`,
-    mainMessage: `Your account and all associated data have been permanently deleted from The Pep Planner. We understand that sometimes things don't work out, and we respect your decision.\n\nAll your research data, protocols, and account information have been completely removed from our system. This action cannot be undone.`,
+    mainMessage: `Your account and all associated data have been permanently deleted from The Pep Planner. We understand that sometimes things don't work out, and we respect your decision.\n\nAll your research data, protocols, and account information have been completely removed from our system. You cannot log in with this account again — it no longer exists. If you return in the future, you will need to sign up as a new user. This action cannot be undone.`,
     ctaText: 'Share Your Feedback',
     ctaLink: 'https://thepepplanner.app/feedback',
     highlightTitle: '💡 Want to Return?',
-    highlightMessage: 'If you change your mind and would like to use The Pep Planner again in the future, you\'ll need to create a new account. We\'d love to have you back!',
+    highlightMessage: 'If you change your mind and would like to use The Pep Planner again in the future, you\'ll need to create a new account (sign up from scratch). We\'d love to have you back!',
     features: [
-      'Account Status – Permanently deleted',
+      'Account Status – Permanently deleted (cannot log in)',
       'Data Removal – All research data removed',
       'Subscription – Cancelled (if applicable)',
-      'Rejoining – New account required'
+      'Rejoining – New sign-up required'
     ]
   };
   const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });

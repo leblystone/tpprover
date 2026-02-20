@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
   Check, 
-  CheckCircle,
+  CheckSquare,
   Star, 
   Heart, 
   Smartphone, 
@@ -42,6 +42,9 @@ export default function Landing() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [showIOSPopup, setShowIOSPopup] = useState(false);
+  // Today's Research demo checkboxes (interactive on landing)
+  const [landingChecked, setLandingChecked] = useState({ b12: false, glow: false, nad: false });
+  const toggleLandingCheck = (id) => setLandingChecked((prev) => ({ ...prev, [id]: !prev[id] }));
 
   // Enable scrolling on landing page
   useEffect(() => {
@@ -81,11 +84,6 @@ export default function Landing() {
   };
 
   const features = [
-    {
-      icon: Calendar,
-      title: 'Protocols',
-      description: 'Keep your dedicated info in one spot! Schedule your next research protocol and let the app do the rest.'
-    },
     {
       icon: Package,
       title: 'Stockpiles',
@@ -190,47 +188,51 @@ export default function Landing() {
            
           {/* Mobile Layout - Stacked */}
           <div className="md:hidden flex flex-col items-center gap-6">
-            {/* Today's Research Card - Mobile (matches app widget styling) */}
-            <div className="w-full max-w-xs">
-              <div className="p-4 rounded-xl glass-panel-depth widget-card-hover">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>Today's Research</h3>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#7F9E95' }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: '#FFFFFF' }} />
+            {/* Today's Research Card - Mobile (matches TasksWidget/TasksList UI) */}
+            <div className="w-full max-w-xs landing-todays-research-animate">
+              <div className="rounded-xl glass-panel-depth widget-card-hover overflow-hidden">
+                {/* Header with separator line (same as TasksWidget) */}
+                <div className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator" style={{ borderColor: 'rgba(47, 59, 58, 0.15)', background: 'linear-gradient(135deg, rgba(127, 158, 149, 0.08), rgba(127, 158, 149, 0.03))' }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: '#2F3B3A' }}>Today's Research</h3>
+                    <CheckSquare className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
-                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>B12</div>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="text-xs" style={{ color: '#4A5A56' }}>1mL</div>
-                      <Pipette className="w-3 h-3" style={{ color: '#6B7280' }} />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
-                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>GLOW</div>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="text-xs" style={{ color: '#4A5A56' }}>16 units</div>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#8B5CF6' }}></div>
-                      <Pen className="w-3 h-3" style={{ color: '#6B7280' }} />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}></div>
-                      <div className="text-sm font-semibold" style={{ color: '#2F3B3A' }}>NAD+</div>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="text-xs" style={{ color: '#4A5A56' }}>10 units</div>
-                      <Pipette className="w-3 h-3" style={{ color: '#6B7280' }} />
-                    </div>
-                  </div>
+                {/* List - line break between header and first row via widget-separator above */}
+                <div className="p-2 sm:p-4">
+                  <ul className="space-y-1.5">
+                    <li className="flex items-center justify-between gap-2 py-2.5 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(127, 158, 149, 0.4)', boxShadow: '0 1px 0 rgba(127, 158, 149, 0.08)' }}>
+                      <div className="flex items-center gap-2 flex-1 min-w-0"><div className={`font-semibold text-sm truncate ${landingChecked.b12 ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.b12 ? '#9ca3af' : '#2F3B3A' }}>B12</div></div>
+                      <div className={`text-right flex items-center gap-1.5 flex-shrink-0 ${landingChecked.b12 ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.b12 ? '#9ca3af' : undefined }}>
+                        <span className="font-medium text-xs whitespace-nowrap">1mL</span>
+                        <Pipette className="w-3.5 h-3.5" style={{ color: '#6B7280', opacity: landingChecked.b12 ? 0.5 : 1 }} />
+                        <button type="button" onClick={() => toggleLandingCheck('b12')} className="w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.b12 ? '#7F9E95' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.b12 ? '#7F9E95' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.b12 ? 'Mark incomplete' : 'Mark complete'}>
+                          {landingChecked.b12 && <Check size={14} className="text-white" style={{ strokeWidth: 2.5 }} />}
+                        </button>
+                      </div>
+                    </li>
+                    <li className="flex items-center justify-between gap-2 py-2.5 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(75, 95, 88, 0.5)', boxShadow: '0 1px 0 rgba(127, 158, 149, 0.08)' }}>
+                      <div className="flex items-center gap-2 flex-1 min-w-0"><div className={`font-semibold text-sm truncate ${landingChecked.glow ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.glow ? '#9ca3af' : '#2F3B3A' }}>GLOW</div></div>
+                      <div className={`text-right flex items-center gap-1.5 flex-shrink-0 ${landingChecked.glow ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.glow ? '#9ca3af' : undefined }}>
+                        <span className="font-medium text-xs whitespace-nowrap">16 units</span>
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#8B5CF6', border: '1px solid rgba(0,0,0,0.12)', opacity: landingChecked.glow ? 0.5 : 1 }} />
+                        <Pen className="w-3.5 h-3.5" style={{ color: '#6B7280', opacity: landingChecked.glow ? 0.5 : 1 }} />
+                        <button type="button" onClick={() => toggleLandingCheck('glow')} className="w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.glow ? '#3d5a4c' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.glow ? '#3d5a4c' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.glow ? 'Mark incomplete' : 'Mark complete'}>
+                          {landingChecked.glow && <Check size={14} className="text-white" style={{ strokeWidth: 2.5 }} />}
+                        </button>
+                      </div>
+                    </li>
+                    <li className="flex items-center justify-between gap-2 py-2.5 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(127, 158, 149, 0.4)', boxShadow: 'none' }}>
+                      <div className="flex items-center gap-2 flex-1 min-w-0"><div className={`font-semibold text-sm truncate ${landingChecked.nad ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.nad ? '#9ca3af' : '#2F3B3A' }}>NAD+</div></div>
+                      <div className={`text-right flex items-center gap-1.5 flex-shrink-0 ${landingChecked.nad ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.nad ? '#9ca3af' : undefined }}>
+                        <span className="font-medium text-xs whitespace-nowrap">10 units</span>
+                        <Pipette className="w-3.5 h-3.5" style={{ color: '#6B7280', opacity: landingChecked.nad ? 0.5 : 1 }} />
+                        <button type="button" onClick={() => toggleLandingCheck('nad')} className="w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.nad ? '#7F9E95' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.nad ? '#7F9E95' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.nad ? 'Mark incomplete' : 'Mark complete'}>
+                          {landingChecked.nad && <Check size={14} className="text-white" style={{ strokeWidth: 2.5 }} />}
+                        </button>
+                      </div>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -295,65 +297,52 @@ export default function Landing() {
              </div>
             </div>
 
-           {/* Right Side - Today's Research Visual (matches app widget styling) */}
-           <div className="flex justify-end items-center">
+           {/* Right Side - Today's Research Visual (TasksWidget/TasksList UI) */}
+           <div className="flex justify-end items-center landing-todays-research-animate">
               <div className="w-full max-w-sm md:max-w-md">
-                {/* Today's Research Card - same look as Dashboard Today's Research widget */}
-                <div className="p-4 md:p-6 rounded-xl glass-panel-depth widget-card-hover">
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-3 md:mb-6">
-                    <h3 className="text-sm md:text-xl font-semibold" style={{ color: '#2F3B3A' }}>Today's Research</h3>
-                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#7F9E95' }}>
-                      <CheckCircle className="w-3 h-3 md:w-5 md:h-5" style={{ color: '#FFFFFF' }} />
+                <div className="rounded-xl glass-panel-depth widget-card-hover overflow-hidden">
+                  {/* Header with separator line (same as TasksWidget) */}
+                  <div className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator" style={{ borderColor: 'rgba(47, 59, 58, 0.15)', background: 'linear-gradient(135deg, rgba(127, 158, 149, 0.08), rgba(127, 158, 149, 0.03))' }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: '#2F3B3A' }}>Today's Research</h3>
+                      <CheckSquare className="w-5 h-5 flex-shrink-0" style={{ color: '#7F9E95' }} />
                     </div>
                   </div>
-                  
-                  {/* Research Items */}
-                  <div className="space-y-2 md:space-y-4">
-                    <div className="flex items-center justify-between p-2 md:p-3 rounded-lg cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02]" style={{ backgroundColor: '#F8F9FA' }}>
-                      <div className="flex items-center space-x-2 md:space-x-4">
-                        <div className="w-3 h-3 md:w-4 md:h-4 rounded-full border-2 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-green-600 flex items-center justify-center group" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}>
-                          <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100" style={{ backgroundColor: '#7F9E95' }}></div>
+                  {/* List - line break between header and first row via widget-separator above */}
+                  <div className="p-2 sm:p-4">
+                    <ul className="space-y-1.5 sm:space-y-2">
+                      <li className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(127, 158, 149, 0.4)', boxShadow: '0 1px 0 rgba(127, 158, 149, 0.08)' }}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"><div className={`font-semibold text-xs sm:text-sm truncate ${landingChecked.b12 ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.b12 ? '#9ca3af' : '#2F3B3A' }}>B12</div></div>
+                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${landingChecked.b12 ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.b12 ? '#9ca3af' : undefined }}>
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">1mL</span>
+                          <Pipette className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#6B7280', opacity: landingChecked.b12 ? 0.5 : 1 }} />
+                          <button type="button" onClick={() => toggleLandingCheck('b12')} className="w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.b12 ? '#7F9E95' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.b12 ? '#7F9E95' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.b12 ? 'Mark incomplete' : 'Mark complete'}>
+                            {landingChecked.b12 && <Check size={14} className="sm:w-[18px] sm:h-[18px] text-white" style={{ strokeWidth: 2.5 }} />}
+                          </button>
                         </div>
-                        <div className="text-sm md:text-base font-semibold" style={{ color: '#2F3B3A' }}>B12</div>
-                      </div>
-                      <div className="flex items-center space-x-1 md:space-x-2">
-                        <div className="text-xs md:text-sm" style={{ color: '#4A5A56' }}>1mL</div>
-                        <Pipette className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-2 md:p-3 rounded-lg cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02]" style={{ backgroundColor: '#F8F9FA' }}>
-                      <div className="flex items-center space-x-2 md:space-x-4">
-                        <div className="w-3 h-3 md:w-4 md:h-4 rounded-full border-2 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-green-600 flex items-center justify-center group" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}>
-                          <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100" style={{ backgroundColor: '#5F7F76' }}></div>
+                      </li>
+                      <li className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(75, 95, 88, 0.5)', boxShadow: '0 1px 0 rgba(127, 158, 149, 0.08)' }}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"><div className={`font-semibold text-xs sm:text-sm truncate ${landingChecked.glow ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.glow ? '#9ca3af' : '#2F3B3A' }}>GLOW</div></div>
+                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${landingChecked.glow ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.glow ? '#9ca3af' : undefined }}>
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">16 units</span>
+                          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: '#8B5CF6', border: '1px solid rgba(0,0,0,0.12)', opacity: landingChecked.glow ? 0.5 : 1 }} />
+                          <Pen className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#6B7280', opacity: landingChecked.glow ? 0.5 : 1 }} />
+                          <button type="button" onClick={() => toggleLandingCheck('glow')} className="w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.glow ? '#3d5a4c' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.glow ? '#3d5a4c' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.glow ? 'Mark incomplete' : 'Mark complete'}>
+                            {landingChecked.glow && <Check size={14} className="sm:w-[18px] sm:h-[18px] text-white" style={{ strokeWidth: 2.5 }} />}
+                          </button>
                         </div>
-                        <div className="text-sm md:text-base font-semibold" style={{ color: '#2F3B3A' }}>GLOW</div>
-                      </div>
-                      <div className="flex items-center space-x-1 md:space-x-2">
-                        <div className="text-xs md:text-sm" style={{ color: '#4A5A56' }}>16 units</div>
-                          <div className="flex items-center space-x-1">
-                            <div className="relative cursor-pointer group">
-                              <div className="w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg" style={{ backgroundColor: '#8B5CF6' }}></div>
-                              <div className="absolute inset-0 w-2 h-2 md:w-3 md:h-3 rounded-full bg-gradient-to-br from-white/30 to-transparent transition-opacity duration-200 group-hover:from-white/50"></div>
-                            </div>
-                            <Pen className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-purple-600" style={{ color: '#6B7280' }} />
-                          </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-2 md:p-3 rounded-lg cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02]" style={{ backgroundColor: '#F8F9FA' }}>
-                      <div className="flex items-center space-x-2 md:space-x-4">
-                        <div className="w-3 h-3 md:w-4 md:h-4 rounded-full border-2 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-green-600 flex items-center justify-center group" style={{ backgroundColor: '#FFFFFF', borderColor: '#DDE6DE' }}>
-                          <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100" style={{ backgroundColor: '#7F9E95' }}></div>
+                      </li>
+                      <li className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" style={{ backgroundColor: 'transparent', borderLeft: '3px solid rgba(127, 158, 149, 0.4)', boxShadow: 'none' }}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"><div className={`font-semibold text-xs sm:text-sm truncate ${landingChecked.nad ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.nad ? '#9ca3af' : '#2F3B3A' }}>NAD+</div></div>
+                        <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${landingChecked.nad ? 'line-through decoration-2' : ''}`} style={{ color: landingChecked.nad ? '#9ca3af' : undefined }}>
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">10 units</span>
+                          <Pipette className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#6B7280', opacity: landingChecked.nad ? 0.5 : 1 }} />
+                          <button type="button" onClick={() => toggleLandingCheck('nad')} className="w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation" style={{ borderColor: landingChecked.nad ? '#7F9E95' : 'rgba(127, 158, 149, 0.4)', backgroundColor: landingChecked.nad ? '#7F9E95' : 'transparent', borderRadius: '4px', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.12)', WebkitTapHighlightColor: 'transparent' }} title={landingChecked.nad ? 'Mark incomplete' : 'Mark complete'}>
+                            {landingChecked.nad && <Check size={14} className="sm:w-[18px] sm:h-[18px] text-white" style={{ strokeWidth: 2.5 }} />}
+                          </button>
                         </div>
-                        <div className="text-sm md:text-base font-semibold" style={{ color: '#2F3B3A' }}>NAD+</div>
-                      </div>
-                      <div className="flex items-center space-x-1 md:space-x-2">
-                        <div className="text-xs md:text-sm" style={{ color: '#4A5A56' }}>10 units</div>
-                        <Pipette className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
-                      </div>
-                    </div>
+                      </li>
+                    </ul>
                   </div>
                 </div>
                 
@@ -449,13 +438,42 @@ export default function Landing() {
             </h2>
           </div>
           
-          <div className="text-center mb-8">
+          {/* Protocols — star of the show */}
+          <div 
+            className="mb-10 rounded-2xl p-6 sm:p-8 md:p-10 text-center md:text-left md:flex md:items-center md:gap-8 md:max-w-4xl md:mx-auto"
+            style={{ backgroundColor: '#FFFFFF', border: '2px solid #DDE6DE', boxShadow: '0 4px 20px rgba(127, 158, 149, 0.12)' }}
+          >
+            <div className="flex justify-center md:justify-start md:flex-shrink-0 mb-4 md:mb-0">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#7F9E95', boxShadow: '0 4px 14px rgba(127, 158, 149, 0.35)' }}>
+                <Calendar className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: '#FFFFFF' }} />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                Protocols — The heart of your research
+              </h3>
+              <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: '#4A5A56' }}>
+                Keep your dedicated info in one spot. Schedule your next research protocol—doses, timing, notes—and let the app do the rest. One place to plan, track, and stay on top of every run.
+              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#7F9E95' }}>What you can do that others can&apos;t</p>
+              <ul className="space-y-1.5 text-sm" style={{ color: '#4A5A56' }}>
+                <li>Titration scheduling — plan multi-phase dose changes and stay on track.</li>
+                <li>Need to take a break on increasing? Hold your current dosage tracking and resume when you need to increase dose again.</li>
+                <li>Half-life tracking — so you and your calendar stay in the know.</li>
+                <li>Delivery methods — hello, pen users! Pens, syringes, pipettes, and more.</li>
+                <li>Washout periods — visualized so you know when you&apos;re clear.</li>
+                <li>Custom reminders for each protocol!</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-center mb-6">
             <h3 className="text-base sm:text-xl font-semibold" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              Track your research in areas such as:
+              Plus the rest of your toolkit:
             </h3>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
             {features.map((feature, index) => (
               <div 
                 key={index} 

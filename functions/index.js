@@ -3683,7 +3683,7 @@ exports.submitAccountDeletionRequest = onCall(
         logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
       }
 
-      // Get subscription info
+      // Get subscription info (userSubscriptions stores nested { subscription: { status, interval, ... } })
       let subscriptionInfo = null;
       try {
         const subscriptionDoc = await db.collection('userSubscriptions').doc(userId).get();
@@ -3694,13 +3694,29 @@ exports.submitAccountDeletionRequest = onCall(
         logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
       }
 
-      // Only treat as "active subscription" (will be cancelled) for paid plans: monthly, annual, or lifetime.
-      // Trial (interval === 'trial' / status 'trialing') should NOT show "Has Active Subscription".
-      const isPaidActivePlan = subscriptionInfo && (
-        (subscriptionInfo.status === 'active' && subscriptionInfo.interval !== 'trial') ||
-        subscriptionInfo.interval === 'lifetime' ||
-        subscriptionInfo.hasLifetimeAccess
-      );
+      // Normalize: read from nested .subscription when present (canonical structure)
+      const sub = subscriptionInfo?.subscription || subscriptionInfo;
+      const subStatus = sub?.status;
+      const subInterval = sub?.interval;
+      const stripeSubId = sub?.stripeSubscriptionId || subscriptionInfo?.stripeSubscriptionId || null;
+      const gpToken = sub?.googlePlayPurchaseToken || subscriptionInfo?.googlePlayPurchaseToken || null;
+      const gpProductId = sub?.googlePlayProductId || subscriptionInfo?.googlePlayProductId || null;
+      const hasApplePaid = sub?.paymentProvider === 'apple' && (sub?.appleOriginalTransactionId || sub?.appleTransactionId);
+
+      // Shared: only "paid" status/interval (exclude trialing, trial, expired, canceled)
+      const paidIntervals = ['month', 'monthly', 'year', 'annual'];
+      const isPaidStatus = sub && subStatus !== 'trialing' && subStatus !== 'expired' &&
+        subStatus !== 'canceled' && subStatus !== 'cancelled' && subInterval !== 'trial' &&
+        ((subStatus === 'active' && paidIntervals.includes(subInterval)) || subInterval === 'lifetime' || (sub?.hasLifetimeAccess === true && subInterval === 'lifetime'));
+
+      // "Paid (will be cancelled)" when user has a real paid subscription on Stripe, Google Play, or Apple
+      const hasStripePaid = !!(stripeSubId && isPaidStatus);
+      const hasGooglePlayPaid = !!(gpToken && gpProductId && isPaidStatus);
+      const hasApplePaidSubscription = !!(hasApplePaid && isPaidStatus);
+      const isPaidActivePlan = hasStripePaid || hasGooglePlayPaid || hasApplePaidSubscription;
+
+      // Display status for admin (from normalized sub); avoid showing 'unknown' when we have no useful sub
+      const displayStatus = (subStatus || subscriptionInfo?.status || null) ? (subStatus || subscriptionInfo?.status) : (subscriptionInfo ? 'none' : 'unknown');
 
       // Create deletion request
       const deletionRequest = {
@@ -3712,11 +3728,12 @@ exports.submitAccountDeletionRequest = onCall(
         source: source || 'settings',
         dataSummary: dataSummary || {},
         subscriptionInfo: subscriptionInfo ? {
-          hasSubscription: !!isPaidActivePlan,
-          stripeSubscriptionId: subscriptionInfo.stripeSubscriptionId || null,
-          status: subscriptionInfo.status || 'unknown'
+          hasSubscription: isPaidActivePlan,
+          stripeSubscriptionId: stripeSubId,
+          status: displayStatus
         } : {
-          hasSubscription: false
+          hasSubscription: false,
+          status: 'none'
         }
       };
 
@@ -3745,8 +3762,8 @@ exports.submitAccountDeletionRequest = onCall(
             userId: userId,
             email: userEmail,
             displayName: displayName,
-            subscriptionStatus: subscriptionInfo?.status || 'none',
-            hasActiveSubscription: !!isPaidActivePlan
+            subscriptionStatus: displayStatus,
+            hasActiveSubscription: isPaidActivePlan
           }
         });
         logger.info(`✅ Work queue item created for deletion request`);
@@ -3755,14 +3772,14 @@ exports.submitAccountDeletionRequest = onCall(
         // Don't fail the request if work queue creation fails
       }
 
-      // Send admin notification email
+      // Send admin notification email (pass normalized subscription so "Active Subscription" matches Deletions tab)
       try {
         const emailService = require('./emailService');
         await emailService.sendAccountDeletionRequestAdminNotification(
           userEmail,
           displayName,
           dataSummary,
-          subscriptionInfo,
+          subscriptionInfo ? { hasSubscription: isPaidActivePlan, status: displayStatus } : null,
           source
         );
         logger.info(`✅ Admin notification email sent for deletion request`);
@@ -3889,18 +3906,7 @@ exports.deleteUserAccount = onCall(
         }
       }
 
-      // STEP 4: Send confirmation email (while we still have their email)
-      logger.info(`📧 Sending goodbye email to: ${userEmail}`);
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(userEmail, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
-      } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
-      }
-
-      // STEP 5: Delete ALL Firestore data (comprehensive cleanup)
+      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
       // A) Collections keyed by userId (direct doc delete)
       const userIdCollections = [
         'users',
@@ -4005,7 +4011,7 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Error deleting gift access: ${error.message}`);
       }
 
-      // STEP 6: Delete from Firebase Auth (FINAL step)
+      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
         logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
@@ -4016,7 +4022,20 @@ exports.deleteUserAccount = onCall(
 
       logger.info(`✅ Account deletion completed successfully for: ${userEmail} (${userId})`);
 
-      // Log deletion to Firestore for admin tracking
+      // STEP 7: Send confirmation email only AFTER data and Auth are deleted (so we only say "deleted" when it's true)
+      let goodbyeEmailSentAt = null;
+      logger.info(`📧 Sending goodbye email to: ${userEmail} (account already fully deleted)`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(userEmail, userName);
+        goodbyeEmailSentAt = admin.firestore.Timestamp.now();
+        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        // Don't fail — deletion already succeeded; user just won't get the email
+      }
+
+      // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
       try {
         await db.collection('accountDeletions').add({
           userId: userId,
@@ -4025,6 +4044,7 @@ exports.deleteUserAccount = onCall(
           deletedAt: admin.firestore.FieldValue.serverTimestamp(),
           deletionType: 'self_service',
           deletedBy: userId, // User deleted their own account
+          goodbyeEmailSentAt: goodbyeEmailSentAt || null,
           subscriptionCancelled: subscriptionInfo?.stripeSubscriptionId ? true : false,
           stripeSubscriptionId: subscriptionInfo?.stripeSubscriptionId || null,
           dataSummary: {
@@ -4035,7 +4055,6 @@ exports.deleteUserAccount = onCall(
         logger.info(`✅ Deletion logged to accountDeletions collection`);
       } catch (error) {
         logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
-        // Don't fail the deletion if logging fails
       }
 
       return {
@@ -5043,6 +5062,8 @@ exports.updateTicketStatus = onCall(
 );
 
 // Close support ticket from work queue (bypasses Firestore rules; updates ticket + ai_worker_logs)
+// Work queue can include items that are not real support tickets (e.g. account_deletion_request);
+// we always require the log to exist and update it first so the row moves to archive.
 exports.closeSupportTicketFromWorkQueue = onCall(
   {
     cors: true
@@ -5055,11 +5076,32 @@ exports.closeSupportTicketFromWorkQueue = onCall(
       throw new HttpsError('invalid-argument', 'ticketId and logId are required');
     }
 
-    try {
-      const db = admin.firestore();
-      const FieldValue = admin.firestore.FieldValue;
+    const db = admin.firestore();
+    const FieldValue = admin.firestore.FieldValue;
 
+    try {
       const ticketRef = db.collection('supportTickets').doc(ticketId);
+      const logRef = db.collection('ai_worker_logs').doc(logId);
+
+      const [ticketSnap, logSnap] = await Promise.all([ticketRef.get(), logRef.get()]);
+
+      if (!logSnap.exists) {
+        throw new HttpsError('not-found', `Work queue log ${logId} not found`);
+      }
+
+      // Always update the log first so the work queue row moves to archive even if ticket update fails
+      await logRef.update({
+        markedFixed: true,
+        markedFixedAt: FieldValue.serverTimestamp(),
+        adminNotes: adminNotes != null ? String(adminNotes) : null
+      });
+
+      if (!ticketSnap.exists) {
+        // No support ticket doc (e.g. account_deletion_request or orphan log) — log only
+        logger.info(`✅ Closed work queue log ${logId} (no support ticket ${ticketId})`);
+        return { success: true, message: 'Closed from work queue' };
+      }
+
       await ticketRef.update({
         status: 'closed',
         closedAt: FieldValue.serverTimestamp(),
@@ -5074,16 +5116,10 @@ exports.closeSupportTicketFromWorkQueue = onCall(
         logger.warn('deleteTicketImages failed for closed ticket:', imageErr.message);
       }
 
-      const logRef = db.collection('ai_worker_logs').doc(logId);
-      await logRef.update({
-        markedFixed: true,
-        markedFixedAt: FieldValue.serverTimestamp(),
-        adminNotes: adminNotes || null
-      });
-
       logger.info(`✅ Closed ticket ${ticketId} from work queue`);
       return { success: true, message: 'Ticket closed' };
     } catch (error) {
+      if (error && error.code) throw error;
       logger.error('closeSupportTicketFromWorkQueue:', error.message);
       throw new HttpsError('internal', error.message || 'Failed to close ticket');
     }
@@ -5725,18 +5761,7 @@ exports.terminateUser = onCall(
         }
       }
 
-      // STEP 4: Send confirmation email (while we still have their email)
-      logger.info(`📧 Sending goodbye email to: ${email}`);
-      try {
-        const emailService = require('./emailService');
-        await emailService.sendAccountDeletionEmail(email, userName);
-        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
-      } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        logger.warn(`⚠️ Proceeding with deletion despite email failure`);
-      }
-
-      // STEP 5: Delete ALL Firestore data (comprehensive cleanup — matches deleteUserAccount)
+      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
       const userIdCols = [
         'users', 'userData', 'userdata', 'userSubscriptions',
         'userPreferences', 'userState', 'lifetimeAccess',
@@ -5791,7 +5816,7 @@ exports.terminateUser = onCall(
         if (!g.empty) { const b = db.batch(); g.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
       } catch (e) { logger.warn(`⚠️ Error deleting gift access: ${e.message}`); }
 
-      // STEP 6: Delete from Firebase Auth (FINAL step)
+      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
         logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
@@ -5802,7 +5827,20 @@ exports.terminateUser = onCall(
 
       logger.info(`✅ Admin account termination completed successfully for: ${email} (${userId})`);
 
-      // Log deletion to Firestore for admin tracking
+      // STEP 7: Send confirmation email only AFTER data and Auth are deleted (so we only say "deleted" when it's true)
+      let goodbyeEmailSentAt = null;
+      logger.info(`📧 Sending goodbye email to: ${email} (account already fully deleted)`);
+      try {
+        const emailService = require('./emailService');
+        await emailService.sendAccountDeletionEmail(email, userName);
+        goodbyeEmailSentAt = admin.firestore.Timestamp.now();
+        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
+      } catch (error) {
+        logger.error(`❌ Could not send confirmation email: ${error.message}`);
+        // Don't fail — deletion already succeeded; user just won't get the email
+      }
+
+      // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
       try {
         const adminEmail = request.auth?.token?.email;
         await db.collection('accountDeletions').add({
@@ -5812,6 +5850,7 @@ exports.terminateUser = onCall(
           deletedAt: admin.firestore.FieldValue.serverTimestamp(),
           deletionType: 'admin_terminated',
           deletedBy: adminEmail || 'unknown_admin',
+          goodbyeEmailSentAt: goodbyeEmailSentAt || null,
           subscriptionCancelled: subscriptionInfo?.stripeSubscriptionId ? true : false,
           stripeSubscriptionId: subscriptionInfo?.stripeSubscriptionId || null,
           dataSummary: {
@@ -5822,7 +5861,6 @@ exports.terminateUser = onCall(
         logger.info(`✅ Deletion logged to accountDeletions collection`);
       } catch (error) {
         logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
-        // Don't fail the deletion if logging fails
       }
       
       return {

@@ -83,14 +83,22 @@ export default function AccountDeletionHistory({ theme }) {
     return matchesSearch;
   });
 
+  const formatGoodbyeSent = (d) => {
+    const ts = d.goodbyeEmailSentAt;
+    if (!ts) return '—';
+    const date = ts?.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
+    return date ? formatDateTime(date) : '—';
+  };
+
   const exportToCSV = () => {
-    const headers = ['Date', 'Email', 'Name', 'Type', 'Deleted By', 'Subscription Cancelled', 'Stripe Subscription ID'];
+    const headers = ['Date', 'Email', 'Name', 'Type', 'Deleted By', 'Goodbye Email Sent', 'Subscription Cancelled', 'Stripe Subscription ID'];
     const rows = filteredDeletions.map(d => [
       d.deletedAt?.toDate ? formatDateTime(d.deletedAt.toDate()) : 'Unknown',
       d.userEmail || 'N/A',
       d.userName || 'N/A',
       d.deletionType === 'self_service' ? 'Self Service' : 'Admin Terminated',
       d.deletedBy || 'N/A',
+      formatGoodbyeSent(d),
       d.subscriptionCancelled ? 'Yes' : 'No',
       d.stripeSubscriptionId || 'N/A'
     ]);
@@ -236,13 +244,14 @@ export default function AccountDeletionHistory({ theme }) {
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: theme.textLight }}>Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: theme.textLight }}>Type</th>
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: theme.textLight }}>Deleted By</th>
+                <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: theme.textLight }}>Goodbye email sent</th>
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: theme.textLight }}>Subscription</th>
               </tr>
             </thead>
             <tbody>
               {filteredDeletions.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-sm" style={{ color: theme.textLight }}>
+                  <td colSpan="7" className="px-4 py-8 text-center text-sm" style={{ color: theme.textLight }}>
                     {searchTerm ? 'No deletions found matching your search' : 'No account deletions recorded yet'}
                   </td>
                 </tr>
@@ -293,6 +302,11 @@ export default function AccountDeletionHistory({ theme }) {
                         ) : (
                           deletion.deletedBy || 'Unknown'
                         )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm" style={{ color: theme.text }}>
+                        {formatGoodbyeSent(deletion)}
                       </div>
                     </td>
                     <td className="px-4 py-3">
