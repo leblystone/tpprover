@@ -15,7 +15,6 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
   const timeoutRef = useRef(null);
   const previousDataRef = useRef(null);
   const isSubmittedRef = useRef(false);
-  const isSavingActiveRef = useRef(false);
   const isLoadingRef = useRef(false);
 
   // Store setFormData in ref to avoid dependency issues
@@ -62,34 +61,27 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     onAutoSaveRef.current = onAutoSave;
   }, [onAutoSave]);
 
-  // Auto-save when form data changes
+  // Auto-save when form data changes (debounced)
   useEffect(() => {
-    if (isSubmittedRef.current) return; // Don't save if form was just submitted
-    if (isSavingActiveRef.current) return; // Don't trigger if already saving
-    if (isLoadingRef.current) return; // Don't save while loading initial data
+    if (isSubmittedRef.current) return;
+    if (isLoadingRef.current) return;
 
-    // Skip if data hasn't actually changed
     const currentDataString = JSON.stringify(formData);
     const previousDataString = JSON.stringify(previousDataRef.current);
     if (currentDataString === previousDataString) {
       return;
     }
 
-    // Skip if form is empty/default
     if (!formData || Object.keys(formData).length === 0) {
       return;
     }
 
-    // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    // Set saving state
-      isSavingActiveRef.current = true;
-      setIsSaving(true);
+    setIsSaving(true);
 
-    // Auto-save after delay
     timeoutRef.current = setTimeout(async () => {
       try {
         const saveData = {
@@ -100,10 +92,8 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
         localStorage.setItem(storageKey, JSON.stringify(saveData));
         const savedTime = new Date();
         setLastSaved(savedTime);
-        // Store a deep copy to prevent reference issues
         previousDataRef.current = JSON.parse(JSON.stringify(formData));
         
-        // Call additional auto-save callback if provided (use ref to avoid dependency)
         if (onAutoSaveRef.current && typeof onAutoSaveRef.current === 'function') {
           try {
             await onAutoSaveRef.current(formData);
@@ -112,7 +102,6 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
           }
         }
         
-        // Dispatch autosave event for protocol updates
         if (storageKey.includes('protocol_draft_')) {
           window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
             detail: { storageKey, formData }
@@ -121,15 +110,12 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
       } catch (error) {
         console.warn('Failed to auto-save data:', error);
       } finally {
-        isSavingActiveRef.current = false;
         setIsSaving(false);
         timeoutRef.current = null;
       }
     }, delay);
 
     return () => {
-      // Only clear the timeout on cleanup, don't modify state
-      // State will be reset when the timeout completes
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;

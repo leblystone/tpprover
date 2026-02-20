@@ -54,7 +54,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const storageKey = embedded
         ? `tpprover_protocol_draft_embedded_${protocol?.id || 'new'}`
         : `tpprover_protocol_draft_${protocol?.id || 'new'}`;
-    const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
+    const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
         storageKey, 
         form, 
         setForm, 
@@ -274,7 +274,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const handleChange = (field, value) => {
         setForm(prev => {
             const newState = { ...prev, [field]: value };
-            // If protocolName is being changed, update the first peptide's name
             if (field === 'protocolName') {
                 const newPeptides = [...(prev.peptides || [])];
                 if (newPeptides.length > 0) {
@@ -283,18 +282,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 }
             }
             
-            // If protocolType is being changed to blended, initialize sharedFrequency from first peptide
             if (field === 'protocolType' && value === 'blended' && prev.peptides && prev.peptides.length > 0) {
                 newState.sharedFrequency = prev.peptides[0].frequency || { type: 'daily', time: ['AM'] };
-                // Sync all peptides to use the shared frequency
                 newState.peptides = newState.peptides.map(p => ({
                     ...p,
                     frequency: newState.sharedFrequency
                 }));
             }
-            
-            // Update auto-save data
-            updateFormData(newState);
             
             return newState;
         });
@@ -306,17 +300,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             newPeptides[index] = updatedPeptide;
             const newState = { ...prev, peptides: newPeptides };
             
-            // If it's a blended protocol and the first peptide's frequency changed, update sharedFrequency
             if (prev.protocolType === 'blended' && index === 0 && updatedPeptide.frequency) {
                 newState.sharedFrequency = updatedPeptide.frequency;
-                // Also sync to all other peptides
                 newState.peptides = newState.peptides.map((p, i) => 
                     i === 0 ? p : { ...p, frequency: updatedPeptide.frequency }
                 );
             }
-            
-            // Update auto-save data
-            updateFormData(newState);
             
             return newState;
         });
@@ -336,7 +325,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
             const newState = { ...prev, sharedFrequency: newFreq };
             newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
-            updateFormData(newState);
             return newState;
         });
     };
@@ -350,7 +338,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             const newFreq = { ...base, time: newTime };
             const newState = { ...prev, sharedFrequency: newFreq };
             newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
-            updateFormData(newState);
             return newState;
         });
     };
@@ -366,17 +353,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             if (!newFreq.time?.length) newFreq.time = ['AM'];
             const newState = { ...prev, sharedFrequency: newFreq };
             newState.peptides = newState.peptides.map(p => ({ ...p, frequency: newFreq }));
-            updateFormData(newState);
             return newState;
         });
     };
 
     const addPeptide = () => {
         setForm(prev => {
-            // For blended protocols, use the shared frequency (or first peptide's frequency)
             let newPeptideFrequency = { type: 'daily', time: ['AM'] };
             if (prev.protocolType === 'blended' && prev.peptides && prev.peptides.length > 0) {
-                // Use sharedFrequency if available, otherwise use first peptide's frequency
                 newPeptideFrequency = prev.sharedFrequency || prev.peptides[0].frequency || { type: 'daily', time: ['AM'] };
             }
             
@@ -385,17 +369,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 peptides: [...(prev.peptides || []), { id: generateId(), frequency: newPeptideFrequency, unitValue: '', halfLife: { value: '', unit: 'hours' } }]
             };
             
-            // Auto-set to 'separate' if only 1 peptide (shouldn't happen here, but ensure consistency)
             if (newState.peptides.length === 1) {
                 newState.protocolType = 'separate';
             }
             
-            // Auto-expand the newly added peptide
             const newIndex = newState.peptides.length - 1;
             setExpandedPeptides(prev => new Set([...prev, newIndex]));
-            
-            // Update auto-save data
-            updateFormData(newState);
             
             return newState;
         });
@@ -420,12 +399,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 peptides: prev.peptides.filter((_, i) => i !== index)
             };
             
-            // Auto-set to 'separate' if only 1 peptide remains
             if (newState.peptides.length === 1) {
                 newState.protocolType = 'separate';
             }
             
-            // Update expanded peptides - remove the deleted index and adjust others
             setExpandedPeptides(prevExpanded => {
                 const newExpanded = new Set();
                 prevExpanded.forEach(expandedIndex => {
@@ -435,50 +412,31 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         newExpanded.add(expandedIndex - 1);
                     }
                 });
-                // If no peptides expanded, expand the first one
                 if (newExpanded.size === 0 && newState.peptides.length > 0) {
                     newExpanded.add(0);
                 }
                 return newExpanded;
             });
             
-            // Update auto-save data
-            updateFormData(newState);
-            
             return newState;
         });
     };
 
     const handleDurationChange = (field, value) => {
-        
         setForm(prev => {
-            // For count field, keep it simple - let the HTML5 number input handle validation
             const processedValue = field === 'count' ? String(value) : value;
-            
-            const newForm = {
+            return {
                 ...prev,
                 duration: { ...prev.duration, [field]: processedValue }
             };
-            
-            // Update auto-save data
-            updateFormData(newForm);
-            
-            return newForm;
         });
     };
 
     const handleWashoutChange = (field, value) => {
-        setForm(prev => {
-            const newState = {
-                ...prev,
-                washout: { ...prev.washout, [field]: value }
-            };
-            
-            // Update auto-save data
-            updateFormData(newState);
-            
-            return newState;
-        });
+        setForm(prev => ({
+            ...prev,
+            washout: { ...prev.washout, [field]: value }
+        }));
     };
 
     const handleFinalSave = async () => {

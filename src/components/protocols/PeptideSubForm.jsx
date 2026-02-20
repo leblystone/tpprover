@@ -10,6 +10,25 @@ import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
 
+function CollapsibleSection({ sectionKey, title, summary, icon: Icon, children, isOpen, onToggle, cardBorder, cardTint, accentGradient, theme }) {
+    return (
+        <div className="rounded-lg overflow-hidden relative" style={{ borderColor: cardBorder, backgroundColor: cardTint, borderWidth: '1px 1px 1px 0', borderStyle: 'solid' }}>
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[3px]" style={{ background: accentGradient }} aria-hidden />
+            <button
+                type="button"
+                onClick={() => onToggle(sectionKey)}
+                className="w-full px-3 py-2 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
+            >
+                {isOpen ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
+                {Icon && <Icon size={14} style={{ color: theme.primary, opacity: 0.9 }} />}
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>{title}</span>
+                {!isOpen && <span className="text-[11px] ml-auto truncate max-w-[50%]" style={{ color: theme.textLight }}>{summary}</span>}
+            </button>
+            {isOpen && <div className="px-3 pb-2 pt-1 border-t space-y-2" style={{ borderColor: cardBorder }}>{children}</div>}
+        </div>
+    );
+}
+
 export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide, linkedItems }) {
     const { reconItems } = useAppContext();
     // Load pen types from localStorage or use defaults
@@ -202,25 +221,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     const accentLight = theme.primaryLight || theme.primary + '99';
     const accentGradient = `linear-gradient(180deg, ${accentDark} 0%, ${accentLight} 100%)`;
 
-    const CollapsibleSection = ({ sectionKey, title, summary, icon: Icon, children }) => {
-        const isOpen = openSections[sectionKey];
-        return (
-            <div className="rounded-lg overflow-hidden relative" style={{ borderColor: cardBorder, backgroundColor: cardTint, borderWidth: '1px 1px 1px 0', borderStyle: 'solid' }}>
-                <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[3px]" style={{ background: accentGradient }} aria-hidden />
-                <button
-                    type="button"
-                    onClick={() => toggleSection(sectionKey)}
-                    className="w-full px-3 py-2 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
-                >
-                    {isOpen ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
-                    {Icon && <Icon size={14} style={{ color: theme.primary, opacity: 0.9 }} />}
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>{title}</span>
-                    {!isOpen && <span className="text-[11px] ml-auto truncate max-w-[50%]" style={{ color: theme.textLight }}>{summary}</span>}
-                </button>
-                {isOpen && <div className="px-3 pb-2 pt-1 border-t space-y-2" style={{ borderColor: cardBorder }}>{children}</div>}
-            </div>
-        );
-    };
+    const sectionProps = { onToggle: toggleSection, cardBorder, cardTint, accentGradient, theme };
 
     return (
         <div className="space-y-2">
@@ -239,7 +240,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 </div>
 
                 {/* Dosage Schedule — collapsible */}
-                <CollapsibleSection sectionKey="dosage" title="Dosage Schedule" summary={dosageSummary} icon={Pipette}>
+                <CollapsibleSection sectionKey="dosage" title="Dosage Schedule" summary={dosageSummary} icon={Pipette} isOpen={openSections.dosage} {...sectionProps}>
                 <div className="space-y-2">
                     
                     {/* Dosage Type Toggle - preserve both fixed and titration data when switching */}
@@ -435,7 +436,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 </CollapsibleSection>
 
                 {/* Half-Life (Optional) — collapsible */}
-                <CollapsibleSection sectionKey="halfLife" title="Half-Life (optional)" summary={halfLifeSummary} icon={Clock}>
+                <CollapsibleSection sectionKey="halfLife" title="Half-Life (optional)" summary={halfLifeSummary} icon={Clock} isOpen={openSections.halfLife} {...sectionProps}>
                     <div className="flex items-stretch rounded-lg"
                         style={{
                             border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7'}`,
@@ -490,7 +491,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 pt-0">
                         {/* Delivery Column — collapsible */}
-                        <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Pipette}>
+                        <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Pipette} isOpen={openSections.delivery} {...sectionProps}>
                                 <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-1.5">
                                     <button 
@@ -718,7 +719,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         </CollapsibleSection>
 
                         {/* Frequency Column — collapsible */}
-                        <CollapsibleSection sectionKey="frequency" title="Frequency & Schedule" summary={frequencySummary} icon={Bell}>
+                        <CollapsibleSection sectionKey="frequency" title="Frequency & Schedule" summary={frequencySummary} icon={Bell} isOpen={openSections.frequency} {...sectionProps}>
                             <div className="space-y-2">
                                 <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle'].map(type => (
