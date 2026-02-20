@@ -440,29 +440,51 @@ export default function Landing() {
           
           {/* Protocols — star of the show */}
           <div 
-            className="mb-10 rounded-2xl p-6 sm:p-8 md:p-10 text-center md:text-left md:flex md:items-center md:gap-8 md:max-w-4xl md:mx-auto"
+            className="mb-10 rounded-2xl p-6 sm:p-8 md:p-10 md:max-w-4xl md:mx-auto"
             style={{ backgroundColor: '#FFFFFF', border: '2px solid #DDE6DE', boxShadow: '0 4px 20px rgba(127, 158, 149, 0.12)' }}
           >
-            <div className="flex justify-center md:justify-start md:flex-shrink-0 mb-4 md:mb-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#7F9E95', boxShadow: '0 4px 14px rgba(127, 158, 149, 0.35)' }}>
-                <Calendar className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: '#FFFFFF' }} />
+            {/* Icon + title aligned on same row */}
+            <div className="flex items-center gap-3 sm:gap-4 mb-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#7F9E95', boxShadow: '0 3px 10px rgba(127, 158, 149, 0.3)' }}>
+                <Calendar className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: '#FFFFFF' }} />
               </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold m-0" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
                 Protocols — The heart of your research
               </h3>
-              <p className="text-sm sm:text-base leading-relaxed mb-4" style={{ color: '#4A5A56' }}>
-                Keep your dedicated info in one spot. Schedule your next research protocol—doses, timing, notes—and let the app do the rest. One place to plan, track, and stay on top of every run.
-              </p>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#7F9E95' }}>What you can do that others can&apos;t</p>
-              <ul className="space-y-1.5 text-sm" style={{ color: '#4A5A56' }}>
-                <li>Titration scheduling — plan multi-phase dose changes and stay on track.</li>
-                <li>Need to take a break on increasing? Hold your current dosage tracking and resume when you need to increase dose again.</li>
-                <li>Half-life tracking — so you and your calendar stay in the know.</li>
-                <li>Delivery methods — hello, pen users! Pens, syringes, pipettes, and more.</li>
-                <li>Washout periods — visualized so you know when you&apos;re clear.</li>
-                <li>Custom reminders for each protocol!</li>
+            </div>
+            <p className="text-sm sm:text-base leading-relaxed mb-5" style={{ color: '#4A5A56' }}>
+              Keep your dedicated info in one spot. Schedule your next research protocol—doses, timing, notes—and let the app do the rest. One place to plan, track, and stay on top of every run.
+            </p>
+            {/* What you can do — clear visual hierarchy */}
+            <div className="pt-4 border-t" style={{ borderColor: 'rgba(127, 158, 149, 0.2)' }}>
+              <h4 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                What you can do that others can&apos;t
+              </h4>
+              <ul className="space-y-2.5 text-sm pl-1" style={{ color: '#4A5A56', listStyle: 'none' }}>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>Titration scheduling</strong> — plan multi-phase dose changes and stay on track.</span>
+                </li>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span>Need to take a break on increasing? <strong style={{ color: '#2F3B3A' }}>Hold your current dosage</strong> and resume when you need to increase dose again.</span>
+                </li>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>Half-life tracking</strong> — so you and your calendar stay in the know.</span>
+                </li>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>Delivery methods</strong> — Love your Savvio? Pens, syringes, nasal, and more.</span>
+                </li>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>Washout periods</strong> — visualized so you know when you&apos;re clear.</span>
+                </li>
+                <li className="flex gap-2 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>Custom reminders for each protocol!</strong></span>
+                </li>
               </ul>
             </div>
           </div>
