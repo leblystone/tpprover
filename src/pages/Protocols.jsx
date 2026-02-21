@@ -139,19 +139,24 @@ export default function Protocols() {
     }
   }, [protocols, location.pathname]);
 
-  // Listen for history updates to refresh the modal
+  // Listen for history and user-notes updates to refresh the modal
   useEffect(() => {
     const handleHistoryUpdate = () => {
       setHistoryRefreshKey(prev => prev + 1);
-      // Reload notes if notes tab is active
       if (manageTab === 'notes' && manageConfirm) {
         loadNotesForManage();
       }
     };
-    
+    const handleUserNotesUpdate = () => {
+      if (manageTab === 'notes' && manageConfirm) {
+        loadNotesForManage();
+      }
+    };
     window.addEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+    window.addEventListener('tpp:user-notes-updated', handleUserNotesUpdate);
     return () => {
       window.removeEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+      window.removeEventListener('tpp:user-notes-updated', handleUserNotesUpdate);
     };
   }, [manageTab, manageConfirm]);
 
@@ -163,18 +168,42 @@ export default function Protocols() {
   }, [manageTab, manageConfirm]);
 
 
-  // Load notes for manage modal
+  // Linked research notes (from Research Notes widget) for current protocol
+  const getLinkedResearchNotesForProtocol = (protocolId) => {
+    try {
+      const raw = localStorage.getItem('tpprover_user_notes');
+      const all = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(all) || !protocolId) return [];
+      return all
+        .filter(n => n && n.protocolId === protocolId)
+        .map(n => ({
+          id: n.id,
+          content: [n.title && n.title !== 'Untitled' ? n.title : null, n.content].filter(Boolean).join('\n'),
+          createdAt: n.createdAt,
+          tags: [],
+          _source: 'research'
+        }));
+    } catch {
+      return [];
+    }
+  };
+
+  // Load notes for manage modal (protocol history notes + research notes linked to this protocol)
   const loadNotesForManage = () => {
     if (!manageConfirm?.id) return;
     
     const activeEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+    const protocolNotes = (activeEntry?.notes || []).map(n => ({ ...n, _source: 'protocol' }));
+    const linkedResearch = getLinkedResearchNotesForProtocol(manageConfirm.id);
+    const merged = [...protocolNotes, ...linkedResearch].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     if (activeEntry) {
       setNotesHistoryEntryId(activeEntry.id);
-      setNotes(activeEntry.notes || []);
     } else {
       setNotesHistoryEntryId(null);
-      setNotes([]);
     }
+    setNotes(merged);
   };
 
   // Notes helper functions
@@ -3476,79 +3505,89 @@ export default function Protocols() {
                         <p className="text-xs opacity-40 mt-1">Add your first note to track progress</p>
                       </div>
                     ) : (
-                      notes.map((note, noteIdx) => (
-                        <div
-                          key={note.id}
-                          className="rounded-lg overflow-hidden flex"
-                          style={{
-                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
-                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}`
-                          }}
-                        >
-                          <div className="w-1 flex-shrink-0 rounded-l-lg" style={{ background: `linear-gradient(to bottom, #445952, #6B7F77)` }} />
-                          <div className="flex-1 min-w-0 p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ color: theme.textLight }}>
-                                <span>{formatMMDDYYYY(note.createdAt)}</span>
-                                {note.linkedDate && (
-                                  <span className="flex items-center gap-1 opacity-70">
-                                    <Calendar size={10} />
-                                    {formatMMDDYYYY(note.linkedDate)}
-                                  </span>
+                      notes.map((note, noteIdx) => {
+                        const isResearchNote = note._source === 'research';
+                        return (
+                          <div
+                            key={note.id}
+                            className="rounded-lg overflow-hidden flex"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
+                              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}`
+                            }}
+                          >
+                            <div className="w-1 flex-shrink-0 rounded-l-lg" style={{ background: `linear-gradient(to bottom, #445952, #6B7F77)` }} />
+                            <div className="flex-1 min-w-0 p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ color: theme.textLight }}>
+                                    <span>{formatMMDDYYYY(note.createdAt)}</span>
+                                    {isResearchNote && (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: theme.primary + '25', color: theme.primary }}>
+                                        From Research Notes
+                                      </span>
+                                    )}
+                                    {!isResearchNote && note.linkedDate && (
+                                      <span className="flex items-center gap-1 opacity-70">
+                                        <Calendar size={10} />
+                                        {formatMMDDYYYY(note.linkedDate)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {note.content && (
+                                    <p className="text-sm mt-1.5 whitespace-pre-wrap leading-relaxed" style={{ color: theme.text }}>
+                                      {note.content}
+                                    </p>
+                                  )}
+                                  {!isResearchNote && note.tags && note.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                      {note.tags.map(tagId => {
+                                        const label = NOTE_LABELS.find(t => t.id === tagId);
+                                        if (!label) return null;
+                                        const LabelIcon = label.icon;
+                                        return (
+                                          <span
+                                            key={tagId}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider"
+                                            style={{
+                                              backgroundColor: '#6B7F77' + '18',
+                                              color: '#6B7F77',
+                                              border: '1px solid #6B7F7720'
+                                            }}
+                                          >
+                                            <LabelIcon size={10} />
+                                            {label.label}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                                {!isResearchNote && (
+                                  <div className="flex gap-0.5 flex-shrink-0">
+                                    <button
+                                      onClick={() => handleEditNote({ ...note, showLinkedDate: !!note.linkedDate })}
+                                      className="p-1.5 rounded-lg hover:opacity-70 transition-all"
+                                      style={{ color: theme.textLight }}
+                                      title="Edit note"
+                                    >
+                                      <Edit3 size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteNote(note.id)}
+                                      className="p-1.5 rounded-lg hover:opacity-70 transition-all"
+                                      style={{ color: theme.textLight }}
+                                      title="Delete note"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
-                              {note.content && (
-                                <p className="text-sm mt-1.5 whitespace-pre-wrap leading-relaxed" style={{ color: theme.text }}>
-                                  {note.content}
-                                </p>
-                              )}
-                              {note.tags && note.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                  {note.tags.map(tagId => {
-                                    const label = NOTE_LABELS.find(t => t.id === tagId);
-                                    if (!label) return null;
-                                    const LabelIcon = label.icon;
-                                    return (
-                                      <span
-                                        key={tagId}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider"
-                                        style={{
-                                          backgroundColor: '#6B7F77' + '18',
-                                          color: '#6B7F77',
-                                          border: '1px solid #6B7F7720'
-                                        }}
-                                      >
-                                        <LabelIcon size={10} />
-                                        {label.label}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-0.5 flex-shrink-0">
-                              <button
-                                onClick={() => handleEditNote({ ...note, showLinkedDate: !!note.linkedDate })}
-                                className="p-1.5 rounded-lg hover:opacity-70 transition-all"
-                                style={{ color: theme.textLight }}
-                                title="Edit note"
-                              >
-                                <Edit3 size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="p-1.5 rounded-lg hover:opacity-70 transition-all"
-                                style={{ color: theme.textLight }}
-                                title="Delete note"
-                              >
-                                <Trash2 size={14} />
-                              </button>
                             </div>
                           </div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}
