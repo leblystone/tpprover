@@ -17,6 +17,15 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Reshipper','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
 
+/** Format phone string to xxx-xxx-xxxx (10-digit US). Handles 10 or 11 digits (leading 1). */
+function formatPhoneDisplay(value) {
+  if (!value || typeof value !== 'string') return ''
+  let digits = value.replace(/\D/g, '')
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1)
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  return value
+}
+
 const getLabelIcon = (label) => {
   const labelLower = label.toLowerCase()
   switch (labelLower) {
@@ -76,6 +85,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       if (!Array.isArray(base.contacts) || base.contacts.length === 0) {
         base.contacts = [{ type: 'email', value: '' }]
       }
+      // Format phone contact values to xxx-xxx-xxxx when loading
+      base.contacts = base.contacts.map((c) => {
+        if (c.type === 'phone' && (c.value || '').replace(/\D/g, '').length >= 10) {
+          const formatted = formatPhoneDisplay(c.value)
+          if (formatted !== (c.value || '')) return { ...c, value: formatted }
+        }
+        return c
+      })
       // Fix: Ensure rating is a number and labels is an array
       if (typeof base.rating !== 'number') {
         base.rating = 0;
@@ -380,7 +397,16 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                         value={c.value || ''} 
                         onChange={e => updateContact(idx, 'value', e.target.value)} 
                         onFocus={() => setContactFocused(prev => ({ ...prev, [idx]: true }))}
-                        onBlur={() => setTimeout(() => setContactFocused(prev => ({ ...prev, [idx]: false })), 200)}
+                        onBlur={() => {
+                          const val = c.value || ''
+                          if (c.type === 'phone' && val.replace(/\D/g, '').length >= 10) {
+                            const formatted = formatPhoneDisplay(val)
+                            if (formatted !== val) {
+                              setTimeout(() => updateContact(idx, 'value', formatted), 0)
+                            }
+                          }
+                          setTimeout(() => setContactFocused(prev => ({ ...prev, [idx]: false })), 200)
+                        }}
                         placeholder={getContactPlaceholder(c.type)}
                         className="flex-1 py-3 px-4 outline-none text-sm font-medium"
                         style={{
