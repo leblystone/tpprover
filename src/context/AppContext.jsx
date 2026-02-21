@@ -24,6 +24,7 @@ import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
+import { runDataFixups } from '../utils/dataFixups';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -1201,6 +1202,18 @@ export function AppProvider({ children }) {
                 const cloudSubscription = await loadUserSubscription(userId);
                 if (cloudSubscription && !cloudSubscription.id?.includes('lab_access') && !cloudSubscription.id?.includes('demo') && !cloudSubscription.id?.includes('test') && cloudSubscription.status !== 'lab_access') {
                     setSubscription(cloudSubscription);
+                }
+
+                // 🩹 Retroactive data fixups — repair existing entries affected by past bugs.
+                // Runs after merge so localStorage has the latest data; bumps updatedAt
+                // on patched items so normal auto-sync pushes corrections to cloud.
+                try {
+                    const fixupResults = runDataFixups();
+                    if (fixupResults.totalPatched > 0) {
+                        console.log(`🩹 Data fixups applied: ${fixupResults.totalPatched} items repaired`);
+                    }
+                } catch (fixupError) {
+                    console.warn('⚠️ Data fixups failed (non-fatal):', fixupError);
                 }
 
                 // 🔄 Run localStorage → cloud migrations (non-destructive)
@@ -3457,6 +3470,18 @@ export function AppProvider({ children }) {
             if (!hasLoadedFromFirestoreRef.current) {
                 hasLoadedFromFirestoreRef.current = true;
                 console.log('✅ Initial Firestore load complete - auto-save now enabled');
+                
+                // 🩹 Run retroactive data fixups after listener delivers data
+                setTimeout(() => {
+                    try {
+                        const fixupResults = runDataFixups();
+                        if (fixupResults.totalPatched > 0) {
+                            console.log(`🩹 Data fixups applied (listener path): ${fixupResults.totalPatched} items repaired`);
+                        }
+                    } catch (fixupError) {
+                        console.warn('⚠️ Data fixups failed (non-fatal):', fixupError);
+                    }
+                }, 2000);
                 
                 // CATCH-UP SYNC: Check if a previous sync failed (dirty flag) or if
                 // localStorage has newer data than what's in the cloud (e.g., offline edits).
