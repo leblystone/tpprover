@@ -296,6 +296,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         const method = dm.deliveryMethod === 'pipette' ? 'Syringe' :
                        dm.deliveryMethod === 'pen' ? 'Pen' :
                        dm.deliveryMethod === 'nasal' ? 'Nasal' :
+                       dm.deliveryMethod === 'topical' ? 'Topical' :
                        dm.deliveryMethod || 'Not specified';
         return method;
     };

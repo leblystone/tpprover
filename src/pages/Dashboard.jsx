@@ -416,7 +416,7 @@ export default function Dashboard() {
               protocolId: pep.protocolId,
               peptideId: pep.peptideId,
               completed: false,
-              deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',
+              deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               penColor: pep.penColor,
               penType: pep.penType,
               protocolName: pep.name, // For blended protocols, name is the protocol name
@@ -542,7 +542,7 @@ export default function Dashboard() {
       if (t.id === id) {
         // Check if this is a syringe or pen delivery method
         const deliveryMethod = t.deliveryMethod || t.delivery;
-        const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+        const isInjection = deliveryMethod === 'pipette' || deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
         
         // Injection confirmation is now handled inline in the task components
         

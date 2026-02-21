@@ -481,8 +481,8 @@ export default function CustomizableDashboard() {
               peptideId: pep.peptideId,
               completed: false,
               // CRITICAL: Use EXACTLY what Calendar provides - no fallbacks that might override
-              deliveryMethod: pep.deliveryMethod || pep.delivery || 'injection',
-              delivery: pep.delivery || pep.deliveryMethod || 'injection',
+              deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
+              delivery: pep.delivery || pep.deliveryMethod || 'pipette',
               // CRITICAL: Preserve pen color and type - use undefined if not set (not null)
               penColor: pep.penColor,
               penType: pep.penType,

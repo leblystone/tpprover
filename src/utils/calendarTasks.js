@@ -441,7 +441,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 // CRITICAL: Match Calendar's EXACT logic for blended protocols
                 // Calendar uses: reconItem > firstPeptide (NO linkedItems check for blended)
                 // See Calendar.jsx line 615-618
-                const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'injection';
+                const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'pipette';
                 const penColor = reconItem?.penColor || firstPeptide?.penColor;
                 const penType = reconItem?.penType || firstPeptide?.penType;
 
@@ -454,7 +454,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         dose: dose,
                         unit: unit,
                         deliveryMethod: deliveryMethod,
-                        delivery: firstPeptide?.delivery || 'injection',
+                        delivery: firstPeptide?.delivery || 'pipette',
                         penColor: penColor,
                         penType: penType,
                         protocolId: p.id,
@@ -577,7 +577,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                             dose: dose,
                             unit: unit,
                             deliveryMethod: deliveryMethod,
-                            delivery: pep.delivery || 'injection',
+                            delivery: pep.delivery || 'pipette',
                             penColor: penColor,
                             penType: penType,
                             protocolId: p.id,

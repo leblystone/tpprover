@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
 import { SHARE_BASE_PATH } from '../../utils/share';
@@ -675,14 +675,18 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 )}
 
                                 {(() => {
-                                    const deliveryMethods = p.peptides && p.peptides.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))] : [];
+                                    const deliveryMethods = p.peptides && p.peptides.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'pipette'))] : [];
                                     if (deliveryMethods.length === 0) return null;
+                                    const iconMap = { pipette: Pipette, pen: Pen, nasal: Droplets, topical: Hand };
+                                    const labelMap = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' };
+                                    const primary = deliveryMethods[0];
+                                    const Icon = iconMap[primary] || Pipette;
                                     return (
                                         <div className="flex items-center gap-2 text-sm">
-                                            {deliveryMethods.includes('pen') ? <Pen size={14} className="opacity-50" /> : <Pipette size={14} className="opacity-50" />}
+                                            <Icon size={14} className="opacity-50" />
                                             <span style={{ color: theme.text }}>
                                                 {deliveryMethods.length === 1 
-                                                    ? (deliveryMethods[0] === 'pen' ? 'Pen' : 'Syringe')
+                                                    ? (labelMap[primary] || 'Syringe')
                                                     : 'Mixed'
                                                 }
                                             </span>

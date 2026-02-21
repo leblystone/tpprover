@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, Hand, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -1160,11 +1160,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                 <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
                                                     Delivery Method
                                                 </label>
-                                                <div className="grid grid-cols-3 gap-2">
+                                                <div className="grid grid-cols-4 gap-2">
                                                     {[
                                                         { key: 'pipette', icon: Pipette, label: 'Syringe' },
                                                         { key: 'pen', icon: Pen, label: 'Pen' },
-                                                        { key: 'nasal', icon: Droplets, label: 'Nasal' }
+                                                        { key: 'nasal', icon: Droplets, label: 'Nasal' },
+                                                        { key: 'topical', icon: Hand, label: 'Topical' }
                                                     ].map(method => {
                                                         const Icon = method.icon;
                                                         const isSelected = deliveryData.deliveryMethod === method.key;
