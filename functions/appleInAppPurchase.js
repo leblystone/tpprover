@@ -287,6 +287,9 @@ exports.appleWebhook = onRequest(
 
           adminAlerts.alertRefund(userId, userEmail, null, 'apple').catch(() => {});
           logger.info(`🚫 Access revoked for user ${userId} due to Apple refund`);
+          if (userEmail) {
+            await emailService.sendDisputeNotificationEmail(userEmail, 'App Store refund', null);
+          }
           break;
         }
 
@@ -303,6 +306,9 @@ exports.appleWebhook = onRequest(
               lastUpdated: FieldValue.serverTimestamp(),
             }
           }, { merge: true });
+          if (userEmail) {
+            await emailService.sendDisputeNotificationEmail(userEmail, 'App Store subscription revoked', null);
+          }
           break;
         }
 

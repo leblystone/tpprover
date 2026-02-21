@@ -3,7 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info, AlertCircle, AlertTriangle, Lightbulb } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
-import { getAuth, updateEmail, verifyBeforeUpdateEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
+import { getAuth, updateEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getApp } from 'firebase/app'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
@@ -323,80 +323,42 @@ export default function AccountProfile() {
     }
 
     setIsUpdating(true)
-    const oldEmail = user?.email || firebaseUser?.email
-    
+    if (emailDraft !== user?.email) {
+      setEmailVerified(false)
+    }
+
     try {
-      const auth = getAuth()
-      
-      // If email is changing, set verification status to false immediately
-      if (emailDraft !== user?.email) {
-        setEmailVerified(false)
+      const functions = getFunctions(getApp(), 'us-central1')
+      const requestEmailChangeVerification = httpsCallable(functions, 'requestEmailChangeVerification')
+      const result = await requestEmailChangeVerification({ newEmail: emailDraft })
+
+      if (result.data?.success) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: {
+            message: `📧 Verification email sent to ${emailDraft}. Check your inbox and click the link to complete the change.`,
+            type: 'success',
+            duration: 8000
+          }
+        }))
+        setEditingEmail(false)
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: result.data?.message || 'Failed to send verification email.', type: 'error', duration: 6000 }
+        }))
       }
-      
-      // This sends Firebase's native verification email to the new address
-      console.log('🔐 Sending Firebase verification email to:', emailDraft)
-      await verifyBeforeUpdateEmail(auth.currentUser, emailDraft)
-      console.log('✅ Firebase verification email sent')
-      
-      // Send security notification to old email
-      try {
-        const functions = getFunctions(getApp(), 'us-central1')
-        const sendEmailChangeNotification = httpsCallable(functions, 'sendEmailChangeNotification')
-        await sendEmailChangeNotification({
-          oldEmail: oldEmail,
-          newEmail: emailDraft,
-          timestamp: new Date().toISOString()
-        })
-        console.log('✅ Security notification sent to old email')
-      } catch (notificationError) {
-        // Don't fail the email change if notification fails, but log it
-        console.warn('Failed to send security notification:', notificationError)
-      }
-      
-      // Send custom verification notification to new email
-      try {
-        const functions = getFunctions(getApp(), 'us-central1')
-        const sendEmailChangeVerificationNotification = httpsCallable(functions, 'sendEmailChangeVerificationNotification')
-        await sendEmailChangeVerificationNotification({
-          newEmail: emailDraft,
-          oldEmail: oldEmail
-        })
-        console.log('✅ Instructional email sent to new email')
-      } catch (verificationError) {
-        // Don't fail the email change if verification notification fails, but log it
-        console.warn('Failed to send verification notification:', verificationError)
-      }
-      
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { 
-          message: `📧 Verification email sent to ${emailDraft}. Please check your inbox (and spam folder) and click the verification link to complete the change.`, 
-          type: 'success',
-          duration: 8000 // Longer duration for important message
-        } 
-      }))
-      
-      setEditingEmail(false)
     } catch (error) {
-      console.error('Error updating email:', error)
-      // Revert verification status if update failed
+      console.error('Error sending email change verification:', error)
       setEmailVerified(firebaseUser?.emailVerified || false)
-      
-      // Provide more specific error messages
-      let errorMessage = 'Failed to update email'
-      if (error.code === 'auth/requires-recent-login') {
-        errorMessage = 'For security, please sign out and sign in again before changing your email.'
-      } else if (error.code === 'auth/email-already-in-use') {
+      let errorMessage = 'Failed to send verification email.'
+      if (error.code === 'unauthenticated') {
+        errorMessage = 'Please sign out and sign in again, then try again.'
+      } else if (error.code === 'already-exists') {
         errorMessage = 'This email address is already in use by another account.'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'The email address is invalid. Please check and try again.'
-      } else if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email change is not allowed. Please contact support.'
       } else if (error.message) {
         errorMessage = error.message
       }
-      
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: errorMessage, type: 'error', duration: 6000 } 
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: errorMessage, type: 'error', duration: 6000 }
       }))
     } finally {
       setIsUpdating(false)

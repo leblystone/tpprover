@@ -2314,6 +2314,7 @@ exports.diagnoseEmailSystem = diagnoseEmailIssue.diagnoseEmailSystem;
 
 // Main Ghost Worker trigger (watches supportTickets collection)
 exports.ghostWorkerTriage = ghostWorker.ghostWorkerTriage;
+exports.ghostWorkerOnNewMessage = ghostWorker.ghostWorkerOnNewMessage;
 
 // Admin functions
 exports.getGhostWorkerStats = ghostWorker.getGhostWorkerStats;
@@ -3318,111 +3319,173 @@ exports.sendAccountDeletionEmail = onCall(
 );
 
 /**
- * Send email change security notification
+ * Legacy callable: NO-OP. Email change flow now uses requestEmailChangeVerification only.
+ * Kept so old clients do not error; no email is sent from this path.
  */
 exports.sendEmailChangeNotification = onCall(
+  { cors: true },
+  async (request) => {
+    if (request.auth && request.data?.oldEmail && request.data?.newEmail) {
+      logger.info(`📧 [Legacy no-op] sendEmailChangeNotification called for ${request.data.oldEmail} -> ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
+    }
+    return { success: true, message: 'Use requestEmailChangeVerification for email change flow.' };
+  }
+);
+
+/**
+ * Legacy callable: NO-OP. Email change flow now uses requestEmailChangeVerification only (sends one email with link).
+ * Kept so old clients do not error; no email is sent from this path.
+ */
+exports.sendEmailChangeVerificationNotification = onCall(
+  { cors: true },
+  async (request) => {
+    if (request.auth && request.data?.newEmail && request.data?.oldEmail) {
+      logger.info(`📧 [Legacy no-op] sendEmailChangeVerificationNotification called for ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
+    }
+    return { success: true, message: 'Use requestEmailChangeVerification for email change flow.' };
+  }
+);
+
+/**
+ * Request email change verification: sends ONE branded email to the new address WITH the verification link.
+ * Replaces the old flow (Firebase native email + instructional email). User must be authenticated and
+ * should have re-authenticated with password before calling (client enforces that).
+ */
+exports.requestEmailChangeVerification = onCall(
   {
     cors: true,
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    // Verify user is authenticated
     if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'User must be authenticated to send email change notification');
+      throw new HttpsError('unauthenticated', 'You must be logged in to change your email.');
     }
 
-    const { oldEmail, newEmail, timestamp } = request.data;
+    const { newEmail } = request.data;
+    const currentEmail = (request.auth.token.email || '').toLowerCase().trim();
+    const normalizedNew = (newEmail || '').toLowerCase().trim();
 
-    if (!oldEmail || !newEmail) {
-      throw new HttpsError('invalid-argument', 'oldEmail and newEmail are required');
+    if (!normalizedNew) {
+      throw new HttpsError('invalid-argument', 'newEmail is required');
+    }
+    if (!currentEmail) {
+      throw new HttpsError('invalid-argument', 'Could not determine current email.');
+    }
+    if (currentEmail === normalizedNew) {
+      throw new HttpsError('invalid-argument', 'New email must be different from current email.');
     }
 
-    logger.info(`📧 Sending email change notification to: ${oldEmail}`);
+    logger.info(`📧 Request email change verification: ${currentEmail} -> ${normalizedNew}`);
 
     try {
-      const db = admin.firestore();
-      const emailService = require('./emailService');
-      
-      // Get user info for logging
-      const userId = request.auth.uid;
-      const userRecord = await admin.auth().getUser(userId).catch(() => null);
-      const userName = userRecord?.displayName || null;
-      
-      const success = await emailService.sendEmailChangeNotification(
-        oldEmail, 
-        newEmail, 
-        timestamp || new Date().toISOString(),
-        {
-          userId: userId,
-          recipientName: userName,
-          sentBy: 'system'
-        }
+      const userRecord = await admin.auth().getUser(request.auth.uid);
+      const displayName = userRecord.displayName || null;
+      const userId = userRecord.uid;
+
+      const actionCodeSettings = {
+        url: 'https://thepepplanner.com/app/account/profile',
+        handleCodeInApp: false
+      };
+      const verificationLink = await admin.auth().generateVerifyAndChangeEmailLink(
+        currentEmail,
+        normalizedNew,
+        actionCodeSettings
       );
-      
-      if (success) {
-        logger.info(`✅ Email change notification sent successfully to: ${oldEmail}`);
-        return { success: true, message: 'Security notification sent successfully' };
-      } else {
-        logger.warn(`⚠️ Failed to send email change notification to: ${oldEmail}`);
-        return { success: false, message: 'Failed to send security notification' };
+
+      const sent = await emailService.sendEmailChangeVerificationWithLink(
+        normalizedNew,
+        currentEmail,
+        verificationLink,
+        { userId, recipientName: displayName, sentBy: 'system' }
+      );
+      if (!sent) {
+        logger.warn(`⚠️ Failed to send verification email to ${normalizedNew}`);
+        return { success: false, message: 'Failed to send verification email.' };
       }
+
+      try {
+        await emailService.sendEmailChangeNotification(
+          currentEmail,
+          normalizedNew,
+          new Date().toISOString(),
+          { userId, recipientName: displayName, sentBy: 'system' }
+        );
+      } catch (notificationErr) {
+        logger.warn('Failed to send security notification to old email:', notificationErr);
+      }
+
+      logger.info(`✅ Email change verification sent to ${normalizedNew}`);
+      return { success: true, message: 'Verification email sent.' };
     } catch (error) {
-      logger.error('❌ Error sending email change notification:', error);
-      throw new HttpsError('internal', `Failed to send security notification: ${error.message}`);
+      if (error.code === 'auth/email-already-in-use') {
+        throw new HttpsError('already-exists', 'This email address is already in use by another account.');
+      }
+      logger.error('❌ requestEmailChangeVerification error:', error);
+      throw new HttpsError('internal', error.message || 'Failed to send verification email.');
     }
   }
 );
 
 /**
- * Send email change verification notification to new email
+ * Admin-only: Resend email change verification link to the NEW email via Resend (bypasses Firebase native email).
+ * Use when the user did not receive Firebase's verification email (e.g. spam, deliverability).
+ * Generates the link with Firebase Admin generateVerifyAndChangeEmailLink and sends it in a branded email.
  */
-exports.sendEmailChangeVerificationNotification = onCall(
+exports.resendEmailChangeVerificationLink = onCall(
   {
     cors: true,
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    // Verify user is authenticated
-    if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'User must be authenticated to send email change verification notification');
+    verifyAdmin(request);
+    const { currentEmail, newEmail } = request.data;
+
+    if (!currentEmail || !newEmail) {
+      throw new HttpsError('invalid-argument', 'currentEmail and newEmail are required');
     }
 
-    const { newEmail, oldEmail } = request.data;
-
-    if (!newEmail || !oldEmail) {
-      throw new HttpsError('invalid-argument', 'newEmail and oldEmail are required');
+    const normalizedCurrent = currentEmail.toLowerCase().trim();
+    const normalizedNew = newEmail.toLowerCase().trim();
+    if (normalizedCurrent === normalizedNew) {
+      throw new HttpsError('invalid-argument', 'currentEmail and newEmail must be different');
     }
 
-    logger.info(`📧 Sending email change verification notification to: ${newEmail}`);
+    logger.info(`📧 [Admin] Resending email change verification link: ${normalizedCurrent} -> ${normalizedNew}`);
 
     try {
-      const emailService = require('./emailService');
-      
-      // Get user info for logging
-      const userId = request.auth.uid;
-      const userRecord = await admin.auth().getUser(userId).catch(() => null);
-      const userName = userRecord?.displayName || null;
-      
-      const success = await emailService.sendEmailChangeVerificationNotification(
-        newEmail,
-        oldEmail,
-        {
-          userId: userId,
-          recipientName: userName,
-          sentBy: 'system'
-        }
+      const userRecord = await admin.auth().getUserByEmail(normalizedCurrent);
+      const userId = userRecord.uid;
+      const displayName = userRecord.displayName || null;
+
+      const actionCodeSettings = {
+        url: 'https://thepepplanner.com/app/account/profile',
+        handleCodeInApp: false
+      };
+      const verificationLink = await admin.auth().generateVerifyAndChangeEmailLink(
+        normalizedCurrent,
+        normalizedNew,
+        actionCodeSettings
       );
-      
+
+      const success = await emailService.sendEmailChangeVerificationWithLink(
+        normalizedNew,
+        normalizedCurrent,
+        verificationLink,
+        { userId, recipientName: displayName, sentBy: 'admin' }
+      );
+
       if (success) {
-        logger.info(`✅ Email change verification notification sent successfully to: ${newEmail}`);
-        return { success: true, message: 'Verification notification sent successfully' };
-      } else {
-        logger.warn(`⚠️ Failed to send email change verification notification to: ${newEmail}`);
-        return { success: false, message: 'Failed to send verification notification' };
+        logger.info(`✅ Email change verification link sent to ${normalizedNew}`);
+        return { success: true, message: 'Verification email sent to ' + normalizedNew };
       }
+      logger.warn(`⚠️ Failed to send email change verification to ${normalizedNew}`);
+      return { success: false, message: 'Failed to send verification email' };
     } catch (error) {
-      logger.error('❌ Error sending email change verification notification:', error);
-      throw new HttpsError('internal', `Failed to send verification notification: ${error.message}`);
+      if (error.code === 'auth/user-not-found') {
+        throw new HttpsError('not-found', 'No user found with current email: ' + normalizedCurrent);
+      }
+      logger.error('❌ resendEmailChangeVerificationLink error:', error);
+      throw new HttpsError('internal', error.message || 'Failed to resend verification link');
     }
   }
 );
@@ -4645,8 +4708,89 @@ exports.createSupportTicket = onCall(
     try {
       const db = admin.firestore();
       const FieldValue = admin.firestore.FieldValue;
+      const normalizedEmail = userEmail.toLowerCase().trim();
 
-      // Get next ticket number atomically
+      // Check for existing OPEN ticket for this user (combine multiple requests into one thread)
+      const existingOpen = await db.collection('supportTickets')
+        .where('userEmail', '==', normalizedEmail)
+        .where('status', 'in', ['new', 'in-progress'])
+        .limit(1)
+        .get();
+
+      if (!existingOpen.empty) {
+        const existingDoc = existingOpen.docs[0];
+        const existingId = existingDoc.id;
+        const existingData = existingDoc.data();
+        const existingNumber = existingData.ticketNumber || `Z${existingId.slice(-6).toUpperCase()}`;
+
+        // Get next request number for this thread (for display: "Ticket Z005, requests #Z005, #Z006")
+        const counterRef = db.collection('_counters').doc('supportTickets');
+        let requestNumber;
+        await db.runTransaction(async (transaction) => {
+          const counterDoc = await transaction.get(counterRef);
+          let currentCount = (counterDoc.exists && counterDoc.data().count != null) ? counterDoc.data().count : 4;
+          if (currentCount === 0) currentCount = 4;
+          else currentCount++;
+          requestNumber = `Z${String(currentCount).padStart(3, '0')}`;
+          transaction.set(counterRef, { count: currentCount, lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
+        });
+
+        const requestNumbers = Array.isArray(existingData.requestNumbers) ? [...existingData.requestNumbers, requestNumber] : [existingData.ticketNumber || existingNumber, requestNumber];
+
+        const messageRef = db.collection('supportTickets').doc(existingId).collection('messages').doc();
+        const messageData = {
+          messageId: messageRef.id,
+          ticketId: existingId,
+          senderType: 'user',
+          senderEmail: normalizedEmail,
+          senderName: userName || userEmail.split('@')[0],
+          message: message,
+          createdAt: FieldValue.serverTimestamp(),
+          read: false,
+          requestNumber: requestNumber,
+        };
+        if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) messageData.imageUrls = imageUrls;
+        if (imageStoragePaths && Array.isArray(imageStoragePaths) && imageStoragePaths.length > 0) messageData.imageStoragePaths = imageStoragePaths;
+
+        await messageRef.set(messageData);
+        await db.collection('supportTickets').doc(existingId).update({
+          updatedAt: FieldValue.serverTimestamp(),
+          lastMessageAt: FieldValue.serverTimestamp(),
+          requestNumbers: requestNumbers,
+        });
+
+        const escapeHtml = (text) => {
+          const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+          return String(text).replace(/[&<>"']/g, (m) => map[m]);
+        };
+        const safeName = escapeHtml(userName || userEmail.split('@')[0]);
+        const safeEmail = escapeHtml(userEmail);
+        const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+        const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
+          <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">📩 New message on existing ticket</h2>
+            <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket #:</strong> ${existingNumber} (requests: ${requestNumbers.join(', ')})</p>
+            <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
+            <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
+            <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
+              <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
+            </div>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+              <p style="color: #6B7D7A; font-size: 12px; margin: 0;">Reply in the admin panel. This message was added to the same thread.</p>
+            </div>
+          </div>
+        </div>`;
+        try {
+          await emailService.sendEmail('contact@thepepplanner.com', `📩 New message on ticket ${existingNumber}`, emailHtml);
+        } catch (e) {
+          logger.warn('Appended-ticket email failed:', e.message);
+        }
+        logger.info(`✅ Appended message to existing ticket: ${existingId} (${existingNumber}), request ref: ${requestNumber}`);
+        return { success: true, ticketId: existingId, ticketNumber: existingNumber, appended: true, requestNumber };
+      }
+
+      // No open ticket — create new ticket
       const counterRef = db.collection('_counters').doc('supportTickets');
       let ticketNumber;
       
@@ -4658,8 +4802,6 @@ exports.createSupportTicket = onCall(
           currentCount = counterDoc.data().count || 0;
         }
         
-        // Increment counter (starting from 4, so first ticket is Z005)
-        // If counter is 0, set to 4; otherwise increment
         if (currentCount === 0) {
           currentCount = 4;
         } else {
@@ -4667,7 +4809,6 @@ exports.createSupportTicket = onCall(
         }
         ticketNumber = `Z${String(currentCount).padStart(3, '0')}`;
         
-        // Update counter
         transaction.set(counterRef, {
           count: currentCount,
           lastUpdated: FieldValue.serverTimestamp()
@@ -4711,11 +4852,12 @@ exports.createSupportTicket = onCall(
       const ticketRef = db.collection('supportTickets').doc();
       const ticketData = {
         ticketId: ticketRef.id,
-        ticketNumber: ticketNumber, // Simple number like Z005
+        ticketNumber: ticketNumber,
+        requestNumbers: [ticketNumber], // Combined thread: all request refs (e.g. Z005, Z006)
         userId: userId || userAccountInfo?.userId || null,
-        userEmail: userEmail.toLowerCase().trim(),
+        userEmail: normalizedEmail,
         userName: userName || userEmail.split('@')[0],
-        type: type, // 'bug', 'suggestion', 'general', 'support'
+        type: type,
         subject: subject || `Support Request - ${type}`,
         status: 'new',
         priority: type === 'bug' ? 'high' : 'normal',
@@ -4723,7 +4865,7 @@ exports.createSupportTicket = onCall(
         updatedAt: FieldValue.serverTimestamp(),
         lastMessageAt: FieldValue.serverTimestamp(),
         metadata: metadata || {},
-        userAccountInfo: userAccountInfo, // Add user account info to ticket
+        userAccountInfo: userAccountInfo,
       };
 
       await ticketRef.set(ticketData);
@@ -5103,6 +5245,7 @@ exports.closeSupportTicketFromWorkQueue = onCall(
         return { success: true, message: 'Closed from work queue' };
       }
 
+      // Update support ticket so user-facing "support request" shows as closed and disappears 24h after viewing
       await ticketRef.update({
         status: 'closed',
         closedAt: FieldValue.serverTimestamp(),

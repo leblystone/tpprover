@@ -460,6 +460,26 @@ const DEFAULT_TEMPLATES = {
       '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
+  accountDeletionRequestConfirmation: {
+    name: 'Account Deletion Request – Confirmation (Received)',
+    subject: 'Deletion of Pep Planner Account',
+    heading: "We've Received Your Deletion Request",
+    greeting: 'Hi %USERNAME%,',
+    mainMessage: "Thank you for letting us know. We've received your request to delete your Pep Planner account.\n\n**This action is irreversible once processed.** Our admin team will review and process your request within 48 hours. You will receive a final confirmation email once your account and all associated data have been permanently deleted.",
+    ctaText: '',
+    ctaLink: '',
+    highlightTitle: '⚠️ Important',
+    highlightMessage: 'Once your account is deleted, all your research data, protocols, and account information will be permanently removed. This cannot be undone.',
+    showFeatures: true,
+    featuresTitle: '',
+    features: [
+      'Request Status – Pending admin review',
+      'Processing Time – Within 48 hours',
+      'Confirmation – You\'ll receive an email when complete',
+      'Data Removal – All data will be permanently deleted'
+    ],
+    postCtaNote: 'If you did not request this deletion or have changed your mind, please contact us immediately at contact@thepepplanner.com.'
+  },
   inDepthRequest: {
     name: 'In-Depth Request',
     subject: 'In-Depth Request - The Pep Planner',
@@ -543,6 +563,96 @@ const DEFAULT_TEMPLATES = {
       '✓ Subscriptions that actually work (finally)'
     ],
     postCtaNote: ''
+  },
+  emailChangeNotification: {
+    name: 'Email Change – Security Alert (Old Email)',
+    subject: 'Security Alert: Email Address Change Request - The Pep Planner',
+    heading: 'Email Change Request',
+    greeting: 'Hi there,',
+    mainMessage: 'This is a security notification. A request was made to change the email address for your The Pep Planner account from **%OLDEMAIL%** to **%NEWEMAIL%**.',
+    ctaText: 'Secure Your Account',
+    ctaLink: 'https://thepepplanner.com/app/account/profile',
+    highlightTitle: 'If you made this change',
+    highlightMessage: 'No action needed. Your new email will need to be verified before it becomes active.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'If you did NOT make this change, your account may have been compromised. Change your password immediately and contact support.'
+  },
+  emailChangeVerification: {
+    name: 'Email Change – Verify New Email (Instructional)',
+    subject: 'Verify Your New Email Address - The Pep Planner',
+    heading: 'Verify your new email',
+    greeting: 'Hey!',
+    mainMessage: 'You\'ve requested to change your account email from **%OLDEMAIL%** to **%NEWEMAIL%**. Check your inbox (and spam folder) for the verification email with the link to complete the change.',
+    ctaText: '',
+    ctaLink: '',
+    highlightTitle: 'To complete the change',
+    highlightMessage: '1. Check your inbox for the verification email. 2. Click the verification link. 3. Your email will be updated.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'If you didn\'t request this, contact support@thepepplanner.app'
+  },
+  emailChangeVerificationWithLink: {
+    name: 'Email Change – Verification with Link (Main)',
+    subject: 'Verify Your New Email Address - The Pep Planner',
+    heading: 'Verify your new email',
+    greeting: 'You requested to change your account email.',
+    mainMessage: 'Click the button below to verify **%NEWEMAIL%** and complete the change. This link expires in 24 hours.',
+    ctaText: 'Verify new email address',
+    ctaLink: '%VERIFICATION_LINK%',
+    highlightTitle: '',
+    highlightMessage: 'If the button doesn\'t work, copy the verification link from the full email.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'If you didn\'t request this, contact support@thepepplanner.app'
+  },
+  disputeNotification: {
+    name: 'Dispute – Notification (Chargeback Created)',
+    subject: 'Payment Dispute Received - The Pep Planner',
+    heading: 'Payment Dispute Notice',
+    greeting: 'We received a dispute (chargeback) on a payment associated with your account.',
+    mainMessage: 'Amount: %AMOUNT% | Reason: %REASON%. Please update your payment method or contact us if you believe this is an error. Your access may be affected until the dispute is resolved.',
+    ctaText: 'Manage account',
+    ctaLink: 'https://thepepplanner.com/app/account',
+    highlightTitle: '',
+    highlightMessage: '',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'The Pep Planner'
+  },
+  disputeStatusUpdate: {
+    name: 'Dispute – Status Update',
+    subject: 'Dispute Status Update - The Pep Planner',
+    heading: 'Dispute Status Update',
+    greeting: 'There is an update on the payment dispute for your account.',
+    mainMessage: 'Status: %STATUS% | Reason: %REASON%',
+    ctaText: 'Manage account',
+    ctaLink: 'https://thepepplanner.com/app/account',
+    highlightTitle: '',
+    highlightMessage: '',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'The Pep Planner'
+  },
+  disputeResolution: {
+    name: 'Dispute – Resolution (Closed)',
+    subject: 'Dispute Resolved - The Pep Planner',
+    heading: 'Dispute Resolved',
+    greeting: 'The payment dispute on your account has been closed.',
+    mainMessage: 'Outcome: %STATUS% | Reason: %REASON%',
+    ctaText: 'Manage account',
+    ctaLink: 'https://thepepplanner.com/app/account',
+    highlightTitle: '',
+    highlightMessage: '',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'The Pep Planner'
   }
 };
 
@@ -676,6 +786,10 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'USERNAME', description: 'User\'s name' },
       { name: 'USEREMAIL', description: 'User\'s email address' }
     ],
+    accountDeletionRequestConfirmation: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
     inDepthRequest: [
       { name: 'USERNAME', description: 'User\'s name' },
       { name: 'USEREMAIL', description: 'User\'s email address' }
@@ -684,6 +798,21 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'USERNAME', description: 'User\'s name (if known)' },
       { name: 'USEREMAIL', description: 'User\'s email address' },
       { name: 'INVITE_LINK', description: 'Invitation signup link' }
+    ],
+    disputeNotification: [
+      { name: 'REASON', description: 'Dispute reason from Stripe' },
+      { name: 'AMOUNT', description: 'Disputed amount (e.g. $9.99)' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    disputeStatusUpdate: [
+      { name: 'STATUS', description: 'Dispute status' },
+      { name: 'REASON', description: 'Dispute reason' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    disputeResolution: [
+      { name: 'STATUS', description: 'Resolution outcome (e.g. won, lost)' },
+      { name: 'REASON', description: 'Dispute reason' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
     ]
   };
 
@@ -1186,8 +1315,18 @@ export default function EmailTemplateManager({ theme }) {
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
+            <optgroup label="Email Change">
+              {Object.entries(templates).filter(([key]) => ['emailChangeNotification', 'emailChangeVerification', 'emailChangeVerificationWithLink'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
             <optgroup label="Subscription & Billing">
               {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'squarespaceActivation', 'squarespaceActivated'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Disputes (Chargebacks)">
+              {Object.entries(templates).filter(([key]) => ['disputeNotification', 'disputeStatusUpdate', 'disputeResolution'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
@@ -1212,7 +1351,7 @@ export default function EmailTemplateManager({ theme }) {
               ))}
             </optgroup>
             <optgroup label="Custom & Announcements">
-              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
+              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>

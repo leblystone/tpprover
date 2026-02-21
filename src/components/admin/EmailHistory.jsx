@@ -22,7 +22,14 @@ const EMAIL_TYPE_LABELS = {
   subscription_confirmed: 'Subscription Confirmed',
   subscription_cancelled: 'Subscription Cancelled',
   gift_expiring_soon: 'Gift Expiring Soon',
-  weekly_research_reminder: 'Weekly Research Reminder'
+  weekly_research_reminder: 'Weekly Research Reminder',
+  email_change_notification: 'Email Change (Security Alert)',
+  email_change_verification: 'Email Change (Verify New Email)',
+  email_change_verification_resend: 'Email Change (Resend Verify Link)',
+  dispute_notification: 'Dispute – Notification',
+  dispute_status_update: 'Dispute – Status Update',
+  dispute_resolution: 'Dispute – Resolution',
+  account_deletion_request_confirmation: 'Account Deletion Request – Confirmation'
 };
 
 const EMAIL_TYPE_ICONS = {
@@ -43,7 +50,14 @@ const EMAIL_TYPE_ICONS = {
   subscription_confirmed: CheckCircle,
   subscription_cancelled: XCircle,
   gift_expiring_soon: AlertCircle,
-  weekly_research_reminder: Bell
+  weekly_research_reminder: Bell,
+  email_change_notification: Bell,
+  email_change_verification: Mail,
+  email_change_verification_resend: Mail,
+  dispute_notification: AlertCircle,
+  dispute_status_update: AlertCircle,
+  dispute_resolution: CheckCircle,
+  account_deletion_request_confirmation: Trash2
 };
 
 const EMAIL_TYPE_COLORS = {
@@ -64,7 +78,14 @@ const EMAIL_TYPE_COLORS = {
   subscription_confirmed: '#10b981',
   subscription_cancelled: '#ef4444',
   gift_expiring_soon: '#f59e0b',
-  weekly_research_reminder: '#3b82f6'
+  weekly_research_reminder: '#3b82f6',
+  email_change_notification: '#f59e0b',
+  email_change_verification: '#06b6d4',
+  email_change_verification_resend: '#8b5cf6',
+  dispute_notification: '#ef4444',
+  dispute_status_update: '#f59e0b',
+  dispute_resolution: '#10b981',
+  account_deletion_request_confirmation: '#6b7280'
 };
 
 export default function EmailHistory({ theme }) {

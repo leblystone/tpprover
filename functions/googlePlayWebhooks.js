@@ -276,6 +276,9 @@ async function handleOneTimeProductNotification(notification) {
       }, { merge: true });
 
       logger.info(`🚫 Lifetime access revoked for user ${userId} due to Google Play refund`);
+      if (userEmail) {
+        await emailService.sendDisputeNotificationEmail(userEmail, 'Google Play refund', null);
+      }
     } else {
       logger.warn(`⚠️ Could not find user for refunded one-time product: ${sku}`);
     }
@@ -439,6 +442,9 @@ async function handleSubscriptionPaused(userId, userEmail, details) {
 async function handleSubscriptionRevoked(userId, userEmail, details) {
   logger.info(`🚫 Subscription revoked: ${userId}`);
   await updateSubscriptionStatus(userId, 'revoked', details);
+  if (userEmail) {
+    await emailService.sendDisputeNotificationEmail(userEmail, 'Google Play subscription revoked', null);
+  }
 }
 
 async function handleSubscriptionRestarted(userId, userEmail, details) {

@@ -1402,6 +1402,43 @@ exports.sendEmailChangeNotification = async (oldEmail, newEmail, timestamp, opti
 };
 
 /**
+ * Send email change verification email WITH the actual verification link (main flow + admin resend).
+ * Uses Firestore template emailChangeVerificationWithLink when present; else hardcoded template.
+ */
+exports.sendEmailChangeVerificationWithLink = async (newEmail, oldEmail, verificationLink, options = {}) => {
+  logger.info(`📧 sendEmailChangeVerificationWithLink called for: ${newEmail}`);
+  try {
+    const customTemplate = await loadEmailTemplate('emailChangeVerificationWithLink');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Verify Your New Email Address - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, {
+        newEmail,
+        oldEmail,
+        verificationLink
+      });
+      return sendEmail(newEmail, subject, html, {
+        logToHistory: true,
+        type: 'email_change_verification_resend',
+        recipientName: options.recipientName || null,
+        userId: options.userId || null,
+        sentBy: options.sentBy || 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load emailChangeVerificationWithLink template, using default:', e);
+  }
+  const subject = 'Verify Your New Email Address - The Pep Planner';
+  const html = emailTemplates.emailChangeVerificationWithLinkEmail(newEmail, oldEmail, verificationLink);
+  return sendEmail(newEmail, subject, html, {
+    logToHistory: true,
+    type: 'email_change_verification_resend',
+    recipientName: options.recipientName || null,
+    userId: options.userId || null,
+    sentBy: options.sentBy || 'system'
+  });
+};
+
+/**
  * Send subscription cancelled email
  */
 exports.sendSubscriptionCancelledEmail = async (userEmail, planName, endDate) => {
@@ -1738,13 +1775,28 @@ exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
 
 /**
  * Send account deletion request received confirmation to user
- * Sends immediate confirmation that their deletion request was received
+ * Sends immediate confirmation that their deletion request was received.
+ * Uses Firestore template accountDeletionRequestConfirmation when present.
  */
 exports.sendAccountDeletionRequestConfirmation = async (userEmail, userName = null) => {
   logger.info('📧 Sending deletion request confirmation email to user');
-  
+  try {
+    const customTemplate = await loadEmailTemplate('accountDeletionRequestConfirmation');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Deletion of Pep Planner Account';
+      const html = generateEmailHTML(customTemplate, { userName: userName || 'User', userEmail });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'account_deletion_request_confirmation',
+        recipientName: userName,
+        sentBy: 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load accountDeletionRequestConfirmation template, using default:', e);
+  }
   const subject = 'Deletion of Pep Planner Account';
-  const template = {
+  const defaultTemplate = {
     heading: 'We\'ve Received Your Deletion Request',
     greeting: `Hi ${userName || 'User'},`,
     mainMessage: `Thank you for letting us know. We've received your request to delete your Pep Planner account.\n\n**This action is irreversible once processed.** Our admin team will review and process your request within 48 hours. You will receive a final confirmation email once your account and all associated data have been permanently deleted.`,
@@ -1760,8 +1812,7 @@ exports.sendAccountDeletionRequestConfirmation = async (userEmail, userName = nu
     ],
     footer: 'If you did not request this deletion or have changed your mind, please contact us immediately at contact@thepepplanner.com.'
   };
-  
-  const html = generateEmailHTML(template, { userName: userName || 'User', userEmail });
+  const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });
   return sendEmail(userEmail, subject, html, {
     logToHistory: true,
     type: 'account_deletion_request_confirmation',
@@ -2109,5 +2160,116 @@ exports.sendWinBackEmail = async (userEmail, userName = null, promoCode = null) 
   const subject = 'The doors are open — and we saved you a spot';
   const html = emailTemplates.winBackEmail(userName, promoCode);
   return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send dispute notification (chargeback created) - user-facing
+ */
+exports.sendDisputeNotificationEmail = async (userEmail, reason, amount) => {
+  logger.info(`📧 sendDisputeNotificationEmail called for: ${userEmail}`);
+  try {
+    const customTemplate = await loadEmailTemplate('disputeNotification');
+    if (customTemplate) {
+      const amountFormatted = amount != null ? `$${(Number(amount) / 100).toFixed(2)}` : 'N/A';
+      const subject = customTemplate.subject || 'Payment Dispute Received - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { reason: reason || 'Not specified', amount: amountFormatted, userEmail });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'dispute_notification',
+        sentBy: 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load disputeNotification template, using default:', e);
+  }
+  const amountFormatted = amount != null ? `$${(Number(amount) / 100).toFixed(2)}` : 'N/A';
+  const subject = 'Payment Dispute Received - The Pep Planner';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #344E41;">Payment Dispute Notice</h2>
+      <p>We received a dispute (chargeback) on a payment associated with your account.</p>
+      <p><strong>Amount:</strong> ${amountFormatted}</p>
+      <p><strong>Reason:</strong> ${reason || 'Not specified'}</p>
+      <p>Please update your payment method or contact us if you believe this is an error. Your access may be affected until the dispute is resolved.</p>
+      <p><a href="https://thepepplanner.com/app/account" style="color: #344E41;">Manage account</a></p>
+      <p style="color: #666; font-size: 12px;">The Pep Planner</p>
+    </div>`;
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'dispute_notification',
+    sentBy: 'system'
+  });
+};
+
+/**
+ * Send dispute status update - user-facing
+ */
+exports.sendDisputeStatusUpdateEmail = async (userEmail, status, reason) => {
+  logger.info(`📧 sendDisputeStatusUpdateEmail called for: ${userEmail}`);
+  try {
+    const customTemplate = await loadEmailTemplate('disputeStatusUpdate');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Dispute Status Update - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { status: status || 'updated', reason: reason || 'Not specified', userEmail });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'dispute_status_update',
+        sentBy: 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load disputeStatusUpdate template, using default:', e);
+  }
+  const subject = 'Dispute Status Update - The Pep Planner';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #344E41;">Dispute Status Update</h2>
+      <p>There is an update on the payment dispute for your account.</p>
+      <p><strong>Status:</strong> ${status || 'updated'}</p>
+      <p><strong>Reason:</strong> ${reason || 'Not specified'}</p>
+      <p><a href="https://thepepplanner.com/app/account" style="color: #344E41;">Manage account</a></p>
+      <p style="color: #666; font-size: 12px;">The Pep Planner</p>
+    </div>`;
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'dispute_status_update',
+    sentBy: 'system'
+  });
+};
+
+/**
+ * Send dispute resolution (closed) - user-facing
+ */
+exports.sendDisputeResolutionEmail = async (userEmail, status, reason) => {
+  logger.info(`📧 sendDisputeResolutionEmail called for: ${userEmail}`);
+  try {
+    const customTemplate = await loadEmailTemplate('disputeResolution');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Dispute Resolved - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { status: status || 'closed', reason: reason || 'Not specified', userEmail });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'dispute_resolution',
+        sentBy: 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load disputeResolution template, using default:', e);
+  }
+  const subject = 'Dispute Resolved - The Pep Planner';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #344E41;">Dispute Resolved</h2>
+      <p>The payment dispute on your account has been closed.</p>
+      <p><strong>Outcome:</strong> ${status || 'closed'}</p>
+      <p><strong>Reason:</strong> ${reason || 'Not specified'}</p>
+      <p><a href="https://thepepplanner.com/app/account" style="color: #344E41;">Manage account</a></p>
+      <p style="color: #666; font-size: 12px;">The Pep Planner</p>
+    </div>`;
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'dispute_resolution',
+    sentBy: 'system'
+  });
 };
 

@@ -4576,6 +4576,52 @@ exports.emailChangeVerificationEmailV2 = (newEmail, oldEmail) => {
 };
 
 /**
+ * Email change verification WITH link (admin resend / manual recovery).
+ * Use when sending the verification link via Resend instead of Firebase's native email.
+ */
+exports.emailChangeVerificationWithLinkEmail = (newEmail, oldEmail, verificationLink) => {
+  const content = `
+    <div style="padding: 48px 32px; color: ${MODERN_COLORS.text};">
+      <h1 style="color: ${MODERN_COLORS.info}; font-size: 32px; font-weight: 700; margin: 0 0 12px 0; line-height: 1.2;">
+        Verify your new email 📬
+      </h1>
+      
+      <p style="font-size: 18px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 32px 0;">
+        One more step
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 20px 0;">
+        You requested to change your account email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 24px 0;">
+        Click the button below to verify this email address and complete the change. This link will expire in 24 hours.
+      </p>
+
+      ${modernButton('Verify new email address →', verificationLink, MODERN_COLORS.primary)}
+
+      ${modernDivider()}
+
+      <p style="font-size: 14px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${verificationLink}" style="color: ${MODERN_COLORS.primary}; word-break: break-all;">${verificationLink}</a>
+      </p>
+
+      ${modernDivider()}
+
+      <p style="font-size: 15px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0;">
+        If you didn't request this email change, please contact support at support@thepepplanner.app
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 32px 0 0 0;">
+        – The Pep Planner Team
+      </p>
+    </div>
+  `;
+  return modernEmailWrapper(content);
+};
+
+/**
  * Win-back email -- honest, confident re-engagement for users who couldn't subscribe
  */
 exports.winBackEmail = (userName = null, promoCode = null) => {
