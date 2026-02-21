@@ -150,10 +150,10 @@ export default function AccountSubscription() {
           // Set cooldown to prevent spam
           setRestoreCooldown(60) // 60 second cooldown
         } else if (result.purchasesFound === 0) {
-          // No purchases found - not an error
+          // No purchases found - not an error (message uses same provider as restore: Google Play or App Store)
           window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: {
-              message: 'ℹ️ No active subscriptions found in Google Play. If you recently purchased, please wait a few minutes and try again.',
+              message: `ℹ️ No active subscriptions found in ${providerName}. If you recently purchased, please wait a few minutes and try again.`,
               type: 'info',
               duration: 6000
             }

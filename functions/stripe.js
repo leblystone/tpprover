@@ -6,14 +6,23 @@ const giftAccess = require('./giftAccess');
 // Load environment variables from .env file (Firebase Functions v2)
 require('dotenv').config();
 
-// Use Firebase Secret Manager for Stripe secret key (secure)
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-
-if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Create functions/.env with STRIPE_SECRET_KEY.');
+// Lazy init so deploy succeeds without STRIPE_SECRET_KEY; key is required at runtime when Stripe is used.
+let _stripeClient = null;
+function getStripe() {
+  if (_stripeClient) return _stripeClient;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || key === 'sk_test_fallback_key') {
+    return null; // No throw at load so deploy succeeds without .env; runtime calls will fail if Stripe is used.
+  }
+  _stripeClient = require('stripe')(key);
+  return _stripeClient;
 }
-const stripe = require("stripe")(STRIPE_SECRET_KEY);
-exports.stripe = stripe;
+// Initialize at load only when key is present (e.g. production with secret set), so deploy without .env doesn't throw.
+const keyAtLoad = process.env.STRIPE_SECRET_KEY;
+if (keyAtLoad && keyAtLoad !== 'sk_test_fallback_key') {
+  _stripeClient = require('stripe')(keyAtLoad);
+}
+Object.defineProperty(exports, 'stripe', { get: getStripe, enumerable: true });
 
 const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || "price_1SUALt50b3cktl9X7nAOQdQR";
 const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
@@ -68,7 +77,7 @@ exports.createCheckoutSession = onCall(
         
         // Validate the price ID exists and is active in Stripe (non-blocking - log warnings but continue)
         try {
-          const price = await stripe.prices.retrieve(safePriceId);
+          const price = await getStripe().prices.retrieve(safePriceId);
           
           if (!price.active) {
             console.error(`⚠️ WARNING: Price ID ${safePriceId} is not active. This may cause checkout to fail.`);
@@ -77,7 +86,7 @@ exports.createCheckoutSession = onCall(
           
           // Check if product is archived (optional check - don't fail if this fails)
           try {
-            const product = await stripe.products.retrieve(price.product);
+            const product = await getStripe().products.retrieve(price.product);
             if (product.active === false) {
               console.warn("⚠️ Product associated with price is archived:", product.id);
               // This might still work, but log a warning
@@ -199,7 +208,7 @@ exports.createCheckoutSession = onCall(
           sessionPayload.discounts = discounts;
         }
         
-        const session = await stripe.checkout.sessions.create(sessionPayload);
+        const session = await getStripe().checkout.sessions.create(sessionPayload);
         return {id: session.id};
       } catch (error) {
         console.error("❌ Checkout session error:", error);
@@ -241,7 +250,7 @@ exports.completeGiftFromSession = onCall(
     }
     const { sessionId } = request.data;
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const session = await getStripe().checkout.sessions.retrieve(sessionId);
       if (!session) {
         throw new Error('Checkout session not found');
       }
@@ -291,7 +300,7 @@ exports.createPortalSession = onCall(
       }
       try {
         const {customerId, returnUrl} = request.data;
-        const session = await stripe.billingPortal.sessions.create({
+        const session = await getStripe().billingPortal.sessions.create({
           customer: customerId,
           return_url: returnUrl,
         });
@@ -313,7 +322,7 @@ exports.cancelSubscription = onCall(
       }
       try {
         const {subscriptionId} = request.data;
-        const subscription = await stripe.subscriptions.update(subscriptionId, {
+        const subscription = await getStripe().subscriptions.update(subscriptionId, {
           cancel_at_period_end: true,
         });
         return {
@@ -340,7 +349,7 @@ exports.updatePaymentMethod = onCall(
         const {customerId, returnUrl} = request.data;
         
         // Create a Stripe Checkout session for payment method update
-        const session = await stripe.checkout.sessions.create({
+        const session = await getStripe().checkout.sessions.create({
           payment_method_types: ["card"],
           mode: "setup",
           customer: customerId,
@@ -371,7 +380,7 @@ exports.generateInvoiceReceipt = onCall(
         const {invoiceId, customerId} = request.data;
         
         // Get invoice from Stripe
-        const invoice = await stripe.invoices.retrieve(invoiceId);
+        const invoice = await getStripe().invoices.retrieve(invoiceId);
         
         // Create a cute digital receipt
         const receiptData = {
@@ -403,21 +412,21 @@ exports.testStripeConfig = onCall(
   
   try {
     // Test basic Stripe API call
-    const account = await stripe.accounts.retrieve();
+    const account = await getStripe().accounts.retrieve();
     console.log("✅ Stripe API working, account:", account.id);
     
     return {
       success: true,
       message: "Stripe configuration is working",
       accountId: account.id,
-      keyUsed: STRIPE_SECRET_KEY.substring(0, 20) + "..."
+      keyUsed: (process.env.STRIPE_SECRET_KEY || '').substring(0, 20) + "..."
     };
   } catch (error) {
     console.error("❌ Stripe test failed:", error);
     return {
       success: false,
       error: error.message,
-      keyUsed: STRIPE_SECRET_KEY.substring(0, 20) + "..."
+      keyUsed: (process.env.STRIPE_SECRET_KEY || '').substring(0, 20) + "..."
     };
   }
 });
@@ -439,7 +448,7 @@ exports.getStripeSubscriptions = onCall(
   // }
 
   try {
-    const subscriptions = await stripe.subscriptions.list({
+    const subscriptions = await getStripe().subscriptions.list({
       limit: request.data.limit || 25,
       // You can add more parameters here, like 'status' or 'customer'
     });

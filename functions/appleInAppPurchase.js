@@ -47,9 +47,9 @@ function mapApplePurchaseToSubscription(transaction, productId, options = {}) {
   const { userId, userEmail } = options;
 
   const planMapping = {
-    'com.thepepplanner.app.monthly': { key: 'monthly', name: 'Monthly', interval: 'month' },
-    'com.thepepplanner.app.annual': { key: 'annual', name: 'Annual', interval: 'year' },
-    'com.thepepplanner.app.lifetime': { key: 'lifetime', name: 'Lifetime Access', interval: 'lifetime' },
+    'monthly.apple': { key: 'monthly', name: 'Monthly', interval: 'month' },
+    'annual.apple': { key: 'annual', name: 'Annual', interval: 'year' },
+    'lifetime.apple': { key: 'lifetime', name: 'Lifetime Access', interval: 'lifetime' },
   };
 
   const planDetails = planMapping[productId] || { key: productId, name: productId, interval: 'month' };

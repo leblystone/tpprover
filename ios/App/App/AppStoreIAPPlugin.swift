@@ -15,6 +15,16 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "finishTransaction", returnType: CAPPluginReturnPromise),
     ]
 
+    /// Reads the app receipt from Bundle (legacy format) and returns base64 for backend verifyReceipt API.
+    private func appReceiptBase64() -> String {
+        guard let receiptURL = Bundle.main.appStoreReceiptURL,
+              FileManager.default.fileExists(atPath: receiptURL.path),
+              let receiptData = try? Data(contentsOf: receiptURL) else {
+            return ""
+        }
+        return receiptData.base64EncodedString()
+    }
+
     @objc func isAvailable(_ call: CAPPluginCall) {
         call.resolve(["available": SKPaymentQueue.canMakePayments()])
     }
@@ -79,7 +89,7 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                                 "productId": transaction.productID,
                                 "purchaseDate": "\(transaction.purchaseDate.timeIntervalSince1970 * 1000)",
                                 "expirationDate": transaction.expirationDate.map { "\($0.timeIntervalSince1970 * 1000)" } ?? "",
-                                "receiptData": transaction.jsonRepresentation.base64EncodedString(),
+                                "receiptData": appReceiptBase64(),
                             ])
                         case .unverified(_, let error):
                             call.reject("Transaction verification failed: \(error.localizedDescription)")
@@ -105,6 +115,7 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
             Task {
                 var purchases: [[String: Any]] = []
 
+                let receiptData = appReceiptBase64()
                 for await result in Transaction.currentEntitlements {
                     if case .verified(let transaction) = result {
                         purchases.append([
@@ -113,7 +124,7 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                             "productId": transaction.productID,
                             "purchaseDate": "\(transaction.purchaseDate.timeIntervalSince1970 * 1000)",
                             "expirationDate": transaction.expirationDate.map { "\($0.timeIntervalSince1970 * 1000)" } ?? "",
-                            "receiptData": transaction.jsonRepresentation.base64EncodedString(),
+                            "receiptData": receiptData,
                         ])
                     }
                 }
@@ -131,6 +142,7 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 do {
                     try await AppStore.sync()
 
+                    let receiptData = appReceiptBase64()
                     var purchases: [[String: Any]] = []
                     for await result in Transaction.currentEntitlements {
                         if case .verified(let transaction) = result {
@@ -140,7 +152,7 @@ public class AppStoreIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                                 "productId": transaction.productID,
                                 "purchaseDate": "\(transaction.purchaseDate.timeIntervalSince1970 * 1000)",
                                 "expirationDate": transaction.expirationDate.map { "\($0.timeIntervalSince1970 * 1000)" } ?? "",
-                                "receiptData": transaction.jsonRepresentation.base64EncodedString(),
+                                "receiptData": receiptData,
                             ])
                         }
                     }
