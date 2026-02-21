@@ -66,26 +66,33 @@ export function loadRecaptchaScript() {
  */
 export async function executeRecaptcha(action = 'submit') {
   try {
-    // Ensure script is loaded
-    await loadRecaptchaScript();
-    
-    if (!window.grecaptcha) {
-      throw new Error('reCAPTCHA not loaded');
-    }
+    const recaptchaPromise = (async () => {
+      await loadRecaptchaScript();
+      
+      if (!window.grecaptcha) {
+        throw new Error('reCAPTCHA not loaded');
+      }
 
-    return new Promise((resolve, reject) => {
-      window.grecaptcha.ready(() => {
-        window.grecaptcha
-          .execute(RECAPTCHA_SITE_KEY, { action })
-          .then((token) => {
-            resolve(token);
-          })
-          .catch((error) => {
-            console.error('reCAPTCHA execution error:', error);
-            reject(error);
-          });
+      return new Promise((resolve, reject) => {
+        window.grecaptcha.ready(() => {
+          window.grecaptcha
+            .execute(RECAPTCHA_SITE_KEY, { action })
+            .then((token) => {
+              resolve(token);
+            })
+            .catch((error) => {
+              console.error('reCAPTCHA execution error:', error);
+              reject(error);
+            });
+        });
       });
-    });
+    })();
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('reCAPTCHA timeout')), 5000)
+    );
+
+    return await Promise.race([recaptchaPromise, timeoutPromise]);
   } catch (error) {
     console.error('Error executing reCAPTCHA:', error);
     throw error;

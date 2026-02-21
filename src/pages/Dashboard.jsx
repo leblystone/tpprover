@@ -54,12 +54,10 @@ export default function Dashboard() {
   // Derive today's peptide tasks from active protocols
   const peptideLog = useMemo(() => {
     try {
-      const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
       const out = {}
-      // Minimal structure to keep downstream usage intact
       return out
     } catch { return {} }
-  }, [])
+  }, [protocolsFromContext])
 
   const incomingOrders = useMemo(() => {
     if (!orders || orders.length === 0) return [];
@@ -159,7 +157,7 @@ export default function Dashboard() {
   const [showNewVendor, setShowNewVendor] = useState(false)
   const [showNewOrder, setShowNewOrder] = useState(false)
   const [showNewProtocol, setShowNewProtocol] = useState(false)
-  const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
+  // vendorNames removed — use `vendors` from AppContext instead
   const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
   const [showMetrics, setShowMetrics] = useState(false)
@@ -374,8 +372,7 @@ export default function Dashboard() {
     let peptideTasks = []
     let reminders = []
     try {
-      const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
-      const reconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]')
+      const protocols = protocolsFromContext || []
       
       console.log('📊 Dashboard: About to calculate tasks', {
         protocolCount: protocols.length,
@@ -1100,7 +1097,7 @@ export default function Dashboard() {
         onClose={() => setShowNewOrder(false)}
         order={{}}
         theme={theme}
-        vendorList={vendorNames}
+        vendorList={vendors}
         onSave={(o) => {
           // Ensure category is set, default to 'domestic' if not specified
           const category = o.category || 'domestic';

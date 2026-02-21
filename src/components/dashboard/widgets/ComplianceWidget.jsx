@@ -6,20 +6,13 @@ import { generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../../components/calendar/MonthGrid';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
-
-function useLocal(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { useAppContext } from '../../../context/AppContext';
 
 const ComplianceWidget = ({ widget, theme }) => {
-  const protocols = useLocal('tpprover_protocols', []);
-  const supplements = useLocal('tpprover_supplements', []);
-  const reconItems = useLocal('tpprover_recon_items', []);
+  const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext();
+  const protocols = ctxProtocols || [];
+  const supplements = ctxSupplements || [];
+  const reconItems = ctxReconItems || [];
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 

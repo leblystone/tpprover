@@ -12,6 +12,13 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
 
   useEffect(() => {
     loadNotes();
+    const reload = () => loadNotes();
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    window.addEventListener('tpp:user-notes-updated', reload);
+    return () => {
+      window.removeEventListener('tpp:cloud-data-loaded', reload);
+      window.removeEventListener('tpp:user-notes-updated', reload);
+    };
   }, []);
 
   const loadNotes = () => {

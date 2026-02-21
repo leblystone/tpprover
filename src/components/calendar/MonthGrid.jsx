@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, FileText } from 'lucide-react'
+import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, SprayCan, Hand, FileText } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
@@ -42,7 +42,8 @@ function getPeptideDeliveryIcon(item, className = "h-3 w-3") {
             case 'pen': return <PenTool className={className} />;
             case 'syringe':
             case 'pipette': return <Pipette className={className} />;
-            case 'nasal': return <Pipette className={className} />;
+            case 'nasal': return <SprayCan className={className} />;
+            case 'topical': return <Hand className={className} />;
             default: return <Pipette className={className} />;
         }
     }

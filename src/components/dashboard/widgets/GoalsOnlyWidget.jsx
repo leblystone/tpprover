@@ -75,9 +75,16 @@ const GoalsOnlyWidget = ({
     return sorted.slice(0, maxItems);
   }, [activeGoalsRaw, maxItems]);
   
-  // Load goals from localStorage on mount (when not using props)
+  // Load goals from localStorage on mount and when cloud data arrives
   useEffect(() => {
     if (!usePropsGoals) loadGoals();
+    const reload = () => { if (!usePropsGoals) loadGoals(); };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    window.addEventListener('tpp:user-goals-updated', reload);
+    return () => {
+      window.removeEventListener('tpp:cloud-data-loaded', reload);
+      window.removeEventListener('tpp:user-goals-updated', reload);
+    };
   }, [usePropsGoals]);
 
   // Reload goals when modal opens to ensure fresh data

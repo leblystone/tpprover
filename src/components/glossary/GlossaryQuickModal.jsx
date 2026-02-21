@@ -1156,8 +1156,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
   const [showAddNoteForm, setShowAddNoteForm] = useState(false)
   const [noteForm, setNoteForm] = useState({ name: '', category: 'Custom', content: '', attachments: [] })
   
-  // Load favorites from localStorage
-  useEffect(() => {
+  const loadFavorites = () => {
     try {
       const savedFavorites = localStorage.getItem('tpprover_research_favorites');
       if (savedFavorites) {
@@ -1166,6 +1165,11 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     } catch (error) {
       console.error('Error loading favorites:', error);
     }
+  };
+
+  // Load favorites from localStorage
+  useEffect(() => {
+    loadFavorites();
   }, [open])
 
   // Set initial search term and tab when modal opens
@@ -1184,8 +1188,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     }
   }, [open, initialSearchTerm, initialTab, autoSearch]);
 
-  // Load user notes from localStorage
-  useEffect(() => {
+  const loadUserNotes = () => {
     try {
       const savedNotes = localStorage.getItem('tpprover_user_notes');
       if (savedNotes) {
@@ -1194,6 +1197,11 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     } catch (error) {
       console.error('Error loading user notes:', error);
     }
+  };
+
+  // Load user notes from localStorage
+  useEffect(() => {
+    loadUserNotes();
   }, [open]);
 
   // Save user notes to localStorage
@@ -1285,7 +1293,16 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     'Liver & Detox': ['TUDCA', 'UDCA', 'NAC', 'Glutathione', 'Berberine'],
   }
   
-  useEffect(() => { try { const raw = localStorage.getItem('tpprover_glossary'); setItems(raw ? JSON.parse(raw) : []) } catch {} }, [open])
+  const loadGlossary = () => { try { const raw = localStorage.getItem('tpprover_glossary'); setItems(raw ? JSON.parse(raw) : []) } catch {} };
+  useEffect(() => { loadGlossary() }, [open])
+
+  // Re-read all localStorage data when cloud sync completes
+  useEffect(() => {
+    const reload = () => { loadFavorites(); loadUserNotes(); loadGlossary(); };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    return () => window.removeEventListener('tpp:cloud-data-loaded', reload);
+  }, []);
+
   const filtered = useMemo(() => items.filter(i => (i.name||'').toLowerCase().includes(q.toLowerCase())), [items, q])
   
   // Generate peptide suggestions based on current query

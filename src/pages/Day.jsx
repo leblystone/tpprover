@@ -9,12 +9,19 @@ export default function Day() {
   const [date, setDate] = useState(() => new Date())
   const [text, setText] = useState('')
   const key = useMemo(() => toKey(date), [date])
-  useEffect(() => { 
+  const loadNote = () => {
     try { 
       const raw = localStorage.getItem('tpprover_calendar_notes'); 
       const obj = raw ? JSON.parse(raw) : {}; 
       setText(obj[key]?.text || '') 
     } catch {} 
+  };
+  useEffect(() => { loadNote() }, [key])
+
+  useEffect(() => {
+    const reload = () => { loadNote(); };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    return () => window.removeEventListener('tpp:cloud-data-loaded', reload);
   }, [key])
   
   const save = () => { 

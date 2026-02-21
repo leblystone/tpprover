@@ -140,13 +140,7 @@ export default function CustomizableDashboard() {
     }
   });
 
-  const [vendorNames] = useState(() => {
-    try { 
-      return JSON.parse(localStorage.getItem('tpprover_vendors') || '[]');
-    } catch { 
-      return []; 
-    }
-  });
+  // vendorNames removed — use `vendors` from AppContext instead
 
   // Check analytics, group buys, and injection site tracking settings on mount and when they change
   useEffect(() => {
@@ -209,92 +203,32 @@ export default function CustomizableDashboard() {
     return vendors.filter(vendor => vendor.isStub === true);
   }, [vendors]);
 
-  // Load upcoming buys - use AppContext's scheduledBuys which already has filtering applied
-  // But also listen for data clearing events to ensure UI updates
+  // Filter mock scheduled buys when sample data is cleared.
+  // AppContext already loads scheduledBuys from localStorage/Firebase on init and
+  // keeps it in sync, so we only need to handle the sample-data-cleared event here.
   useEffect(() => {
-    const loadAndFilterBuys = () => {
-      try {
-        const raw = localStorage.getItem('tpprover_scheduled_buys');
-        if (raw) {
-          const buys = JSON.parse(raw);
-          // Filter out mock scheduled buys if sample data was cleared
-          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-          const filteredBuys = sampleDataCleared 
-            ? buys.filter(b => {
-                // Filter by isMock flag
-                if (b.isMock) return false;
-                // Also filter by known mock vendors
-                const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
-                if (mockVendors.includes(b.vendor)) return false;
-                // Filter by known mock IDs
-                if (b.id === 201 || b.id === 202 || b.id === 203) return false;
-                // Filter by known mock item names
-                const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
-                if (mockItems.includes(b.item)) return false;
-                return true;
-              })
-            : buys;
-          setScheduledBuys(filteredBuys.map(b => ({
-            id: b.id,
-            item: b.item,
-            name: b.name || b.item,
-            peptideName: b.peptideName || b.item,
-            date: b.openDate || b.date,
-            openDate: b.openDate,
-            closeDate: b.closeDate,
-            vendor: b.vendor,
-            location: b.location,
-            participants: b.participants,
-            price: b.price,
-            notes: b.notes,
-            description: b.description,
-            isMock: b.isMock,
-            createdAt: b.createdAt,
-            updatedAt: b.updatedAt
-          })));
-        } else {
-          // If no data in localStorage, clear the state
-          setScheduledBuys([]);
-        }
-      } catch (error) {
-        console.error('Error loading upcoming buys:', error);
-      }
-    };
-
-    // Load on mount
-    loadAndFilterBuys();
-
-    // Listen for sample data cleared event
     const handleSampleDataCleared = () => {
-      loadAndFilterBuys();
-    };
-
-    // Listen for group buy deleted event
-    const handleGroupBuyDeletedInMainEffect = () => {
-      loadAndFilterBuys();
+      setScheduledBuys(prev => prev.filter(b => {
+        if (b.isMock) return false;
+        const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
+        if (mockVendors.includes(b.vendor)) return false;
+        if (b.id === 201 || b.id === 202 || b.id === 203) return false;
+        const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
+        if (mockItems.includes(b.item)) return false;
+        return true;
+      }));
     };
 
     window.addEventListener('sample-data-cleared', handleSampleDataCleared);
-    window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
-    window.addEventListener('tpp:scheduled-buys-updated', loadAndFilterBuys);
-
-    // Also listen for localStorage changes (cross-tab sync)
-    const handleStorageChange = (e) => {
-      if (e.key === 'tpprover_scheduled_buys' || e.key === 'tpprover_sample_data_cleared') {
-        loadAndFilterBuys();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('sample-data-cleared', handleSampleDataCleared);
-      window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
-      window.removeEventListener('tpp:scheduled-buys-updated', loadAndFilterBuys);
-      window.removeEventListener('storage', handleStorageChange);
     };
   }, [setScheduledBuys]);
 
   // Load and sync wishlist data
+  // Wishlist is NOT in AppContext state, so we reload from localStorage when
+  // cloud data arrives or when a local update event fires.
   useEffect(() => {
     const loadWishlist = () => {
       try {
@@ -313,7 +247,6 @@ export default function CustomizableDashboard() {
 
     loadWishlist();
 
-    // Listen for wishlist update events
     const handleWishlistUpdated = (e) => {
       if (e.detail?.wishlist) {
         setWishlist(e.detail.wishlist);
@@ -322,9 +255,13 @@ export default function CustomizableDashboard() {
       }
     };
 
-    window.addEventListener('tpp:wishlist-updated', handleWishlistUpdated);
+    const handleCloudDataLoaded = () => {
+      loadWishlist();
+    };
 
-    // Also listen for localStorage changes (cross-tab sync)
+    window.addEventListener('tpp:wishlist-updated', handleWishlistUpdated);
+    window.addEventListener('tpp:cloud-data-loaded', handleCloudDataLoaded);
+
     const handleStorageChange = (e) => {
       if (e.key === 'tpprover_wishlist') {
         loadWishlist();
@@ -334,6 +271,7 @@ export default function CustomizableDashboard() {
 
     return () => {
       window.removeEventListener('tpp:wishlist-updated', handleWishlistUpdated);
+      window.removeEventListener('tpp:cloud-data-loaded', handleCloudDataLoaded);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -371,40 +309,7 @@ export default function CustomizableDashboard() {
       setShowCustomizer(true);
     };
     const handleGroupBuyDeletedInQuickActions = () => {
-      // Refresh the scheduled buys data from localStorage
-      // Use the same filtering logic as the main useEffect
-      try {
-        const raw = localStorage.getItem('tpprover_scheduled_buys');
-        if (raw) {
-          const buys = JSON.parse(raw);
-          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-          const filteredBuys = sampleDataCleared 
-            ? buys.filter(b => !b.isMock)
-            : buys;
-          setScheduledBuys(filteredBuys.map(b => ({
-            id: b.id,
-            item: b.item,
-            name: b.name || b.item,
-            peptideName: b.peptideName || b.item,
-            date: b.openDate || b.date,
-            openDate: b.openDate,
-            closeDate: b.closeDate,
-            vendor: b.vendor,
-            location: b.location,
-            participants: b.participants,
-            price: b.price,
-            notes: b.notes,
-            description: b.description,
-            isMock: b.isMock,
-            createdAt: b.createdAt,
-            updatedAt: b.updatedAt
-          })));
-        } else {
-          setScheduledBuys([]);
-        }
-      } catch (error) {
-        console.error('Error refreshing scheduled buys:', error);
-      }
+      // No-op: context scheduledBuys is already updated by the delete handler
     };
 
     window.addEventListener('tpp:openRecon', handleOpenRecon);
@@ -1176,7 +1081,7 @@ export default function CustomizableDashboard() {
         onClose={() => setShowNewOrder(false)}
         order={{}}
         theme={theme}
-        vendorList={vendorNames}
+        vendorList={vendors}
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(o) => {

@@ -1,13 +1,14 @@
 import React from 'react'
 import TextInput from '../common/inputs/TextInput'
+import { useAppContext } from '../../context/AppContext'
 
 export default function VendorSuggestInput({ label = 'Vendor', value, onChange, placeholder = 'Vendor', theme, maxLength = null }) {
+  const { vendors: contextVendors } = useAppContext()
+  const vendors = contextVendors || []
   const [q, setQ] = React.useState(value || '')
   const [open, setOpen] = React.useState(false)
   React.useEffect(() => { setQ(value || '') }, [value])
 
-  let vendors = []
-  try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
   const list = React.useMemo(() => {
     const s = (q || '').toLowerCase()
     if (!s) return []

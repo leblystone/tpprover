@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Pill, Check, Info, PenTool, Beaker, Pipette, Sun, Moon } from 'lucide-react';
+import { Pill, Check, Info, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -278,7 +278,10 @@ const DeliveryIcon = ({ task, theme }) => {
             return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'nasal') {
-            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <SprayCan size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+        }
+        if (task.deliveryMethod === 'topical') {
+            return <Hand size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
     }
     

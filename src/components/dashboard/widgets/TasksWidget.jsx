@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette, ChevronDown, Zap, CheckCheck } from 'lucide-react';
+import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette, SprayCan, Hand, ChevronDown, Zap, CheckCheck } from 'lucide-react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -22,7 +22,10 @@ const DeliveryIcon = ({ task, theme }) => {
       return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'nasal') {
-      return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <SprayCan size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+    }
+    if (task.deliveryMethod === 'topical') {
+      return <Hand size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
   }
   

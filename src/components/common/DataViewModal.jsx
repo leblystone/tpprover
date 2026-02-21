@@ -28,25 +28,32 @@ export default function DataViewModal({ open, onClose, theme, userData }) {
   const [goals, setGoals] = useState([]);
   const [protocolHistory, setProtocolHistory] = useState([]);
 
+  const loadGoalsAndHistory = () => {
+    try {
+      const savedGoals = JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]');
+      setGoals(savedGoals);
+    } catch (e) {
+      setGoals([]);
+    }
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
+      setProtocolHistory(savedHistory);
+    } catch (e) {
+      setProtocolHistory([]);
+    }
+  };
+
   useEffect(() => {
     if (open) {
-      // Load goals
-      try {
-        const savedGoals = JSON.parse(localStorage.getItem('tpprover_user_goals') || '[]');
-        setGoals(savedGoals);
-      } catch (e) {
-        setGoals([]);
-      }
-
-      // Load protocol history
-      try {
-        const savedHistory = JSON.parse(localStorage.getItem('tpprover_protocol_history') || '[]');
-        setProtocolHistory(savedHistory);
-      } catch (e) {
-        setProtocolHistory([]);
-      }
+      loadGoalsAndHistory();
     }
   }, [open]);
+
+  useEffect(() => {
+    const reload = () => { loadGoalsAndHistory(); };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    return () => window.removeEventListener('tpp:cloud-data-loaded', reload);
+  }, []);
 
   // Calculate data summary
   const dataSummary = useMemo(() => {

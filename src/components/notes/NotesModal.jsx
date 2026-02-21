@@ -63,6 +63,12 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
     }
   }, [isOpen, notesProp]);
 
+  useEffect(() => {
+    const reload = () => { loadNotes(); };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    return () => window.removeEventListener('tpp:cloud-data-loaded', reload);
+  }, []);
+
   const saveNotes = (notes) => {
     try {
       localStorage.setItem('tpprover_user_notes', JSON.stringify(notes));

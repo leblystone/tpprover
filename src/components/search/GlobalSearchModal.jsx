@@ -1,11 +1,13 @@
  import React, { useEffect, useMemo, useState } from 'react'
  import Modal from '../common/Modal'
  import { Home, ClipboardList, ShoppingCart, Users, Box, FlaskConical, Droplet, Pill, BookText } from 'lucide-react'
+ import { useAppContext } from '../../context/AppContext'
 
 export default function GlobalSearchModal({ open, onClose, theme, onNavigate }) {
   const safeTheme = theme || { border: '#e5e7eb', primary: '#7f9e95', white: '#ffffff', text: '#111827' }
   const [q, setQ] = useState('')
-  const data = useMemo(() => aggregate(), [])
+  const { protocols, orders, stockpile, supplements, vendors } = useAppContext()
+  const data = useMemo(() => aggregate(protocols, orders, stockpile, supplements, vendors), [protocols, orders, stockpile, supplements, vendors])
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase()
     if (!needle) return []
@@ -39,24 +41,12 @@ export default function GlobalSearchModal({ open, onClose, theme, onNavigate }) 
   )
 }
 
-function aggregate() {
+function aggregate(protocols = [], orders = [], stockpile = [], supplements = [], vendors = []) {
   const out = []
-  try {
-    const prots = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
-    prots.forEach(p => out.push({ key: `prot-${p.id}`, type: 'protocol', title: p.name, subtitle: p.purpose || p.category || '', to: '/protocols' }))
-  } catch {}
-  try {
-    const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]')
-    orders.forEach(o => out.push({ key: `ord-${o.id}`, type: 'order', title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, to: '/orders' }))
-  } catch {}
-  try {
-    const stock = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]')
-    stock.forEach(s => out.push({ key: `stk-${s.id}`, type: 'stockpile', title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, to: '/stockpile' }))
-  } catch {}
-  try {
-    const supps = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]')
-    supps.forEach(su => out.push({ key: `sup-${su.id}`, type: 'supplement', title: su.name, subtitle: su.dose || su.schedule, to: '/research' }))
-  } catch {}
+  try { (protocols || []).forEach(p => out.push({ key: `prot-${p.id}`, type: 'protocol', title: p.name, subtitle: p.purpose || p.category || '', to: '/protocols' })) } catch {}
+  try { (orders || []).forEach(o => out.push({ key: `ord-${o.id}`, type: 'order', title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, to: '/orders' })) } catch {}
+  try { (stockpile || []).forEach(s => out.push({ key: `stk-${s.id}`, type: 'stockpile', title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, to: '/stockpile' })) } catch {}
+  try { (supplements || []).forEach(su => out.push({ key: `sup-${su.id}`, type: 'supplement', title: su.name, subtitle: su.dose || su.schedule, to: '/research' })) } catch {}
   try {
     const glossary = JSON.parse(localStorage.getItem('tpprover_glossary') || '[]')
     glossary.forEach(g => out.push({ key: `glo-${g.id}`, type: 'glossary', title: g.name, subtitle: g.category || 'Custom', to: '/glossary' }))

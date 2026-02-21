@@ -45,6 +45,22 @@ export function getSupplementsForDate(supplements, date) {
   const currentDayName = dayNames[dayOfWeek];
 
   return supplements.filter(supplement => {
+    // Respect startDate / endDate if set
+    if (supplement.startDate) {
+      const start = new Date(supplement.startDate);
+      start.setHours(0, 0, 0, 0);
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      if (checkDate < start) return false;
+    }
+    if (supplement.endDate) {
+      const end = new Date(supplement.endDate);
+      end.setHours(0, 0, 0, 0);
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      if (checkDate > end) return false;
+    }
+
     // If no days specified, assume daily
     if (!supplement.days || !Array.isArray(supplement.days) || supplement.days.length === 0) {
       return true;

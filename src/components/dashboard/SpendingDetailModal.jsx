@@ -4,6 +4,7 @@ import BottomSheet from '../common/BottomSheet';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { buildSpendLines, filterSpendLines, getUniqueVendorsAndPeptides } from '../../utils/spendingUtils';
+import { useAppContext } from '../../context/AppContext';
 
 function useLocal(key, fallback, refreshWhen) {
   const [value, setValue] = useState(fallback);
@@ -21,8 +22,9 @@ function useLocal(key, fallback, refreshWhen) {
 }
 
 export default function SpendingDetailModal({ open, onClose, theme }) {
-  const orders = useLocal('tpprover_orders', [], open);
-  const stockpile = useLocal('tpprover_stockpile', [], open);
+  const { orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
+  const orders = ctxOrders || [];
+  const stockpile = ctxStockpile || [];
   const settings = useLocal('tpprover_settings', {}, open);
 
   const [vendorFilter, setVendorFilter] = useState('');

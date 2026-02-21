@@ -1390,14 +1390,19 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
 
   // Load favorites from localStorage
   useEffect(() => {
-    try {
-      const savedFavorites = localStorage.getItem('tpprover_research_favorites');
-      if (savedFavorites) {
-        setFavoriteEntries(JSON.parse(savedFavorites));
+    const loadFavorites = () => {
+      try {
+        const savedFavorites = localStorage.getItem('tpprover_research_favorites');
+        if (savedFavorites) {
+          setFavoriteEntries(JSON.parse(savedFavorites));
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
       }
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-    }
+    };
+    loadFavorites();
+    window.addEventListener('tpp:cloud-data-loaded', loadFavorites);
+    return () => window.removeEventListener('tpp:cloud-data-loaded', loadFavorites);
   }, []);
 
   const handleAIResearch = async (term = searchTerm) => {

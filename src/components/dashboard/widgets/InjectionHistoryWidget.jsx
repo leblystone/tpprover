@@ -11,11 +11,17 @@ export default function InjectionHistoryWidget({ theme }) {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    const injectionHistory = getInjectionHistory();
-    const injectionStats = getInjectionStats();
-    
-    setHistory(injectionHistory);
-    setStats(injectionStats);
+    const load = () => {
+      setHistory(getInjectionHistory());
+      setStats(getInjectionStats());
+    };
+    load();
+    window.addEventListener('tpp:cloud-data-loaded', load);
+    window.addEventListener('tpp:task-completion-changed', load);
+    return () => {
+      window.removeEventListener('tpp:cloud-data-loaded', load);
+      window.removeEventListener('tpp:task-completion-changed', load);
+    };
   }, []);
 
   const recentHistory = showAll ? history : history.slice(0, 5);

@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react'
 import Modal from '../common/Modal'
 import { formatMMDDYYYY } from '../../utils/date'
 import TaskDisplay from './TaskDisplay'
+import { useAppContext } from '../../context/AppContext'
 
 export default function DayView({ open, onClose, date, theme, notes, onSave, scheduled = {}, done = {}, onToggleSlot }) {
+  const { protocols: ctxProtocols, supplements: ctxSupplements, orders: ctxOrders } = useAppContext()
   const [text, setText] = useState(notes || '')
   const [forceRender, setForceRender] = useState(0)
   
@@ -52,9 +54,9 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
     try {
       const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
       const iso = date.toISOString().slice(0,10)
-      const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
-      const supplements = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]')
-      const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]')
+      const protocols = ctxProtocols || []
+      const supplements = ctxSupplements || []
+      const orders = ctxOrders || []
       const protoItems = []
       for (const p of protocols) {
         const active = p?.active !== false
@@ -90,7 +92,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
       }))
       setDayDetails({ protocols: protoItems, supplements: suppItems, buys: buyItems })
     } catch { setDayDetails({ protocols: [], supplements: [], buys: [] }) }
-  }, [date])
+  }, [date, ctxProtocols, ctxSupplements, ctxOrders])
   const classifyTime = (label) => {
     const s = String(label || '').toLowerCase()
     if (s.includes('pm') || s.includes('evening') || s.includes('night') || s.includes('afternoon')) return 'PM'

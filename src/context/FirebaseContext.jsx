@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { onAuthChange, loadUserData, saveUserData } from '../services/firebase.js';
+import { auth } from '../config/firebase.js';
 
 const FirebaseContext = createContext();
 
@@ -18,10 +19,11 @@ export function FirebaseProvider({ children }) {
         let timeoutId = null;
         let isMounted = true;
         
-        // Set a timeout to prevent infinite loading (15s to allow slow/VPN networks)
+        // Fallback to prevent infinite loading even if listener fails to fire in native webviews.
         timeoutId = setTimeout(() => {
             if (isMounted) {
-                console.warn('⚠️ Firebase auth initialization timeout - proceeding without user. If login fails, check network/VPN or try: window.clearAppCache()');
+                const currentUser = auth?.currentUser ?? null;
+                setFirebaseUser(currentUser);
                 setIsFirebaseLoading(false);
             }
         }, 15000);

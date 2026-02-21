@@ -1,25 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import VisualSchedulePreview from './VisualSchedulePreview';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { Clock, Check, Loader2 } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { generateId } from '../../utils/string';
 import { prepareItemForSave } from '../../utils/userDataSave';
 
-export default function QuickStartProtocolModal({ open, onClose, theme, onSave }) {
-    const [form, setForm] = useState({
-        name: '',
-        dosage: '',
-        dosageUnit: 'mg',
-        unitValue: '',
-        timeOfDay: ['AM'],
-        startDate: getLocalDateString()
-    });
+const QUICKSTART_DRAFT_KEY = 'tpprover_quickstart_protocol_draft';
 
+const getDefaultForm = () => ({
+    name: '',
+    dosage: '',
+    dosageUnit: 'mg',
+    unitValue: '',
+    timeOfDay: ['AM'],
+    startDate: getLocalDateString()
+});
+
+export default function QuickStartProtocolModal({ open, onClose, theme, onSave }) {
+    const [form, setForm] = useState(getDefaultForm);
     const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState(null);
+    const saveTimeoutRef = useRef(null);
+    const isRestoringRef = useRef(false);
+
+    // Restore draft when modal opens
+    useEffect(() => {
+        if (!open) return;
+        try {
+            const raw = localStorage.getItem(QUICKSTART_DRAFT_KEY);
+            if (raw) {
+                const { data, timestamp } = JSON.parse(raw);
+                if (data && (data.name?.trim() || data.dosage?.trim())) {
+                    isRestoringRef.current = true;
+                    setForm({
+                        name: data.name ?? '',
+                        dosage: data.dosage ?? '',
+                        dosageUnit: data.dosageUnit ?? 'mg',
+                        unitValue: data.unitValue ?? '',
+                        timeOfDay: Array.isArray(data.timeOfDay) && data.timeOfDay.length ? data.timeOfDay : ['AM'],
+                        startDate: data.startDate || getLocalDateString()
+                    });
+                    setLastSaved(timestamp ? new Date(timestamp) : null);
+                }
+            }
+        } catch (e) {
+            console.warn('Quick start draft load failed:', e);
+        }
+    }, [open]);
+
+    // Debounced draft save when form has meaningful content
+    useEffect(() => {
+        if (!open || isRestoringRef.current) {
+            isRestoringRef.current = false;
+            return;
+        }
+        const hasContent = form.name?.trim() || form.dosage?.trim();
+        if (!hasContent) return;
+
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(() => {
+            try {
+                const payload = { data: form, timestamp: new Date().toISOString() };
+                localStorage.setItem(QUICKSTART_DRAFT_KEY, JSON.stringify(payload));
+                setLastSaved(new Date());
+            } catch (e) {
+                console.warn('Quick start draft save failed:', e);
+            }
+            saveTimeoutRef.current = null;
+        }, 2000);
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
+    }, [open, form.name, form.dosage, form.dosageUnit, form.unitValue, form.timeOfDay, form.startDate]);
+
+    const clearDraft = () => {
+        try {
+            localStorage.removeItem(QUICKSTART_DRAFT_KEY);
+            setLastSaved(null);
+        } catch (e) {
+            console.warn('Quick start draft clear failed:', e);
+        }
+    };
 
     const handleSave = async () => {
         // Validate
@@ -72,17 +138,8 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
             }, { isNew: true });
 
             await onSave(protocol);
-            
-            // Reset form
-            setForm({
-                name: '',
-                dosage: '',
-                dosageUnit: 'mg',
-                unitValue: '',
-                timeOfDay: ['AM'],
-                startDate: getLocalDateString()
-            });
-            
+            clearDraft();
+            setForm(getDefaultForm());
             onClose();
         } catch (error) {
             console.error('Failed to create quick start protocol:', error);
@@ -190,6 +247,10 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
             }
         >
             <div className="space-y-4 pb-6">
+                {/* Draft save indicator */}
+                {(lastSaved || form.name?.trim() || form.dosage?.trim()) && (
+                    <AutoSaveIndicator isSaving={false} lastSaved={lastSaved} theme={theme} />
+                )}
                 {/* Header with tip */}
                 <div className="text-xs text-center py-2 px-3 rounded-lg" style={{ 
                     backgroundColor: `${theme.info || theme.primary}10`,

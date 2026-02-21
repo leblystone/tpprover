@@ -292,18 +292,34 @@ export async function loginUser(email, password) {
     // Get current device information
     const deviceInfo = getCurrentDeviceInfo();
     
-    // Update last active timestamp and device info
-    await updateDoc(doc(db, 'users', user.uid), {
-      lastActive: serverTimestamp(),
-      deviceInfo: deviceInfo
-    });
+    // Update last active timestamp and device info (non-blocking on native/offline paths)
+    try {
+      await Promise.race([
+        updateDoc(doc(db, 'users', user.uid), {
+          lastActive: serverTimestamp(),
+          deviceInfo: deviceInfo
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Login Firestore timeout')), 5000))
+      ]);
+    } catch (firestoreError) {
+      // Don't block login if profile metadata update fails
+      console.warn('⚠️ Login metadata update failed, continuing login:', firestoreError?.message || firestoreError);
+    }
     
-    // Track login analytics
-    await updateAnalytics('userLogin');
+    // Track login analytics (non-blocking)
+    try {
+      await updateAnalytics('userLogin');
+    } catch (analyticsError) {
+      console.warn('⚠️ Login analytics failed:', analyticsError?.message || analyticsError);
+    }
     
     return user;
   } catch (error) {
-    console.error('Login failed:', error);
+    console.error('Login failed:', {
+      code: error?.code,
+      message: error?.message,
+      name: error?.name
+    });
     throw error;
   }
 }

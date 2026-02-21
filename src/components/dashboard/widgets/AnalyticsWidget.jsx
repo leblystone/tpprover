@@ -7,6 +7,7 @@ import { formatCurrency } from '../../../utils/currencyUtils';
 import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../calendar/MonthGrid';
+import { useAppContext } from '../../../context/AppContext';
 
 function useLocal(key, fallback) {
   try {
@@ -42,11 +43,12 @@ function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) 
 
 const AnalyticsWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
-  const supplements = useLocal('tpprover_supplements', []);
-  const reconItems = useLocal('tpprover_recon_items', []);
-  const orders = useLocal('tpprover_orders', []);
-  const stockpile = useLocal('tpprover_stockpile', []);
-  const protocols = useLocal('tpprover_protocols', []);
+  const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
+  const supplements = ctxSupplements || [];
+  const reconItems = ctxReconItems || [];
+  const orders = ctxOrders || [];
+  const stockpile = ctxStockpile || [];
+  const protocols = ctxProtocols || [];
   const protocolHistory = useLocal('tpprover_protocol_history', []);
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
 

@@ -285,8 +285,19 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
     const dayKey = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
     const dateKey = toKey(dateNormalized);
 
-    // Add supplements
-    const daySupps = supplements.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey));
+    // Add supplements (respect startDate/endDate and day-of-week)
+    const daySupps = supplements.filter(s => {
+        if (s.startDate) {
+            const start = parseDateString(s.startDate);
+            if (start && dateNormalized < normalizeToMidnight(start)) return false;
+        }
+        if (s.endDate) {
+            const end = parseDateString(s.endDate);
+            if (end && dateNormalized > normalizeToMidnight(end)) return false;
+        }
+        if (s.days && s.days.length > 0 && !s.days.includes(dayKey)) return false;
+        return true;
+    });
     for (const s of daySupps) {
         const slots = Array.isArray(s.schedule) && s.schedule.length > 0 
             ? s.schedule 

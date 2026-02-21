@@ -288,6 +288,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const autoSaveTimeoutRef = React.useRef(null);
     const previousStateRef = React.useRef(null);
     const isRestoringRef = React.useRef(false);
+    const openSessionInitializedRef = React.useRef(false);
 
     // Auto-save effect
     useEffect(() => {
@@ -361,51 +362,54 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         clearSavedData();
     }, [clearSavedData]);
 
-    // Load saved draft or initialize fresh state when modal opens
+    // Load saved draft or initialize fresh state only when modal first opens.
+    // Run once per open session so parent re-renders (e.g. after Save & Link) don't overwrite state with stale draft.
     useEffect(() => {
-        if (open && protocol) {
-            try {
-                const saved = localStorage.getItem(storageKey);
-                if (saved) {
-                    const parsedData = JSON.parse(saved);
-                    if (parsedData.data && Object.keys(parsedData.data).length > 0) {
-                        const savedState = parsedData.data;
-                        isRestoringRef.current = true; // Prevent auto-save from triggering
-                        // Allow user to select any date (past, present, or future)
-                        // Only default to today if no saved date exists
-                        const dateToUse = savedState.startDate || getLocalDateString();
-                        setStartDate(dateToUse);
-                        if (savedState.expandedSections) setExpandedSections(savedState.expandedSections);
-                        if (savedState.linkedData) setLinkedData(savedState.linkedData);
-                        if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
-                        if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
-                        if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
-                        previousStateRef.current = { ...savedState, startDate: dateToUse };
-                        setLastSaved(new Date(parsedData.timestamp));
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.warn('Failed to load saved draft:', e);
-            }
-
-            // Initialize fresh state if no saved draft
-            isRestoringRef.current = true;
-            const today = getLocalDateString(); // Default to today for fresh start
-            const initialData = {};
-            protocol.peptides.forEach((p, index) => {
-                const peptideId = p.id || `peptide-${index}`;
-                const uniqueKey = initialData[peptideId] ? `peptide-${index}` : peptideId;
-                initialData[uniqueKey] = { status: 'pending' };
-            });
-            setLinkedData(initialData);
-            setStartDate(today); // Default to today when opening fresh
-            setReconStrategy(null);
-            setReconComplete(false);
-            setSkippedPeptideDeliveryMethods({});
-            setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
-            previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: today, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
+        if (!open) {
+            openSessionInitializedRef.current = false;
+            return;
         }
+        if (openSessionInitializedRef.current || !protocol) return;
+        openSessionInitializedRef.current = true;
+
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const parsedData = JSON.parse(saved);
+                if (parsedData.data && Object.keys(parsedData.data).length > 0) {
+                    const savedState = parsedData.data;
+                    isRestoringRef.current = true;
+                    const dateToUse = savedState.startDate || getLocalDateString();
+                    setStartDate(dateToUse);
+                    if (savedState.expandedSections) setExpandedSections(savedState.expandedSections);
+                    if (savedState.linkedData) setLinkedData(savedState.linkedData);
+                    if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
+                    if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
+                    if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
+                    previousStateRef.current = { ...savedState, startDate: dateToUse };
+                    setLastSaved(new Date(parsedData.timestamp));
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load saved draft:', e);
+        }
+
+        isRestoringRef.current = true;
+        const today = getLocalDateString();
+        const initialData = {};
+        protocol.peptides.forEach((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            const uniqueKey = initialData[peptideId] ? `peptide-${index}` : peptideId;
+            initialData[uniqueKey] = { status: 'pending' };
+        });
+        setLinkedData(initialData);
+        setStartDate(today);
+        setReconStrategy(null);
+        setReconComplete(false);
+        setSkippedPeptideDeliveryMethods({});
+        setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
+        previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: today, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
     }, [open, protocol, storageKey]);
 
     const handleSelectVial = React.useCallback((peptideId, vialId) => {
@@ -479,6 +483,21 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 updated[key] = { ...prev[key] };
             });
             updated[peptideId] = { status: 'linked', vialId: newItem.id };
+            // Persist draft immediately so listener re-renders or remounts don't overwrite with stale draft
+            try {
+                const draftState = {
+                    expandedSections,
+                    linkedData: updated,
+                    startDate,
+                    reconStrategy,
+                    reconComplete,
+                    skippedPeptideDeliveryMethods
+                };
+                localStorage.setItem(storageKey, JSON.stringify({ data: draftState, timestamp: getLocalTimestamp() }));
+                previousStateRef.current = draftState;
+            } catch (e) {
+                console.warn('Failed to persist draft after Save & Link:', e);
+            }
             return updated;
         });
     };

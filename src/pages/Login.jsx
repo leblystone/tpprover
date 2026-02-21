@@ -401,9 +401,17 @@ export default function Login() {
           Array.isArray(existingData[key]) && existingData[key].length > 0
         );
         
-        const firebaseUser = await loginUser(email, password);
+        const firebaseUser = await Promise.race([
+          loginUser(email, password),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Firebase login timeout')), 15000)
+          )
+        ]);
         // Check if 2FA is enabled for this user
-        const twoFactorSettings = await getTwoFactorSettings(firebaseUser.uid, password);
+        const twoFactorSettings = await Promise.race([
+          getTwoFactorSettings(firebaseUser.uid, password),
+          new Promise((resolve) => setTimeout(() => resolve(null), 5000))
+        ]);
         
         if (twoFactorSettings && twoFactorSettings.enabled && twoFactorSettings.method === 'authenticator' && twoFactorSettings.secret) {
           // Store password temporarily for decryption
@@ -683,7 +691,11 @@ export default function Login() {
       } catch (error) {
         // Clear login flag on error too
         sessionStorage.removeItem('tpp_login_in_progress');
-        console.error('Login failed:', error);
+        console.error('Login failed:', {
+          code: error?.code,
+          message: error?.message,
+          name: error?.name
+        });
         
         // Get account status for better error messages
         let accountStatus = null;
@@ -1378,13 +1390,13 @@ export default function Login() {
             setLoading(true);
             try {
                 
-                // Execute reCAPTCHA for login
                 let recaptchaToken = null;
-                try {
-                    recaptchaToken = await executeRecaptcha('login');
+                if (!isNative()) {
+                    try {
+                        recaptchaToken = await executeRecaptcha('login');
                     } catch (recaptchaError) {
-                      // Continue without reCAPTCHA token
-                    // Continue without token - server will handle gracefully
+                        // Continue without token - server will handle gracefully
+                    }
                 }
                 
                 // Add timeout to prevent infinite loading state
@@ -1405,7 +1417,11 @@ export default function Login() {
                     setTimeout(() => setLoading(false), 100);
                 }
             } catch (error) {
-                console.error('❌ Login error:', error);
+                console.error('❌ Login error:', {
+                    code: error?.code,
+                    message: error?.message,
+                    name: error?.name
+                });
                 setLoading(false);
                 if (error.message?.includes('timeout')) {
                     setError('Login timed out. Please check your internet connection and try again.');
@@ -1423,13 +1439,13 @@ export default function Login() {
         setLoading(true);
         setShowAgreementModal(false);
         try {
-            // Execute reCAPTCHA for signup
             let recaptchaToken = null;
-            try {
-                recaptchaToken = await executeRecaptcha('signup');
+            if (!isNative()) {
+                try {
+                    recaptchaToken = await executeRecaptcha('signup');
                 } catch (recaptchaError) {
-                  // Continue without reCAPTCHA token
-                // Continue without token - server will handle gracefully
+                    // Continue without token - server will handle gracefully
+                }
             }
             
             const success = await doSignup(recaptchaToken);

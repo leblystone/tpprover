@@ -3157,6 +3157,30 @@ export function AppProvider({ children }) {
                                     );
                                     localStorage.setItem('tpprover_stockpile_history', JSON.stringify(mergedStockHist));
                                 }
+                                if (freshData.userGoals) {
+                                    const localGoals = safeParseLocalStorage('tpprover_user_goals', []);
+                                    const mergedGoals = mergeWithTimestamps(localGoals, freshData.userGoals, 'goals', getDeletionTracking().goals);
+                                    localStorage.setItem('tpprover_user_goals', JSON.stringify(mergedGoals));
+                                    window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: mergedGoals } }));
+                                }
+                                if (freshData.userNotes) {
+                                    const localNotes = safeParseLocalStorage('tpprover_user_notes', []);
+                                    const mergedNotes = mergeWithTimestamps(localNotes, freshData.userNotes, 'userNotes', getDeletionTracking().userNotes);
+                                    localStorage.setItem('tpprover_user_notes', JSON.stringify(mergedNotes));
+                                    window.dispatchEvent(new CustomEvent('tpp:user-notes-updated', { detail: { notes: mergedNotes } }));
+                                }
+                                if (freshData.wishlist) {
+                                    const localWishlist = safeParseLocalStorage('tpprover_wishlist', []);
+                                    const mergedWishlist = mergeWithTimestamps(localWishlist, freshData.wishlist, 'wishlist', getDeletionTracking().wishlist);
+                                    localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
+                                    window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: mergedWishlist } }));
+                                }
+                                if (freshData.waterTracker && Object.keys(freshData.waterTracker).length > 0) {
+                                    const localWater = safeParseLocalStorage('tpprover_water_tracker', {});
+                                    const mergedWater = mergeWaterTracker(localWater, freshData.waterTracker);
+                                    localStorage.setItem('tpprover_water_tracker', JSON.stringify(mergedWater));
+                                    window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData: mergedWater } }));
+                                }
                             }
                             
                             setTimeout(() => {
@@ -3439,6 +3463,34 @@ export function AppProvider({ children }) {
                                 );
                                 localStorage.setItem('tpprover_stockpile_history', JSON.stringify(mergedStockHistory));
                             }
+                            // Merge user goals from cloud (cross-device sync)
+                            if (freshData.userGoals) {
+                                const localGoals = safeParseLocalStorage('tpprover_user_goals', []);
+                                const mergedGoals = mergeWithTimestamps(localGoals, freshData.userGoals, 'goals', getDeletionTracking().goals);
+                                localStorage.setItem('tpprover_user_goals', JSON.stringify(mergedGoals));
+                                window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: mergedGoals } }));
+                            }
+                            // Merge user notes from cloud (cross-device sync)
+                            if (freshData.userNotes) {
+                                const localNotes = safeParseLocalStorage('tpprover_user_notes', []);
+                                const mergedNotes = mergeWithTimestamps(localNotes, freshData.userNotes, 'userNotes', getDeletionTracking().userNotes);
+                                localStorage.setItem('tpprover_user_notes', JSON.stringify(mergedNotes));
+                                window.dispatchEvent(new CustomEvent('tpp:user-notes-updated', { detail: { notes: mergedNotes } }));
+                            }
+                            // Merge wishlist from cloud (cross-device sync)
+                            if (freshData.wishlist) {
+                                const localWishlist = safeParseLocalStorage('tpprover_wishlist', []);
+                                const mergedWishlist = mergeWithTimestamps(localWishlist, freshData.wishlist, 'wishlist', getDeletionTracking().wishlist);
+                                localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
+                                window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: mergedWishlist } }));
+                            }
+                            // Merge water tracker from cloud (cross-device sync)
+                            if (freshData.waterTracker && Object.keys(freshData.waterTracker).length > 0) {
+                                const localWater = safeParseLocalStorage('tpprover_water_tracker', {});
+                                const mergedWater = mergeWaterTracker(localWater, freshData.waterTracker);
+                                localStorage.setItem('tpprover_water_tracker', JSON.stringify(mergedWater));
+                                window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData: mergedWater } }));
+                            }
                             // CRITICAL: Merge task completion data from cloud (needed for streak)
                             // Uses timestamp-aware per-task merge to prevent data loss
                             if (freshData.taskCompletion) {
@@ -3470,6 +3522,9 @@ export function AppProvider({ children }) {
             if (!hasLoadedFromFirestoreRef.current) {
                 hasLoadedFromFirestoreRef.current = true;
                 console.log('✅ Initial Firestore load complete - auto-save now enabled');
+                
+                // Notify widgets that cloud data has landed in localStorage
+                window.dispatchEvent(new CustomEvent('tpp:cloud-data-loaded'));
                 
                 // 🩹 Run retroactive data fixups after listener delivers data
                 setTimeout(() => {

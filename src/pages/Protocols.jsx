@@ -152,11 +152,19 @@ export default function Protocols() {
         loadNotesForManage();
       }
     };
+    const handleCloudDataLoaded = () => {
+      setHistoryRefreshKey(prev => prev + 1);
+      if (manageTab === 'notes' && manageConfirm) {
+        loadNotesForManage();
+      }
+    };
     window.addEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
     window.addEventListener('tpp:user-notes-updated', handleUserNotesUpdate);
+    window.addEventListener('tpp:cloud-data-loaded', handleCloudDataLoaded);
     return () => {
       window.removeEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
       window.removeEventListener('tpp:user-notes-updated', handleUserNotesUpdate);
+      window.removeEventListener('tpp:cloud-data-loaded', handleCloudDataLoaded);
     };
   }, [manageTab, manageConfirm]);
 
@@ -4185,7 +4193,6 @@ export default function Protocols() {
                 // Try to find the most recent reconstitution data for this protocol
                 let reconstitutionData = null;
                 try {
-                    const reconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]');
                     // Find recon items that match this protocol name
                     const protocolNameForRecon = toSave.protocolName || toSave.name || finalizedProtocol.protocolName || '';
                     const matchingRecon = reconItems

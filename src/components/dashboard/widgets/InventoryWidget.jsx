@@ -3,19 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Package, ChevronsUp, ChevronsDown, ChevronDown } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
-
-function useLocal(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { useAppContext } from '../../../context/AppContext';
 
 const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
   const navigate = useNavigate();
-  const stockpile = useLocal('tpprover_stockpile', []);
+  const { stockpile: stockpileRaw } = useAppContext();
+  const stockpile = stockpileRaw || [];
 
   const handleOpenAddSingle = () => {
     if (onOpenStockpileAdd) {

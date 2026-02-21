@@ -9,6 +9,7 @@ import { toKey } from '../calendar/MonthGrid'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
+import { useAppContext } from '../../context/AppContext'
 
 function useLocal(key, fallback) {
   try {
@@ -21,11 +22,12 @@ function useLocal(key, fallback) {
 
 export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, activeTab: controlledTab, onTabChange }) {
   const navigate = useNavigate()
-  const protocols = useLocal('tpprover_protocols', [])
-  const orders = useLocal('tpprover_orders', [])
-  const stockpile = useLocal('tpprover_stockpile', [])
-  const supplements = useLocal('tpprover_supplements', [])
-  const reconItems = useLocal('tpprover_recon_items', [])
+  const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
+  const protocols = ctxProtocols || []
+  const orders = ctxOrders || []
+  const stockpile = ctxStockpile || []
+  const supplements = ctxSupplements || []
+  const reconItems = ctxReconItems || []
   const protocolHistory = useLocal('tpprover_protocol_history', [])
   const goals = useLocal('tpprover_goals', [])
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())

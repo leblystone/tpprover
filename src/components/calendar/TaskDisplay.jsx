@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Check, PenTool, Beaker, Pipette } from 'lucide-react';
+import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -19,7 +19,10 @@ const DeliveryIcon = ({ task, theme, size = 14 }) => {
       return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
     if (deliveryLower === 'nasal') {
-      return <Pipette size={size} style={{ color: theme.textLight }} />;
+      return <SprayCan size={size} style={{ color: theme.textLight }} />;
+    }
+    if (deliveryLower === 'topical') {
+      return <Hand size={size} style={{ color: theme.textLight }} />;
     }
     // Default fallback for peptides (typically injected)
     return <Pipette size={size} style={{ color: theme.textLight }} />;

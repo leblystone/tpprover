@@ -2,18 +2,11 @@ import React, { useMemo } from 'react';
 import { Truck, Clock } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
-
-function useLocal(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { useAppContext } from '../../../context/AppContext';
 
 const LeadTimeWidget = ({ widget, theme }) => {
-  const orders = useLocal('tpprover_orders', []);
+  const { orders: ctxOrders } = useAppContext();
+  const orders = ctxOrders || [];
 
   const leadTimeData = useMemo(() => {
     let totalLeadTime = 0;

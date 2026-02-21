@@ -4,6 +4,7 @@ import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculat
 import BetaModal from '../common/BetaModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
+import { useAppContext } from '../../context/AppContext';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -36,6 +37,7 @@ const triggerHaptic = (style = 'light') => {
 export default function BottomNavigation({ theme }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
   // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
@@ -211,56 +213,28 @@ export default function BottomNavigation({ theme }) {
     }, 300); // Match animation duration
   };
 
-  // Aggregate search data from localStorage
   const searchData = useMemo(() => {
     const out = [];
-    try {
-      const prots = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
-      prots.forEach(p => {
-        const protocolName = p.name || p.protocolName || '';
-        if (protocolName) {
-          out.push({ 
-            key: `prot-${p.id}`,
-            id: p.id,
-            type: 'protocol', 
-            title: protocolName, 
-            subtitle: p.purpose || p.category || '', 
-            to: '/app/protocols',
-            icon: ClipboardList
-          });
-        }
-      });
-    } catch (e) {
-      console.error('Search: Error loading protocols', e);
-    }
-    try {
-      const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
-      orders.forEach(o => out.push({ 
-        key: `ord-${o.id}`,
-        id: o.id,
-        type: 'order', 
-        title: `${o.peptide} ${o.mg}mg`, 
-        subtitle: o.vendor, 
-        to: '/app/orders',
-        icon: ShoppingCart
-      }));
-    } catch (e) {
-      console.error('Search: Error loading orders', e);
-    }
-    try {
-      const stock = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
-      stock.forEach(s => out.push({ 
-        key: `stk-${s.id}`,
-        id: s.id,
-        type: 'stockpile', 
-        title: s.name, 
-        subtitle: `${s.mg}mg • ${s.vendor}`, 
-        to: '/app/stockpile',
-        icon: Box
-      }));
-    } catch (e) {
-      console.error('Search: Error loading stockpile', e);
-    }
+    (ctxProtocols || []).forEach(p => {
+      const protocolName = p.name || p.protocolName || '';
+      if (protocolName) {
+        out.push({ 
+          key: `prot-${p.id}`, id: p.id, type: 'protocol', 
+          title: protocolName, subtitle: p.purpose || p.category || '', 
+          to: '/app/protocols', icon: ClipboardList
+        });
+      }
+    });
+    (ctxOrders || []).forEach(o => out.push({ 
+      key: `ord-${o.id}`, id: o.id, type: 'order', 
+      title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, 
+      to: '/app/orders', icon: ShoppingCart
+    }));
+    (ctxStockpile || []).forEach(s => out.push({ 
+      key: `stk-${s.id}`, id: s.id, type: 'stockpile', 
+      title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, 
+      to: '/app/stockpile', icon: Box
+    }));
     return out;
   }, [showSearch]); // Re-aggregate when search opens to get fresh data
 

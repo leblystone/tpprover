@@ -36,6 +36,22 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     lastUpdated: null 
   };
 
+  // Reload from localStorage when cloud data arrives
+  useEffect(() => {
+    const reload = () => {
+      try {
+        const saved = localStorage.getItem('tpprover_water_tracker');
+        if (saved) setWaterData(JSON.parse(saved));
+      } catch {}
+    };
+    window.addEventListener('tpp:cloud-data-loaded', reload);
+    window.addEventListener('tpp:water-tracker-updated', reload);
+    return () => {
+      window.removeEventListener('tpp:cloud-data-loaded', reload);
+      window.removeEventListener('tpp:water-tracker-updated', reload);
+    };
+  }, []);
+
   // Save water data whenever it changes
   useEffect(() => {
     try {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { DollarSign, Users, TrendingUp, TrendingDown, RefreshCw, CreditCard, Smartphone, Apple } from 'lucide-react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../config/firebase';
 
 export default function AdminRevenue() {
   const { theme } = useOutletContext();
@@ -14,12 +14,12 @@ export default function AdminRevenue() {
     setLoading(true);
     setError(null);
     try {
-      const functions = getFunctions(getApp());
       const getRevenue = httpsCallable(functions, 'getRevenueMetrics');
       const result = await getRevenue();
       setMetrics(result.data);
     } catch (err) {
-      setError(err.message);
+      const msg = err?.message || err?.details?.message || (typeof err === 'string' ? err : 'Failed to load revenue data');
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -56,26 +56,32 @@ export default function AdminRevenue() {
 
   if (!metrics) return null;
 
+  const mrr = Number(metrics.mrr) || 0;
+  const totalActive = Number(metrics.totalActive) ?? 0;
+  const conversionRate = Number(metrics.conversionRate) ?? 0;
+  const churnRate = Number(metrics.churnRate) ?? 0;
+  const pb = metrics.providerBreakdown || {};
+
   const statCards = [
-    { label: 'MRR', value: `$${metrics.mrr.toFixed(2)}`, icon: DollarSign, color: '#10B981' },
-    { label: 'Active Subscribers', value: metrics.totalActive, icon: Users, color: theme.primary },
-    { label: 'Conversion Rate', value: `${metrics.conversionRate}%`, icon: TrendingUp, color: '#3B82F6' },
-    { label: 'Churn Rate', value: `${metrics.churnRate}%`, icon: TrendingDown, color: '#EF4444' },
+    { label: 'MRR', value: `$${mrr.toFixed(2)}`, icon: DollarSign, color: '#10B981' },
+    { label: 'Active Subscribers', value: totalActive, icon: Users, color: theme.primary },
+    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, color: '#3B82F6' },
+    { label: 'Churn Rate', value: `${churnRate}%`, icon: TrendingDown, color: '#EF4444' },
   ];
 
   const breakdownCards = [
-    { label: 'Monthly', value: metrics.activeMonthly, color: '#8B5CF6' },
-    { label: 'Annual', value: metrics.activeAnnual, color: '#F59E0B' },
-    { label: 'Lifetime', value: metrics.activeLifetime, color: '#10B981' },
-    { label: 'Trialing', value: metrics.trialing, color: '#6366F1' },
-    { label: 'Canceled', value: metrics.canceled, color: '#EF4444' },
-    { label: 'Expired', value: metrics.expired, color: '#9CA3AF' },
+    { label: 'Monthly', value: Number(metrics.activeMonthly) ?? 0, color: '#8B5CF6' },
+    { label: 'Annual', value: Number(metrics.activeAnnual) ?? 0, color: '#F59E0B' },
+    { label: 'Lifetime', value: Number(metrics.activeLifetime) ?? 0, color: '#10B981' },
+    { label: 'Trialing', value: Number(metrics.trialing) ?? 0, color: '#6366F1' },
+    { label: 'Canceled', value: Number(metrics.canceled) ?? 0, color: '#EF4444' },
+    { label: 'Expired', value: Number(metrics.expired) ?? 0, color: '#9CA3AF' },
   ];
 
   const providers = [
-    { label: 'Stripe', value: metrics.providerBreakdown?.stripe || 0, icon: CreditCard },
-    { label: 'Google Play', value: metrics.providerBreakdown?.googleplay || 0, icon: Smartphone },
-    { label: 'App Store', value: metrics.providerBreakdown?.apple || 0, icon: Apple },
+    { label: 'Stripe', value: pb.stripe ?? 0, icon: CreditCard },
+    { label: 'Google Play', value: pb.googleplay ?? 0, icon: Smartphone },
+    { label: 'App Store', value: pb.apple ?? 0, icon: Apple },
   ];
 
   return (
@@ -134,7 +140,7 @@ export default function AdminRevenue() {
       </div>
 
       <p className="text-xs text-center" style={{ color: theme.textLight, opacity: 0.5 }}>
-        Total tracked users: {metrics.totalUsers}
+        Total tracked users: {Number(metrics.totalUsers) ?? 0}
       </p>
     </div>
   );

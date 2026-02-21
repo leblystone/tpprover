@@ -8,8 +8,10 @@ import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
+import { useAppContext } from '../../context/AppContext'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate }) {
+  const { vendors: contextVendors } = useAppContext()
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ 
     vendor: '', 
@@ -864,9 +866,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     label="Vendor" 
                     value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
                     onChange={v => {
-                      // Get vendors list to find vendorId
-                      let vendors = [];
-                      try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+                      const vendors = contextVendors || [];
                       const selectedVendor = vendors.find(vendor => vendor.name === v);
                       const vendorId = selectedVendor ? selectedVendor.id : null;
                       
@@ -903,9 +903,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     label="Vendor" 
                     value={safeForm.peptides[currentPeptideIndex]?.vendor || ''} 
                     onChange={v => {
-                      // Get vendors list to find vendorId
-                      let vendors = [];
-                      try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+                      const vendors = contextVendors || [];
                       const selectedVendor = vendors.find(vendor => vendor.name === v);
                       const vendorId = selectedVendor ? selectedVendor.id : null;
                       

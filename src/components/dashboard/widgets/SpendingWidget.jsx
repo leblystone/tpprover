@@ -3,20 +3,13 @@ import { DollarSign, Eye } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import SpendingDetailModal from '../SpendingDetailModal';
-
-function useLocal(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { useAppContext } from '../../../context/AppContext';
 
 const SpendingWidget = ({ widget, theme }) => {
   const [showBreakdownModal, setShowBreakdownModal] = useState(false);
-  const orders = useLocal('tpprover_orders', []);
-  const stockpile = useLocal('tpprover_stockpile', []);
+  const { orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
+  const orders = ctxOrders || [];
+  const stockpile = ctxStockpile || [];
 
   const spendingData = useMemo(() => {
     const now = new Date();

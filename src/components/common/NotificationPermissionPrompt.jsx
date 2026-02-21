@@ -7,6 +7,18 @@ import { syncNotificationSettingsToFirestore } from '../../utils/settingsHelpers
 import Modal from './Modal';
 import { Capacitor } from '@capacitor/core';
 
+// Safe read of Notification.permission (not available in native WebView - throws ReferenceError)
+function safeNotificationPermission() {
+  try {
+    if (typeof window === 'undefined') return 'default';
+    // typeof is safe; direct Notification.permission access can throw on native
+    const perm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+    return perm;
+  } catch (_) {
+    return 'default';
+  }
+}
+
 export default function NotificationPermissionPrompt({ theme }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -29,28 +41,14 @@ export default function NotificationPermissionPrompt({ theme }) {
           const permission = await LocalNotifications.checkPermissions();
           return permission.display === 'granted';
         } catch (e) {
-          // Fallback to browser permission if Capacitor check fails
-          // Safety check for Notification API
-          if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
-            return Notification.permission === 'granted';
-          }
-          return false;
+          return safeNotificationPermission() === 'granted';
         }
       } else {
-        // For PWA/web, check browser permission
-        // Safety check for Notification API
-        if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
-          return Notification.permission === 'granted';
-        }
-        return false;
+        return safeNotificationPermission() === 'granted';
       }
     } catch (e) {
       console.error('Error checking permission status:', e);
-      // Safety check for Notification API
-      if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
-        return Notification.permission === 'granted';
-      }
-      return false;
+      return safeNotificationPermission() === 'granted';
     }
   };
 
@@ -209,7 +207,7 @@ export default function NotificationPermissionPrompt({ theme }) {
         const pwaStatus = pwaNotificationService.getStatus();
         setStatus({
           ...pwaStatus,
-          permission: actualPermission ? 'granted' : Notification.permission,
+          permission: actualPermission ? 'granted' : safeNotificationPermission(),
           enabled: actualPermission
         });
         return; // Exit early
@@ -235,7 +233,7 @@ export default function NotificationPermissionPrompt({ theme }) {
           const pwaStatus = pwaNotificationService.getStatus();
           setStatus({
             ...pwaStatus,
-            permission: actualPermission ? 'granted' : Notification.permission,
+            permission: actualPermission ? 'granted' : safeNotificationPermission(),
             enabled: actualPermission
           });
           return; // Exit early - don't proceed with showing logic
@@ -258,10 +256,10 @@ export default function NotificationPermissionPrompt({ theme }) {
       // Check actual device permission status
       const actualPermission = await checkActualPermissionStatus();
       
-      // Update status with actual permission
+      // Update status with actual permission (Notification not available in native WebView)
       setStatus({
         ...pwaStatus,
-        permission: actualPermission ? 'granted' : Notification.permission,
+        permission: actualPermission ? 'granted' : safeNotificationPermission(),
         enabled: actualPermission
       });
       

@@ -111,7 +111,8 @@ exports.getRevenueMetrics = onCall({
       const sub = doc.data()?.subscription;
       if (!sub) continue;
 
-      const provider = sub.paymentProvider || 'stripe';
+      const raw = (sub.paymentProvider || 'stripe').toLowerCase().replace(/\s/g, '');
+      const provider = raw === 'google' || raw === 'google_play' ? 'googleplay' : (raw === 'apple' || raw === 'app_store' ? 'apple' : 'stripe');
       if (providerCounts[provider] !== undefined) providerCounts[provider]++;
 
       switch (sub.status) {

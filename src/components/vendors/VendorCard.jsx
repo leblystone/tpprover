@@ -6,6 +6,7 @@ import { FaPaypal, FaAlipay } from 'react-icons/fa6';
 import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { useAppContext } from '../../context/AppContext';
 
 // Venmo icon wrapper - makes it bigger for better visibility
 const VenmoIcon = ({ className, size, style }) => {
@@ -69,26 +70,20 @@ function buildContactHref(type, rawValue) {
 
 
 export default function VendorCard({ vendor, theme, onEditClick, onManageProtocolClick, onForceDelete, isPublicView = false }) {
+    const { orders: contextOrders } = useAppContext();
     const [isShareModalOpen, setShareModalOpen] = useState(false);
 
     const handleShare = () => {
         setShareModalOpen(true);
     };
 
-    // Check for order history
-    const getOrderHistory = () => {
-        try {
-            const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
-            return orders.filter(order => 
-                (order.vendorId && order.vendorId === vendor.id) || 
-                (!order.vendorId && order.vendor && order.vendor.toLowerCase() === vendor.name.toLowerCase())
-            );
-        } catch {
-            return [];
-        }
-    };
-
-    const orderHistory = getOrderHistory();
+    const orderHistory = useMemo(() => {
+        const orders = contextOrders || [];
+        return orders.filter(order => 
+            (order.vendorId && order.vendorId === vendor.id) || 
+            (!order.vendorId && order.vendor && order.vendor.toLowerCase() === vendor.name.toLowerCase())
+        );
+    }, [contextOrders, vendor.id, vendor.name]);
 
     // Calculate total spent with this vendor
     const totalSpent = useMemo(() => {

@@ -5,8 +5,10 @@ import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskCo
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
+import { useAppContext } from '../../context/AppContext';
 
 export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile, onRestore, onEdit, protocols }) {
+    const { protocols: contextProtocols } = useAppContext();
     const [showFollowUpModal, setShowFollowUpModal] = useState(false);
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [protocol, setProtocol] = useState(null);
@@ -42,7 +44,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     React.useEffect(() => {
         if (currentHistoryEntry?.protocolId) {
             try {
-                const allProtocols = protocols || JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+                const allProtocols = protocols || contextProtocols || [];
                 const foundProtocol = allProtocols.find(p => p.id === currentHistoryEntry.protocolId);
                 setProtocol(foundProtocol || { id: currentHistoryEntry.protocolId, protocolName: currentHistoryEntry.protocolName || 'Unnamed Protocol' });
             } catch (e) {

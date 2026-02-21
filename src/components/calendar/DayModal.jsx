@@ -8,8 +8,6 @@ import { penColors } from '../../utils/penColors'
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings'
 import { formatMMDDYYYY } from '../../utils/date'
 import { useAppContext } from '../../context/AppContext'
-import { useFirebase } from '../../context/FirebaseContext'
-import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic'
 import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
@@ -256,8 +254,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
 }
 
 export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump }) {
-  const { scheduledBuys } = useAppContext()
-  const { firebaseUser } = useFirebase()
+  const { scheduledBuys, orders: ctxOrders } = useAppContext()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null)
@@ -401,9 +398,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
     }
     
     if (!groupBuyInfo) {
-      const orders = firebaseUser?.email 
-        ? (safeLocalStorageGet('tpprover_orders', firebaseUser.email) || [])
-        : []
+      const orders = ctxOrders || []
       const orderMatch = orders.find(o => {
         try {
           const d = (o.date || '').slice(0,10)
@@ -690,8 +685,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                       
                       if (!fullData) {
                         try {
-                          const rawOrders = localStorage.getItem('tpprover_orders')
-                          const orders = rawOrders ? JSON.parse(rawOrders) : []
+                          const orders = ctxOrders || []
                           const orderMatch = orders.find(o => {
                             try {
                               const oDate = (o.date || '').slice(0, 10)

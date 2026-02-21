@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff, MessageSquare } from 'lucide-react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { generateId } from '../../utils/string'
+import { useAppContext } from '../../context/AppContext'
 
 // Venmo icon wrapper - passes through size directly
 const VenmoIcon = ({ size = 18, style, className }) => {
@@ -50,6 +51,7 @@ const getLabelIcon = (label) => {
 }
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
+  const { vendors: contextVendors, orders: contextOrders } = useAppContext()
   const [form, setForm] = useState(createEmptyVendor())
   const [contactFocused, setContactFocused] = useState({})
   const [isNotesFocused, setIsNotesFocused] = useState(false)
@@ -169,7 +171,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     onClose?.();
                   }
                   setTimeout(() => {
-                    const stillExists = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
+                    const allVendors = contextVendors || [];
+                    const stillExists = allVendors
                       .some(v => String(v.id) === String(targetId) || (v.name && form?.name && v.name.trim().toLowerCase() === form.name.trim().toLowerCase()));
                     if (stillExists && onForceDelete && vendorToDelete) {
                       onForceDelete(vendorToDelete);
@@ -696,8 +699,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 export { VendorDetailsModal }
 
 function NameSuggestions({ anchorValue, onPick, theme }) {
-  let vendors = []
-  try { vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]') } catch {}
+  const { vendors: contextVendors } = useAppContext()
+  const vendors = contextVendors || []
   const base = Array.from(new Set(vendors))
   const q = (anchorValue || '').toLowerCase()
   const list = q ? base.filter(v => v.toLowerCase().includes(q)).slice(0, 6) : []
@@ -762,8 +765,8 @@ function createEmptyVendor() {
 }
 
 function VendorOrderHistory({ vendorName, vendorId, theme }) {
-  let orders = []
-  try { orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]') } catch {}
+  const { orders: contextOrders } = useAppContext()
+  const orders = contextOrders || []
   const history = orders.filter(o => {
     if (vendorId && o.vendorId) return o.vendorId === vendorId;
     return (o.vendor || '').toLowerCase() === (vendorName || '').toLowerCase();

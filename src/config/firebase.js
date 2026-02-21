@@ -1,7 +1,15 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import {
+  getAuth,
+  initializeAuth,
+  connectAuthEmulator,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence
+} from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported as isAnalyticsSupported, logEvent as firebaseLogEvent } from 'firebase/analytics';
@@ -24,8 +32,22 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore - now using standard WebChannel since CapacitorHttp is disabled
 export const db = getFirestore(app);
 
-// Initialize Auth
-export const auth = getAuth(app);
+// Initialize Auth with explicit persistence fallbacks for WKWebView/iOS reliability
+let authInstance;
+try {
+  authInstance = initializeAuth(app, {
+    persistence: [
+      indexedDBLocalPersistence,
+      browserLocalPersistence,
+      browserSessionPersistence,
+      inMemoryPersistence
+    ]
+  });
+} catch {
+  // Already initialized (or unsupported path) - fallback to default getter
+  authInstance = getAuth(app);
+}
+export const auth = authInstance;
 
 // Initialize Functions with correct region
 export const functions = getFunctions(app, 'us-central1');
