@@ -7,6 +7,7 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { Clock, Check, Loader2 } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { generateId } from '../../utils/string';
+import { prepareItemForSave } from '../../utils/userDataSave';
 
 export default function QuickStartProtocolModal({ open, onClose, theme, onSave }) {
     const [form, setForm] = useState({
@@ -34,8 +35,7 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
         setIsSaving(true);
         try {
             // Create a full protocol structure, but mark it as quick-started
-            const protocol = {
-                id: generateId(),
+            const protocol = prepareItemForSave({
                 protocolName: form.name.trim(),
                 purpose: '',
                 protocolType: 'separate',
@@ -65,12 +65,11 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                     unit: 'weeks' 
                 },
                 notes: '',
-                quickStart: true, // Flag to identify quick-started protocols
-                status: 'active',
+                quickStart: true,
                 startDate: form.startDate,
                 active: true,
-                linkedItems: {} // Empty - no vials linked yet
-            };
+                linkedItems: {}
+            }, { isNew: true });
 
             await onSave(protocol);
             

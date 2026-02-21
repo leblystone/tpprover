@@ -9,6 +9,7 @@
  */
 
 import { isInjectionSiteTrackingEnabled } from './injectionSiteSettings';
+import { prepareItemForSave } from './userDataSave';
 
 const INJECTION_HISTORY_KEY = 'tpprover_injection_history';
 const INJECTION_STATS_KEY = 'tpprover_injection_stats';
@@ -58,22 +59,20 @@ export function recordInjectionSite(task, injectionSite, date = new Date(), time
 
   const history = getInjectionHistory();
   
-  const injectionRecord = {
-    id: generateInjectionId(),
+  const injectionRecord = prepareItemForSave({
     taskName: task.name,
     taskType: task.type,
     injectionSite: injectionSite,
     date: date.toISOString(),
     dateKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
     timeSlot: timeSlot,
-    timestamp: Date.now(),
-    // Store additional task context for reference
+    timestamp: new Date().toISOString(),
     dose: task.dose,
     unit: task.unit,
     deliveryMethod: task.deliveryMethod || task.delivery,
     penColor: task.penColor,
     penType: task.penType
-  };
+  }, { isNew: true });
   
   // Add to beginning of history (most recent first)
   history.unshift(injectionRecord);

@@ -4,6 +4,7 @@ import TextInput from '../common/inputs/TextInput.jsx'
 import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight, FileText, Plus, Edit3, Trash2, Upload, Link, Siren } from 'lucide-react';
 import { Zap } from '../../icons/lucide-safe';
 import { generateId } from '../../utils/string';
+import { prepareItemForSave } from '../../utils/userDataSave';
 
 // Levenshtein distance function for fuzzy string matching
 function levenshteinDistance(str1, str2) {
@@ -1218,15 +1219,13 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
   const handleAddNote = () => {
     if (!noteForm.name.trim() || !noteForm.content.trim()) return;
     
-    const newNote = {
-      id: Date.now(),
+    const newNote = prepareItemForSave({
+      title: noteForm.name.trim(),
       name: noteForm.name.trim(),
       category: noteForm.category,
       content: noteForm.content.trim(),
       attachments: noteForm.attachments,
-      dateCreated: new Date().toISOString(),
-      dateModified: new Date().toISOString()
-    };
+    }, { isNew: true });
     
     setUserNotes(prev => [...prev, newNote]);
     setNoteForm({ name: '', category: 'Custom', content: '', attachments: [] });
@@ -1236,7 +1235,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
   const handleEditNote = (noteId, updatedNote) => {
     setUserNotes(prev => prev.map(note => 
       note.id === noteId 
-        ? { ...updatedNote, dateModified: new Date().toISOString() }
+        ? { ...updatedNote, updatedAt: new Date().toISOString() }
         : note
     ));
   };
@@ -1247,8 +1246,8 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
 
   const handleAttachmentAdd = (type, value) => {
     const newAttachment = {
-      id: Date.now(),
-      type, // 'link' or 'file'
+      id: generateId(),
+      type,
       value,
       name: type === 'link' ? value : value.name
     };

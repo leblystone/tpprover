@@ -63,6 +63,25 @@ function safeSaveArray(key, arr) {
   }
 }
 
+function safeParseObject(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeSaveObject(key, obj) {
+  try {
+    localStorage.setItem(key, JSON.stringify(obj));
+  } catch (e) {
+    console.warn(`⚠️ Failed to save ${key}:`, e);
+  }
+}
+
 function touchItem(item) {
   return { ...item, updatedAt: new Date().toISOString() };
 }
@@ -112,6 +131,72 @@ function fixupProtocolsEnsureFields() {
   if (patched > 0) {
     safeSaveArray('tpprover_protocols', fixed);
     console.log(`🩹 [FIXUP] ${ID}: patched ${patched} protocols`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// FIXUP v2: Deeper protocol structure validation
+function fixupProtocolsStructureV2() {
+  const ID = 'fixup_protocols_structure_v2';
+  if (isFixupDone(ID)) return 0;
+
+  const protocols = safeParseArray('tpprover_protocols');
+  let patched = 0;
+
+  const fixed = protocols.map(p => {
+    if (!p || typeof p !== 'object') return p;
+    let changed = false;
+    const copy = { ...p };
+
+    // peptides must be an array
+    if (!Array.isArray(copy.peptides)) { copy.peptides = []; changed = true; }
+
+    // duration must be an object with defaults
+    if (!copy.duration || typeof copy.duration !== 'object') {
+      copy.duration = { count: '', unit: 'weeks', noEnd: true };
+      changed = true;
+    }
+
+    // washout must be an object with defaults
+    if (!copy.washout || typeof copy.washout !== 'object') {
+      copy.washout = { enabled: false, duration: '', unit: 'weeks' };
+      changed = true;
+    }
+
+    // active must be boolean
+    if (copy.active !== undefined && typeof copy.active !== 'boolean') {
+      copy.active = copy.active === 'true' || copy.active === true;
+      changed = true;
+    }
+
+    // Remove non-schema 'status' field from QuickStart bug
+    if (copy.status === 'active' && copy.active === true) {
+      delete copy.status;
+      changed = true;
+    }
+
+    // Ensure every peptide has frequency.time as array
+    copy.peptides = copy.peptides.map(pep => {
+      if (!pep || typeof pep !== 'object') return pep;
+      if (pep.frequency && pep.frequency.time && !Array.isArray(pep.frequency.time)) {
+        changed = true;
+        return { ...pep, frequency: { ...pep.frequency, time: [String(pep.frequency.time)] } };
+      }
+      if (pep.frequency && !pep.frequency.time) {
+        changed = true;
+        return { ...pep, frequency: { ...pep.frequency, time: ['AM'] } };
+      }
+      return pep;
+    });
+
+    if (changed) { patched++; return touchItem(copy); }
+    return p;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_protocols', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: deep-validated structure on ${patched} protocols`);
   }
   markFixupComplete(ID);
   return patched;
@@ -357,6 +442,34 @@ function fixupVendorsEnsureFields() {
   return patched;
 }
 
+// FIXUP v2: Validate vendor contacts have type+value, filter out empties
+function fixupVendorsContactsV2() {
+  const ID = 'fixup_vendors_contacts_v2';
+  if (isFixupDone(ID)) return 0;
+
+  const vendors = safeParseArray('tpprover_vendors');
+  let patched = 0;
+
+  const fixed = vendors.map(v => {
+    if (!v || typeof v !== 'object' || !Array.isArray(v.contacts)) return v;
+    const cleaned = v.contacts.filter(c =>
+      c && typeof c === 'object' && c.type && c.value && String(c.value).trim() !== ''
+    );
+    if (cleaned.length !== v.contacts.length) {
+      patched++;
+      return touchItem({ ...v, contacts: cleaned });
+    }
+    return v;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_vendors', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: cleaned invalid contacts on ${patched} vendors`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
 // =========================================================================
 //  STOCKPILE FIXUPS
 // =========================================================================
@@ -387,6 +500,45 @@ function fixupStockpileEnsureFields() {
   if (patched > 0) {
     safeSaveArray('tpprover_stockpile', fixed);
     console.log(`🩹 [FIXUP] ${ID}: patched ${patched} stockpile items`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// FIXUP v2: Add priceUnit default, backfill vendorId from vendor name
+function fixupStockpileV2() {
+  const ID = 'fixup_stockpile_v2';
+  if (isFixupDone(ID)) return 0;
+
+  const items = safeParseArray('tpprover_stockpile');
+  const vendors = safeParseArray('tpprover_vendors');
+
+  const vendorByName = {};
+  vendors.forEach(v => {
+    if (v?.name && v?.id) vendorByName[v.name.toLowerCase().trim()] = v.id;
+  });
+
+  let patched = 0;
+
+  const fixed = items.map(item => {
+    if (!item || typeof item !== 'object') return item;
+    let changed = false;
+    const copy = { ...item };
+
+    if (!copy.priceUnit) { copy.priceUnit = 'vial'; changed = true; }
+
+    if (!copy.vendorId && copy.vendor && typeof copy.vendor === 'string') {
+      const match = vendorByName[copy.vendor.toLowerCase().trim()];
+      if (match) { copy.vendorId = match; changed = true; }
+    }
+
+    if (changed) { patched++; return touchItem(copy); }
+    return item;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_stockpile', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: strengthened ${patched} stockpile items (priceUnit/vendorId)`);
   }
   markFixupComplete(ID);
   return patched;
@@ -426,6 +578,49 @@ function fixupOrdersEnsureFields() {
   if (patched > 0) {
     safeSaveArray('tpprover_orders', withNumbers);
     console.log(`🩹 [FIXUP] ${ID}: patched ${patched} orders`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// FIXUP v2: Coerce shippingCost, validate items[] entries
+function fixupOrdersV2() {
+  const ID = 'fixup_orders_v2';
+  if (isFixupDone(ID)) return 0;
+
+  const orders = safeParseArray('tpprover_orders');
+  let patched = 0;
+
+  const fixed = orders.map(order => {
+    if (!order || typeof order !== 'object') return order;
+    let changed = false;
+    const copy = { ...order };
+
+    if (copy.shippingCost !== undefined && typeof copy.shippingCost !== 'number') {
+      copy.shippingCost = Number(copy.shippingCost) || 0;
+      changed = true;
+    }
+
+    if (Array.isArray(copy.items)) {
+      copy.items = copy.items.map(it => {
+        if (!it || typeof it !== 'object') return it;
+        let itemChanged = false;
+        const ic = { ...it };
+        if (!ic.id) { ic.id = prepareItemForSave(ic).id; itemChanged = true; }
+        if (!ic.unit) { ic.unit = 'vial'; itemChanged = true; }
+        if (!ic.mgUnit) { ic.mgUnit = 'mg'; itemChanged = true; }
+        if (itemChanged) { changed = true; return ic; }
+        return it;
+      });
+    }
+
+    if (changed) { patched++; return touchItem(copy); }
+    return order;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_orders', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: strengthened ${patched} orders (shippingCost/items)`);
   }
   markFixupComplete(ID);
   return patched;
@@ -945,6 +1140,277 @@ function fixupProtocolsRestoreStartDate() {
 }
 
 // =========================================================================
+//  CALENDAR NOTES FIXUPS
+// =========================================================================
+
+// FIXUP: Ensure every note inside calendarNotes has id, createdAt, updatedAt
+function fixupCalendarNotesEnsureFields() {
+  const ID = 'fixup_calendarNotes_ensureFields_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const data = safeParseObject('tpprover_calendar_notes');
+  if (!data) { markFixupComplete(ID); return 0; }
+
+  let patched = 0;
+
+  for (const dateKey of Object.keys(data)) {
+    const entry = data[dateKey];
+    if (!entry || !Array.isArray(entry.notes)) continue;
+
+    let dayChanged = false;
+    entry.notes = entry.notes.map(note => {
+      if (!note || typeof note !== 'object') return note;
+      let changed = false;
+      const copy = { ...note };
+
+      if (!copy.id) { copy.id = prepareItemForSave(copy).id; changed = true; }
+      if (!copy.createdAt) { copy.createdAt = copy.updatedAt || new Date().toISOString(); changed = true; }
+      if (!copy.updatedAt) { copy.updatedAt = copy.createdAt || new Date().toISOString(); changed = true; }
+      if (copy.text === undefined) { copy.text = ''; changed = true; }
+
+      if (changed) { dayChanged = true; return copy; }
+      return note;
+    });
+
+    if (dayChanged) patched++;
+  }
+
+  if (patched > 0) {
+    safeSaveObject('tpprover_calendar_notes', data);
+    console.log(`🩹 [FIXUP] ${ID}: patched notes in ${patched} calendar days`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// =========================================================================
+//  WATER TRACKER FIXUPS
+// =========================================================================
+
+// FIXUP: Ensure waterTracker entries have numeric glasses/goal, unit, lastUpdated
+function fixupWaterTrackerEnsureFields() {
+  const ID = 'fixup_waterTracker_ensureFields_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const data = safeParseObject('tpprover_water_tracker');
+  if (!data) { markFixupComplete(ID); return 0; }
+
+  let patched = 0;
+
+  for (const dateKey of Object.keys(data)) {
+    const entry = data[dateKey];
+    if (!entry || typeof entry !== 'object') continue;
+    let changed = false;
+
+    if (typeof entry.glasses !== 'number') {
+      entry.glasses = Number(entry.glasses) || 0;
+      changed = true;
+    }
+    if (typeof entry.goal !== 'number' || entry.goal < 1) {
+      entry.goal = Number(entry.goal) || 8;
+      changed = true;
+    }
+    if (!entry.unit) {
+      entry.unit = 'glasses';
+      changed = true;
+    }
+    if (!entry.lastUpdated) {
+      entry.lastUpdated = new Date().toISOString();
+      changed = true;
+    }
+
+    if (changed) patched++;
+  }
+
+  if (patched > 0) {
+    safeSaveObject('tpprover_water_tracker', data);
+    console.log(`🩹 [FIXUP] ${ID}: patched ${patched} water tracker day entries`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// =========================================================================
+//  INJECTION HISTORY FIXUPS
+// =========================================================================
+
+// FIXUP: Ensure injection history records have id, updatedAt, ISO timestamp
+function fixupInjectionHistoryEnsureFields() {
+  const ID = 'fixup_injectionHistory_ensureFields_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const items = safeParseArray('tpprover_injection_history');
+  if (items.length === 0) { markFixupComplete(ID); return 0; }
+
+  let patched = 0;
+
+  const fixed = items.map(item => {
+    if (!item || typeof item !== 'object') return item;
+    let changed = false;
+    const copy = { ...item };
+
+    if (!copy.id) { copy.id = prepareItemForSave(copy).id; changed = true; }
+
+    // Normalize numeric timestamp to ISO string
+    if (typeof copy.timestamp === 'number') {
+      copy.timestamp = new Date(copy.timestamp).toISOString();
+      changed = true;
+    }
+
+    if (!copy.updatedAt) {
+      copy.updatedAt = copy.timestamp || copy.date || new Date().toISOString();
+      changed = true;
+    }
+
+    if (changed) { patched++; return touchItem(copy); }
+    return item;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_injection_history', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: patched ${patched} injection history records`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// =========================================================================
+//  INJECTION STATS FIXUPS
+// =========================================================================
+
+// FIXUP: Validate injectionStats structure and ensure numeric fields
+function fixupInjectionStatsValidate() {
+  const ID = 'fixup_injectionStats_validate_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const data = safeParseObject('tpprover_injection_stats');
+  if (!data) { markFixupComplete(ID); return 0; }
+
+  let changed = false;
+
+  if (!data.global || typeof data.global !== 'object') {
+    data.global = { totalInjections: 0, sites: {}, lastInjection: null };
+    changed = true;
+  } else {
+    if (typeof data.global.totalInjections !== 'number') {
+      data.global.totalInjections = Number(data.global.totalInjections) || 0;
+      changed = true;
+    }
+    if (!data.global.sites || typeof data.global.sites !== 'object') {
+      data.global.sites = {};
+      changed = true;
+    }
+    // Ensure all site counts are numbers
+    for (const site of Object.keys(data.global.sites)) {
+      if (typeof data.global.sites[site] !== 'number') {
+        data.global.sites[site] = Number(data.global.sites[site]) || 0;
+        changed = true;
+      }
+    }
+  }
+
+  if (!data.tasks || typeof data.tasks !== 'object') {
+    data.tasks = {};
+    changed = true;
+  }
+
+  if (changed) {
+    safeSaveObject('tpprover_injection_stats', data);
+    console.log(`🩹 [FIXUP] ${ID}: validated injectionStats structure`);
+  }
+  markFixupComplete(ID);
+  return changed ? 1 : 0;
+}
+
+// =========================================================================
+//  USER GOALS FIELD NORMALIZATION
+// =========================================================================
+
+// FIXUP: Normalize goal field names (text->title, dueDate->targetDate)
+function fixupUserGoalsNormalizeFields() {
+  const ID = 'fixup_userGoals_normalizeFields_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const goals = safeParseArray('tpprover_user_goals');
+  let patched = 0;
+
+  const fixed = goals.map(goal => {
+    if (!goal || typeof goal !== 'object') return goal;
+    let changed = false;
+    const copy = { ...goal };
+
+    // GoalModal uses text/dueDate, GoalsOnlyWidget uses title/targetDate
+    // Normalize to have BOTH so both editors work
+    if (copy.text && !copy.title) { copy.title = copy.text; changed = true; }
+    if (copy.title && !copy.text) { copy.text = copy.title; changed = true; }
+    if (copy.dueDate && !copy.targetDate) { copy.targetDate = copy.dueDate; changed = true; }
+    if (copy.targetDate && !copy.dueDate) { copy.dueDate = copy.targetDate; changed = true; }
+
+    if (changed) { patched++; return touchItem(copy); }
+    return goal;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_user_goals', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: normalized field names on ${patched} goals`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// =========================================================================
+//  USER NOTES GLOSSARY NORMALIZATION
+// =========================================================================
+
+// FIXUP: Normalize glossary-created notes (name->title, dateCreated->createdAt, numeric id)
+function fixupUserNotesGlossaryNormalize() {
+  const ID = 'fixup_userNotes_glossaryNormalize_v1';
+  if (isFixupDone(ID)) return 0;
+
+  const notes = safeParseArray('tpprover_user_notes');
+  let patched = 0;
+
+  const fixed = notes.map(note => {
+    if (!note || typeof note !== 'object') return note;
+    let changed = false;
+    const copy = { ...note };
+
+    // Numeric id from Date.now() -> string
+    if (typeof copy.id === 'number') {
+      copy.id = String(copy.id);
+      changed = true;
+    }
+
+    // GlossaryQuickModal uses 'name' instead of 'title'
+    if (copy.name && !copy.title) { copy.title = copy.name; changed = true; }
+
+    // dateCreated -> createdAt
+    if (copy.dateCreated && !copy.createdAt) {
+      copy.createdAt = copy.dateCreated;
+      delete copy.dateCreated;
+      changed = true;
+    }
+
+    // dateModified -> updatedAt
+    if (copy.dateModified && !copy.updatedAt) {
+      copy.updatedAt = copy.dateModified;
+      delete copy.dateModified;
+      changed = true;
+    }
+
+    if (changed) { patched++; return touchItem(copy); }
+    return note;
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_user_notes', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: normalized ${patched} glossary-created notes`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// =========================================================================
 //  MASTER REGISTRY & RUNNER
 // =========================================================================
 
@@ -957,12 +1423,16 @@ const ALL_FIXUPS = [
   { id: 'fixup_protocols_vialCost_v1', fn: fixupProtocolsVialCost },
   { id: 'fixup_protocols_ghostStartDate_v1', fn: fixupProtocolsGhostStartDate },
   { id: 'fixup_protocols_restoreStartDate_v1', fn: fixupProtocolsRestoreStartDate },
+  { id: 'fixup_protocols_structure_v2', fn: fixupProtocolsStructureV2 },
   // Vendors
   { id: 'fixup_vendors_ensureFields_v1', fn: fixupVendorsEnsureFields },
+  { id: 'fixup_vendors_contacts_v2', fn: fixupVendorsContactsV2 },
   // Stockpile
   { id: 'fixup_stockpile_ensureFields_v1', fn: fixupStockpileEnsureFields },
+  { id: 'fixup_stockpile_v2', fn: fixupStockpileV2 },
   // Orders
   { id: 'fixup_orders_ensureFields_v1', fn: fixupOrdersEnsureFields },
+  { id: 'fixup_orders_v2', fn: fixupOrdersV2 },
   // Recon
   { id: 'fixup_reconItems_ensureFields_v1', fn: fixupReconItemsEnsureFields },
   { id: 'fixup_reconHistory_ensureFields_v1', fn: fixupReconHistoryEnsureFields },
@@ -973,15 +1443,25 @@ const ALL_FIXUPS = [
   // User Notes
   { id: 'fixup_userNotes_ensureFields_v1', fn: fixupUserNotesEnsureFields },
   { id: 'fixup_repairProtocolNoteLinks_v1', fn: fixupRepairProtocolNoteLinks },
+  { id: 'fixup_userNotes_glossaryNormalize_v1', fn: fixupUserNotesGlossaryNormalize },
   // Protocol History
   { id: 'fixup_protocolHistory_ensureNotesArray_v1', fn: fixupProtocolHistoryEntries },
   { id: 'fixup_protocolHistory_backfillNames_v1', fn: fixupProtocolHistoryBackfillNames },
   // User Goals
   { id: 'fixup_userGoals_ensureFields_v1', fn: fixupUserGoalsEnsureFields },
+  { id: 'fixup_userGoals_normalizeFields_v1', fn: fixupUserGoalsNormalizeFields },
   // Supplements
   { id: 'fixup_supplements_ensureFields_v1', fn: fixupSupplementsEnsureFields },
   // Metrics
   { id: 'fixup_metrics_ensureFields_v1', fn: fixupMetricsEnsureFields },
+  // Calendar Notes
+  { id: 'fixup_calendarNotes_ensureFields_v1', fn: fixupCalendarNotesEnsureFields },
+  // Water Tracker
+  { id: 'fixup_waterTracker_ensureFields_v1', fn: fixupWaterTrackerEnsureFields },
+  // Injection History
+  { id: 'fixup_injectionHistory_ensureFields_v1', fn: fixupInjectionHistoryEnsureFields },
+  // Injection Stats
+  { id: 'fixup_injectionStats_validate_v1', fn: fixupInjectionStatsValidate },
 ];
 
 /**

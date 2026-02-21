@@ -1212,9 +1212,11 @@ export default function CustomizableDashboard() {
         goal={editingGoal}
         onSave={(goal) => {
           if (editingGoal) {
-            setGoals(prev => prev.map(g => g.id === editingGoal.id ? { ...editingGoal, ...goal } : g));
+            const updated = prepareItemForSave({ ...editingGoal, ...goal });
+            setGoals(prev => prev.map(g => g.id === editingGoal.id ? updated : g));
           } else {
-            setGoals(prev => [...prev, { ...goal, id: generateId() }]);
+            const newGoal = prepareItemForSave(goal, { isNew: true });
+            setGoals(prev => [...prev, newGoal]);
           }
           setShowGoal(false);
           setEditingGoal(null);
@@ -1358,25 +1360,19 @@ export default function CustomizableDashboard() {
         theme={theme}
         buy={editingScheduledBuy}
         onSave={(buy) => {
-          // ✅ Remove client-side timestamp - will be set by Firestore serverTimestamp during sync
-          const newBuy = { 
-            ...buy, 
-            id: buy.id || generateId(),
-            name: buy.item, // Map item to name for display
-            peptideName: buy.item, // Also set peptideName for backward compatibility
-            createdAt: buy.createdAt || new Date().toISOString() // Keep createdAt for initial tracking
-            // updatedAt will be set by Firestore serverTimestamp during sync
-          };
+          const isEdit = buy.id && true;
+          const newBuy = prepareItemForSave({
+            ...buy,
+            name: buy.item || buy.name,
+            peptideName: buy.item || buy.peptideName,
+          }, { isNew: !isEdit });
           
-          // Update state
           setScheduledBuys(prev => {
-            const isEdit = buy.id && prev.some(b => b.id === buy.id);
+            const exists = buy.id && prev.some(b => b.id === buy.id);
             let updated;
-            if (isEdit) {
-              // Update existing buy - no client-side timestamp
-              updated = prev.map(b => b.id === buy.id ? { ...b, ...newBuy } : b);
+            if (exists) {
+              updated = prev.map(b => b.id === buy.id ? prepareItemForSave({ ...b, ...newBuy }) : b);
             } else {
-              // Add new buy
               updated = [...prev, newBuy];
             }
             

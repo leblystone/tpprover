@@ -67,14 +67,14 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       ...prev,
       [today]: {
         ...todayData,
-        goal: Math.max(1, newGoal)
+        goal: Math.max(1, newGoal),
+        lastUpdated: new Date().toISOString()
       }
     }));
   };
 
   const changeUnit = (unitKey) => {
     const newUnit = waterUnits[unitKey];
-    // Always use the new unit's default goal when changing units
     const newGoal = newUnit.defaultGoal;
     
     setWaterData(prev => ({
@@ -83,7 +83,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         ...todayData,
         unit: unitKey,
         goal: newGoal,
-        glasses: 0 // Reset intake when changing units
+        glasses: 0,
+        lastUpdated: new Date().toISOString()
       }
     }));
     
@@ -98,7 +99,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       ...prev,
       [today]: {
         ...todayData,
-        goal: Math.max(1, newGoal)
+        goal: Math.max(1, newGoal),
+        lastUpdated: new Date().toISOString()
       }
     }));
   };
