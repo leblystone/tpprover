@@ -37,6 +37,8 @@ import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
 import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
+import ReConsentModal from './components/legal/ReConsentModal';
+import { needsReconsent, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -94,6 +96,7 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
+  const [showReConsentModal, setShowReConsentModal] = useState(false);
 
   // Apply dark mode class + data-theme attribute to <html> so CSS selectors work
   useEffect(() => {
@@ -443,6 +446,34 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [user]);
 
+  // Re-consent: show modal when user has not accepted current ToS/Privacy versions (e.g. after legal update)
+  useEffect(() => {
+    if (!user?.uid || !location.pathname.startsWith('/app')) return;
+    setShowReConsentModal(needsReconsent());
+  }, [user?.uid, location.pathname]);
+
+  const handleReConsentAgree = async () => {
+    try {
+      await recordAgreement(
+        AGREEMENT_TYPES.TERMS_UPDATE,
+        AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
+        { contentUpdateDate: AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[1] + '-' + AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[2] },
+        user?.email
+      );
+      await recordAgreement(
+        AGREEMENT_TYPES.PRIVACY_UPDATE,
+        AGREEMENT_VERSIONS.PRIVACY_POLICY,
+        { contentUpdateDate: AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[1] + '-' + AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[2] },
+        user?.email
+      );
+      setShowReConsentModal(false);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Thanks for accepting our updated Terms and Privacy Policy.', type: 'success' } }));
+    } catch (error) {
+      console.error('Error recording re-consent:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Something went wrong. Please try again.', type: 'error' } }));
+    }
+  };
+
   useEffect(() => {
     const bannerDismissed = localStorage.getItem('tpprover_sample_banner_dismissed');
     const dataCleared = localStorage.getItem('tpprover_sample_data_cleared');
@@ -679,6 +710,14 @@ function App() {
         open={showFeatureAnnouncement}
         onClose={() => setShowFeatureAnnouncement(false)}
         announcementId="redesign-2024"
+        theme={theme}
+      />
+      
+      {/* Re-consent: existing users must accept updated ToS/Privacy after legal/version update */}
+      <ReConsentModal
+        open={showReConsentModal}
+        onClose={() => setShowReConsentModal(false)}
+        onAgree={handleReConsentAgree}
         theme={theme}
       />
       

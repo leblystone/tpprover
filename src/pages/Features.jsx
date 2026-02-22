@@ -297,7 +297,10 @@ export default function Features() {
             <div className="flex items-center mb-4 md:mb-0">
               <img src={logo} alt="The Pep Planner" className="h-6 w-6 rounded-full mr-2" />
               <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                © 2024 The Pep Planner. All rights reserved.
+                © 2026 Belix Company LLC. All rights reserved.
+              </span>
+              <span className="text-sm font-medium block mt-1" style={{ color: theme.textLight }}>
+                The Pep Planner is a trade name of Belix Company LLC.
               </span>
             </div>
             <div className="flex space-x-6">

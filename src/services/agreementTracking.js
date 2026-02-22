@@ -19,8 +19,8 @@ export const AGREEMENT_TYPES = {
 // Use SKU-style versioning: TOS-YYYY-MM-DD-REV or PP-YYYY-MM-DD-REV
 // These should match the actual date when the content was last updated
 export const AGREEMENT_VERSIONS = {
-  TERMS_OF_SERVICE: 'TOS-2025-10-22-REV1',
-  PRIVACY_POLICY: 'PP-2025-10-27-REV2'
+  TERMS_OF_SERVICE: 'TOS-2026-02-22-REV2',
+  PRIVACY_POLICY: 'PP-2026-02-22-REV3'
 };
 
 // Data retention periods (in milliseconds) for medical/research compliance
@@ -354,6 +354,18 @@ export function hasAgreedTo(type) {
 export function hasAnyAgreementData() {
   const history = getAgreementHistory();
   return history.length > 0;
+}
+
+/**
+ * Check if the user needs to re-accept the current Terms and Privacy (e.g. after a legal/version update).
+ * Returns true if either the latest terms or privacy agreement version does not match current AGREEMENT_VERSIONS.
+ */
+export function needsReconsent() {
+  const termsAgreement = getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE) || getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS);
+  const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE) || getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY);
+  const termsOutdated = !termsAgreement || termsAgreement.version !== AGREEMENT_VERSIONS.TERMS_OF_SERVICE;
+  const privacyOutdated = !privacyAgreement || privacyAgreement.version !== AGREEMENT_VERSIONS.PRIVACY_POLICY;
+  return termsOutdated || privacyOutdated;
 }
 
 /**

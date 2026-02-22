@@ -82,7 +82,7 @@ export default function Terms() {
             Clear terms that protect both you and our platform.
           </p>
           <p className="text-sm" style={{ color: theme.textLight }}>
-            Last updated: December 2025
+            Last updated: February 2026
           </p>
         </div>
       </div>
@@ -230,7 +230,10 @@ export default function Terms() {
                   <strong>Subscription Plans:</strong> After the trial period, you must subscribe to a paid plan to continue using the Service. Subscription fees are billed in advance.
                 </p>
                 <p>
-                  <strong>Payment:</strong> You agree to pay all fees associated with your subscription. Fees are non-refundable except as required by law.
+                  <strong>Payment:</strong> Subscriptions and one-time purchases may be processed by Stripe (web), Google Play (Android app), Apple App Store (iOS app), or Squarespace (website purchases), as applicable. You agree to pay all fees associated with your subscription. Fees are non-refundable except as required by law.
+                </p>
+                <p>
+                  <strong>Refunds:</strong> Refunds for in-app purchases made through the Apple App Store or Google Play are subject to Apple's and Google's respective refund policies. Refunds for purchases made on our website (Stripe, Squarespace) are governed by our Cancellation Policy.
                 </p>
                 <p>
                   <strong>Cancellation:</strong> You may cancel your subscription at any time. Cancellation takes effect at the end of your current billing period.
@@ -332,9 +335,8 @@ export default function Terms() {
                   If you have any questions about these Terms of Service, please contact us:
                 </p>
                 <ul className="list-none space-y-2">
-                  <li><strong>Email:</strong> legal@thepepplanner.app</li>
-                  <li><strong>General Support:</strong> support@thepepplanner.app</li>
-                  <li><strong>Address:</strong> The Pep Planner, United States</li>
+                  <li><strong>Email:</strong> contact@thepepplanner.com</li>
+                  <li><strong>Address:</strong> Belix Company LLC, New Mexico, United States</li>
                 </ul>
               </div>
             </section>
@@ -350,7 +352,10 @@ export default function Terms() {
             <div className="flex items-center mb-4 md:mb-0">
               <img src={logo} alt="The Pep Planner" className="h-6 w-6 rounded-full mr-2" />
               <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                © 2024 The Pep Planner. All rights reserved.
+                © 2026 Belix Company LLC. All rights reserved.
+              </span>
+              <span className="text-sm font-medium block mt-1" style={{ color: theme.textLight }}>
+                The Pep Planner is a trade name of Belix Company LLC.
               </span>
             </div>
             <div className="flex space-x-6">

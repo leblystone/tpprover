@@ -4,10 +4,10 @@ export const PrivacyPolicyContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Privacy Policy</h2>
         
-        <p><strong>Last Updated:</strong> October 27, 2025</p>
-        <p><strong>Version:</strong> PP-2025-10-27-REV2</p>
+        <p><strong>Last Updated:</strong> February 22, 2026</p>
+        <p><strong>Version:</strong> PP-2026-02-22-REV3</p>
         
-        <p>This Privacy Policy describes how The Pep Planner ("we," "our," or "us") collects, uses, and protects your information when you use our research tracking application.</p>
+        <p>The Pep Planner is powered by Belix Company LLC. This Privacy Policy describes how we ("we," "our," or "us") collect, use, and protect your information when you use our research tracking application.</p>
 
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
             <h3 className="font-semibold text-blue-800">1. Information We Collect</h3>
@@ -35,8 +35,21 @@ export const PrivacyPolicyContent = () => (
                 <ul className="list-disc list-inside ml-4">
                     <li>App usage patterns and feature interactions</li>
                     <li>Device information and browser type</li>
+                    <li>Push notification tokens (for optional push notifications)</li>
                     <li>IP address (for security purposes)</li>
                     <li>Error logs and performance data</li>
+                </ul>
+                
+                <p><strong>Support and Communications:</strong></p>
+                <ul className="list-disc list-inside ml-4">
+                    <li>Support ticket content and in-app support chat messages</li>
+                    <li>Contact form submissions (name, email, subject, message)</li>
+                    <li>Feedback and survey responses (message, optional email, device/URL context)</li>
+                </ul>
+                
+                <p><strong>Account and Compliance:</strong></p>
+                <ul className="list-disc list-inside ml-4">
+                    <li>Account deletion requests (we store and process these to fulfill your request and for compliance; we retain minimal records as required by law)</li>
                 </ul>
             </div>
         </div>
@@ -50,7 +63,8 @@ export const PrivacyPolicyContent = () => (
                 <li>Process subscription payments and manage your account</li>
                 <li>Send important notifications about your account and research</li>
                 <li>Improve our application features and user experience</li>
-                <li>Provide customer support</li>
+                <li>Provide customer support and respond to support tickets and contact form submissions</li>
+                <li>Use feedback and survey responses to improve the service</li>
                 <li>Ensure security and prevent fraud</li>
                 <li>Comply with legal obligations</li>
             </ul>
@@ -78,7 +92,7 @@ export const PrivacyPolicyContent = () => (
             <h3 className="font-semibold text-gray-800">4. Data Sharing and Third Parties</h3>
             <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app (Firebase, Stripe for payments)</li>
+                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app (Firebase, Stripe, and when you use in-app or web purchases, payment processing may also be performed by Apple, Google Play, or Squarespace; their privacy policies apply to that processing)</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
                 <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of assets</li>
                 <li><strong>Consent:</strong> When you explicitly consent to sharing your information</li>
@@ -182,7 +196,7 @@ export const PrivacyPolicyContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">11. Tracking Technologies</h3>
-            <p>We use technologies, such as the Firebase SDK, to collect the Usage Information detailed in Section 1. These tools help us understand how users interact with our Service, diagnose problems, and improve our application. You can typically control the use of certain tracking technologies through your device settings.</p>
+            <p>We use technologies, such as the Firebase SDK, to collect the Usage Information detailed in Section 1. These tools help us understand how users interact with our Service, diagnose problems, and improve our application. We use Google reCAPTCHA on our contact and sign-in forms for fraud prevention; Google may collect IP and usage data in connection with reCAPTCHA—Google's privacy policy applies to that processing. You can typically control the use of certain tracking technologies (including optional push notifications) through your device or app settings.</p>
         </div>
 
         <div>

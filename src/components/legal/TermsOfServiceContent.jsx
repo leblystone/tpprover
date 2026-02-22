@@ -4,7 +4,7 @@ export const TermsOfServiceContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Terms of Service</h2>
 
-        <p>By using The Pep Planner application ("App," "Service," "we," "us"), a product of The Pep Planner LLC, you agree to these Terms of Service ("Terms"). Please read them carefully.</p>
+        <p>The Pep Planner is powered by Belix Company LLC. By using The Pep Planner application ("App," "Service," "we," "us"), you agree to these Terms of Service ("Terms"). Please read them carefully.</p>
 
         <div className="p-4 bg-red-50 border-2 border-red-300 rounded-md">
             <h3 className="font-bold text-red-800 text-sm">⚠️ CRITICAL: NOT FOR HUMAN USE</h3>
@@ -28,7 +28,7 @@ export const TermsOfServiceContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">4. Subscription Services</h3>
-            <p>Full continued access to features is available through subscription plans. Subscriptions automatically renew unless cancelled. You may cancel your subscription at any time through your Account. Refunds are not provided for unused portions of subscription periods. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
+            <p>Full continued access to features is available through subscription plans. Subscriptions and one-time purchases may be processed by Stripe (web), Google Play (Android app), Apple App Store (iOS app), or Squarespace (website purchases), as applicable. Subscriptions automatically renew unless cancelled. You may cancel your subscription at any time through your Account. Refunds for in-app purchases made through the Apple App Store or Google Play are subject to Apple's and Google's respective refund policies; refunds for website purchases are governed by our Cancellation Policy. We do not provide refunds for unused portions of subscription periods except as required by law. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
         </div>
 
         <div>
@@ -83,13 +83,13 @@ export const TermsOfServiceContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">11. Limitation of Liability</h3>
-            <p>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE PEP PLANNER LLC, ITS AFFILIATES, DIRECTORS, OR EMPLOYEES, BE LIABLE FOR ANY INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING WITHOUT LIMITATION DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO THE USE OF, OR INABILITY TO USE, THIS SERVICE.</p>
-            <p>IN NO EVENT SHALL THE PEP PLANNER LLC'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF ONE HUNDRED U.S. DOLLARS ($100) OR THE AMOUNTS PAID BY YOU TO THE PEP PLANNER LLC FOR THE PAST 12 MONTHS OF THE SERVICES IN QUESTION.</p>
+            <p>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL BELIX COMPANY LLC, ITS AFFILIATES, DIRECTORS, OR EMPLOYEES, BE LIABLE FOR ANY INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING WITHOUT LIMITATION DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO THE USE OF, OR INABILITY TO USE, THIS SERVICE.</p>
+            <p>IN NO EVENT SHALL BELIX COMPANY LLC'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF ONE HUNDRED U.S. DOLLARS ($100) OR THE AMOUNTS PAID BY YOU TO BELIX COMPANY LLC FOR THE PAST 12 MONTHS OF THE SERVICES IN QUESTION.</p>
         </div>
 
         <div>
             <h3 className="font-semibold text-gray-800">12. Indemnification</h3>
-            <p>You agree to defend, indemnify, and hold harmless The Pep Planner LLC and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), resulting from or arising out of a) your use and access of the Service, or b) a breach of these Terms.</p>
+            <p>You agree to defend, indemnify, and hold harmless Belix Company LLC and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), resulting from or arising out of a) your use and access of the Service, or b) a breach of these Terms.</p>
         </div>
 
         <div>
@@ -114,10 +114,10 @@ export const TermsOfServiceContent = () => (
 
         <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-                <strong>Last Updated:</strong> October 27, 2025
+                <strong>Last Updated:</strong> February 22, 2026
             </p>
             <p className="text-sm text-gray-600 mt-2">
-                If you have any questions about these Terms, please contact us at contact@thepepplanner.com.
+                If you have any questions about these Terms, please contact Belix Company LLC at contact@thepepplanner.com.
             </p>
         </div>
 

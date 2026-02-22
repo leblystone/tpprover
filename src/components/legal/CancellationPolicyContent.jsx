@@ -4,14 +4,14 @@ export const CancellationPolicyContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Cancellation Policy</h2>
 
-        <p>This Cancellation Policy describes how you can cancel your subscription to The Pep Planner ("Service," "we," "us") and what happens when you cancel.</p>
+        <p>The Pep Planner is powered by Belix Company LLC. This Cancellation Policy describes how you can cancel your subscription to The Pep Planner ("Service," "we," "us") and what happens when you cancel.</p>
 
         <div>
             <h3 className="font-semibold text-gray-800">1. How to Cancel Your Subscription</h3>
             <p>You may cancel your subscription at any time through the following methods:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
                 <li><strong>Account:</strong> Navigate to your Account within the application and select "Cancel Subscription" from your subscription management page.</li>
-                <li><strong>Email Request:</strong> Send an email to support@thepepplanner.com with your account email address and a request to cancel your subscription.</li>
+                <li><strong>Email Request:</strong> Send an email to contact@thepepplanner.com with your account email address and a request to cancel your subscription.</li>
                 <li><strong>Customer Support:</strong> Contact our customer support team through the in-app support feature or via email.</li>
             </ul>
             <p className="mt-2">Once you initiate cancellation, you will receive a confirmation email within 24 hours confirming that your cancellation request has been processed.</p>
@@ -32,6 +32,7 @@ export const CancellationPolicyContent = () => (
             <p><strong>Free Trial Period:</strong> If you cancel during your free trial period, you will not be charged. No refund is necessary as no payment has been processed.</p>
             <p><strong>Lifetime Access:</strong> Lifetime access purchases are non-refundable and non-transferable. If you have purchased lifetime access, cancellation of your account does not entitle you to a refund.</p>
             <p><strong>Legal Requirements:</strong> In jurisdictions where applicable law requires refunds for cancelled subscriptions, we will comply with such requirements.</p>
+            <p><strong>In-App Purchases:</strong> Refunds for subscriptions or purchases made through the Apple App Store or Google Play are handled by Apple and Google respectively, per their policies. This Cancellation Policy applies to subscriptions and purchases made on our website (e.g. via Stripe or Squarespace).</p>
         </div>
 
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -95,7 +96,7 @@ export const CancellationPolicyContent = () => (
             <h3 className="font-semibold text-gray-800">9. Questions About Cancellation</h3>
             <p>If you have any questions about cancelling your subscription, please contact us:</p>
             <ul className="list-none space-y-2 mt-2">
-                <li><strong>Email:</strong> support@thepepplanner.com</li>
+                <li><strong>Email:</strong> contact@thepepplanner.com</li>
                 <li><strong>General Support:</strong> Available through the in-app support feature</li>
                 <li><strong>Response Time:</strong> We aim to respond to all cancellation inquiries within 24 hours</li>
             </ul>
@@ -103,10 +104,10 @@ export const CancellationPolicyContent = () => (
 
         <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-                <strong>Last Updated:</strong> December 2024
+                <strong>Last Updated:</strong> February 2026
             </p>
             <p className="text-sm text-gray-600 mt-2">
-                If you have any questions about this Cancellation Policy, please contact us at support@thepepplanner.com.
+                If you have any questions about this Cancellation Policy, please contact us at contact@thepepplanner.com.
             </p>
         </div>
 
