@@ -663,17 +663,6 @@ export async function saveAppData(userId, appData, options = {}) {
     
     // Load existing server data for comparison
     const serverData = skipMerge ? null : await loadAppData(userId);
-    if (skipMerge) {
-      console.log('📋 [PROTOCOL-SYNC] saveAppData skipMerge=true', { protocolsCount, activeCount });
-    } else if (serverData && serverData.protocols) {
-      const serverActive = (serverData.protocols || []).filter(p => p && p.active).length;
-      console.log('📋 [PROTOCOL-SYNC] saveAppData merge', {
-        localProtocols: protocolsCount,
-        localActive: activeCount,
-        serverProtocols: (serverData.protocols || []).length,
-        serverActive
-      });
-    }
     
     // Load deletion tracking for merge operations
     let deletionTracking = null;
@@ -765,15 +754,6 @@ export async function saveAppData(userId, appData, options = {}) {
           );
         }
       });
-
-      // Log protocol merge results if protocols were provided
-      if (dataToSave.protocols) {
-        const mergedActive = (dataToSave.protocols || []).filter(p => p && p.active).length;
-        console.log('📋 [PROTOCOL-SYNC] saveAppData merge result', {
-          mergedTotal: (dataToSave.protocols || []).length,
-          mergedActive
-        });
-      }
 
       // Merge object fields (only ones the caller provided)
       if (provided('calendarNotes')) {

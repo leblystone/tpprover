@@ -263,11 +263,9 @@ export default function Orders() {
 			// Prevent concurrent syncs and throttle to at most once per minute
 			const now = Date.now();
 			if (isSyncing) {
-				console.log('⏸️ Tracking sync already in progress, skipping...');
 				return;
 			}
 			if ((now - lastSyncRef.time) < 60000) {
-				console.log(`⏸️ Tracking sync throttled (last sync ${Math.round((now - lastSyncRef.time) / 1000)}s ago)`);
 				return;
 			}
 			
@@ -277,23 +275,15 @@ export default function Orders() {
 			try {
 				// Get current orders from localStorage (most up-to-date source)
 				const currentOrders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
-				const ordersWithTracking = currentOrders.filter(o => o?.tracking && o.tracking.trim() !== '');
-				console.log(`📦 Tracking sync: Found ${ordersWithTracking.length} order(s) with tracking numbers out of ${currentOrders.length} total`);
-				
-				if (ordersWithTracking.length === 0) {
-					console.log('ℹ️ No orders with tracking numbers to sync');
-					return;
-				}
-				
-				console.log(`🔄 Syncing ${ordersWithTracking.length} order(s) from tracking...`);
-				const updatedOrders = await syncAllOrdersFromTracking(currentOrders);
-				
-				if (updatedOrders.length === 0) {
-					console.log('ℹ️ No order statuses changed from tracking data');
-				}
-				
-				if (updatedOrders.length > 0) {
-					console.log(`✅ Successfully synced ${updatedOrders.length} order(s) from tracking`);
+			const ordersWithTracking = currentOrders.filter(o => o?.tracking && o.tracking.trim() !== '');
+			
+			if (ordersWithTracking.length === 0) {
+				return;
+			}
+			
+			const updatedOrders = await syncAllOrdersFromTracking(currentOrders);
+			
+			if (updatedOrders.length > 0) {
 					
 					// Update each order that changed
 					updatedOrders.forEach(updatedOrder => {
@@ -357,8 +347,7 @@ export default function Orders() {
 								};
 								
 								// Use skipMerge: false for intelligent timestamp-based conflict resolution
-								await saveAppData(userId, appData, { skipMerge: false });
-								console.log('✅ Synced order status updates to cloud with force merge');
+							await saveAppData(userId, appData, { skipMerge: false });
 							}
 						} catch (error) {
 							console.error('❌ Failed to sync order status updates to cloud:', error);
@@ -372,22 +361,18 @@ export default function Orders() {
 			}
 		};
 		
-		// Sync immediately on mount (with a small delay to let component settle)
-		console.log('🔄 Orders page mounted - setting up tracking sync');
-		const initialTimeout = setTimeout(() => {
-			console.log('🔄 Starting initial tracking sync...');
-			syncOrdersFromTracking();
-		}, 2000);
-		
-		// Then sync every 5 minutes (tracking cache is 30 minutes, so this is reasonable)
-		syncInterval = setInterval(() => {
-			console.log('🔄 Running periodic tracking sync...');
-			syncOrdersFromTracking();
-		}, 5 * 60 * 1000);
-		
-		return () => {
-			console.log('🔄 Orders page unmounting - cleaning up tracking sync');
-			clearTimeout(initialTimeout);
+	// Sync immediately on mount (with a small delay to let component settle)
+	const initialTimeout = setTimeout(() => {
+		syncOrdersFromTracking();
+	}, 2000);
+	
+	// Then sync every 5 minutes (tracking cache is 30 minutes, so this is reasonable)
+	syncInterval = setInterval(() => {
+		syncOrdersFromTracking();
+	}, 5 * 60 * 1000);
+	
+	return () => {
+		clearTimeout(initialTimeout);
 			if (syncInterval) {
 				clearInterval(syncInterval);
 			}

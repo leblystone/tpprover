@@ -4,7 +4,7 @@ import { ArrowLeft, FileText, Shield, ChevronRight } from 'lucide-react'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFirebase } from '../context/FirebaseContext'
-import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
+import { getLatestAgreement, getLatestAgreementsFromFirebase, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
 
 export default function SettingsLegal() {
   const { theme } = useOutletContext()
@@ -20,29 +20,34 @@ export default function SettingsLegal() {
     privacyAgreement: null
   })
 
-  // Load agreement data
+  // Load agreement data (from Firebase when logged in for cross-device; else local)
   useEffect(() => {
-    const loadAgreementData = () => {
+    const loadAgreementData = async () => {
       try {
+        if (firebaseUser?.email) {
+          const { termsAgreement: fromFirebaseTerms, privacyAgreement: fromFirebasePrivacy } = await getLatestAgreementsFromFirebase(firebaseUser.email)
+          if (fromFirebaseTerms || fromFirebasePrivacy) {
+            setAgreementData({
+              termsAgreement: fromFirebaseTerms ?? null,
+              privacyAgreement: fromFirebasePrivacy ?? null
+            })
+            return
+          }
+        }
         const termsSignup = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS)
         const termsUpdate = getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE)
         const privacySignup = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY)
         const privacyUpdate = getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE)
-        
-        const termsAgreement = termsUpdate || termsSignup
-        const privacyAgreement = privacyUpdate || privacySignup
-        
         setAgreementData({
-          termsAgreement,
-          privacyAgreement
+          termsAgreement: termsUpdate || termsSignup,
+          privacyAgreement: privacyUpdate || privacySignup
         })
       } catch (error) {
         console.error('Error loading agreement data:', error)
       }
     }
-    
     loadAgreementData()
-  }, [])
+  }, [firebaseUser?.email])
 
   // Agreement handlers
   const handleTermsAgree = async () => {

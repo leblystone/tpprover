@@ -38,7 +38,7 @@ import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
 import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
-import { needsReconsent, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
+import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -70,12 +70,8 @@ const mockUpdates = {
 };
 
 function App() {
-  console.log('🚀 App component rendering...');
-  
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  
-  console.log('🚀 App location:', location.pathname);
   
   const [themeName] = useState(() => {
     try {
@@ -446,11 +442,15 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [user]);
 
-  // Re-consent: show modal when user has not accepted current ToS/Privacy versions (e.g. after legal update)
+  // Re-consent: show modal when user has not accepted current ToS/Privacy versions (uses Firebase for cross-device)
   useEffect(() => {
     if (!user?.uid || !location.pathname.startsWith('/app')) return;
-    setShowReConsentModal(needsReconsent());
-  }, [user?.uid, location.pathname]);
+    let cancelled = false;
+    needsReconsentAsync(user?.email ?? null).then((needed) => {
+      if (!cancelled) setShowReConsentModal(needed);
+    });
+    return () => { cancelled = true; };
+  }, [user?.uid, user?.email, location.pathname]);
 
   const handleReConsentAgree = async () => {
     try {

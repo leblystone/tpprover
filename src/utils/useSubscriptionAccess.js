@@ -30,22 +30,13 @@ export function useSubscriptionAccess() {
   // This prevents showing expired chip for ANY subscription type while loading
   useEffect(() => {
     const checkSubscriptionDirectly = async () => {
-      console.log('🔄 checkSubscriptionDirectly called', {
-        subscription: !!subscription,
-        firebaseUser: !!firebaseUser,
-        lifetimeCheckStarted: lifetimeCheckStarted.current,
-        hasCheckedLifetime
-      });
-      
       // Only check if we don't have subscription yet and haven't started checking
       if (subscription || !firebaseUser || lifetimeCheckStarted.current) {
-        console.log('  -> Skipping check (already done or conditions not met)');
         return;
       }
 
       // Mark that we've started the check (prevents duplicate checks)
       lifetimeCheckStarted.current = true;
-      console.log('🔍 Starting lifetime check...');
 
       try {
         // Import loadUserSubscription which checks all sources including lifetimeAccess
@@ -53,7 +44,6 @@ export function useSubscriptionAccess() {
         const directSubscription = await loadUserSubscription(firebaseUser.uid);
         
         if (directSubscription) {
-          console.log('✅ Found subscription via direct check:', directSubscription.interval || directSubscription.plan);
           setHasCheckedLifetime(true);
           
           // Set access info directly to prevent showing expired chip
@@ -114,14 +104,11 @@ export function useSubscriptionAccess() {
           
           setIsLoading(false);
         } else {
-          console.log('❌ No subscription found in direct check');
           setHasCheckedLifetime(true);
-          console.log('  -> Set hasCheckedLifetime to true');
         }
       } catch (error) {
         console.warn('⚠️ Error checking subscription directly:', error);
         setHasCheckedLifetime(true);
-        console.log('  -> Set hasCheckedLifetime to true (after error)');
       }
     };
 
@@ -131,10 +118,7 @@ export function useSubscriptionAccess() {
     // This prevents infinite waiting if Firestore is slow
     const timeout = setTimeout(() => {
       if (!hasCheckedLifetime && lifetimeCheckStarted.current) {
-        console.log('⏱️ Lifetime check timeout (2s) - marking as complete');
         setHasCheckedLifetime(true);
-      } else if (lifetimeCheckStarted.current) {
-        console.log('  ✓ Lifetime check already completed before timeout');
       }
     }, 2000);
     
@@ -145,7 +129,6 @@ export function useSubscriptionAccess() {
     const checkSubscriptionAccess = async () => {
       // Prevent concurrent processing
       if (isProcessingRef.current) {
-        console.log('⏸️ Already processing subscription - skipping duplicate check');
         return;
       }
       
@@ -155,7 +138,6 @@ export function useSubscriptionAccess() {
         // CRITICAL: Don't show trial expired during signup flow
         const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
         if (signupInProgress === 'true') {
-          console.log('🔄 Signup in progress - skipping subscription check');
           setIsLoading(true);
           return;
         }
@@ -173,13 +155,9 @@ export function useSubscriptionAccess() {
         }) : 'null';
         
         if (lastProcessedSubscriptionRef.current === subKey) {
-          console.log('✓ Subscription unchanged - skipping re-process');
           isProcessingRef.current = false;
           return;
         }
-        
-        console.log('🔍 Checking subscription access...');
-        console.log('  - Cloud subscription:', subscription);
         
         // Fallback to localStorage with a 24-hour expiry to prevent stale data abuse
         if (!effectiveSubscription) {
@@ -194,9 +172,7 @@ export function useSubscriptionAccess() {
               const maxAge = 24 * 60 * 60 * 1000; // 24 hours
               if (savedAt > 0 && Date.now() - savedAt < maxAge) {
                 effectiveSubscription = localData;
-                console.log('  - Using localStorage subscription cache');
               } else {
-                console.log('  - localStorage subscription cache too old, ignoring');
                 localStorage.removeItem('tpprover_subscription');
               }
             }
@@ -207,7 +183,6 @@ export function useSubscriptionAccess() {
         
         // Mark loading as complete - we have data to work with (or confirmed there is none)
         setIsLoading(false);
-        console.log('  - Loading complete, processing subscription...');
         
         // Store that we've processed this subscription
         lastProcessedSubscriptionRef.current = subKey;
@@ -216,16 +191,9 @@ export function useSubscriptionAccess() {
         if (!effectiveSubscription) {
           // Wait for direct lifetime check to complete first
           if (!hasCheckedLifetime) {
-            if (import.meta.env.DEV) {
-              console.log('  - Waiting for lifetime check to complete (hasCheckedLifetime:', hasCheckedLifetime, ')');
-            }
-            return;
+              return;
           }
           
-          // No subscription found anywhere - mark as expired
-          if (import.meta.env.DEV) {
-            console.log('❌ No subscription found - marking as EXPIRED (hasCheckedLifetime:', hasCheckedLifetime, ')');
-          }
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
@@ -255,7 +223,6 @@ export function useSubscriptionAccess() {
             const { checkLifetimeAccessFirestore } = await import('../services/firebase');
             const lifetimeCheck = await checkLifetimeAccessFirestore(firebaseUser.uid);
             if (lifetimeCheck?.hasAccess) {
-              console.log('✅ Found lifetime access via direct check:', lifetimeCheck);
               hasLifetimeAccess = true;
               // Update effectiveSubscription with lifetime data
               effectiveSubscription = {
@@ -402,7 +369,6 @@ export function useSubscriptionAccess() {
         // Active trial
         // Consider trial active as long as actual timeLeft > 0
         if (effectiveSubscription.status === 'trialing' && timeLeft > 0) {
-          console.log('✅ Active trial detected - FULL ACCESS');
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
@@ -432,7 +398,6 @@ export function useSubscriptionAccess() {
         
         // If neither trial nor paid detected, default to trial expired (no subscription)
         const effectiveTrialExpired = isTrialExpired || (!isSubscriptionEnded && !isTrial && !hadPaidSubscription);
-        console.log(`❌ ${isSubscriptionEnded ? 'Subscription ENDED' : 'Trial EXPIRED'} - READ-ONLY MODE`);
         setAccessInfo({
           hasAccess: false,
           isTrialExpired: effectiveTrialExpired && !isSubscriptionEnded,

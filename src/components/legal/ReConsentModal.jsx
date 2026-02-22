@@ -17,20 +17,16 @@ export default function ReConsentModal({ open, onClose, onAgree, theme }) {
       theme={theme}
       maxWidth="max-w-md"
       footer={
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border"
-            style={{ borderColor: theme.border, color: theme.text }}
-          >
-            Remind me later
-          </button>
+        <div className="w-full">
           <button
             type="button"
             onClick={onAgree}
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.textOnPrimary,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.12)'
+            }}
           >
             I agree
           </button>
@@ -41,26 +37,34 @@ export default function ReConsentModal({ open, onClose, onAgree, theme }) {
         <p>
           We've updated our Terms of Service and Privacy Policy. Please review and accept to continue using the app.
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-row gap-2">
           <a
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 py-2 px-3 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: theme.primaryLight || theme.background, color: theme.primary }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg hover:opacity-90 transition-opacity text-xs font-medium"
+            style={{
+              backgroundColor: theme.primary,
+              color: '#FFFFFF',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.12)'
+            }}
           >
-            <FileText className="w-4 h-4 shrink-0" />
-            View Terms of Service
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            Terms
           </a>
           <a
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 py-2 px-3 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: theme.primaryLight || theme.background, color: theme.primary }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg hover:opacity-90 transition-opacity text-xs font-medium"
+            style={{
+              backgroundColor: theme.primary,
+              color: '#FFFFFF',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.12)'
+            }}
           >
-            <Shield className="w-4 h-4 shrink-0" />
-            View Privacy Policy
+            <Shield className="w-3.5 h-3.5 shrink-0" />
+            Privacy
           </a>
         </div>
         <p className="text-xs" style={{ color: theme.textLight }}>

@@ -359,6 +359,7 @@ export function hasAnyAgreementData() {
 /**
  * Check if the user needs to re-accept the current Terms and Privacy (e.g. after a legal/version update).
  * Returns true if either the latest terms or privacy agreement version does not match current AGREEMENT_VERSIONS.
+ * Uses local state only (for sync check when Firebase not yet loaded).
  */
 export function needsReconsent() {
   const termsAgreement = getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE) || getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS);
@@ -366,6 +367,64 @@ export function needsReconsent() {
   const termsOutdated = !termsAgreement || termsAgreement.version !== AGREEMENT_VERSIONS.TERMS_OF_SERVICE;
   const privacyOutdated = !privacyAgreement || privacyAgreement.version !== AGREEMENT_VERSIONS.PRIVACY_POLICY;
   return termsOutdated || privacyOutdated;
+}
+
+/**
+ * Fetch latest terms and privacy agreements from Firebase for the current user (cross-device).
+ * Used so agreement status and timestamp show correctly on any device they're logged into.
+ * @param {string} userEmail - Current user's email
+ * @returns {{ termsAgreement: object|null, privacyAgreement: object|null }}
+ */
+export async function getLatestAgreementsFromFirebase(userEmail) {
+  if (!userEmail) return { termsAgreement: null, privacyAgreement: null };
+  try {
+    const agreementsRef = collection(db, 'user_agreements');
+    const q = query(
+      agreementsRef,
+      where('userEmail', '==', userEmail),
+      orderBy('timestamp', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    let termsAgreement = null;
+    let privacyAgreement = null;
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const agreement = { id: docSnap.id, ...data };
+      if (!termsAgreement && (data.type === AGREEMENT_TYPES.TERMS_UPDATE || data.type === AGREEMENT_TYPES.SIGNUP_TERMS)) {
+        termsAgreement = agreement;
+      }
+      if (!privacyAgreement && (data.type === AGREEMENT_TYPES.PRIVACY_UPDATE || data.type === AGREEMENT_TYPES.SIGNUP_PRIVACY)) {
+        privacyAgreement = agreement;
+      }
+    });
+    return { termsAgreement, privacyAgreement };
+  } catch (error) {
+    console.warn('Could not fetch agreements from Firebase (cross-device):', error?.message);
+    return { termsAgreement: null, privacyAgreement: null };
+  }
+}
+
+/**
+ * Async check: does this user need to re-consent? Uses Firebase when available (cross-device), falls back to local when index/query fails.
+ * @param {string} userEmail - Current user's email
+ * @returns {Promise<boolean>}
+ */
+export async function needsReconsentAsync(userEmail) {
+  if (!userEmail) return needsReconsent();
+  try {
+    const { termsAgreement, privacyAgreement } = await getLatestAgreementsFromFirebase(userEmail);
+    // If Firebase returned at least one agreement, use it for the check
+    const hasFirebaseData = termsAgreement != null || privacyAgreement != null;
+    if (hasFirebaseData) {
+      const termsOutdated = !termsAgreement || termsAgreement.version !== AGREEMENT_VERSIONS.TERMS_OF_SERVICE;
+      const privacyOutdated = !privacyAgreement || privacyAgreement.version !== AGREEMENT_VERSIONS.PRIVACY_POLICY;
+      return termsOutdated || privacyOutdated;
+    }
+  } catch (_) {
+    // Fall through to local
+  }
+  // Firebase failed (e.g. index not deployed) or returned no data: use local so modal doesn't re-show after agree
+  return needsReconsent();
 }
 
 /**

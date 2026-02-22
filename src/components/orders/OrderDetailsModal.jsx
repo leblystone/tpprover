@@ -11,7 +11,7 @@ import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
-import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking';
+import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
   const [form, setForm] = useState({});
@@ -126,19 +126,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         mgUnit: item.mgUnit || 'mg'
       }));
 
-      console.log('📝 OrderDetailsModal: Initializing form with data:', JSON.stringify(initialData, null, 2));
       setForm(initialData);
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
     }
   }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, defaultCategory, activeTab]);
 
-  // Debug form changes
-  useEffect(() => {
-    if (form && Object.keys(form).length > 0) {
-      console.log('📝 OrderDetailsModal: Form state updated:', JSON.stringify(form, null, 2));
-    }
-  }, [form]);
 
   // Fetch tracking info when tracking number changes
   useEffect(() => {
@@ -151,8 +144,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setIsLoadingTracking(true);
       try {
         const carrier = detectCarrier(form.tracking);
-        const info = await getCachedTrackingInfo(form.tracking, carrier, true);
-        
+        let info = await getCachedTrackingInfo(form.tracking, carrier, true);
+        if (info?.hasError || info?.error) {
+          info = getMockTrackingInfo(form.tracking);
+        }
         if (info && !info.hasError) {
           setTrackingInfo(info);
         } else {
@@ -160,7 +155,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         }
       } catch (error) {
         console.error('Error fetching tracking info:', error);
-        setTrackingInfo(null);
+        const fallback = getMockTrackingInfo(form.tracking);
+        setTrackingInfo(fallback?.hasError ? null : fallback);
       } finally {
         setIsLoadingTracking(false);
       }

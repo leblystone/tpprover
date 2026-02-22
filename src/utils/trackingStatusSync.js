@@ -103,17 +103,8 @@ export async function syncOrderStatusFromTracking(order) {
     // Only update if tracking shows a MORE ADVANCED status
     // Never downgrade - user's manual choices are permanent
     if (trackingPriority <= currentPriority) {
-      // Tracking shows same or lower status - don't update
-      if (currentNormalized === trackingNormalized) {
-        console.log(`ℹ️ Order ${order.id}: Status matches tracking (${currentNormalized}), no update needed`);
-      } else {
-        console.log(`⏸️ Order ${order.id}: Tracking shows lower status (${trackingNormalized} vs ${currentNormalized}), respecting user's manual choice`);
-      }
       return null;
     }
-    
-    // Tracking shows more advanced status - allow update
-    console.log(`✅ Order ${order.id}: Tracking shows advancement (${currentNormalized} -> ${trackingNormalized}), updating status`);
 
     // Build updated order
     const nowISO = new Date().toISOString();

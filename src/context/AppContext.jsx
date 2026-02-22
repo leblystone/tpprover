@@ -720,14 +720,7 @@ export function AppProvider({ children }) {
                         ) : (cloudAppData.stockpile || []);
                         
                         if (timeSinceProtocolsUpdateMerge >= PROTECTION_WINDOW_MS) {
-                            const mActive = (mergedProtocols || []).filter(p => p.active).length;
-                            console.log('📋 [PROTOCOL-SYNC] Initial merge load: setting protocols', {
-                                mergedTotal: (mergedProtocols || []).length,
-                                mergedActive: mActive
-                            });
                             setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
-                        } else {
-                            console.log('📋 [PROTOCOL-SYNC] Initial merge: skipping protocols (protection)');
                         }
                         setOrders(mergedOrders);
                         setStockpile(mergedStockpile);
@@ -948,14 +941,7 @@ export function AppProvider({ children }) {
                         // No local data, just use cloud
                     const timeSinceProtocolsNoLocal = Date.now() - lastLocalProtocolsUpdateRef.current;
                     if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= PROTECTION_WINDOW_MS) {
-                        const noLocalActive = (cloudAppData.protocols || []).filter(p => p.active).length;
-                        console.log('📋 [PROTOCOL-SYNC] No-local load: setting protocols from cloud', {
-                            total: cloudAppData.protocols.length,
-                            active: noLocalActive
-                        });
                         setProtocols(migrateBlendedProtocolFrequencies(cloudAppData.protocols));
-                    } else if (cloudAppData.protocols && timeSinceProtocolsNoLocal < PROTECTION_WINDOW_MS) {
-                        console.log('📋 [PROTOCOL-SYNC] No-local: skipping protocols (protection)');
                     }
                     if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
                     if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
@@ -1401,15 +1387,8 @@ export function AppProvider({ children }) {
                                     // Load Firebase data into state (Firebase takes precedence for authenticated users)
                                     // Skip protocols if we recently updated locally (e.g. just started a protocol)
                                     const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
-                                    const fbActive = (firebaseData.protocols || []).filter(p => p.active).length;
                                     if (timeSinceProtocolsUpdate >= PROTECTION_WINDOW_MS && firebaseData.protocols) {
-                                        console.log('📋 [PROTOCOL-SYNC] Initial Firebase load: setting protocols', {
-                                            total: firebaseData.protocols.length,
-                                            active: fbActive
-                                        });
                                         setProtocols(migrateBlendedProtocolFrequencies(firebaseData.protocols));
-                                    } else if (timeSinceProtocolsUpdate < PROTECTION_WINDOW_MS && firebaseData.protocols) {
-                                        console.log('📋 [PROTOCOL-SYNC] Initial load: skipping protocols (protection,', Math.round(timeSinceProtocolsUpdate / 1000), 's ago)');
                                     }
                                     if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
                                     if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
@@ -2309,12 +2288,6 @@ export function AppProvider({ children }) {
         const newProtocols = [...protocols];
         newProtocols[index] = prepareItemForSave(updatedProtocol);
         const activeCount = newProtocols.filter(p => p.active).length;
-        console.log('📋 [PROTOCOL-SYNC] updateProtocolWithForceSync: saving', {
-            total: newProtocols.length,
-            activeCount,
-            updatedId: updatedProtocol.id,
-            updatedActive: updatedProtocol.active
-        });
         setProtocols(newProtocols);
         
         // Dispatch event for Dashboard and Calendar to refresh their task calculations
@@ -2353,14 +2326,13 @@ export function AppProvider({ children }) {
                 // This prevents conflicts when multiple devices save simultaneously
                 const syncResult = await saveAppData(userId, appData, { skipMerge: false });
                 if (syncResult) {
-                    console.log('📋 [PROTOCOL-SYNC] ✅ Force sync complete', { activeCount });
                     // Refresh skip window AFTER save completes to cover listener echoes
                     lastRemoteUpdateTimeRef.current = Date.now();
                 } else {
-                    console.error('📋 [PROTOCOL-SYNC] ❌ Force sync FAILED');
+                    console.error('📋 [PROTOCOL-SYNC] Force sync FAILED');
                 }
             } catch (error) {
-                console.error('📋 [PROTOCOL-SYNC] ❌ Force sync error:', error);
+                console.error('📋 [PROTOCOL-SYNC] Force sync error:', error);
             }
         }
         // Release auto-sync block after enough time for listener echoes to settle
@@ -2979,31 +2951,16 @@ export function AppProvider({ children }) {
                                             'protocols',
                                             getDeletionTracking().protocols
                                         );
-                                        const mActive = (mergedProtocols || []).filter(p => p.active).length;
-                                        console.log('📋 [PROTOCOL-SYNC] Sample-data listener: setting protocols', {
-                                            mergedTotal: mergedProtocols.length,
-                                            mergedActive: mActive
-                                        });
                                         setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
-                                    } else {
-                                        console.log('📋 [PROTOCOL-SYNC] Sample-data: skipping protocols (protection)');
                                     }
                                 }
                                 if (freshData.reconItems) {
-                                    console.log(`🧪 [RECON-SYNC] Sample-data: Received reconItems`, {
-                                        itemCount: freshData.reconItems?.length,
-                                        localCount: reconItems?.length
-                                    });
-                                    
                                     // Check skip window for reconItems
                                     const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                     const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
                                     const RECON_SKIP_WINDOW_MS = 3000;
                                     
-                                    if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
-                                        console.log(`🧪 [RECON-SYNC] Sample-data: Skipping - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
-                                    } else {
-                                        console.log(`🧪 [RECON-SYNC] Sample-data: Applying update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
+                                    if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                         const filtered = freshData.reconItems.filter(r => !r.isMock);
                                         // Merge with local reconItems instead of overwriting
                                         const localReconItems = reconItems || [];
@@ -3017,20 +2974,12 @@ export function AppProvider({ children }) {
                                     }
                                 }
                                 if (freshData.reconHistory) {
-                                    console.log(`🧪 [RECON-SYNC] Sample-data: Received reconHistory`, {
-                                        historyCount: freshData.reconHistory?.length,
-                                        localCount: reconHistory?.length
-                                    });
-                                    
                                     // Check skip window for reconHistory too
                                     const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                     const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
                                     const RECON_SKIP_WINDOW_MS = 3000;
                                     
-                                    if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
-                                        console.log(`🧪 [RECON-SYNC] Sample-data: Skipping history - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
-                                    } else {
-                                        console.log(`🧪 [RECON-SYNC] Sample-data: Applying history update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
+                                    if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                         // Merge with local reconHistory instead of overwriting
                                         const localReconHistory = reconHistory || [];
                                         const mergedReconHistory = mergeWithTimestamps(
@@ -3055,8 +3004,6 @@ export function AppProvider({ children }) {
                                             getDeletionTracking().supplements
                                         );
                                         setSupplements(mergedSupplements);
-                                    } else {
-                                        console.log('🔒 Skipping supplements update from sample-data listener - in protection window');
                                     }
                                 }
                                 if (freshData.orders) {
@@ -3071,8 +3018,6 @@ export function AppProvider({ children }) {
                                             getDeletionTracking().orders
                                         );
                                         setOrders(mergedOrders);
-                                    } else {
-                                        console.log('🔒 Skipping orders update from sample-data listener - in protection window');
                                     }
                                 }
                                 if (freshData.metrics) {
@@ -3258,7 +3203,6 @@ export function AppProvider({ children }) {
                         const timeSinceLastUpdate = now - lastRemoteUpdateTimeRef.current;
                         const SKIP_WINDOW_MS = 5000; // 5 seconds — covers force-sync + auto-sync echo
                         if (timeSinceLastUpdate < SKIP_WINDOW_MS) {
-                            console.log('📋 [PROTOCOL-SYNC] App data listener: skipping (own save,', Math.round(timeSinceLastUpdate), 'ms ago)');
                             return;
                         }
 
@@ -3276,14 +3220,6 @@ export function AppProvider({ children }) {
                                 // Check unified protection window before applying protocol updates
                                 const timeSinceProtocolsUpdate = Date.now() - lastLocalProtocolsUpdateRef.current;
                                 if (timeSinceProtocolsUpdate >= PROTECTION_WINDOW_MS) {
-                                    const freshActive = (freshData.protocols || []).filter(p => p.active).length;
-                                    const localActive = (protocols || []).filter(p => p.active).length;
-                                    console.log('📋 [PROTOCOL-SYNC] App data listener - applying protocols', {
-                                        freshTotal: freshData.protocols.length,
-                                        freshActive,
-                                        localTotal: (protocols || []).length,
-                                        localActive
-                                    });
                                     const filtered = sampleDataCleared 
                                         ? freshData.protocols.filter(p => !p.isMock)
                                         : freshData.protocols;
@@ -3294,33 +3230,16 @@ export function AppProvider({ children }) {
                                         'protocols',
                                         getDeletionTracking().protocols
                                     );
-                                    const mergedActive = mergedProtocols.filter(p => p.active).length;
-                                    console.log('📋 [PROTOCOL-SYNC] ⚠️ Applying protocols from listener (REPLACING state)', {
-                                        mergedTotal: mergedProtocols.length,
-                                        mergedActive,
-                                        sampleNames: mergedProtocols.slice(0, 3).map(p => p.name)
-                                    });
                                     setProtocols(migrateBlendedProtocolFrequencies(mergedProtocols));
-                                    console.log('📋 [PROTOCOL-SYNC] ✅ setProtocols() called - React should re-render components now');
-                                } else {
-                                    console.log('🔒 Skipping protocols update from remote sync - in protection window');
                                 }
                             }
                             if (freshData.reconItems) {
-                                console.log(`🧪 [RECON-SYNC] Listener received reconItems update`, {
-                                    itemCount: freshData.reconItems?.length,
-                                    localCount: reconItems?.length
-                                });
+                                // Check if we just saved reconItems locally (skip window to prevent overwrites)
+                                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
+                                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
+                                const RECON_SKIP_WINDOW_MS = 1000; // 1 second
                                 
-                // Check if we just saved reconItems locally (skip window to prevent overwrites)
-                const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
-                const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
-                const RECON_SKIP_WINDOW_MS = 1000; // 1 second
-                                
-                                if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
-                                    console.log(`🧪 [RECON-SYNC] Skipping listener update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
-                                } else {
-                                    console.log(`🧪 [RECON-SYNC] Applying reconItems update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
+                                if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.reconItems.filter(r => !r.isMock)
                                         : freshData.reconItems;
@@ -3336,20 +3255,12 @@ export function AppProvider({ children }) {
                                 }
                             }
                             if (freshData.reconHistory) {
-                                console.log(`🧪 [RECON-SYNC] Listener received reconHistory update`, {
-                                    historyCount: freshData.reconHistory?.length,
-                                    localCount: reconHistory?.length
-                                });
-                                
                                 // Check skip window for reconHistory too
                                 const reconItemsLastUpdate = parseInt(localStorage.getItem('tpprover_reconItems_lastUpdate') || '0');
                                 const timeSinceReconUpdate = Date.now() - reconItemsLastUpdate;
                                 const RECON_SKIP_WINDOW_MS = 1000;
                                 
-                                if (timeSinceReconUpdate < RECON_SKIP_WINDOW_MS) {
-                                    console.log(`🧪 [RECON-SYNC] Skipping history update - local save ${Math.round(timeSinceReconUpdate)}ms ago`);
-                                } else {
-                                    console.log(`🧪 [RECON-SYNC] Applying reconHistory update (${Math.round(timeSinceReconUpdate)}ms since local save)`);
+                                if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                     // Merge with local reconHistory instead of overwriting
                                     const localReconHistory = reconHistory || [];
                                     const mergedReconHistory = mergeWithTimestamps(
@@ -3377,8 +3288,6 @@ export function AppProvider({ children }) {
                                         getDeletionTracking().supplements
                                     );
                                     setSupplements(mergedSupplements);
-                                } else {
-                                    console.log('🔒 Skipping supplements update from remote sync - in protection window');
                                 }
                             }
                             if (freshData.orders) {
@@ -3395,8 +3304,6 @@ export function AppProvider({ children }) {
                                         getDeletionTracking().orders
                                     );
                                     setOrders(mergedOrders);
-                                } else {
-                                    console.log('🔒 Skipping orders update from remote sync - in protection window');
                                 }
                             }
                             if (freshData.metrics) {
@@ -3413,8 +3320,6 @@ export function AppProvider({ children }) {
                                         getDeletionTracking().metrics
                                     );
                                     setMetrics(mergedMetrics);
-                                } else {
-                                    console.log('🔒 Skipping metrics update from remote sync - in protection window');
                                 }
                             }
                             if (freshData.vendors) {
