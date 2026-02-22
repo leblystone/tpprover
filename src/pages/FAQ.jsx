@@ -1,18 +1,15 @@
 import React, { useState, startTransition } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import logo from '../assets/tpp_logo.png';
-import LandingTermsModal from '../components/legal/LandingTermsModal';
-import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
+import LandingFooter from '../components/layout/LandingFooter';
+import LandingHeader from '../components/layout/LandingHeader';
 import { usePageSEO } from '../utils/pageSEO';
 
 export default function FAQ() {
   usePageSEO();
   const navigate = useNavigate();
   const [openIndex, setOpenIndex] = useState(null);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
   const [showContact, setShowContact] = useState(false);
 
   const handleGetStarted = () => {
@@ -225,75 +222,7 @@ export default function FAQ() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       
-      {/* Header - Exact same as Landing page */}
-      <header className="pt-3 pb-3 md:pt-4 md:pb-3" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #DDE6DE' }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          {/* Mobile Layout */}
-          <div className="flex lg:hidden items-center justify-between">
-            <h1 className="text-[8px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.15em' }}>Organize Your Research</h1>
-            <Link to="/" className="cursor-pointer hover:opacity-80 transition-opacity">
-              <img 
-                src={logo} 
-                alt="Logo" 
-                className="rounded-full shadow object-contain" 
-                style={{ 
-                  width: '48px', 
-                  height: '48px',
-                  imageRendering: 'auto',
-                  backfaceVisibility: 'hidden',
-                  transform: 'translateZ(0)',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform',
-                  WebkitTransform: 'translateZ(0)',
-                  msTransform: 'translateZ(0)'
-                }} 
-              />
-            </Link>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSignIn}
-                className="px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                style={{ color: '#7F9E95', backgroundColor: 'transparent' }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={handleGetStarted}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md hover:shadow-lg"
-                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="hidden lg:flex items-center justify-between">
-            <h1 className="text-sm font-medium tracking-widest uppercase" style={{ color: '#9CA3AF', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.15em' }}>Organize Your Research</h1>
-            <div className="flex-1 flex justify-center">
-              <Link to="/" className="cursor-pointer hover:opacity-80 transition-opacity">
-                <img src={logo} alt="Logo" className="rounded-full shadow object-cover" style={{ width: '80px', height: '80px' }} />
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleSignIn}
-                className="px-4 py-2 rounded-lg font-medium transition-colors"
-                style={{ color: '#7F9E95', backgroundColor: 'transparent' }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={handleGetStarted}
-                className="px-6 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
-                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero Section */}
       <section className="py-12 md:py-20" style={{ backgroundColor: '#EFF2EE' }}>
@@ -416,50 +345,8 @@ export default function FAQ() {
         </div>
       </section>
 
-      {/* Footer - Exact same as Landing page */}
-      <footer className="py-12" style={{ backgroundColor: '#2F3B3A', borderTop: `1px solid #DDE6DE` }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="grid grid-cols-4 md:grid-cols-4 gap-4 md:gap-8">
-            <div className="col-span-2 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img src={logo} alt="Logo" className="h-8 w-8 md:h-10 md:w-10 rounded-full shadow object-cover" />
-                <div>
-                  <h3 className="text-sm md:text-lg font-semibold" style={{ color: '#FFFFFF' }}>Organize Your Research</h3>
-                  <p className="text-xs md:text-sm" style={{ color: '#A0B9B3' }}>
-                    All-in-One Research Tool
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="col-span-1">
-              <h4 className="text-xs md:text-sm font-semibold mb-2 md:mb-4" style={{ color: '#FFFFFF' }}>Support</h4>
-              <ul className="space-y-1 md:space-y-2 text-xs md:text-sm" style={{ color: '#A0B9B3' }}>
-                <li><a href="/faq" className="hover:underline">FAQ</a></li>
-                <li><button onClick={() => setShowContact(true)} className="hover:underline">Contact</button></li>
-              </ul>
-            </div>
-            <div className="col-span-1">
-              <h4 className="text-xs md:text-sm font-semibold mb-2 md:mb-4" style={{ color: '#FFFFFF' }}>Legal</h4>
-              <ul className="space-y-1 md:space-y-2 text-xs md:text-sm" style={{ color: '#A0B9B3' }}>
-                <li><button onClick={() => setShowPrivacy(true)} className="hover:underline">Privacy Policy</button></li>
-                <li><button onClick={() => setShowTerms(true)} className="hover:underline">Terms of Service</button></li>
-              </ul>
-            </div>
-          </div>
-           <div className="border-t mt-8 pt-8" style={{ borderColor: '#DDE6DE' }}>
-             <p className="text-center text-sm" style={{ color: '#A0B9B3' }}>
-               © {new Date().getFullYear()} The Pep Planner. All rights reserved.
-             </p>
-             <p className="text-center text-base mt-2" style={{ color: '#D1D9D6', fontFamily: 'Cedarville Cursive, cursive' }}>
-               - for the love of research
-             </p>
-           </div>
-        </div>
-      </footer>
+      <LandingFooter />
 
-      {/* Modals */}
-      <LandingTermsModal open={showTerms} onClose={() => setShowTerms(false)} />
-      <LandingPrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
       <LandingContactModal open={showContact} onClose={() => setShowContact(false)} />
     </div>
   );

@@ -92,11 +92,11 @@ export default function Dashboard() {
     
     if (activeOrders.length === 0) return [];
     
-    // Sort by date to get the most recent first
+    // Sort by date so oldest order shows first in the widget
     activeOrders.sort((a, b) => {
         const dateA = new Date(a.deliveryDate || a.date || 0);
         const dateB = new Date(b.deliveryDate || b.date || 0);
-        return dateB - dateA;
+        return dateA - dateB;
     });
     
     // Map to widget format

@@ -36,34 +36,27 @@ export const CancellationPolicyContent = () => (
         </div>
 
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <h3 className="font-semibold text-yellow-800">4. Data Retention After Cancellation</h3>
+            <h3 className="font-semibold text-yellow-800">4. Access and Data After Cancellation</h3>
             <div className="text-yellow-700 space-y-2">
-                <p><strong>30-Day Grace Period:</strong> After your subscription ends, your account and research data will remain accessible for 30 days. During this period, you can:</p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>Export all your research data</li>
-                    <li>Download your protocols, schedules, and inventory information</li>
-                    <li>Access your account to retrieve any information you need</li>
-                </ul>
-                <p><strong>Data Deletion:</strong> After the 30-day grace period, we will permanently delete your account and all associated research data from our systems. Your email address may be retained in our deletion request records. This deletion is irreversible.</p>
-                <p><strong>Backup Responsibility:</strong> We recommend exporting your data before cancellation or during the grace period to ensure you have a backup of your research information.</p>
+                <p><strong>When Access Ends:</strong> When your subscription ends (at the end of your paid billing period), you will no longer have access to subscription features. We do not automatically delete your account or research data after a set period.</p>
+                <p><strong>Account Deletion:</strong> If you want your account and data removed, you must request account deletion (for example via the in-app option or by emailing contact@thepepplanner.com). We will process deletion requests and remove your research data and account. Your email address may be retained in our deletion request records.</p>
+                <p><strong>Backup Responsibility:</strong> We recommend exporting your data before cancelling or before requesting deletion so you have a copy if you need it.</p>
             </div>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">5. Reinstating Your Subscription</h3>
-            <p>If you cancel your subscription and later decide to reactivate it, you can do so at any time before your account is permanently deleted (within the 30-day grace period).</p>
-            <p><strong>Reactivation Process:</strong> To reinstate your subscription, simply subscribe again through the application. Your previous data will be restored if you reactivate within the 30-day grace period.</p>
-            <p><strong>After Deletion:</strong> If your account has been permanently deleted (after 30 days), you will need to create a new account and start fresh. Previous data cannot be recovered.</p>
+            <h3 className="font-semibold text-gray-800">5. Resubscribing</h3>
+            <p>If you cancel your subscription and later want to use the service again, you can subscribe again through the application. If you have not requested account deletion, your existing account and data may still be available. If you have requested and completed account deletion, you would need to create a new account to use the service again.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">6. Lifetime Access Cancellation</h3>
+            <h3 className="font-semibold text-gray-800">6. Lifetime Access</h3>
             <p>If you have purchased lifetime access to The Pep Planner:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>You may cancel your account at any time, but lifetime access purchases are non-refundable</li>
-                <li>Cancellation of your account will result in permanent deletion of your data after the 30-day grace period</li>
-                <li>If you cancel and later wish to return, you will need to purchase lifetime access again (if available) or subscribe to a regular plan</li>
-                <li>Lifetime access is tied to your account and cannot be transferred to another account</li>
+                <li>Lifetime access purchases are non-refundable and non-transferable.</li>
+                <li>You may request account deletion at any time. We do not automatically delete accounts or data; deletion only happens when you request it.</li>
+                <li>Lifetime access is tied to your account and cannot be transferred to another account.</li>
+                <li>If you request account deletion and later wish to use the service again, you would need to create a new account and purchase access again (lifetime if available, or a subscription).</li>
             </ul>
         </div>
 
@@ -74,10 +67,8 @@ export const CancellationPolicyContent = () => (
                 <ul className="list-disc list-inside ml-4 space-y-1">
                     <li>A confirmation email within 24 hours of your cancellation request</li>
                     <li>Information about when your access will end</li>
-                    <li>Instructions on how to export your data</li>
-                    <li>Details about the 30-day grace period</li>
+                    <li>Instructions on how to export your data if you wish to keep a copy</li>
                 </ul>
-                <p><strong>Reminder Emails:</strong> We may send you reminder emails during the grace period to ensure you have an opportunity to export your data or reactivate your subscription.</p>
             </div>
         </div>
 

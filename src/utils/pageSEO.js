@@ -42,6 +42,11 @@ export const PAGE_SEO = {
     description: 'FAQ: GLP1 tracking, semaglutide and tirzepatide, weight loss tracking, protocols, stockpile, pricing, and support.',
     canonical: 'https://thepepplanner.app/faq'
   },
+  '/contact': {
+    title: 'Contact - The Pep Planner',
+    description: 'Contact The Pep Planner. Send a message or email for support and questions.',
+    canonical: 'https://thepepplanner.app/contact'
+  },
   '/privacy': {
     title: 'Privacy Policy - The Pep Planner',
     description: 'Privacy policy for The Pep Planner. How we collect, use, and protect your data.',

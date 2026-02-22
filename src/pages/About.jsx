@@ -2,7 +2,7 @@ import React from 'react';
 import { FlaskConical, Users, Shield, Zap, Target, BookOpen } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import PublicNavigation from '../components/layout/PublicNavigation';
-import PublicFooter from '../components/layout/PublicFooter';
+import LandingFooter from '../components/layout/LandingFooter';
 import { usePageSEO } from '../utils/pageSEO';
 
 export default function About() {
@@ -195,7 +195,7 @@ export default function About() {
         </div>
       </div>
 
-      <PublicFooter />
+      <LandingFooter />
     </div>
   );
 }

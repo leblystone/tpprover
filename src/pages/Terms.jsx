@@ -1,76 +1,16 @@
 import React from 'react';
-import { FileText, Scale, Shield, AlertTriangle, Users, Globe } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
+import LandingFooter from '../components/layout/LandingFooter';
+import LandingHeader from '../components/layout/LandingHeader';
 
 export default function Terms() {
   usePageSEO();
   const theme = themes[defaultThemeName];
 
-  const keyPoints = [
-    {
-      icon: <FileText className="w-8 h-8" />,
-      title: "Clear Terms",
-      description: "Transparent and easy-to-understand terms of service."
-    },
-    {
-      icon: <Scale className="w-8 h-8" />,
-      title: "Fair Usage",
-      description: "Reasonable terms that protect both users and the platform."
-    },
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: "User Protection",
-      description: "Strong protections for user rights and data privacy."
-    },
-    {
-      icon: <AlertTriangle className="w-8 h-8" />,
-      title: "Research Safety",
-      description: "Terms designed to promote safe research practices."
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Community Guidelines",
-      description: "Clear guidelines for respectful community interaction."
-    },
-    {
-      icon: <Globe className="w-8 h-8" />,
-      title: "Global Compliance",
-      description: "Terms that comply with international laws and regulations."
-    }
-  ];
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.background }}>
-      {/* Navigation */}
-      <nav className="border-b" style={{ backgroundColor: theme.white, borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img src={logo} alt="The Pep Planner" className="h-8 w-8 rounded-full mr-3" />
-              <span className="text-xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</span>
-            </div>
-            <div className="flex space-x-8">
-              <a href="/" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Home
-              </a>
-              <a href="/about" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                About
-              </a>
-              <a href="/features" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Features
-              </a>
-              <a href="/pricing" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Pricing
-              </a>
-              <a href="/contact" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Contact
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <LandingHeader />
 
       {/* Hero Section */}
       <div className="py-20 px-4 sm:px-6 lg:px-8">
@@ -78,42 +18,9 @@ export default function Terms() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: theme.primaryDark }}>
             Terms of Service
           </h1>
-          <p className="text-xl md:text-2xl mb-8" style={{ color: theme.textLight }}>
-            Clear terms that protect both you and our platform.
-          </p>
-          <p className="text-sm" style={{ color: theme.textLight }}>
+          <p className="text-sm mt-4" style={{ color: theme.textLight }}>
             Last updated: February 2026
           </p>
-        </div>
-      </div>
-
-      {/* Key Points */}
-      <div className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
-              Key Points
-            </h2>
-            <p className="text-lg" style={{ color: theme.textLight }}>
-              Important highlights from our terms of service
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {keyPoints.map((point, index) => (
-              <div key={index} className="p-6 rounded-xl text-center" style={{ backgroundColor: theme.white }}>
-                <div className="mb-4 flex justify-center" style={{ color: theme.primary }}>
-                  {point.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                  {point.title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                  {point.description}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -235,7 +142,7 @@ export default function Terms() {
                   <strong>Refunds:</strong> Refunds for in-app purchases made through the Apple App Store or Google Play are subject to Apple's and Google's respective refund policies. Refunds for purchases made on our website (Stripe, Squarespace) are governed by our Cancellation Policy.
                 </p>
                 <p>
-                  <strong>Cancellation:</strong> You may cancel your subscription at any time. Cancellation takes effect at the end of your current billing period.
+                  <strong>Cancellation:</strong> You may cancel your subscription at any time through your Account or by contacting us. Cancellation takes effect at the end of your current billing period and you retain access until then. We do not automatically delete your account or data; deletion only occurs if you request it. By subscribing or purchasing, you agree to our full Cancellation Policy, which is incorporated into these Terms and available in the app and on our website.
                 </p>
                 <p>
                   <strong>Lifetime Access:</strong> Lifetime access may be purchased as a one-time payment or obtained through promotional redemption codes. Lifetime access grants unlimited use of the Service for as long as The Pep Planner continues to operate. Lifetime purchases are non-refundable and non-transferable.
@@ -344,36 +251,7 @@ export default function Terms() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <img src={logo} alt="The Pep Planner" className="h-6 w-6 rounded-full mr-2" />
-              <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                © 2026 Belix Company LLC. All rights reserved.
-              </span>
-              <span className="text-sm font-medium block mt-1" style={{ color: theme.textLight }}>
-                The Pep Planner is a trade name of Belix Company LLC.
-              </span>
-            </div>
-            <div className="flex space-x-6">
-              <a href="/privacy" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Privacy Policy
-              </a>
-              <a href="/terms" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Terms of Service
-              </a>
-              <a href="/cancellation-policy" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Cancellation Policy
-              </a>
-              <a href="/contact" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Contact
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

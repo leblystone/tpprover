@@ -187,7 +187,7 @@ export default function CustomizableDashboard() {
       return false;
     });
     if (activeOrders.length === 0) return [];
-    activeOrders.sort((a, b) => new Date(b.deliveryDate || b.date || 0) - new Date(a.deliveryDate || a.date || 0));
+    activeOrders.sort((a, b) => new Date(a.deliveryDate || a.date || 0) - new Date(b.deliveryDate || b.date || 0));
     return activeOrders.map(o => ({
       id: o.id,
       peptide: o.items?.[0]?.name || 'Unknown Item',

@@ -1,9 +1,11 @@
 /**
  * Tracking Status Sync Utility
- * Automatically syncs order status based on real-time tracking data
+ * Automatically syncs order status based on real-time tracking data.
+ * When the tracking API is unavailable (e.g. no Shippo key), falls back to mock
+ * tracking so fake/test DHL and FedEx numbers still drive status updates.
  */
 
-import { getCachedTrackingInfo, detectCarrier } from '../services/tracking';
+import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../services/tracking';
 
 // Track if we've already warned about tracking service not being configured
 let hasWarnedAboutTrackingService = false;
@@ -45,44 +47,29 @@ export async function syncOrderStatusFromTracking(order) {
     }
 
     const carrier = detectCarrier(order.tracking);
-    
-    const trackingInfo = await getCachedTrackingInfo(order.tracking, carrier, true);
-    
-    // Only proceed if we have valid tracking data (no mock data - use real API only)
+    let trackingInfo = await getCachedTrackingInfo(order.tracking, carrier, true);
+
+    // When API is unavailable (no key, test key, or error), use mock tracking so
+    // fake/test DHL and FedEx numbers still auto-update order status and delivery.
     if (!trackingInfo || trackingInfo.hasError) {
-      // Check if this is a "service not configured" error - only warn once
       const details = trackingInfo?.details || '';
-      const detailsStr = typeof details === 'string' ? details : JSON.stringify(details);
+      const detailsStr = typeof details === 'string' ? details : JSON.stringify(details || '');
       const isServiceNotConfigured =
+        !trackingInfo ||
         trackingInfo?.error?.includes('Tracking service not configured') ||
         trackingInfo?.error?.includes('not configured') ||
         trackingInfo?.status === 401 ||
         detailsStr.includes('Token does not exist');
-      
+
       if (isServiceNotConfigured && !hasWarnedAboutTrackingService) {
-        console.warn('⚠️ Tracking service not configured. To enable automatic order status updates:');
-        console.warn('   1. Get a Shippo API key from https://goshippo.com');
-        console.warn('   2. Set it in Firebase Functions: firebase functions:secrets:set SHIPPO_API_KEY');
-        console.warn('   3. Redeploy functions: firebase deploy --only functions');
+        console.warn('⚠️ Tracking API unavailable. Using mock tracking for test numbers (DHL/FedEx) to auto-update status.');
         hasWarnedAboutTrackingService = true;
       }
-      
-      // Silently skip orders when service isn't configured (we already warned once)
-      if (isServiceNotConfigured) {
-        return null;
-      }
-      
-      // Silently handle tracking errors
-      return null;
+      trackingInfo = getMockTrackingInfo(order.tracking);
     }
 
-    // Reject mock data - we should only use real tracking data from the API
-    if (trackingInfo.isMockData) {
-      console.log(`⚠️ Order ${order.id}: Received mock tracking data, skipping sync. Please configure Shippo API key in Firebase Functions.`);
-      return null;
-    }
-
-    const trackingStatus = trackingInfo.status; // 'Order Placed', 'Shipped', or 'Delivered'
+    // Use tracking status from either real API or mock (test numbers)
+    const trackingStatus = trackingInfo?.status; // 'Order Placed', 'Shipped', or 'Delivered'
     
     // Safety check - if tracking status is missing, can't sync
     if (!trackingStatus || typeof trackingStatus !== 'string') {

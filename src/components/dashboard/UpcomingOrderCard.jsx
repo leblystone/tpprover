@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle, Clock, Truck, MapPin, RefreshCw, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CheckCircle, Clock, Truck, MapPin, RefreshCw, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking'
 import { formatMMDDYYYY } from '../../utils/date'
@@ -34,16 +34,6 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
     setTrackingError(null)
   }, [currentOrder?.id])
   
-  const handlePrevious = (e) => {
-    e?.stopPropagation()
-    setCurrentIndex(prev => Math.max(0, prev - 1))
-  }
-  
-  const handleNext = (e) => {
-    e?.stopPropagation()
-    setCurrentIndex(prev => Math.min(ordersList.length - 1, prev + 1))
-  }
-  
   // Fetch tracking information when order has tracking number AND is not delivered
   useEffect(() => {
     async function fetchTracking() {
@@ -62,19 +52,12 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
       
       try {
         const carrier = detectCarrier(currentOrder.tracking)
-        
-        // Use real API if Shippo key is available, otherwise use mock data
-        const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
-        
-        let tracking;
-        if (hasRealApiKey) {
-          tracking = await getCachedTrackingInfo(currentOrder.tracking, carrier)
-        } else {
-          // Use mock data for development
+        // Always try backend first (Shippo key is in Firebase secrets); fall back to mock on error
+        let tracking = await getCachedTrackingInfo(currentOrder.tracking, carrier)
+        if (tracking?.hasError || tracking?.error) {
           tracking = getMockTrackingInfo(currentOrder.tracking)
         }
-        
-        if (tracking.error) {
+        if (tracking?.error) {
           setTrackingError(tracking.error)
         } else {
           setTrackingInfo(tracking)
@@ -107,16 +90,11 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
             
             try {
               const carrier = detectCarrier(currentOrder.tracking)
-              const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
-              
-              let tracking;
-              if (hasRealApiKey) {
-                tracking = await getCachedTrackingInfo(currentOrder.tracking, carrier, false) // Force fresh data
-              } else {
+              let tracking = await getCachedTrackingInfo(currentOrder.tracking, carrier, false) // Force fresh data
+              if (tracking?.hasError || tracking?.error) {
                 tracking = getMockTrackingInfo(currentOrder.tracking)
               }
-              
-              if (tracking.error) {
+              if (tracking?.error) {
                 setTrackingError(tracking.error)
               } else {
                 setTrackingInfo(tracking)
@@ -451,53 +429,30 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
             );
           })}
         </div>
+        {/* Dots pagination - right under In Transit row, only when multiple orders */}
+        {ordersList.length > 1 && (
+          <div className="w-full flex items-center justify-center gap-1.5 pt-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {ordersList.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                className="rounded-full transition-all border-0 outline-none cursor-pointer"
+                style={{
+                  width: currentIndex === idx ? 10 : 6,
+                  height: 6,
+                  backgroundColor: currentIndex === idx
+                    ? (theme.isDark ? '#7a8a72' : theme.primary)
+                    : (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.border),
+                  minWidth: currentIndex === idx ? 10 : 6
+                }}
+                title={`Order ${idx + 1} of ${ordersList.length}`}
+                aria-label={`Order ${idx + 1} of ${ordersList.length}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      
-      {/* Pagination controls */}
-      {(() => {
-        const shouldShow = ordersList.length > 1;
-        if (!shouldShow) return null;
-        
-        return (
-        <div className="mt-auto w-full flex items-center justify-center gap-2 pt-2 pb-2 border-t flex-shrink-0" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.border }} onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            className="p-1.5 rounded-md transition-all flex items-center justify-center"
-            style={{ 
-              color: currentIndex === 0 ? theme.textLight : theme.primary,
-              cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              opacity: currentIndex === 0 ? 0.5 : 1
-            }}
-            title="Previous order"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-xs" style={{ color: theme.textLight }}>
-            {currentIndex + 1} / {ordersList.length}
-          </span>
-          <button
-            onClick={handleNext}
-            disabled={currentIndex >= ordersList.length - 1}
-            className="p-1.5 rounded-md transition-all flex items-center justify-center"
-            style={{ 
-              color: currentIndex >= ordersList.length - 1 ? theme.textLight : theme.primary,
-              cursor: currentIndex >= ordersList.length - 1 ? 'not-allowed' : 'pointer',
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              opacity: currentIndex >= ordersList.length - 1 ? 0.5 : 1
-            }}
-            title="Next order"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-        );
-      })()}
     </div>
   )
 }
