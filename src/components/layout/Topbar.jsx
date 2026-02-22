@@ -4,7 +4,6 @@ import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
-import SyncStatusIndicator from '../common/SyncStatusIndicator';
 import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
@@ -572,10 +571,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} />
             </button>
-          )}
-          {/* Sync status: Saved / Syncing / Offline / Error (retry) - only when logged in */}
-          {user && (
-            <SyncStatusIndicator theme={theme} />
           )}
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (

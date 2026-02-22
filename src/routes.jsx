@@ -133,7 +133,7 @@ export const router = createBrowserRouter([
       // Legacy routes - redirect to new structure for backward compatibility
       { path: 'analytics', element: <Navigate to="/admin/overview/analytics" replace /> },
       { path: 'ghost-worker', element: <Navigate to="/admin/overview/automation" replace /> },
-      { path: 'work-queue', element: <Navigate to="/admin/overview/automation" replace /> }, // Changed: work queue now under automation
+      { path: 'work-queue', element: <Navigate to="/admin/overview/dashboard" replace /> }, // Work queue is on dashboard
       { path: 'feedback', element: <Navigate to="/admin/overview/support" replace /> },
       { path: 'contact', element: <Navigate to="/admin/overview/contact" replace /> },
       

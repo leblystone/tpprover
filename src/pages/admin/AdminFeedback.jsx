@@ -515,7 +515,7 @@ export default function AdminFeedback() {
                                 <Mail size={12} />
                                 {t.userEmail}
                               </span>
-                              <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                              <span>#{t.ticketNumber || t.id?.slice(0, 8)}{t.requestNumbers?.length > 1 ? ` (${t.requestNumbers.join(', ')})` : ''}</span>
                               {t.userAccountInfo && (
                                 <button
                                   type="button"
@@ -772,7 +772,7 @@ export default function AdminFeedback() {
                             <Mail size={12} />
                             {t.userEmail}
                           </span>
-                          <span>#{t.ticketNumber || t.id?.slice(0, 8)}</span>
+                          <span>#{t.ticketNumber || t.id?.slice(0, 8)}{t.requestNumbers?.length > 1 ? ` (${t.requestNumbers.join(', ')})` : ''}</span>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1093,7 +1093,7 @@ function TicketChatView({
             <Mail size={14} />
             {selectedTicket?.userEmail}
           </span>
-          <span>#{selectedTicket?.ticketNumber || selectedTicket?.id?.slice(0, 8)}</span>
+          <span>#{selectedTicket?.ticketNumber || selectedTicket?.id?.slice(0, 8)}{selectedTicket?.requestNumbers?.length > 1 ? ` (${selectedTicket.requestNumbers.join(', ')})` : ''}</span>
           <span className="flex items-center gap-2 font-mono text-xs px-2 py-1 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
             <span style={{ color: theme.primary }}>ID:</span>
             <span style={{ color: theme.text }}>{selectedTicket?.id?.slice(0, 12)}…</span>

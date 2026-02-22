@@ -1450,10 +1450,44 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Win-Back Campaign Email';
+    } else if (templateData && (templateData.subject != null || templateData.heading != null || templateData.greeting != null)) {
+      // Generic: any template with data from admin – render and send so "Send test" works for EVERY template
+      logger.info(`📧 Sending test for template type "${templateType}" using admin template data`);
+      const { generateEmailHTML } = require('./emailService');
+      const testVars = {
+        userName: 'Test User',
+        userEmail: testEmail,
+        verificationLink: 'https://thepepplanner.app/app/account',
+        resetLink: 'https://thepepplanner.app/app/account',
+        activationLink: 'https://thepepplanner.app/activate?token=test-token',
+        surveyLink: 'https://thepepplanner.app/app/account',
+        newEmail: testEmail,
+        oldEmail: 'previous@example.com',
+        reason: 'Test dispute / refund (test email)',
+        giftGiverName: 'Test Giver',
+        recipientEmail: 'recipient@example.com',
+        subscriptionType: 'Monthly Plan',
+        pricePaid: '$29.99',
+        giftId: 'test-gift-id',
+        subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US'),
+        daysAdded: 7,
+        newEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US')
+      };
+      try {
+        const htmlContent = generateEmailHTML(templateData, testVars);
+        const subjectText = templateData.subject || `Test - ${templateType}`;
+        await sendEmailViaResend(testEmail, subjectText, htmlContent);
+        emailResult = true;
+        emailName = `${templateType} (test)`;
+        logger.info(`✅ Generic test email sent for ${templateType}`);
+      } catch (error) {
+        logger.error(`❌ Generic test email failed for ${templateType}:`, error);
+        emailResult = false;
+        emailName = `Failed (${templateType})`;
+      }
     } else {
-      // Default: send single generic test email instead of multiple
-      logger.info('⚠️ Unknown template type, sending generic test email...');
-      
+      // No template data: send placeholder so caller still gets a result
+      logger.info('⚠️ No template type or data, sending placeholder...');
       try {
         await sendEmailViaResend(
           testEmail,
@@ -1462,7 +1496,7 @@ exports.testEmailSystem = onCall(
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Test Email</h1>
               <p>This is a test email for template type: <strong>${templateType || 'Unknown'}</strong></p>
-              <p>Template handler not yet implemented. Add a specific handler in testEmailSystem.js</p>
+              <p>Select a template and click Send test again to send the actual template.</p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
           `
@@ -1470,11 +1504,10 @@ exports.testEmailSystem = onCall(
         emailResult = true;
         emailName = `Test Email (${templateType})`;
       } catch (error) {
-        logger.error('❌ Generic test email failed:', error);
+        logger.error('❌ Placeholder test email failed:', error);
         emailResult = false;
         emailName = `Failed Test (${templateType})`;
       }
-
     }
 
     // Single template test

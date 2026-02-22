@@ -84,7 +84,7 @@ export const adminPaths = {
   // Legacy paths for backward compatibility
   analytics: `${ADMIN_BASE}/overview/analytics`,
   ghostWorker: `${ADMIN_BASE}/overview/automation`,
-  workQueue: `${ADMIN_BASE}/overview/automation`, // Changed: work queue now under automation
+  workQueue: `${ADMIN_BASE}/overview/dashboard`, // Work queue is front and center on dashboard
   feedback: `${ADMIN_BASE}/overview/support`,
   contact: `${ADMIN_BASE}/overview/contact`,
   // Users paths

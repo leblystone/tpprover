@@ -1262,6 +1262,37 @@ export async function getUserTickets(userEmail) {
 }
 
 /**
+ * Subscribe to a user's support tickets in real time (e.g. when admin closes a ticket, user sees it immediately)
+ * @param {string} userEmail - User's email
+ * @param {function(Array)} callback - Called with tickets array whenever data changes
+ * @returns {function} - Unsubscribe function
+ */
+export function subscribeUserTickets(userEmail, callback) {
+  const ticketsRef = collection(db, 'supportTickets');
+  const q = query(
+    ticketsRef,
+    where('userEmail', '==', userEmail.toLowerCase())
+  );
+  return onSnapshot(q, (querySnapshot) => {
+    const tickets = [];
+    querySnapshot.forEach((docSnap) => {
+      tickets.push({
+        id: docSnap.id,
+        ...docSnap.data()
+      });
+    });
+    tickets.sort((a, b) => {
+      const aTime = a.lastMessageAt?.toDate?.() || a.lastMessageAt || new Date(0);
+      const bTime = b.lastMessageAt?.toDate?.() || b.lastMessageAt || new Date(0);
+      return bTime - aTime;
+    });
+    callback(tickets);
+  }, (err) => {
+    console.error('❌ subscribeUserTickets error:', err);
+  });
+}
+
+/**
  * Get a single ticket with messages
  * @param {string} ticketId - The ticket ID
  * @returns {Promise<Object>} - The ticket with messages

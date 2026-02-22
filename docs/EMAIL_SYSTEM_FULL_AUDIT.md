@@ -42,7 +42,7 @@
 | 10 | Payment successful | sendPaymentSuccessfulEmail | paymentSuccessful | emailTemplates.paymentSuccessfulEmail | ✅ paymentSuccessful | |
 | 11 | Email change – verification (instructional, legacy) | sendEmailChangeVerificationNotification (no-op) | emailChangeVerification | emailTemplates.emailChangeVerificationEmail | ✅ in admin | “Check your inbox for Firebase’s email” – no link. Still used if old flow runs. |
 | 12 | Email change – security alert (old email) | sendEmailChangeNotification (no-op) | emailChangeNotification | emailTemplates.emailChangeNotificationEmail | ✅ in admin | Sent to OLD email. |
-| 13 | Email change – verification WITH link (main + admin resend) | sendEmailChangeVerificationWithLink, requestEmailChangeVerification | emailChangeVerificationWithLink | emailTemplates.emailChangeVerificationWithLinkEmail | ✅ in admin | 100% hardcoded, never uses Firestore. |
+| 13 | Email change – verification WITH link (main + admin resend) | sendEmailChangeVerificationWithLink, requestEmailChangeVerification | emailChangeVerificationWithLink | emailTemplates.emailChangeVerificationWithLinkEmail | ✅ in admin | Uses loadEmailTemplate when Firestore doc exists. |
 | 14 | Subscription cancelled | sendSubscriptionCancelledEmail | subscriptionCancelled | emailTemplates.subscriptionCancelledEmail | ✅ subscriptionCancelled | |
 | 15 | Renewal reminder | sendRenewalReminderEmail | renewalReminder | emailTemplates.renewalReminderEmail | ✅ renewalReminder | |
 | 16 | Weekly research reminder | sendWeeklyResearchReminderEmail | weeklyReminder | emailTemplates.weeklyResearchReminderEmail | ✅ weeklyReminder | |
@@ -75,8 +75,7 @@
 
 1. **Email change**  
    - **Fixed.** All three email-change templates are in the admin list; legacy callables are no-ops.  
-   - **emailChangeVerificationWithLink** (the one with the button/link) is **always** hardcoded in `emailTemplates.js` and has no Firestore ID and no admin entry. So the “change email” verification email you see in Gmail cannot be edited in the admin list.
-
+   - **emailChangeVerificationWithLink** (the one with the button/link) uses Firestore when the doc exists and is in the admin list under "Email Change". Otherwise: falls back to hardcoded in `emailTemplates.js` when no Firestore doc . “change email” 
 2. **Two “verification” emails for email change**  
    - If both the old and new flows run (or old code path still fires), the user can get:  
      (a) the **instructional** email (emailChangeVerification – “check your inbox for Firebase’s email”), and  

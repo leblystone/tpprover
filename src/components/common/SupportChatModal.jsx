@@ -137,16 +137,28 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
     }
   };
 
-  // Format the closed date (date only, no time)
+  // Format the closed date and time (for display after "ticket closed")
   const formatClosedDate = () => {
     if (!closedAt) return '';
-    
     try {
       const date = closedAt.toDate ? closedAt.toDate() : new Date(closedAt);
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
+      });
+    } catch {
+      return '';
+    }
+  };
+  const formatClosedTime = () => {
+    if (!closedAt) return '';
+    try {
+      const date = closedAt.toDate ? closedAt.toDate() : new Date(closedAt);
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
       });
     } catch {
       return '';
@@ -280,19 +292,24 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
             })
           )}
 
-          {/* Closed Ticket - Minimal Page Break Style */}
+          {/* Closed Ticket - Lighter grey divider with date + timestamp after last message */}
           {isClosed && (
             <div className="my-6 space-y-2">
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-                <div className="flex items-center gap-2 px-3 py-1">
-                  <span className="text-xs" style={{ color: theme.textLight }}>
-                    Closed {closedAt ? `· ${formatClosedDate()}` : ''}
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
+                <div className="flex flex-col items-center gap-0.5 px-3 py-1 sm:flex-row sm:items-center sm:gap-2">
+                  <span className="text-xs font-medium" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
+                    ——— ticket closed ———
                   </span>
+                  {closedAt && (
+                    <span className="text-xs" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
+                      {formatClosedDate()} · {formatClosedTime()}
+                    </span>
+                  )}
                 </div>
-                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
               </div>
-              <p className="text-xs text-center" style={{ color: theme.textLight }}>
+              <p className="text-xs text-center" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
                 This chat will be archived in your support requests in 24 hours.
               </p>
             </div>

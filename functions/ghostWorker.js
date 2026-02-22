@@ -540,27 +540,127 @@ exports.ghostWorkerTriage = onDocumentCreated(
   }
 );
 
+/**
+ * Ghost Worker - New message on existing ticket (combined-thread support)
+ * When a user adds a message to an existing open ticket, triage and respond to that message.
+ */
+exports.ghostWorkerOnNewMessage = onDocumentCreated(
+  {
+    document: 'supportTickets/{ticketId}/messages/{messageId}',
+    secrets: ['GEMINI_API_KEY', 'ANTHROPIC_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],
+    timeoutSeconds: 300,
+    memory: '512MiB'
+  },
+  async (event) => {
+    const { ticketId, messageId } = event.params;
+    const messageData = event.data.data();
+    const db = admin.firestore();
+
+    if (messageData.senderType !== 'user') return;
+
+    const ticketRef = db.collection('supportTickets').doc(ticketId);
+    const ticketSnap = await ticketRef.get();
+    if (!ticketSnap.exists) return;
+    const ticketData = { ticketId, ...ticketSnap.data() };
+    if (ticketData.status === 'closed' || ticketData.status === 'resolved') return;
+
+    const messagesSnap = await ticketRef.collection('messages').orderBy('createdAt', 'asc').get();
+    const messageCount = messagesSnap.size;
+    const isFirstMessage = messageCount === 1;
+    const createdMsg = messageData.createdAt?.toDate?.() || (messageData.createdAt && new Date(messageData.createdAt));
+    const ticketCreated = ticketData.createdAt?.toDate?.() || (ticketData.createdAt && new Date(ticketData.createdAt));
+    const withinSeconds = createdMsg && ticketCreated && (createdMsg.getTime() - ticketCreated.getTime()) < 95000;
+    if (isFirstMessage && withinSeconds) return;
+
+    try {
+      const configDoc = await db.collection('_config').doc('ghostWorker').get();
+      if (configDoc.exists && configDoc.data().enabled === false) return;
+    } catch (_) {}
+
+    const latestMessageText = messageData.message || ticketData.subject || 'Support request';
+    logger.info(`🤖 Ghost Worker (new message) for ticket: ${ticketId}, message: ${messageId}`);
+
+    try {
+      const triageStart = Date.now();
+      const routingDecision = await triageTicket(ticketData, db, latestMessageText);
+      const triageDuration = Date.now() - triageStart;
+
+      if (routingDecision.confidence < CONFIG.routing.confidenceThreshold) {
+        await flagForHumanReview(ticketId, routingDecision, db);
+        return;
+      }
+
+      let response;
+      let executionModel;
+      if (routingDecision.route === 'gemini-pro') {
+        response = await processWithGeminiPro(ticketData, routingDecision, db);
+        executionModel = CONFIG.models.geminiPro;
+      } else {
+        response = await processWithClaudeSonnet(ticketData, routingDecision, db);
+        executionModel = CONFIG.models.claudeSonnet;
+      }
+
+      const safetyIssues = checkSafetyRails(response.content);
+      if (safetyIssues.length > 0) {
+        await escalateToHuman(ticketId, `Safety violation: ${safetyIssues.join(', ')}`, routingDecision, db);
+        return;
+      }
+
+      if (CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
+        await postResponseToTicket(ticketId, response, routingDecision, db);
+      } else {
+        await logGhostWorkerDecision(ticketId, routingDecision, response, executionModel, false, db);
+        try {
+          await telegramBot.sendApprovalRequest(
+            { ticketId, ticketNumber: ticketData.ticketNumber, userName: ticketData.userName, userEmail: ticketData.userEmail, type: ticketData.type, subject: ticketData.subject },
+            response,
+            routingDecision
+          );
+        } catch (_) {}
+      }
+
+      await logGhostWorkerDecision(
+        ticketId,
+        routingDecision,
+        response,
+        executionModel,
+        CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode,
+        db
+      );
+      logger.info(`✅ Ghost Worker (new message) completed for ticket ${ticketId}`);
+    } catch (error) {
+      logger.error(`❌ Ghost Worker (new message) error for ticket ${ticketId}:`, error);
+      await logError(ticketId, error, db);
+      await notifyAdminOfError(ticketId, error);
+    }
+  }
+);
+
 // ==================== TRIAGE FUNCTION ====================
 
 /**
  * Triage ticket using Gemini Flash to determine routing
+ * @param {Object} ticketData - Ticket document data
+ * @param {Object} db - Firestore
+ * @param {string} [messageOverride] - If provided (e.g. new message on combined ticket), use this message for triage instead of first message
  */
-async function triageTicket(ticketData, db) {
-  // Get first message from ticket
-  const messagesRef = await db
-    .collection('supportTickets')
-    .doc(ticketData.ticketId)
-    .collection('messages')
-    .orderBy('createdAt', 'asc')
-    .limit(1)
-    .get();
-  
-  const firstMessage = messagesRef.docs[0]?.data()?.message || ticketData.subject;
+async function triageTicket(ticketData, db, messageOverride) {
+  let messageToTriage = messageOverride;
+  if (messageToTriage == null) {
+    const messagesRef = await db
+      .collection('supportTickets')
+      .doc(ticketData.ticketId)
+      .collection('messages')
+      .orderBy('createdAt', 'asc')
+      .limit(1)
+      .get();
+    messageToTriage = messagesRef.docs[0]?.data()?.message || ticketData.subject;
+  }
   
   const ticketContext = `
 Type: ${ticketData.type}
 Subject: ${ticketData.subject}
-Message: ${firstMessage}
+Message: ${messageToTriage}
 User: ${ticketData.userEmail}
 Priority: ${ticketData.priority}
 Metadata: ${JSON.stringify(ticketData.metadata || {}, null, 2)}

@@ -184,6 +184,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
               if (ticketData.userEmail) item.userEmail = ticketData.userEmail;
               if (ticketData.userName) item.userName = ticketData.userName;
               if (ticketData.userDisplayName) item.userName = ticketData.userDisplayName;
+              if (Array.isArray(ticketData.requestNumbers)) item.requestNumbers = ticketData.requestNumbers;
               
               // Get userAccountInfo from ticket if available
               if (ticketData.userAccountInfo) {
@@ -642,7 +643,9 @@ export default function GhostWorkerWorkQueue({ theme }) {
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>#{ticket.ticketNumber}</span>
+                  <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
+                    #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
+                  </span>
                   {ticket.type === 'account_deletion_request' ? (
                     <span style={{
                       fontSize: '10px',
@@ -797,7 +800,9 @@ export default function GhostWorkerWorkQueue({ theme }) {
             >
               <CheckCircle2 size={16} style={{ color: '#10B981', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontWeight: '500', color: t.text, fontSize: '13px' }}>#{ticket.ticketNumber}</span>
+                <span style={{ fontWeight: '500', color: t.text, fontSize: '13px' }}>
+                  #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
+                </span>
                 <span style={{ fontSize: '12px', color: t.textLight, marginLeft: '8px' }}>
                   Closed {formatDate(ticket.markedFixedAt)}
                 </span>
@@ -882,7 +887,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '14px', fontWeight: '600', color: t.text }}>
-                  🎫 #{selectedTicket.ticketNumber}
+                  🎫 #{selectedTicket.ticketNumber}{selectedTicket.requestNumbers?.length > 1 ? ` (${selectedTicket.requestNumbers.join(', ')})` : ''}
                 </span>
                 {selectedTicket.markedFixed && (
                   <span style={{
