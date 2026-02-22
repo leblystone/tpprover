@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Star, Zap, Shield, Users } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
 import { formatCurrency } from '../utils/currencyUtils';
 import { usePageSEO } from '../utils/pageSEO';
+import LandingFooter from '../components/layout/LandingFooter';
 
 export default function Pricing() {
   usePageSEO();
+  const navigate = useNavigate();
   const theme = themes[defaultThemeName];
   const [billingCycle, setBillingCycle] = useState('monthly');
 
@@ -111,21 +114,11 @@ export default function Pricing() {
               <span className="text-xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</span>
             </div>
             <div className="flex space-x-8">
-              <a href="/" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Home
-              </a>
-              <a href="/about" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                About
-              </a>
-              <a href="/features" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Features
-              </a>
-              <a href="/pricing" className="text-sm font-medium" style={{ color: theme.primary }}>
-                Pricing
-              </a>
-              <a href="/contact" className="text-sm font-medium hover:opacity-75 transition-opacity" style={{ color: theme.text }}>
-                Contact
-              </a>
+              <button type="button" onClick={() => navigate('/')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Home</button>
+              <button type="button" onClick={() => navigate('/about')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>About</button>
+              <button type="button" onClick={() => navigate('/features')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Features</button>
+              <button type="button" onClick={() => navigate('/pricing')} className="text-sm font-medium bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.primary }}>Pricing</button>
+              <button type="button" onClick={() => navigate('/contact')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Contact</button>
             </div>
           </div>
         </div>
@@ -356,36 +349,7 @@ export default function Pricing() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <img src={logo} alt="The Pep Planner" className="h-6 w-6 rounded-full mr-2" />
-              <span className="text-sm font-medium" style={{ color: theme.textLight }}>
-                © 2026 Belix Company LLC. All rights reserved.
-              </span>
-              <span className="text-sm font-medium block mt-1" style={{ color: theme.textLight }}>
-                The Pep Planner is a trade name of Belix Company LLC.
-              </span>
-            </div>
-            <div className="flex space-x-6">
-              <a href="/privacy" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Privacy Policy
-              </a>
-              <a href="/terms" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Terms of Service
-              </a>
-              <a href="/cancellation-policy" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Cancellation Policy
-              </a>
-              <a href="/contact" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
-                Contact
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
