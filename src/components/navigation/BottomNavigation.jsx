@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, Plus, History, NotebookPen, ClipboardList, Box } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, NotebookPen, ClipboardList, Box } from 'lucide-react';
 import BetaModal from '../common/BetaModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
@@ -29,7 +29,6 @@ const triggerHaptic = (style = 'light') => {
  * Features:
  * - Glassmorphic design
  * - Haptic feedback
- * - Long-press quick actions
  * - Swipe gestures
  * - Search functionality
  * - iOS/Android native feel
@@ -43,12 +42,10 @@ export default function BottomNavigation({ theme }) {
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [rippleEffect, setRippleEffect] = useState(null);
-  const [longPressItem, setLongPressItem] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchClosing, setSearchClosing] = useState(false);
   const [showBetaModal, setShowBetaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const longPressTimer = useRef(null);
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
 
@@ -69,14 +66,6 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-beta', label: 'Beta Program', icon: NotebookPen },
       { action: 'search', label: 'Search', icon: Search }
     ]
-  };
-
-  // Long-press quick actions
-  const quickActions = {
-    home: { action: () => navigate('/app/protocols?new=true'), label: 'Quick Add Protocol', icon: Plus },
-    research: { action: () => navigate('/app/protocols'), label: 'Recent Protocol', icon: History },
-    inventory: { action: () => navigate('/app/stockpile?new=true'), label: 'Quick Add to Stockpile', icon: Plus },
-    calendar: { action: () => navigate('/app/calendar'), label: 'Jump to Today', icon: Calendar }
   };
 
   // Bottom nav items
@@ -121,36 +110,6 @@ export default function BottomNavigation({ theme }) {
       triggerHaptic('medium');
       // Toggle menu
       setExpandedMenu(expandedMenu === item.id ? null : item.id);
-    }
-  };
-
-  // Long-press handlers
-  const handleTouchStart = (item, event) => {
-    if (quickActions[item.id]) {
-      touchStartY.current = event.touches[0].clientY;
-      longPressTimer.current = setTimeout(() => {
-        triggerHaptic('medium');
-        setLongPressItem(item.id);
-      }, 500); // 500ms long-press
-    }
-  };
-
-  const handleTouchEnd = (item) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-    }
-    if (longPressItem === item.id) {
-      // Execute quick action
-      triggerHaptic('success');
-      quickActions[item.id].action();
-      setLongPressItem(null);
-    }
-  };
-
-  const handleTouchMove = () => {
-    // Cancel long-press if finger moves
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
     }
   };
 
@@ -541,14 +500,10 @@ export default function BottomNavigation({ theme }) {
                 <button
                   key={item.id}
                   onClick={(e) => handleNavClick(item, e)}
-                  onTouchStart={(e) => handleTouchStart(item, e)}
-                  onTouchEnd={() => handleTouchEnd(item)}
-                  onTouchMove={handleTouchMove}
                   className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
                   style={{
                     color: active || isExpanded ? theme.primary : (theme.isDark ? '#ffffff' : theme.textLight),
-                    WebkitTapHighlightColor: 'transparent',
-                    transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
+                    WebkitTapHighlightColor: 'transparent'
                   }}
                 >
                   {/* Ripple effect */}
@@ -589,21 +544,6 @@ export default function BottomNavigation({ theme }) {
                       />
                     )}
 
-                    {/* Long-press tooltip */}
-                    {longPressItem === item.id && quickActions[item.id] && (
-                      <div
-                        className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap z-10"
-                        style={{
-                          backgroundColor: theme.primary,
-                          color: theme.textOnPrimary,
-                          boxShadow: `0 4px 12px ${theme.primary}40`,
-                          animation: 'popIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
-                        }}
-                      >
-                        {quickActions[item.id].label}
-                      </div>
-                    )}
-
                     {/* Logo */}
                     <img 
                       src={logo} 
@@ -640,14 +580,10 @@ export default function BottomNavigation({ theme }) {
               <button
                 key={item.id}
                 onClick={(e) => handleNavClick(item, e)}
-                onTouchStart={(e) => handleTouchStart(item, e)}
-                onTouchEnd={() => handleTouchEnd(item)}
-                onTouchMove={handleTouchMove}
                 className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 touch-manipulation overflow-hidden"
                 style={{
                   color: active || isExpanded ? theme.primary : (theme.isDark ? '#ffffff' : theme.textLight),
-                  WebkitTapHighlightColor: 'transparent',
-                  transform: longPressItem === item.id ? 'scale(0.92)' : 'scale(1)'
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {/* Ripple effect */}
@@ -686,21 +622,6 @@ export default function BottomNavigation({ theme }) {
                         animation: 'slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1)'
                       }}
                     />
-                  )}
-
-                  {/* Long-press tooltip */}
-                  {longPressItem === item.id && quickActions[item.id] && (
-                    <div
-                      className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap"
-                      style={{
-                        backgroundColor: theme.primary,
-                        color: theme.textOnPrimary,
-                        boxShadow: `0 4px 12px ${theme.primary}40`,
-                        animation: 'popIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
-                      }}
-                    >
-                      {quickActions[item.id].label}
-                    </div>
                   )}
 
                   <Icon
