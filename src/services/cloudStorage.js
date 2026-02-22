@@ -4,6 +4,7 @@ import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from 
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
 import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
+import { reportSyncError } from '../utils/syncErrorReporting';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -801,6 +802,7 @@ export async function saveAppData(userId, appData, options = {}) {
     return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
+    reportSyncError('sync_failed', { skipMerge: !!options.skipMerge });
     // Fallback to simple save - only include fields the caller provided
     let deletionTracking = {};
     try {

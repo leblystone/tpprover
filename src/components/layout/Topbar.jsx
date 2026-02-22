@@ -4,7 +4,8 @@ import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
-import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
+import SyncStatusIndicator from '../common/SyncStatusIndicator';
+import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
@@ -39,15 +40,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const [hasUnreadAdminMessage, setHasUnreadAdminMessage] = useState(false);
   const [showAdminMessage, setShowAdminMessage] = useState(false);
 
-  // Load user's open tickets
+  // Subscribe to user's tickets in real time so when admin marks as closed, user sees it immediately (and 24h disappearance applies)
   useEffect(() => {
     if (!user?.email) {
       return;
     }
 
-    const loadOpenTickets = async () => {
+    const applyTickets = (tickets) => {
       try {
-        const tickets = await getUserTickets(user.email);
         
         // Helper function to check if closed ticket should be shown
         const shouldShowClosedTicket = (ticket) => {
@@ -238,14 +238,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           setHasUnreadResponse(false);
         }
       } catch (error) {
-        console.error('❌ Failed to load open tickets:', error);
+        console.error('❌ Failed to process tickets:', error);
       }
     };
 
-    loadOpenTickets();
-    // Reload every 30 seconds to check for new responses
-    const interval = setInterval(loadOpenTickets, 30000);
-    return () => clearInterval(interval);
+    const unsubscribe = subscribeUserTickets(user.email, applyTickets);
+    return () => unsubscribe();
   }, [user?.email]);
 
   // Load user's admin messages (optimized to reduce main thread blocking)
@@ -574,6 +572,10 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} />
             </button>
+          )}
+          {/* Sync status: Saved / Syncing / Offline / Error (retry) - only when logged in */}
+          {user && (
+            <SyncStatusIndicator theme={theme} />
           )}
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (

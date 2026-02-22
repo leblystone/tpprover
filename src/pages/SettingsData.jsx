@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, RotateCcw, Database, AlertCircle, Trash2, Download, FileText, Clock, Camera, Check, Shield, Cloud } from 'lucide-react'
 import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export'
@@ -47,6 +47,7 @@ export default function SettingsData() {
   const [lastSyncTime, setLastSyncTime] = useState(null)
   const [selectedRestoreId, setSelectedRestoreId] = useState(null) // 'current' | snapshot doc id
   const [creatingBackup, setCreatingBackup] = useState(false)
+  const restoreFileInputRef = useRef(null)
 
   // Load visit backups and last sync time on mount
   const loadBackups = useCallback(async () => {
@@ -183,6 +184,29 @@ export default function SettingsData() {
       console.error('PDF export error:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: 'PDF export failed. Please try again.', type: 'error' } 
+      }));
+    }
+  };
+
+  /** Download full data as JSON backup. Use "Restore from file" to restore this later. */
+  const downloadMyDataJSON = () => {
+    try {
+      const data = getAllData();
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pep-planner-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Your data has been downloaded. Keep this file as a backup.', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('JSON export error:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Download failed. Please try again.', type: 'error' }
       }));
     }
   };
@@ -800,7 +824,41 @@ export default function SettingsData() {
               </button>
             </div>
 
-            {/* Export buttons — compact row */}
+            {/* Download my data (JSON) — full backup you can restore from file */}
+            <p className="text-xs opacity-80 mb-2" style={{ color: theme.text }}>
+              If something looks wrong, download your data as a backup. You can restore it later with &quot;Restore from file&quot;.
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button 
+                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
+                style={{ borderColor: theme.primary, color: theme.primary }}
+                onClick={downloadMyDataJSON}
+              >
+                <Download size={12} />
+                Download my data
+              </button>
+              <button 
+                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
+                style={{ borderColor: theme.border, color: theme.text }}
+                onClick={() => restoreFileInputRef.current?.click()}
+              >
+                <RotateCcw size={12} />
+                Restore from file
+              </button>
+              <input
+                ref={restoreFileInputRef}
+                type="file"
+                accept=".json,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) importBackup(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+
+            {/* Export CSV / PDF */}
             <div className="grid grid-cols-2 gap-2">
               <button 
                 className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 

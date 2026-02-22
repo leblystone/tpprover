@@ -44,6 +44,7 @@ import { runDataFixups } from '../utils/dataFixups';
  * Violating this pattern causes data loss, sync bugs, and cross-device conflicts.
  */
 import { registerAppDataGetter } from '../utils/safeReload';
+import { reportSyncError } from '../utils/syncErrorReporting';
 import { 
     migrateCalendarNotesToIdBased, 
     replaceCalendarNotesForDate, 
@@ -1903,6 +1904,7 @@ export function AppProvider({ children }) {
                 }).catch(error => {
                     // Already logged in the queue, just log final failure
                     console.error('❌ Auto-sync failed after retry:', error.message);
+                    reportSyncError('sync_failed', { source: 'auto-sync' });
                     // Set dirty flag so next app load retries the sync
                     try { localStorage.setItem('tpprover_sync_pending', Date.now().toString()); } catch (e) {}
                     // Notify user so they know data hasn't reached the cloud
@@ -1937,6 +1939,50 @@ export function AppProvider({ children }) {
             }
         };
     }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, wishlistSyncTrigger, firebaseUser, hasPassword]); // wishlistSyncTrigger: bump when wishlist (localStorage) changes
+
+    // Retry sync when user taps "Tap to retry" in SyncStatusIndicator
+    useEffect(() => {
+        const handleRetrySync = () => {
+            if (isLoggingOutRef.current || !firebaseUser?.uid) return;
+            const userId = firebaseUser.uid;
+            const userData = {
+                protocols: safeParseLocalStorage('tpprover_protocols', []),
+                reconItems: safeParseLocalStorage('tpprover_recon_items', []),
+                reconHistory: safeParseLocalStorage('tpprover_recon_history', []),
+                supplements: safeParseLocalStorage('tpprover_supplements', []),
+                orders: safeParseLocalStorage('tpprover_orders', []),
+                metrics: safeParseLocalStorage('tpprover_metrics', []),
+                vendors: safeParseLocalStorage('tpprover_vendors', []),
+                calendarNotes: safeParseLocalStorage('tpprover_calendar_notes', {}),
+                stockpile: safeParseLocalStorage('tpprover_stockpile', []),
+                scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
+                taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
+                calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                deletionTracking: getDeletionTracking(),
+                protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
+                wishlist: safeParseLocalStorage('tpprover_wishlist', []),
+                userNotes: safeParseLocalStorage('tpprover_user_notes', []),
+                userGoals: safeParseLocalStorage('tpprover_user_goals', []),
+                waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
+                injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
+                injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
+                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', [])
+            };
+            addToSyncQueue(
+                async () => {
+                    const result = await saveAppData(userId, userData);
+                    if (!result) throw new Error('saveAppData returned false');
+                    return result;
+                },
+                { type: 'retry-sync', userId }
+            ).then(() => {
+                try { localStorage.removeItem('tpprover_sync_pending'); } catch (e) {}
+                try { window.dispatchEvent(new Event('tpp:sync-complete')); } catch (e) {}
+            }).catch(() => {});
+        };
+        window.addEventListener('tpp:retry-sync', handleRetrySync);
+        return () => window.removeEventListener('tpp:retry-sync', handleRetrySync);
+    }, [firebaseUser?.uid]);
 
     const logout = async () => {
         try {
@@ -3563,11 +3609,13 @@ export function AppProvider({ children }) {
                         }, 500);
         } catch (error) {
                         console.error('❌ Error applying remote app data:', error);
+                        reportSyncError('merge_error', { source: 'listener-apply' });
                         isApplyingRemoteUpdateRef.current = false;
                     }
                 }, 1000); // 1 second debounce
             } catch (error) {
                 console.error('❌ Error in app data sync listener:', error);
+                reportSyncError('merge_error', { source: 'listener' });
             }
         });
         console.log('🔥 LISTENER SETUP: subscribeToAppData returned, listener is now active');
