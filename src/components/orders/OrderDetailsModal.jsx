@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle, PackageOpen, ListChecks, TruckElectric, ImageUp, RefreshCw, MapPin } from 'lucide-react';
@@ -19,6 +19,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const [originalStatus, setOriginalStatus] = useState(null);
   const [trackingInfo, setTrackingInfo] = useState(null);
   const [isLoadingTracking, setIsLoadingTracking] = useState(false);
+  const lastSyncedTrackingRef = useRef(null);
 
   const primaryColor = theme?.primary || '#3b82f6';
   const toSubtleBackground = (hex) => {
@@ -129,6 +130,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setForm(initialData);
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
+      lastSyncedTrackingRef.current = null;
     }
   }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, defaultCategory, activeTab]);
 
@@ -169,6 +171,44 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
     return () => clearTimeout(timeoutId);
   }, [form?.tracking]);
+
+  // Sync form status toggles from tracking data (only advances, never downgrades)
+  useEffect(() => {
+    if (!trackingInfo || !order?.id) return;
+
+    const statusPriority = (s) => {
+      const low = (s || '').toLowerCase();
+      if (low.includes('deliver')) return 2;
+      if (low.includes('ship') || low.includes('transit')) return 1;
+      return 0;
+    };
+
+    const mapToFormStatus = () => {
+      const ts = (trackingInfo.status || '').toLowerCase();
+      if (ts.includes('deliver')) return 'Delivered';
+      if (ts.includes('ship') || ts.includes('transit')) return 'Shipped';
+      return 'Order Placed';
+    };
+
+    const newStatus = mapToFormStatus();
+    const syncKey = `${order.id}-${trackingInfo.status}-${trackingInfo.lastUpdate || ''}`;
+    if (lastSyncedTrackingRef.current === syncKey) return;
+
+    setForm(prev => {
+      if (statusPriority(newStatus) <= statusPriority(prev.status)) return prev;
+      lastSyncedTrackingRef.current = syncKey;
+      const now = getLocalDateString();
+      return {
+        ...prev,
+        status: newStatus,
+        statusSource: 'tracking',
+        statusManuallySetAt: null,
+        updatedAt: new Date().toISOString(),
+        ...(newStatus === 'Shipped' && !prev.shipDate && { shipDate: now }),
+        ...(newStatus === 'Delivered' && !prev.deliveryDate && { deliveryDate: now }),
+      };
+    });
+  }, [trackingInfo, order?.id]);
   
   const steps = [
     { status: 'received', icon: <Clock size={20} color={theme?.primary} />, label: 'Order Placed' },
@@ -652,40 +692,106 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
-            {/* Tracking Status Display */}
+            {/* Tracking Status Card — auto-track display */}
             {form.tracking && (
-              <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold" style={{ color: theme.text }}>Tracking Status</span>
-                  {isLoadingTracking && <RefreshCw size={14} className="animate-spin" style={{ color: theme.primary }} />}
+              <div
+                className="rounded-xl overflow-hidden border"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                }}
+              >
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : `${primaryColor}18` }}>
+                      <Truck size={18} style={{ color: primaryColor }} />
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: theme.text }}>Live tracking</span>
+                  </div>
+                  {isLoadingTracking && <RefreshCw size={16} className="animate-spin" style={{ color: primaryColor }} />}
                 </div>
-                {trackingInfo ? (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium" style={{ color: theme.text }}>
-                      {trackingInfo.status}
-                    </div>
-                    {trackingInfo.statusDetail && (
-                      <div className="text-xs" style={{ color: theme.textLight }}>
-                        {trackingInfo.statusDetail}
+                <div className="p-4">
+                  {trackingInfo ? (
+                    <div className="space-y-4">
+                      {/* Progress: Order Placed → In Transit → Delivered */}
+                      <div className="relative">
+                        <div className="flex justify-between items-center mb-1.5">
+                          {['Order Placed', 'In Transit', 'Delivered'].map((label, idx) => {
+                            const progress = trackingInfo.progress ?? 0;
+                            const active = idx <= progress;
+                            return (
+                              <span
+                                key={label}
+                                className="text-[10px] font-medium uppercase tracking-wide"
+                                style={{ color: active ? (theme.isDark ? 'rgba(255,255,255,0.9)' : primaryColor) : theme.textLight }}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }}>
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${((trackingInfo.progress ?? 0) / 2) * 100}%`,
+                              backgroundColor: primaryColor,
+                            }}
+                          />
+                        </div>
                       </div>
-                    )}
-                    {trackingInfo.location?.city && trackingInfo.location?.state && (
-                      <div className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
-                        <MapPin size={12} />
-                        {trackingInfo.location.city}, {trackingInfo.location.state}
+                      {/* Status pill */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold"
+                          style={{
+                            backgroundColor: trackingInfo.isDelivered
+                              ? (theme.isDark ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.15)')
+                              : trackingInfo.isInTransit
+                                ? (theme.isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)')
+                                : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'),
+                            color: trackingInfo.isDelivered ? '#22c55e' : trackingInfo.isInTransit ? '#d97706' : theme.text,
+                          }}
+                        >
+                          {trackingInfo.status}
+                        </span>
+                        {trackingInfo.carrier && (
+                          <span className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
+                            {trackingInfo.carrier}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div className="text-xs mt-2 pt-2 border-t" style={{ borderColor: theme.border, color: theme.textLight }}>
-                      Status automatically synced from tracking
+                      {trackingInfo.statusDetail && (
+                        <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                          {trackingInfo.statusDetail}
+                        </p>
+                      )}
+                      {trackingInfo.location?.city && trackingInfo.location?.state && (
+                        <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
+                          <MapPin size={14} style={{ color: primaryColor, flexShrink: 0 }} />
+                          <span>{[trackingInfo.location.city, trackingInfo.location.state, trackingInfo.location.country].filter(Boolean).join(', ')}</span>
+                        </div>
+                      )}
+                      <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.8 }}>
+                        Synced from carrier
+                      </div>
                     </div>
-                  </div>
-                ) : isLoadingTracking ? (
-                  <div className="text-xs" style={{ color: theme.textLight }}>Loading tracking information...</div>
-                ) : (
-                  <div className="text-xs" style={{ color: theme.textLight }}>
-                    No tracking data available. Status will update automatically when tracking information is available.
-                  </div>
-                )}
+                  ) : isLoadingTracking ? (
+                    <div className="flex items-center gap-3 py-1">
+                      <RefreshCw size={18} className="animate-spin flex-shrink-0" style={{ color: primaryColor }} />
+                      <span className="text-sm" style={{ color: theme.textLight }}>Checking carrier…</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-2 text-center">
+                      <div className="p-2 rounded-full" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
+                        <Truck size={24} style={{ color: theme.textLight }} />
+                      </div>
+                      <p className="text-sm" style={{ color: theme.textLight }}>
+                        No tracking data yet. Status will update when the carrier reports.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">

@@ -121,7 +121,12 @@ function parseTrackingData(shippoData) {
 
     const status = shippoData.tracking_status?.status || 'UNKNOWN';
     const statusDetail = shippoData.tracking_status?.status_details || '';
-    const location = shippoData.tracking_status?.location || {};
+    const scanLocation = shippoData.tracking_status?.location || {};
+    // For DELIVERED, show delivery address (city/state); otherwise show last scan location
+    const addressTo = shippoData.address_to || {};
+    const location = status === 'DELIVERED' && (addressTo.city || addressTo.state)
+        ? { city: addressTo.city, state: addressTo.state, zip: addressTo.zip, country: addressTo.country }
+        : scanLocation;
     
     // Map Shippo statuses to our internal statuses
     const statusMapping = {
@@ -201,12 +206,7 @@ export function getMockTrackingInfo(trackingNumber) {
             'Package delivered to recipient'
         ][statusIndex],
         progress: statusIndex,
-        location: {
-            city: 'Distribution Center',
-            state: 'CA',
-            zip: '90210',
-            country: 'US'
-        },
+        location: null,
         estimatedDelivery: new Date(Date.now() + (3 - statusIndex) * 86400000).toISOString(),
         lastUpdate: new Date().toISOString(),
         trackingHistory: [
