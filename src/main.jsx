@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { router } from './routes'
@@ -59,7 +59,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <FirebaseProvider>
         <FounderOfferProvider>
           <AppProvider>
-            <RouterProvider router={router} />
+            <Suspense fallback={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#F5F5F0' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#6B7D7A' }}>Loading...</div>
+                </div>
+              </div>
+            }>
+              <RouterProvider router={router} />
+            </Suspense>
           </AppProvider>
         </FounderOfferProvider>
       </FirebaseProvider>
