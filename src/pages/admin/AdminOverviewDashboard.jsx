@@ -12,8 +12,10 @@ import {
   ChevronRight,
   CheckCircle,
   Trash2,
+  Send,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
+import { createAdminMessage } from '../../services/firebase';
 import GhostWorkerWorkQueue from '../../components/admin/GhostWorkerWorkQueue';
 
 const STATUS_FILTERS = [
@@ -34,10 +36,14 @@ export default function AdminOverviewDashboard() {
     handleUpdateFeedback,
     handleDeleteFeedback,
     handleUpdateTicketStatus,
+    handleRespondToFeedback,
   } = useAdmin();
   const [statusFilter, setStatusFilter] = useState('new');
   const [expandedId, setExpandedId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [replyingToId, setReplyingToId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   const handleRefresh = async () => {
     await Promise.all([loadFeedback(), loadTickets()]);
@@ -46,24 +52,38 @@ export default function AdminOverviewDashboard() {
   // Bug tickets only (from support modal)
   const bugTickets = tickets.filter((t) => t.type === 'bug');
   // Combined list: feedback items + bug tickets for display
-  const feedbackWithType = (feedback || []).map((f) => ({
-    ...f,
-    _type: 'feedback',
-    _id: `feedback-${f.id}`,
-    _date: f.createdAt?.toDate?.() || new Date(f.createdAt || 0),
-    _status: f.status || 'new',
-    _email: f.userEmail || 'Unknown',
-    _preview: f.message || f.feedback || 'No message',
-  }));
-  const bugsWithType = (bugTickets || []).map((t) => ({
-    ...t,
-    _type: 'bug',
-    _id: `ticket-${t.id}`,
-    _date: t.createdAt?.toDate?.() || new Date(t.createdAt || 0),
-    _status: t.status === 'resolved' || t.status === 'closed' ? 'resolved' : t.status === 'in-progress' ? 'reviewed' : 'new',
-    _email: t.userEmail || 'Unknown',
-    _preview: t.subject || t.messages?.[0]?.message || 'No subject',
-  }));
+  const toDate = (v) => {
+    if (!v) return null;
+    if (v?.toDate?.()) return v.toDate();
+    if (typeof v?.toMillis === 'function') return new Date(v.toMillis());
+    if (typeof v === 'number' && v > 0) return new Date(v);
+    if (typeof v?.seconds === 'number') return new Date(v.seconds * 1000);
+    return null;
+  };
+  const feedbackWithType = (feedback || []).map((f) => {
+    const d = toDate(f.submittedAt) || toDate(f.createdAt) || toDate(f.timestamp);
+    return {
+      ...f,
+      _type: 'feedback',
+      _id: `feedback-${f.id}`,
+      _date: d || new Date(),
+      _status: f.status || 'new',
+      _email: f.userEmail || 'Unknown',
+      _preview: f.message || f.feedback || 'No message',
+    };
+  });
+  const bugsWithType = (bugTickets || []).map((t) => {
+    const d = toDate(t.createdAt);
+    return {
+      ...t,
+      _type: 'bug',
+      _id: `ticket-${t.id}`,
+      _date: d || new Date(),
+      _status: t.status === 'resolved' || t.status === 'closed' ? 'resolved' : t.status === 'in-progress' ? 'reviewed' : 'new',
+      _email: t.userEmail || 'Unknown',
+      _preview: t.subject || t.messages?.[0]?.message || 'No subject',
+    };
+  });
   const combined = [...feedbackWithType, ...bugsWithType].sort((a, b) => b._date - a._date);
   const filtered =
     statusFilter === 'all'
@@ -106,6 +126,28 @@ export default function AdminOverviewDashboard() {
     setUpdatingId(null);
     setExpandedId(null);
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Feedback deleted', type: 'success' } }));
+  };
+
+  const handleReply = async (item) => {
+    if (!replyText.trim()) return;
+    setSendingReply(true);
+    try {
+      if (item._type === 'feedback') {
+        await handleRespondToFeedback(item, replyText.trim());
+      } else {
+        await createAdminMessage(item.userEmail || item._email, replyText.trim());
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Message sent! User will see it as "From the Team".', type: 'success' } }));
+      }
+      setReplyingToId(null);
+      setReplyText('');
+      await loadFeedback();
+      if (item._type === 'bug') await loadTickets();
+    } catch (err) {
+      console.error('Reply failed:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err.message || 'Failed to send message', type: 'error' } }));
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   return (
@@ -252,7 +294,70 @@ export default function AdminOverviewDashboard() {
                             ? item.message || item.feedback || 'No message'
                             : [item.subject, item.messages?.[0]?.message].filter(Boolean).join('\n\n') || 'No content'}
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-3">
+                        {/* Reply form (one-way "From the Team" message) */}
+                        {replyingToId === item._id ? (
+                          <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                            <p className="text-xs mb-2" style={{ color: theme.textLight }}>
+                              Reply will appear as &quot;From the Team&quot; on the user&apos;s dashboard.
+                            </p>
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type your message..."
+                              rows={3}
+                              className="w-full rounded-lg border p-2 text-sm resize-y focus:outline-none focus:ring-2"
+                              style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.cardBackground || theme.background,
+                                color: theme.text,
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReply(item);
+                                }}
+                                disabled={sendingReply || !replyText.trim()}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                                style={{ backgroundColor: theme.primary, color: '#fff' }}
+                              >
+                                {sendingReply ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+                                {sendingReply ? 'Sending…' : 'Send'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReplyingToId(null);
+                                  setReplyText('');
+                                }}
+                                disabled={sendingReply}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
+                                style={{ borderColor: theme.border, color: theme.text }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2 mt-3 items-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReplyingToId(replyingToId === item._id ? null : item._id);
+                              setReplyText('');
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border-2"
+                            style={{
+                              borderColor: theme.primary,
+                              backgroundColor: theme.primary + '18',
+                              color: theme.primary,
+                            }}
+                          >
+                            <Send size={14} />
+                            Reply (From the Team)
+                          </button>
                           {item._status === 'new' && (
                             <button
                               onClick={(e) => {

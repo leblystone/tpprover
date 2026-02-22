@@ -79,7 +79,7 @@ const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'Co
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
-// Contact page removed - using LandingContactModal popup instead
+const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
 const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
 const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
@@ -235,6 +235,11 @@ export const router = createBrowserRouter([
   {
     path: '/faq',
     element: <FAQ />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/contact',
+    element: <Contact />,
     errorElement: <NotFound />,
   },
   {
