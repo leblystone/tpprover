@@ -1346,7 +1346,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
               gap: '8px'
             }}>
               <span
-                onClick={() => window.open(`/admin/overview/support?ticketId=${selectedTicket.ticketId}`, '_blank')}
+                onClick={() => window.open(`/admin/overview/dashboard?ticketId=${selectedTicket.ticketId}`, '_blank')}
                 style={{
                   fontSize: '11px',
                   color: t.textLight,
@@ -1454,7 +1454,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
               </p>
             </div>
             <a
-              href={`/admin/overview/support?ticketId=${justClosedTicket.ticketId}`}
+              href={`/admin/overview/dashboard?ticketId=${justClosedTicket.ticketId}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

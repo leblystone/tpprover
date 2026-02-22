@@ -81,9 +81,9 @@ export const PrivacyPolicyContent = () => (
                 <ul className="list-disc list-inside ml-4">
                     <li>Industry-standard encryption for data transmission and storage</li>
                     <li>Secure authentication using Firebase Auth</li>
-                    <li>Regular security audits and updates</li>
+                    <li>We periodically review our security practices</li>
                     <li>Access controls and user authentication</li>
-                    <li>Secure payment processing through Stripe</li>
+                    <li>Secure payment processing through Stripe and applicable platform providers (Apple, Google Play, Squarespace)</li>
                 </ul>
             </div>
         </div>
@@ -134,53 +134,22 @@ export const PrivacyPolicyContent = () => (
                 
                 <p><strong>Data Minimization:</strong> We collect and retain only the minimum research data necessary to provide our services. We do not collect unnecessary information or retain data longer than required.</p>
                 
-                <p><strong>Access Controls:</strong> Access to your research data is strictly limited to authorized personnel who require such access for technical support or service maintenance. All access is logged and monitored.</p>
+                <p><strong>Access Controls:</strong> Access to your research data is strictly limited to authorized personnel who require such access for technical support or service maintenance.</p>
                 
                 <p><strong>Legal Resistance:</strong> We will resist any requests for your research data that we believe are not legally valid or properly authorized. We will challenge overly broad or inappropriate requests to the fullest extent permitted by law.</p>
             </div>
         </div>
 
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-            <h3 className="font-semibold text-amber-800">8. Data Retention - Medical/Research Compliance</h3>
+            <h3 className="font-semibold text-amber-800">8. Data Retention</h3>
             <div className="text-amber-700 space-y-3">
-                <p><strong>Legal Agreement Data (10 Years):</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>Terms of Service and Privacy Policy acceptances</li>
-                    <li>User consent records and agreement timestamps</li>
-                    <li>Legal compliance documentation</li>
-                    <li><em>Rationale: Medical/research liability protection, regulatory compliance</em></li>
-                </ul>
+                <p><strong>Agreement Records:</strong> We retain records of your Terms of Service and Privacy Policy acceptances (and the versions you agreed to) for as long as we operate the service.</p>
                 
-                <p><strong>Agreement Versions (Indefinite):</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>Historical versions of terms and policies</li>
-                    <li>Version control and audit trail records</li>
-                    <li><em>Rationale: FDA/research regulatory compliance, legal protection</em></li>
-                </ul>
+                <p><strong>Account and Research Data:</strong> We retain your account metadata and research data for the life of your account. When you request account deletion, your research data and account content are deleted. Your email address may be retained in our deletion request records so we can process and document your request.</p>
                 
-                <p><strong>User Metadata (5 Years):</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>Account creation dates and user preferences</li>
-                    <li>Login history and security logs</li>
-                    <li>Technical support interactions</li>
-                </ul>
+                <p><strong>Technical Data:</strong> We retain technical data (such as error logs and usage data) for as long as needed for troubleshooting and service improvement.</p>
                 
-                <p><strong>Technical Data (3 Years):</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>User agent strings and device information</li>
-                    <li>Error logs and performance monitoring data</li>
-                    <li>Usage analytics and feature interaction data</li>
-                </ul>
-                
-                <p><strong>User Deletion Rights:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>You may request account deletion at any time</li>
-                    <li>Personal identifiers will be anonymized within 30 days</li>
-                    <li>Legal agreement records may be retained with anonymized identifiers</li>
-                    <li><em>Note: Some data retention is required by law for medical/research compliance</em></li>
-                </ul>
-                
-                <p><strong>Automatic Data Cleanup:</strong> We implement automated systems to delete expired technical data according to these retention schedules. Data subject to longer retention periods for legal compliance will be clearly identified and protected.</p>
+                <p><strong>Your Deletion Rights:</strong> You may request account deletion at any time. We will process deletion requests and remove your research data and account. As noted above, we may retain your email and related details in deletion request records.</p>
             </div>
         </div>
 
@@ -196,7 +165,7 @@ export const PrivacyPolicyContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">11. Tracking Technologies</h3>
-            <p>We use technologies, such as the Firebase SDK, to collect the Usage Information detailed in Section 1. These tools help us understand how users interact with our Service, diagnose problems, and improve our application. We use Google reCAPTCHA on our contact and sign-in forms for fraud prevention; Google may collect IP and usage data in connection with reCAPTCHA—Google's privacy policy applies to that processing. You can typically control the use of certain tracking technologies (including optional push notifications) through your device or app settings.</p>
+            <p>We use technologies, such as the Firebase SDK, to collect the Usage Information detailed in Section 1. These tools help us understand how users interact with our Service, diagnose problems, and improve our application. We use Google reCAPTCHA on our contact and sign-in forms for fraud prevention; Google may collect IP and usage data in connection with reCAPTCHA—Google's privacy policy applies to that processing. You can typically control the use of certain tracking technologies through your device or app settings.</p>
         </div>
 
         <div>

@@ -1907,16 +1907,6 @@ export function AppProvider({ children }) {
                     reportSyncError('sync_failed', { source: 'auto-sync' });
                     // Set dirty flag so next app load retries the sync
                     try { localStorage.setItem('tpprover_sync_pending', Date.now().toString()); } catch (e) {}
-                    // Notify user so they know data hasn't reached the cloud
-                    try {
-                        window.dispatchEvent(new CustomEvent('tpp:toast', {
-                            detail: {
-                                message: 'Couldn\'t reach your other devices right now. Your data is saved here and will update when possible.',
-                                type: 'warning',
-                                duration: 5000
-                            }
-                        }));
-                    } catch (e) { /* ignore toast dispatch errors */ }
                 });
                 
                 // Also sync to Firebase for backup (if user has password)

@@ -4,9 +4,10 @@ import UpcomingOrderCard from '../UpcomingOrderCard';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = false, onUpgrade }) => {
-  // If no order, show compact version
-  if (!order) {
+const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadOnly = false, onUpgrade }) => {
+  const hasOrders = (orders && orders.length > 0) || order;
+  // If no orders, show compact version
+  if (!hasOrders) {
     return (
       <div className="relative h-full flex flex-col">
         <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
@@ -86,11 +87,12 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
         </div>
       </div>
       
-      {/* Order Content */}
+      {/* Order Content - pass orders array for pagination when available */}
       <div className="flex-1 rounded-b-xl overflow-hidden">
         <UpcomingOrderCard 
           theme={theme}
-          order={order}
+          order={orders?.length ? undefined : order}
+          orders={orders?.length ? orders : undefined}
           onNewOrder={onNewOrder}
           hideHeader={true}
         />

@@ -28,7 +28,7 @@ export default function Privacy() {
     {
       icon: <Database className="w-8 h-8" />,
       title: "Data Retention & Control",
-      description: "Legal agreements retained 10 years for research/medical compliance. You can request account deletion anytime—personal identifiers anonymized within 30 days while maintaining required legal records."
+      description: "We retain agreement records for as long as we operate the service. You can request account deletion anytime; we will delete your research data and account, and we may retain your email in deletion request records."
     },
     {
       icon: <UserCheck className="w-8 h-8" />,

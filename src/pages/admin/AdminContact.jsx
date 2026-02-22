@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, doc, updateDoc, where } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import { collection, query, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { Mail, Clock, Check, X, ExternalLink, Filter, Search, RefreshCw } from 'lucide-react';
+import { createSupportTicket } from '../../services/firebase';
+import { Mail, Clock, Check, X, ExternalLink, Search, RefreshCw, Ticket } from 'lucide-react';
 import { themes } from '../../theme/themes';
 
 const theme = themes.sage;
@@ -12,11 +14,13 @@ const theme = themes.sage;
  * Stored in `contactSubmissions` collection (not support tickets)
  */
 export default function AdminContact() {
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, unread, read
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [creatingTicket, setCreatingTicket] = useState(false);
 
   useEffect(() => {
     fetchSubmissions();
@@ -98,6 +102,34 @@ export default function AdminContact() {
   });
 
   const unreadCount = submissions.filter(sub => sub.status === 'unread').length;
+
+  const handleCreateTicket = async () => {
+    if (!selectedSubmission?.email) return;
+    setCreatingTicket(true);
+    try {
+      const ticketId = await createSupportTicket({
+        userId: null,
+        userEmail: selectedSubmission.email,
+        userName: selectedSubmission.name || selectedSubmission.email?.split('@')[0] || 'Contact',
+        type: 'support',
+        subject: selectedSubmission.subject || 'Contact form submission',
+        message: `[From contact form]\n\n${selectedSubmission.message || ''}`,
+        metadata: {
+          source: 'contact_form',
+          contactSubmissionId: selectedSubmission.id,
+          userAgent: 'Admin Panel',
+          url: window.location.href,
+        },
+      });
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Support ticket created. Opening Work Queue.', type: 'success' } }));
+      navigate(`/admin/overview/dashboard?ticketId=${ticketId}`);
+    } catch (err) {
+      console.error('Error creating ticket from contact:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err.message || 'Failed to create ticket', type: 'error' } }));
+    } finally {
+      setCreatingTicket(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -338,14 +370,27 @@ export default function AdminContact() {
                 )}
               </div>
 
-              {/* Reply Button */}
-              <a
-                href={`mailto:${selectedSubmission.email}?subject=Re: ${selectedSubmission.subject}&body=Hi ${selectedSubmission.name || 'there'},%0D%0A%0D%0A`}
-                className="block w-full px-4 py-2 rounded-lg text-center hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
-              >
-                Reply via Email
-              </a>
+              {/* Reply and Create Ticket */}
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`mailto:${selectedSubmission.email}?subject=Re: ${encodeURIComponent(selectedSubmission.subject || '')}&body=Hi ${encodeURIComponent(selectedSubmission.name || 'there')},%0D%0A%0D%0A`}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
+                >
+                  <Mail className="w-4 h-4" />
+                  Reply via Email
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCreateTicket}
+                  disabled={creatingTicket}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 border"
+                  style={{ borderColor: theme.primary, color: theme.primary }}
+                >
+                  {creatingTicket ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Ticket className="w-4 h-4" />}
+                  {creatingTicket ? 'Creating…' : 'Create support ticket'}
+                </button>
+              </div>
             </div>
           </div>
         )}

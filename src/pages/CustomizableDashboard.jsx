@@ -172,32 +172,36 @@ export default function CustomizableDashboard() {
     };
   }, []);
 
-  // Compute dashboard data
-  const incomingOrder = useMemo(() => {
-    if (!orders || orders.length === 0) return null;
-    
+  // Compute dashboard data: all incoming orders (placed / in transit / recently delivered) for widget pagination
+  const incomingOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+    const now = new Date();
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const activeOrders = orders.filter(o => {
       const status = (o.status || '').toLowerCase();
-      return !status.includes('delivered');
+      const isDelivered = status.includes('delivered');
+      if (!isDelivered) return true;
+      if (o.deliveryDate) return new Date(o.deliveryDate) >= threeDaysAgo;
+      if (o.date) return new Date(o.date) >= threeDaysAgo;
+      return false;
     });
-    
-    if (activeOrders.length === 0) return null;
-    
-    activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    const latest = activeOrders[0];
-    
-    return {
-      ...latest,
-      peptide: latest.items?.[0]?.name || 'Unknown Item',
-      mg: latest.items?.[0]?.mg || 'N/A',
-      vendor: latest.vendorName || latest.vendor || 'Unknown Vendor',
-      status: latest.status || 'Order Placed',
-      date: latest.date,
-      shipDate: latest.shipDate || latest.date,
-      deliveryDate: latest.deliveryDate,
-      tracking: latest.tracking
-    };
+    if (activeOrders.length === 0) return [];
+    activeOrders.sort((a, b) => new Date(b.deliveryDate || b.date || 0) - new Date(a.deliveryDate || a.date || 0));
+    return activeOrders.map(o => ({
+      id: o.id,
+      peptide: o.items?.[0]?.name || 'Unknown Item',
+      mg: o.items?.[0]?.mg || 'N/A',
+      vendor: o.vendorName || o.vendor || 'Unknown Vendor',
+      status: o.status || 'Order Placed',
+      shipDate: o.shipDate || o.date,
+      deliveryDate: o.deliveryDate,
+      date: o.date,
+      tracking: o.tracking
+    }));
   }, [orders]);
+
+  const incomingOrder = incomingOrders.length > 0 ? incomingOrders[0] : null;
 
   const pendingVendors = useMemo(() => {
     return vendors.filter(vendor => vendor.isStub === true);
@@ -806,6 +810,7 @@ export default function CustomizableDashboard() {
                       theme={theme}
                       tasks={todaysTasks}
                       incomingOrder={incomingOrder}
+                      incomingOrders={incomingOrders}
                       upcomingBuys={(() => {
                         // Additional safety filter: remove mock buys if sample data was cleared
                         const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
@@ -946,6 +951,7 @@ export default function CustomizableDashboard() {
                         theme={theme}
                         tasks={todaysTasks}
                         incomingOrder={incomingOrder}
+                        incomingOrders={incomingOrders}
                         upcomingBuys={(() => {
                           const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                           if (!sampleDataCleared) return scheduledBuys;

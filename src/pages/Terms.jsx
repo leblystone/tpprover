@@ -149,7 +149,6 @@ export default function Terms() {
                   <li>Inventory tracking and management</li>
                   <li>Goal setting and progress tracking</li>
                   <li>Data analytics and reporting</li>
-                  <li>Collaboration tools for research teams</li>
                   <li>Mobile and web applications</li>
                 </ul>
                 <p>
@@ -256,7 +255,7 @@ export default function Terms() {
               </h2>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: theme.textLight }}>
                 <p>
-                  <strong>Service Ownership:</strong> The Service and its original content, features, and functionality are owned by The Pep Planner and are protected by international copyright, trademark, and other intellectual property laws.
+                  <strong>Service Ownership:</strong> The Service and its original content, features, and functionality are owned by Belix Company LLC and are protected by international copyright, trademark, and other intellectual property laws.
                 </p>
                 <p>
                   <strong>User Content:</strong> You retain ownership of your research data and content. You grant us a limited license to use your content as necessary to provide the Service.
@@ -307,10 +306,10 @@ export default function Terms() {
               </h2>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: theme.textLight }}>
                 <p>
-                  These Terms are governed by the laws of the United States. Any disputes arising from these Terms or your use of the Service will be resolved through binding arbitration.
+                  These Terms are governed by the laws of the State of New Mexico, United States, without regard to its conflict of law provisions. Any disputes arising from these Terms or your use of the Service shall be subject to the personal and exclusive jurisdiction of the state and federal courts located within Socorro County, New Mexico, United States.
                 </p>
                 <p>
-                  Before initiating arbitration, you agree to first contact us to attempt to resolve the dispute informally.
+                  Before initiating any legal action, you agree to first contact us to attempt to resolve the dispute informally.
                 </p>
               </div>
             </section>

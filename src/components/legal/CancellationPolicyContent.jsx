@@ -44,7 +44,7 @@ export const CancellationPolicyContent = () => (
                     <li>Download your protocols, schedules, and inventory information</li>
                     <li>Access your account to retrieve any information you need</li>
                 </ul>
-                <p><strong>Data Deletion:</strong> After the 30-day grace period, your account and all associated research data will be permanently deleted from our systems. This deletion is irreversible.</p>
+                <p><strong>Data Deletion:</strong> After the 30-day grace period, we will permanently delete your account and all associated research data from our systems. Your email address may be retained in our deletion request records. This deletion is irreversible.</p>
                 <p><strong>Backup Responsibility:</strong> We recommend exporting your data before cancellation or during the grace period to ensure you have a backup of your research information.</p>
             </div>
         </div>

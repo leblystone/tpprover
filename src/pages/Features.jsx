@@ -57,8 +57,8 @@ export default function Features() {
     {
       icon: <Shield className="w-12 h-12" />,
       title: "Security & Privacy",
-      description: "Your research data is protected with enterprise-grade security. End-to-end encryption ensures your sensitive information stays private.",
-      benefits: ["End-to-end encryption", "Secure data storage", "Privacy controls", "Compliance ready"]
+      description: "Your research data is protected with enterprise-grade security. Encryption in transit and at rest ensures your sensitive information stays private.",
+      benefits: ["Encryption in transit and at rest", "Secure data storage", "Privacy controls", "Compliance ready"]
     }
   ];
 

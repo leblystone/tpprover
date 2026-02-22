@@ -55,7 +55,7 @@ export const TermsOfServiceContent = () => (
                 
                 <p><strong>Data Retention Limits:</strong> We retain your research data only as long as necessary to provide our services. You may request deletion of your data at any time, and we will comply with such requests within 30 days, subject to legal obligations.</p>
                 
-                <p><strong>Limited Access:</strong> Access to your research data is restricted to authorized personnel who require such access to provide technical support or maintain our services. All personnel with access are bound by strict confidentiality agreements.</p>
+                <p><strong>Limited Access:</strong> Access to your research data is restricted to authorized personnel who require such access to provide technical support or maintain our services.</p>
                 
                 <p><strong>Legal Challenge Rights:</strong> In the event of any legal request for your data, we will, where legally permissible, provide you with notice and an opportunity to challenge such requests before disclosure.</p>
             </div>
@@ -64,7 +64,7 @@ export const TermsOfServiceContent = () => (
         <div className="p-3 bg-green-50 border border-green-200 rounded-md">
             <h3 className="font-semibold text-green-800">9. Data Security & Legal Compliance Commitments</h3>
             <div className="text-green-700 space-y-2">
-                <p><strong>Security Standards:</strong> We maintain industry-standard security measures to protect your research data, including encryption in transit and at rest, secure authentication, and regular security audits.</p>
+                <p><strong>Security Standards:</strong> We maintain industry-standard security measures to protect your research data, including encryption in transit and at rest, secure authentication, and periodic review of our security practices.</p>
                 
                 <p><strong>Legal Compliance:</strong> We operate in compliance with applicable data protection laws and regulations. We will resist any requests for your data that we believe are not legally valid or properly authorized.</p>
                 

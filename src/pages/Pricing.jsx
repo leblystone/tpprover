@@ -92,7 +92,7 @@ export default function Pricing() {
     },
     {
       question: "Is my data secure?",
-      answer: "Yes. We use enterprise-grade security with end-to-end encryption to protect your research data."
+      answer: "Yes. We use enterprise-grade security with encryption in transit and at rest to protect your research data."
     },
     {
       question: "Can I use this for commercial research?",
@@ -282,7 +282,7 @@ export default function Pricing() {
                 Enterprise Security
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                End-to-end encryption, secure data storage, and compliance with research standards.
+                Encryption in transit and at rest, secure data storage, and compliance with research standards.
               </p>
             </div>
             <div className="text-center">

@@ -5,7 +5,7 @@ import {
   Check, 
   CheckSquare,
   Star, 
-  Heart, 
+  HeartHandshake,
   Smartphone, 
   Tablet, 
   Monitor, 
@@ -257,8 +257,8 @@ export default function Landing() {
             {/* Built by researcher chip - Mobile */}
             <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
               style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
-              <Heart className="w-3 h-3 mr-1" />
-              Built by researcher ✌️
+              <HeartHandshake className="w-3 h-3 mr-1 flex-shrink-0" />
+              Built by researcher
             </div>
           </div>
 
@@ -350,8 +350,8 @@ export default function Landing() {
                 <div className="flex justify-center mt-8">
                   <div className="inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full text-sm font-medium"
                     style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
-                    <Heart className="w-4 h-4 mr-2" />
-                    Built by a fellow researcher. ✌️
+                    <HeartHandshake className="w-4 h-4 mr-2 flex-shrink-0" />
+                    Built by a fellow researcher.
                   </div>
                 </div>
               </div>
@@ -434,7 +434,8 @@ export default function Landing() {
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              <span className="block sm:inline">It's just like your Research Planner,</span> <span className="block sm:inline">just <em>smarter</em>.</span>
+              <span className="block">Time to ditch the spreadsheets.</span>
+              <span className="block text-lg sm:text-xl font-normal mt-1" style={{ color: '#4A5A56' }}>And welcome your new research tool!</span>
             </h2>
           </div>
           
@@ -449,7 +450,8 @@ export default function Landing() {
                 <Calendar className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: '#FFFFFF' }} />
               </div>
               <h3 className="text-xl sm:text-2xl md:text-3xl font-bold m-0" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                Protocols — The heart of your research
+                Protocols<br />
+                The heart of your research
               </h3>
             </div>
             <p className="text-sm sm:text-base leading-relaxed mb-5" style={{ color: '#4A5A56' }}>
@@ -547,9 +549,12 @@ export default function Landing() {
       <section className="py-8" style={{ backgroundColor: '#F5F5F0' }}>
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+            <h2 className="text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               Plus So Much More
             </h2>
+            <p className="text-sm sm:text-base max-w-xl mx-auto" style={{ color: '#6B7D7A' }}>
+              We’ve packed the app with the tools researchers actually use—and we keep adding more.
+            </p>
           </div>
           
           <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 md:max-w-4xl md:mx-auto">
@@ -558,21 +563,21 @@ export default function Landing() {
                 <Calculator className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Peptide Calculator</h3>
+                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Recon Calculator</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Calculate the next dose with a handy vial visual. Research pens? Pen info shows on the schedule as well.
+                  Dose math, vial visuals, and pen dosing—all in one place. See recon and schedule info together.
                 </p>
               </div>
             </div>
             
             <div className="flex items-start gap-2 sm:gap-4">
               <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#7F9E95' }}>
-                <BookOpen className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
+                <Package className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Peptide Glossary</h3>
+                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Stockpile & Vendors</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Built in search for the next research peptide!
+                  Track inventory, compare vendors, and plan reorders. Know what you have and where it came from.
                 </p>
               </div>
             </div>
@@ -582,9 +587,9 @@ export default function Landing() {
                 <Calendar className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Monthly & Weekly Calendar</h3>
+                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Calendar & Day View</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Visual your full month or full week of research! View upcoming buys, washout periods, and more.
+                  Month, week, or day—visualize your research schedule, washouts, and upcoming orders at a glance.
                 </p>
               </div>
             </div>
@@ -596,7 +601,7 @@ export default function Landing() {
               <div className="flex-1">
                 <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Research Analytics</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Visualize your peptide spending habits, Bio-Metrics, average delivery times, and more.
+                  Spending, trends, delivery times, and insights—so you can see patterns and optimize.
                 </p>
               </div>
             </div>
@@ -606,9 +611,9 @@ export default function Landing() {
                 <Star className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Goals & Tracking</h3>
+                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Goals & Badges</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Set and track your research goals with progress monitoring
+                  Set research goals, track progress, and earn badges as you stay consistent.
                 </p>
               </div>
             </div>
@@ -618,9 +623,9 @@ export default function Landing() {
                 <Layers className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>All-in-One</h3>
+                <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>One Place for Everything</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  More than just another shot tracking app. Keep your entire research in one place!
+                  Protocols, orders, stockpile, calendar, and analytics—your whole research workflow in one app.
                 </p>
               </div>
             </div>

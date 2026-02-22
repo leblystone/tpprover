@@ -14,11 +14,10 @@ export const adminPrimaryTabs = [
     icon: 'LayoutDashboard',
     children: [
       { id: 'dashboard', label: 'Dashboard', path: `${ADMIN_BASE}/overview/dashboard` },
-      { id: 'support', label: 'Support', path: `${ADMIN_BASE}/overview/support` },
+      { id: 'ghosty', label: 'Ghosty', path: `${ADMIN_BASE}/overview/automation` },
       { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
       { id: 'revenue', label: 'Revenue', path: `${ADMIN_BASE}/overview/revenue` },
-      { id: 'automation', label: 'Automation', path: `${ADMIN_BASE}/overview/automation` },
     ],
   },
   {
@@ -77,15 +76,17 @@ export const adminDefaultPath = `${ADMIN_BASE}/overview/dashboard`;
 export const adminPaths = {
   // Overview paths
   overviewDashboard: `${ADMIN_BASE}/overview/dashboard`,
-  overviewSupport: `${ADMIN_BASE}/overview/support`,
+  overviewSupport: `${ADMIN_BASE}/overview/dashboard`, // redirect: support removed, use dashboard
   overviewContact: `${ADMIN_BASE}/overview/contact`,
   overviewAnalytics: `${ADMIN_BASE}/overview/analytics`,
+  overviewRevenue: `${ADMIN_BASE}/overview/revenue`,
+  overviewGhosty: `${ADMIN_BASE}/overview/automation`,
   overviewAutomation: `${ADMIN_BASE}/overview/automation`,
   // Legacy paths for backward compatibility
   analytics: `${ADMIN_BASE}/overview/analytics`,
   ghostWorker: `${ADMIN_BASE}/overview/automation`,
-  workQueue: `${ADMIN_BASE}/overview/dashboard`, // Work queue is front and center on dashboard
-  feedback: `${ADMIN_BASE}/overview/support`,
+  workQueue: `${ADMIN_BASE}/overview/dashboard`,
+  feedback: `${ADMIN_BASE}/overview/dashboard`,
   contact: `${ADMIN_BASE}/overview/contact`,
   // Users paths
   usersSubscriptions: `${ADMIN_BASE}/users/subscriptions`,

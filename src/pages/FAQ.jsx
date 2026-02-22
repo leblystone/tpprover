@@ -166,7 +166,7 @@ export default function FAQ() {
       faqs: [
         {
           question: "Is my research data secure?",
-          answer: "Yes, all data is encrypted and stored securely in the cloud using industry-standard security practices. We use Firebase's secure infrastructure with end-to-end encryption, and we never share your data with third parties. Your research data is private and protected with enterprise-grade security measures."
+          answer: "Yes, all data is encrypted and stored securely in the cloud using industry-standard security practices. We use Firebase's secure infrastructure with encryption in transit and at rest, and we never share your data with third parties. Your research data is private and protected with enterprise-grade security measures."
         },
         {
           question: "Can I sync data across devices?",

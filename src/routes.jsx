@@ -124,7 +124,7 @@ export const router = createBrowserRouter([
       
       // Overview section (new structure)
       { path: 'overview/dashboard', element: <AdminOverviewDashboard /> },
-      { path: 'overview/support', element: <AdminSupport /> },
+      { path: 'overview/support', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'overview/contact', element: <AdminContact /> },
       { path: 'overview/analytics', element: <AdminAnalytics /> },
       { path: 'overview/revenue', element: <AdminRevenue /> },
@@ -134,7 +134,7 @@ export const router = createBrowserRouter([
       { path: 'analytics', element: <Navigate to="/admin/overview/analytics" replace /> },
       { path: 'ghost-worker', element: <Navigate to="/admin/overview/automation" replace /> },
       { path: 'work-queue', element: <Navigate to="/admin/overview/dashboard" replace /> }, // Work queue is on dashboard
-      { path: 'feedback', element: <Navigate to="/admin/overview/support" replace /> },
+      { path: 'feedback', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'contact', element: <Navigate to="/admin/overview/contact" replace /> },
       
       // Users section

@@ -1,123 +1,112 @@
-import React from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessageSquare,
-  Ticket,
   ClipboardList,
-  TrendingUp,
-  Users,
-  ArrowRight,
   RefreshCw,
   AlertCircle,
+  Bug,
+  Lightbulb,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle,
+  Trash2,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import GhostWorkerWorkQueue from '../../components/admin/GhostWorkerWorkQueue';
 
+const STATUS_FILTERS = [
+  { id: 'new', label: 'New' },
+  { id: 'reviewed', label: 'Reviewed' },
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'all', label: 'All' },
+];
+
 export default function AdminOverviewDashboard() {
   const { theme } = useOutletContext();
-  const navigate = useNavigate();
   const {
-    analytics,
     feedback,
     tickets,
     loading,
-    loadRealAnalytics,
     loadFeedback,
     loadTickets,
+    handleUpdateFeedback,
+    handleDeleteFeedback,
+    handleUpdateTicketStatus,
   } = useAdmin();
-
-  const newFeedback = feedback.filter((f) => f.status === 'new');
-  const openTickets = tickets.filter((t) => t.status === 'new' || t.status === 'in-progress');
-  const totalUsers = analytics?.totalUsers || 0;
-  const activeUsers = analytics?.activeUsers || 0;
+  const [statusFilter, setStatusFilter] = useState('new');
+  const [expandedId, setExpandedId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const handleRefresh = async () => {
-    await Promise.all([
-      loadRealAnalytics(),
-      loadFeedback(),
-      loadTickets(),
-    ]);
+    await Promise.all([loadFeedback(), loadTickets()]);
   };
 
-  const metricCards = [
-    {
-      id: 'feedback',
-      label: 'New Feedback',
-      value: newFeedback.length,
-      icon: MessageSquare,
-      color: '#3b82f6',
-      path: '/admin/overview/support',
-      description: 'Unread feedback items',
-    },
-    {
-      id: 'tickets',
-      label: 'Open Tickets',
-      value: openTickets.length,
-      icon: Ticket,
-      color: '#ef4444',
-      path: '/admin/overview/support',
-      description: 'Active support tickets',
-    },
-    {
-      id: 'users',
-      label: 'Total Users',
-      value: totalUsers,
-      icon: Users,
-      color: '#10b981',
-      path: '/admin/users/subscriptions',
-      description: 'Registered users',
-    },
-    {
-      id: 'active',
-      label: 'Active Users',
-      value: activeUsers,
-      icon: TrendingUp,
-      color: '#8b5cf6',
-      path: '/admin/overview/analytics',
-      description: 'Users active in last 30 days',
-    },
-  ];
+  // Bug tickets only (from support modal)
+  const bugTickets = tickets.filter((t) => t.type === 'bug');
+  // Combined list: feedback items + bug tickets for display
+  const feedbackWithType = (feedback || []).map((f) => ({
+    ...f,
+    _type: 'feedback',
+    _id: `feedback-${f.id}`,
+    _date: f.createdAt?.toDate?.() || new Date(f.createdAt || 0),
+    _status: f.status || 'new',
+    _email: f.userEmail || 'Unknown',
+    _preview: f.message || f.feedback || 'No message',
+  }));
+  const bugsWithType = (bugTickets || []).map((t) => ({
+    ...t,
+    _type: 'bug',
+    _id: `ticket-${t.id}`,
+    _date: t.createdAt?.toDate?.() || new Date(t.createdAt || 0),
+    _status: t.status === 'resolved' || t.status === 'closed' ? 'resolved' : t.status === 'in-progress' ? 'reviewed' : 'new',
+    _email: t.userEmail || 'Unknown',
+    _preview: t.subject || t.messages?.[0]?.message || 'No subject',
+  }));
+  const combined = [...feedbackWithType, ...bugsWithType].sort((a, b) => b._date - a._date);
+  const filtered =
+    statusFilter === 'all'
+      ? combined
+      : combined.filter((item) => item._status === statusFilter);
 
-  const quickActions = [
-    {
-      id: 'support',
-      label: 'View Support',
-      icon: MessageSquare,
-      path: '/admin/overview/support',
-      description: 'Feedback, tickets, and contact',
-    },
-    {
-      id: 'analytics',
-      label: 'View Analytics',
-      icon: TrendingUp,
-      path: '/admin/overview/analytics',
-      description: 'User growth and metrics',
-    },
-    {
-      id: 'automation',
-      label: 'Automation',
-      icon: ClipboardList,
-      path: '/admin/overview/automation',
-      description: 'Ghost Worker and triggers',
-    },
-  ];
+  const handleMarkReviewed = async (item) => {
+    if (item._type === 'feedback') {
+      setUpdatingId(item._id);
+      await handleUpdateFeedback(item.id, { status: 'reviewed' });
+      setUpdatingId(null);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as reviewed', type: 'success' } }));
+    } else {
+      setUpdatingId(item._id);
+      await handleUpdateTicketStatus(item.id, 'in-progress');
+      setUpdatingId(null);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket updated', type: 'success' } }));
+    }
+  };
 
-  const recentFeedback = feedback
-    .sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-      return dateB - dateA;
-    })
-    .slice(0, 5);
+  const handleMarkResolved = async (item) => {
+    if (item._type === 'feedback') {
+      setUpdatingId(item._id);
+      await handleUpdateFeedback(item.id, { status: 'resolved' });
+      setUpdatingId(null);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as resolved', type: 'success' } }));
+    } else {
+      setUpdatingId(item._id);
+      await handleUpdateTicketStatus(item.id, 'resolved');
+      setUpdatingId(null);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket closed', type: 'success' } }));
+    }
+  };
 
-  const recentTickets = tickets
-    .sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-      return dateB - dateA;
-    })
-    .slice(0, 5);
+  const handleDelete = async (item) => {
+    if (item._type !== 'feedback') return;
+    if (!window.confirm('Delete this feedback?')) return;
+    setUpdatingId(item._id);
+    await handleDeleteFeedback(item.id);
+    setUpdatingId(null);
+    setExpandedId(null);
+    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Feedback deleted', type: 'success' } }));
+  };
 
   return (
     <div className="space-y-4">
@@ -129,12 +118,12 @@ export default function AdminOverviewDashboard() {
             Overview Dashboard
           </h1>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            Quick overview of your daily work
+            Work Queue and Feedback & Bugs
           </p>
         </div>
         <button
           onClick={handleRefresh}
-          disabled={loading.analytics || loading.feedback}
+          disabled={loading.feedback}
           className="px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-opacity disabled:opacity-50"
           style={{
             backgroundColor: theme.primary + '15',
@@ -142,7 +131,7 @@ export default function AdminOverviewDashboard() {
             color: theme.primary,
           }}
         >
-          <RefreshCw size={16} className={loading.analytics || loading.feedback ? 'animate-spin' : ''} />
+          <RefreshCw size={16} className={loading.feedback ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>
@@ -167,220 +156,155 @@ export default function AdminOverviewDashboard() {
         </div>
       </section>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {metricCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <button
-              key={card.id}
-              onClick={() => navigate(card.path)}
-              className="p-4 rounded-lg border text-left transition-all hover:shadow-md"
-              style={{
-                backgroundColor: theme.cardBackground || theme.white,
-                borderColor: theme.border,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = card.color;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.border;
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: card.color + '15' }}
-                >
-                  <Icon size={20} style={{ color: card.color }} />
-                </div>
-                <ArrowRight size={16} style={{ color: theme.textLight }} />
-              </div>
-              <div className="text-2xl font-bold mb-1" style={{ color: theme.text }}>
-                {card.value}
-              </div>
-              <div className="text-sm font-medium" style={{ color: theme.text }}>
-                {card.label}
-              </div>
-              <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                {card.description}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <button
-              key={action.id}
-              onClick={() => navigate(action.path)}
-              className="p-4 rounded-lg border text-left transition-all hover:shadow-md"
-              style={{
-                backgroundColor: theme.cardBackground || theme.white,
-                borderColor: theme.border,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.primary;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.border;
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: theme.primary + '15' }}
-                >
-                  <Icon size={20} style={{ color: theme.primary }} />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold" style={{ color: theme.text }}>
-                    {action.label}
-                  </div>
-                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                    {action.description}
-                  </div>
-                </div>
-                <ArrowRight size={16} style={{ color: theme.textLight }} />
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Feedback */}
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            backgroundColor: theme.cardBackground || theme.white,
-            borderColor: theme.border,
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-              <MessageSquare size={16} />
-              Recent Feedback
-            </h3>
-            <button
-              onClick={() => navigate('/admin/overview/support')}
-              className="text-xs font-medium flex items-center gap-1"
-              style={{ color: theme.primary }}
-            >
-              View All
-              <ArrowRight size={12} />
-            </button>
+      {/* Feedback & Bugs section */}
+      <section
+        className="rounded-lg border overflow-hidden"
+        style={{
+          backgroundColor: theme.cardBackground || theme.white,
+          borderColor: theme.border,
+        }}
+        aria-label="Feedback & Bugs"
+      >
+        <div className="px-4 py-2 border-b flex items-center gap-2" style={{ borderColor: theme.border }}>
+          <MessageSquare size={18} style={{ color: theme.primary }} />
+          <h2 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Feedback & Bugs
+          </h2>
+        </div>
+        <div className="p-4">
+          {/* Status filter tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setStatusFilter(f.id)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: statusFilter === f.id ? theme.primary + '20' : 'transparent',
+                  border: `1px solid ${statusFilter === f.id ? theme.primary + '50' : theme.border}`,
+                  color: statusFilter === f.id ? theme.primary : theme.textLight,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
-          {recentFeedback.length === 0 ? (
-            <div className="text-sm text-center py-4" style={{ color: theme.textLight }}>
-              No recent feedback
+          {filtered.length === 0 ? (
+            <div className="text-sm text-center py-8" style={{ color: theme.textLight }}>
+              No items in this filter
             </div>
           ) : (
             <div className="space-y-2">
-              {recentFeedback.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => navigate('/admin/overview/support')}
-                  className="p-2 rounded border cursor-pointer transition-colors hover:bg-opacity-50"
-                  style={{
-                    backgroundColor: item.status === 'new' ? '#3b82f6' + '10' : 'transparent',
-                    borderColor: theme.border,
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
-                        {item.userEmail || 'Unknown'}
+              {filtered.map((item) => {
+                const isExpanded = expandedId === item._id;
+                const isUpdating = updatingId === item._id;
+                return (
+                  <div
+                    key={item._id}
+                    className="rounded-lg border overflow-hidden"
+                    style={{
+                      backgroundColor: item._status === 'new' ? (item._type === 'bug' ? '#ef444410' : '#3b82f610') : 'transparent',
+                      borderColor: theme.border,
+                    }}
+                  >
+                    <div
+                      className="p-3 flex items-start gap-2 cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : item._id)}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {isExpanded ? (
+                          <ChevronDown size={16} style={{ color: theme.textLight }} />
+                        ) : (
+                          <ChevronRight size={16} style={{ color: theme.textLight }} />
+                        )}
                       </div>
-                      <div className="text-xs mt-1 line-clamp-2" style={{ color: theme.textLight }}>
-                        {item.message || item.feedback || 'No message'}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+                            style={{
+                              backgroundColor: item._type === 'bug' ? '#ef444420' : theme.primary + '20',
+                              color: item._type === 'bug' ? '#ef4444' : theme.primary,
+                            }}
+                          >
+                            {item._type === 'bug' ? <Bug size={12} /> : <Lightbulb size={12} />}
+                            {item._type === 'bug' ? 'Bug' : 'Feedback'}
+                          </span>
+                          {item._status === 'new' && (
+                            <AlertCircle size={12} style={{ color: theme.primary }} title="New" />
+                          )}
+                          <span className="text-xs" style={{ color: theme.textLight }}>
+                            {item._date.toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium truncate mt-1" style={{ color: theme.text }}>
+                          {item._email}
+                        </div>
+                        <div className="text-xs mt-0.5 line-clamp-2" style={{ color: theme.textLight }}>
+                          {item._preview}
+                        </div>
                       </div>
                     </div>
-                    {item.status === 'new' && (
-                      <div className="ml-2 flex-shrink-0">
-                        <AlertCircle size={12} style={{ color: '#3b82f6' }} />
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
+                        <div className="pt-2 text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
+                          {item._type === 'feedback'
+                            ? item.message || item.feedback || 'No message'
+                            : [item.subject, item.messages?.[0]?.message].filter(Boolean).join('\n\n') || 'No content'}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {item._status === 'new' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkReviewed(item);
+                              }}
+                              disabled={isUpdating}
+                              className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                              style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                            >
+                              <CheckCircle size={12} />
+                              Mark reviewed
+                            </button>
+                          )}
+                          {item._status !== 'resolved' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkResolved(item);
+                              }}
+                              disabled={isUpdating}
+                              className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                              style={{ backgroundColor: theme.success + '20', color: theme.success || '#10b981' }}
+                            >
+                              <CheckCircle size={12} />
+                              Mark resolved
+                            </button>
+                          )}
+                          {item._type === 'feedback' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item);
+                              }}
+                              disabled={isUpdating}
+                              className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                              style={{ backgroundColor: (theme.error || '#ef4444') + '20', color: theme.error || '#ef4444' }}
+                            >
+                              <Trash2 size={12} />
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-
-        {/* Recent Tickets */}
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            backgroundColor: theme.cardBackground || theme.white,
-            borderColor: theme.border,
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-              <Ticket size={16} />
-              Recent Tickets
-            </h3>
-            <button
-              onClick={() => navigate('/admin/overview/support')}
-              className="text-xs font-medium flex items-center gap-1"
-              style={{ color: theme.primary }}
-            >
-              View All
-              <ArrowRight size={12} />
-            </button>
-          </div>
-          {recentTickets.length === 0 ? (
-            <div className="text-sm text-center py-4" style={{ color: theme.textLight }}>
-              No recent tickets
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  onClick={() => navigate('/admin/overview/support')}
-                  className="p-2 rounded border cursor-pointer transition-colors hover:bg-opacity-50"
-                  style={{
-                    backgroundColor:
-                      ticket.status === 'new' || ticket.status === 'in-progress'
-                        ? '#ef4444' + '10'
-                        : 'transparent',
-                    borderColor: theme.border,
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
-                        {ticket.userEmail || ticket.subject || 'Unknown'}
-                      </div>
-                      <div className="text-xs mt-1 line-clamp-2" style={{ color: theme.textLight }}>
-                        {ticket.subject || ticket.messages?.[0]?.message || 'No subject'}
-                      </div>
-                    </div>
-                    {(ticket.status === 'new' || ticket.status === 'in-progress') && (
-                      <div className="ml-2 flex-shrink-0">
-                        <AlertCircle size={12} style={{ color: '#ef4444' }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

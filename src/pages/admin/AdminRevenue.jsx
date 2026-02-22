@@ -97,6 +97,10 @@ export default function AdminRevenue() {
         </button>
       </div>
 
+      <p className="text-xs rounded-lg px-3 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}>
+        Revenue figures are approximate and may not reflect all transactions across payment platforms (Stripe, Google Play, App Store).
+      </p>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map(card => (
