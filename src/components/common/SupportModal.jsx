@@ -242,10 +242,10 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 imageCount: selectedImages.length
             });
 
-            // Upload images first if any
+            // Upload images only for support tickets (bug/suggestion are feedback-only, no attachments)
             const imageUrls = [];
             const imageStoragePaths = [];
-            if (selectedImages.length > 0 && user?.uid) {
+            if (ticketType === 'support' && selectedImages.length > 0 && user?.uid) {
                 try {
                     for (const imageData of selectedImages) {
                         const uploadResult = await uploadImageToStorage(
@@ -263,11 +263,11 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 }
             }
 
-            // Check if this is a suggestion (feedback) or a support/bug ticket
-            if (ticketType === 'suggestion') {
-                // Submit as feedback (goes to Ghosty acknowledgment)
+            // Three separate flows: suggestion & bug = feedback only (Bugs/Feedback tab, "From the Team" if needed). Support = ticket (SupportChatModal).
+            if (ticketType === 'suggestion' || ticketType === 'bug') {
+                // Submit as feedback only — no support ticket. Appears in admin Feedback & Bugs; reply via "From the Team" if warranted.
                 await submitFeedback({
-                    type: 'suggestion',
+                    type: ticketType,
                     message: formData.message.trim(),
                     userEmail: user?.email || 'anonymous',
                     userId: user?.uid || null,
@@ -275,16 +275,15 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                     url: window.location.href,
                     timestamp: new Date().toISOString()
                 });
-                
-                console.log('✅ Suggestion submitted');
+                console.log(`✅ ${ticketType === 'bug' ? 'Bug report' : 'Suggestion'} submitted to feedback`);
             } else {
-                // Create a support ticket (support or bug - goes to full Ghosty handling)
+                // Support only: create support ticket (open ticket → SupportChatModal)
                 const ticketId = await createSupportTicket({
                     userId: user?.uid || null,
                     userEmail: user?.email,
                     userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
-                    type: ticketType, // 'support' or 'bug'
-                    subject: ticketType === 'bug' ? 'Bug Report' : 'Support Request',
+                    type: 'support',
+                    subject: 'Support Request',
                     message: formData.message.trim(),
                     imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
                     imageStoragePaths: imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
@@ -295,31 +294,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         userId: user?.uid || null
                     }
                 });
-                
                 console.log('✅ Support ticket created:', ticketId);
-                
-                // Also submit to feedback collection so bug reports appear in admin Bugs tab
-                if (ticketType === 'bug') {
-                    try {
-                        await submitFeedback({
-                            type: 'bug',
-                            message: formData.message.trim(),
-                            userEmail: user?.email || 'anonymous',
-                            userId: user?.uid || null,
-                            userAgent: navigator.userAgent,
-                            url: window.location.href,
-                            timestamp: new Date().toISOString()
-                        });
-                        console.log('✅ Bug also submitted to feedback collection');
-                    } catch (fbErr) {
-                        console.warn('⚠️ Bug ticket created but feedback entry failed:', fbErr.message);
-                    }
-                }
-                
-                // Reload user tickets to show the new one
-                if (user?.email) {
-                    await loadUserTickets();
-                }
+                if (user?.email) await loadUserTickets();
             }
             
             setSubmitStatus('success');
@@ -541,8 +517,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                     />
                                 </div>
 
-                                {/* Image Upload Section - Only for Support and Bug Reports */}
-                                {ticketType !== 'suggestion' && (
+                                {/* Image Upload Section - Support tickets only */}
+                                {ticketType === 'support' && (
                                     <div>
                                         <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
                                             Attach Images (Optional)

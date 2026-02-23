@@ -1082,9 +1082,12 @@ export async function getAllFeedback() {
     
     const feedback = [];
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
       feedback.push({
         id: doc.id,
-        ...doc.data()
+        ...data,
+        // Normalize message for display (backend uses 'message'; legacy or alternate sources may use 'feedback')
+        message: data.message ?? data.feedback ?? ''
       });
     });
     
@@ -1490,6 +1493,28 @@ export async function markTicketAsRead(ticketId) {
     }
   } catch (error) {
     console.error('❌ Failed to mark ticket as read:', error);
+    throw error;
+  }
+}
+
+/**
+ * Close a support ticket initiated by the user (direct Firestore write; mirrors message send pattern)
+ * @param {string} ticketId - The ticket ID to close
+ * @returns {Promise<void>}
+ */
+export async function closeTicketByUser(ticketId) {
+  try {
+    const { getFirestore, doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+    const db = getFirestore();
+    const ticketRef = doc(db, 'supportTickets', ticketId);
+    await updateDoc(ticketRef, {
+      status: 'closed',
+      closedAt: serverTimestamp(),
+      closedBy: 'user',
+    });
+    console.log('🔒 Ticket closed by user:', ticketId);
+  } catch (error) {
+    console.error('❌ Failed to close ticket by user:', error);
     throw error;
   }
 }

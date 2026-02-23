@@ -15,7 +15,6 @@ import {
   Send,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
-import { createAdminMessage } from '../../services/firebase';
 import GhostWorkerWorkQueue from '../../components/admin/GhostWorkerWorkQueue';
 
 const STATUS_FILTERS = [
@@ -49,9 +48,7 @@ export default function AdminOverviewDashboard() {
     await Promise.all([loadFeedback(), loadTickets()]);
   };
 
-  // Bug tickets only (from support modal)
-  const bugTickets = tickets.filter((t) => t.type === 'bug');
-  // Combined list: feedback items + bug tickets for display
+  // Feedback & Bugs: only from feedback collection (suggestions + bug reports). Support tickets are separate (Open/Closed Tickets).
   const toDate = (v) => {
     if (!v) return null;
     if (v?.toDate?.()) return v.toDate();
@@ -64,7 +61,7 @@ export default function AdminOverviewDashboard() {
     const d = toDate(f.submittedAt) || toDate(f.createdAt) || toDate(f.timestamp);
     return {
       ...f,
-      _type: 'feedback',
+      _type: f.type || 'suggestion', // 'bug' | 'suggestion' for display
       _id: `feedback-${f.id}`,
       _date: d || new Date(),
       _status: f.status || 'new',
@@ -72,54 +69,27 @@ export default function AdminOverviewDashboard() {
       _preview: f.message || f.feedback || 'No message',
     };
   });
-  const bugsWithType = (bugTickets || []).map((t) => {
-    const d = toDate(t.createdAt);
-    return {
-      ...t,
-      _type: 'bug',
-      _id: `ticket-${t.id}`,
-      _date: d || new Date(),
-      _status: t.status === 'resolved' || t.status === 'closed' ? 'resolved' : t.status === 'in-progress' ? 'reviewed' : 'new',
-      _email: t.userEmail || 'Unknown',
-      _preview: t.subject || t.messages?.[0]?.message || 'No subject',
-    };
-  });
-  const combined = [...feedbackWithType, ...bugsWithType].sort((a, b) => b._date - a._date);
+  const combined = [...feedbackWithType].sort((a, b) => b._date - a._date);
   const filtered =
     statusFilter === 'all'
       ? combined
       : combined.filter((item) => item._status === statusFilter);
 
   const handleMarkReviewed = async (item) => {
-    if (item._type === 'feedback') {
-      setUpdatingId(item._id);
-      await handleUpdateFeedback(item.id, { status: 'reviewed' });
-      setUpdatingId(null);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as reviewed', type: 'success' } }));
-    } else {
-      setUpdatingId(item._id);
-      await handleUpdateTicketStatus(item.id, 'in-progress');
-      setUpdatingId(null);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket updated', type: 'success' } }));
-    }
+    setUpdatingId(item._id);
+    await handleUpdateFeedback(item.id, { status: 'reviewed' });
+    setUpdatingId(null);
+    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as reviewed', type: 'success' } }));
   };
 
   const handleMarkResolved = async (item) => {
-    if (item._type === 'feedback') {
-      setUpdatingId(item._id);
-      await handleUpdateFeedback(item.id, { status: 'resolved' });
-      setUpdatingId(null);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as resolved', type: 'success' } }));
-    } else {
-      setUpdatingId(item._id);
-      await handleUpdateTicketStatus(item.id, 'resolved');
-      setUpdatingId(null);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket closed', type: 'success' } }));
-    }
+    setUpdatingId(item._id);
+    await handleUpdateFeedback(item.id, { status: 'resolved' });
+    setUpdatingId(null);
+    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as resolved', type: 'success' } }));
   };
 
   const handleDelete = async (item) => {
-    if (item._type !== 'feedback') return;
     if (!window.confirm('Delete this feedback?')) return;
     setUpdatingId(item._id);
     await handleDeleteFeedback(item.id);
@@ -132,16 +102,11 @@ export default function AdminOverviewDashboard() {
     if (!replyText.trim()) return;
     setSendingReply(true);
     try {
-      if (item._type === 'feedback') {
-        await handleRespondToFeedback(item, replyText.trim());
-      } else {
-        await createAdminMessage(item.userEmail || item._email, replyText.trim());
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Message sent! User will see it as "From the Team".', type: 'success' } }));
-      }
+      await handleRespondToFeedback(item, replyText.trim());
       setReplyingToId(null);
       setReplyText('');
       await loadFeedback();
-      if (item._type === 'bug') await loadTickets();
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Message sent! User will see it as "From the Team".', type: 'success' } }));
     } catch (err) {
       console.error('Reply failed:', err);
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err.message || 'Failed to send message', type: 'error' } }));
@@ -290,9 +255,7 @@ export default function AdminOverviewDashboard() {
                     {isExpanded && (
                       <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: theme.border }}>
                         <div className="pt-2 text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
-                          {item._type === 'feedback'
-                            ? item.message || item.feedback || 'No message'
-                            : [item.subject, item.messages?.[0]?.message].filter(Boolean).join('\n\n') || 'No content'}
+                          {item.message || item.feedback || 'No message'}
                         </div>
                         {/* Reply form (one-way "From the Team" message) */}
                         {replyingToId === item._id ? (
@@ -386,8 +349,7 @@ export default function AdminOverviewDashboard() {
                               Mark resolved
                             </button>
                           )}
-                          {item._type === 'feedback' && (
-                            <button
+                          <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(item);
@@ -399,7 +361,6 @@ export default function AdminOverviewDashboard() {
                               <Trash2 size={12} />
                               Delete
                             </button>
-                          )}
                         </div>
                       </div>
                     )}

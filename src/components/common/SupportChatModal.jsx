@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw, Camera, Lightbulb } from 'lucide-react';
+import { X, Send, Loader, User, ShieldCheck, RotateCcw, Camera, Lightbulb, CheckCheck } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from 'firebase/firestore';
-import { reopenTicket } from '../../services/firebase';
+import { reopenTicket, closeTicketByUser } from '../../services/firebase';
 
 export default function SupportChatModal({ ticket: initialTicket, onClose, theme, onMarkRead, onTicketUpdate }) {
   const { user } = useAppContext();
@@ -11,6 +11,8 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reopening, setReopening] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   const [ticketStatus, setTicketStatus] = useState(initialTicket?.status || 'new');
   const [closedAt, setClosedAt] = useState(initialTicket?.closedAt || null);
   const messagesEndRef = useRef(null);
@@ -108,6 +110,27 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
       }));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Handle user closing their own ticket
+  const handleCloseTicket = async () => {
+    if (!initialTicket?.id || !user) return;
+    setClosing(true);
+    try {
+      await closeTicketByUser(initialTicket.id);
+      setConfirmClose(false);
+      if (onTicketUpdate) onTicketUpdate();
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Ticket closed. Thanks for reaching out! 🔒', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('❌ Error closing ticket:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to close ticket. Please try again.', type: 'error' }
+      }));
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -292,24 +315,20 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
             })
           )}
 
-          {/* Closed Ticket - Lighter grey divider with date + timestamp after last message */}
+          {/* Closed ticket — single divider line, inline label + date */}
           {isClosed && (
             <div className="my-6 space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
-                <div className="flex flex-col items-center gap-0.5 px-3 py-1 sm:flex-row sm:items-center sm:gap-2">
-                  <span className="text-xs font-medium" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
-                    ——— ticket closed ———
-                  </span>
-                  {closedAt && (
-                    <span className="text-xs" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
-                      {formatClosedDate()} · {formatClosedTime()}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
-              </div>
-              <p className="text-xs text-center" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
+              <div
+                className="h-px w-full"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
+              />
+              <p className="text-xs" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
+                Ticket closed
+                {closedAt && (
+                  <span> · {formatClosedDate()} · {formatClosedTime()}</span>
+                )}
+              </p>
+              <p className="text-xs" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>
                 This chat will be archived in your support requests in 24 hours.
               </p>
             </div>
@@ -378,9 +397,43 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                   )}
                 </button>
               </div>
-              <p className="text-xs mt-2 flex items-center gap-1" style={{ color: theme.textLight }}>
-                <Lightbulb size={12} /> You'll receive a notification when the admin responds
-              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                  <Lightbulb size={12} /> You'll receive a notification when the admin responds
+                </p>
+                {/* User-initiated close */}
+                {confirmClose ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: theme.textLight }}>Mark as resolved?</span>
+                    <button
+                      onClick={handleCloseTicket}
+                      disabled={closing}
+                      className="px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50 transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: theme.success + '20', color: theme.success }}
+                    >
+                      {closing ? <Loader size={12} className="animate-spin" /> : <CheckCheck size={12} />}
+                      Yes, close it
+                    </button>
+                    <button
+                      onClick={() => setConfirmClose(false)}
+                      disabled={closing}
+                      className="px-2.5 py-1 rounded text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+                      style={{ color: theme.textLight }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmClose(true)}
+                    className="text-xs flex items-center gap-1 transition-opacity hover:opacity-70"
+                    style={{ color: theme.textLight }}
+                  >
+                    <CheckCheck size={12} />
+                    Issue resolved?
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>

@@ -458,7 +458,7 @@ export default function AdminFeedback() {
                             {item.status}
                           </span>
                         </div>
-                        <p className="text-sm line-clamp-2" style={{ color: theme.text }}>{item.message}</p>
+                        <p className="text-sm line-clamp-2" style={{ color: theme.text }}>{item.message || item.feedback || '(No message provided)'}</p>
                       </div>
                     </button>
                   ))
@@ -1009,7 +1009,7 @@ function FeedbackDetailView({
           <Mail size={14} />
           {item.userEmail}
         </div>
-        <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>{item.message}</p>
+        <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>{item.message || item.feedback || '(No message provided)'}</p>
       </div>
       <div className="p-4 lg:p-6 space-y-4">
         <div>
