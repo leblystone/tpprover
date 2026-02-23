@@ -561,8 +561,6 @@ export const loadDashboardLayout = () => {
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
     const currentVersion = '3.11'; // UPDATED: Analytics widget moved above spending
     
-    console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
-    
     if (layoutVersion !== currentVersion) {
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);

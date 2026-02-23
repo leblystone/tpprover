@@ -198,7 +198,6 @@ function App() {
         // checkForUpdates() returns null for PWA, but double-check here for clarity
         const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
         if (!isNative) {
-          console.log('ℹ️ PWA detected - skipping update prompt (users get automatic updates)');
           return; // PWA users never see UpdatePromptModal
         }
         

@@ -8,7 +8,7 @@ import DashboardWidget from '../components/dashboard/DashboardWidget';
 import DashboardCustomizer from '../components/dashboard/DashboardCustomizer';
 import WidgetFactory from '../components/dashboard/WidgetFactory';
 // Toast notifications now handled globally in App.jsx
-import useLocalStorage from '../utils/hooks';
+import useLocalStorage, { useSyncedGoals } from '../utils/hooks';
 import { 
   loadDashboardLayout, 
   saveDashboardLayout, 
@@ -104,7 +104,7 @@ export default function CustomizableDashboard() {
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
   // Toast notifications now handled globally
-  const [goals, setGoals] = useLocalStorage('tpprover_goals', []);
+  const [goals, setGoals] = useSyncedGoals();
   // metrics and setMetrics are now from useAppContext() above
   const [calendarBump, setCalendarBump] = useState(0);
 
@@ -307,7 +307,7 @@ export default function CustomizableDashboard() {
       setShowNewProtocol(true);
     };
     const handleDashboardCustomize = () => {
-      setIsCustomizing(!isCustomizing);
+      setIsCustomizing(prev => !prev);
     };
     const handleDashboardSettings = () => {
       setShowCustomizer(true);
@@ -333,7 +333,7 @@ export default function CustomizableDashboard() {
       window.removeEventListener('tpp:dashboard-settings', handleDashboardSettings);
       window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInQuickActions);
     };
-  }, [isCustomizing]);
+  }, []);
 
   // Listen for autosave changes to protocols
   useEffect(() => {
@@ -630,7 +630,6 @@ export default function CustomizableDashboard() {
       
       // If this is a cloud sync event, regenerate all tasks from scratch
       if (source === 'cloud-sync') {
-        console.log('🔄 Cloud sync detected - regenerating all tasks');
         setCalendarBump(Date.now());
         return;
       }

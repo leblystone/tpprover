@@ -33,7 +33,6 @@ function markMigrationComplete(migrationKey, version = '1.0') {
       timestamp: new Date().toISOString()
     };
     localStorage.setItem('tpprover_migration_status', JSON.stringify(status));
-    console.log(`✅ Migration marked complete: ${migrationKey} v${version}`);
   } catch (e) {
     console.warn(`⚠️ Failed to mark migration complete: ${migrationKey}`, e);
   }
@@ -49,18 +48,14 @@ export async function migrateProtocolHistoryToCloud(saveToCloud) {
   
   // Skip if already migrated
   if (status[MIGRATION_KEY]?.completed) {
-    console.log('ℹ️ Protocol history already migrated to cloud');
     return { alreadyMigrated: true };
   }
   
   try {
-    console.log('🔄 Starting protocol history migration to cloud...');
-    
     // Get all history entries from localStorage
     const historyEntries = getProtocolHistory();
     
     if (!historyEntries || historyEntries.length === 0) {
-      console.log('ℹ️ No protocol history to migrate');
       markMigrationComplete(MIGRATION_KEY);
       return { migrated: 0 };
     }
@@ -70,15 +65,12 @@ export async function migrateProtocolHistoryToCloud(saveToCloud) {
       prepareItemForSave(entry, { preserveTimestamp: true }) // Preserve existing timestamps
     );
     
-    console.log(`📦 Migrating ${preparedEntries.length} protocol history entries...`);
-    
     // Save to cloud via the provided save function
     // This should be passed from AppContext which has access to saveAppData
     const result = await saveToCloud({ protocolHistory: preparedEntries });
     
     if (result) {
       markMigrationComplete(MIGRATION_KEY);
-      console.log(`✅ Successfully migrated ${preparedEntries.length} protocol history entries to cloud`);
       return { migrated: preparedEntries.length };
     } else {
       console.error('❌ Migration failed - saveToCloud returned false');
@@ -99,30 +91,24 @@ export async function migrateUserSettingsToCloud(saveToCloud) {
   const status = getMigrationStatus();
   
   if (status[MIGRATION_KEY]?.completed) {
-    console.log('ℹ️ User settings already migrated to cloud');
     return { alreadyMigrated: true };
   }
   
   try {
-    console.log('🔄 Starting user settings migration to cloud...');
-    
     // Get settings from localStorage
     const settingsStr = localStorage.getItem('tpprover_settings');
     if (!settingsStr) {
-      console.log('ℹ️ No user settings to migrate');
       markMigrationComplete(MIGRATION_KEY);
       return { migrated: 0 };
     }
     
     const settings = JSON.parse(settingsStr);
-    console.log('📦 Migrating user settings to cloud...');
     
     // Save to cloud
     const result = await saveToCloud({ userSettings: settings });
     
     if (result) {
       markMigrationComplete(MIGRATION_KEY);
-      console.log('✅ Successfully migrated user settings to cloud');
       return { migrated: 1 };
     } else {
       console.error('❌ Settings migration failed');
@@ -164,7 +150,6 @@ export function cleanupGarbageTimestamps() {
     return { alreadyDone: true };
   }
   
-  console.log('🧹 [MIGRATION v2] Cleaning garbage serverTimestamp() sentinels from localStorage...');
   
   // All localStorage keys that contain arrays of items with updatedAt
   const arrayKeys = [
@@ -255,7 +240,6 @@ export function cleanupGarbageTimestamps() {
       
       if (keyCleaned > 0) {
         localStorage.setItem(key, JSON.stringify(items));
-        console.log(`  🧹 ${key}: cleaned ${keyCleaned} items`);
         totalCleaned += keyCleaned;
       }
     } catch (e) {
@@ -264,7 +248,6 @@ export function cleanupGarbageTimestamps() {
   }
   
   markMigrationComplete(MIGRATION_KEY, '2.0');
-  console.log(`🧹 [MIGRATION v2] Done! Cleaned ${totalCleaned} items with garbage timestamps`);
   return { cleaned: totalCleaned };
 }
 
@@ -284,7 +267,6 @@ export function ensureLegacyItemIds() {
     return { alreadyDone: true };
   }
   
-  console.log('🔧 [MIGRATION] Ensuring all synced array items have id + updatedAt...');
   
   const arrayKeys = [
     'tpprover_recon_history',
@@ -327,7 +309,6 @@ export function ensureLegacyItemIds() {
       if (keyPatched > 0) {
         localStorage.setItem(key, JSON.stringify(fixed));
         totalPatched += keyPatched;
-        console.log(`  🔧 ${key}: patched ${keyPatched} items`);
       }
     } catch (e) {
       console.warn(`  ⚠️ Failed to patch ${key}:`, e);
@@ -335,7 +316,6 @@ export function ensureLegacyItemIds() {
   });
   
   markMigrationComplete(MIGRATION_KEY, '1.0');
-  console.log(`🔧 [MIGRATION] Done! Patched ${totalPatched} legacy items with missing id/updatedAt`);
   return { patched: totalPatched };
 }
 
@@ -349,11 +329,8 @@ export function ensureLegacyItemIds() {
  */
 export async function runAllMigrations(context) {
   if (!context?.firebaseUser) {
-    console.log('⏸️ Skipping migrations - no authenticated user');
     return { skipped: true };
   }
-  
-  console.log('🚀 Starting localStorage → cloud migrations...');
   const results = {};
   
   // Helper to save data to cloud
@@ -401,17 +378,12 @@ export async function runAllMigrations(context) {
     (results.userSettings?.migrated || 0);
   
   if (totalMigrated > 0) {
-    console.log(`✅ Migration complete! ${totalMigrated} items synced to cloud`);
-    
-    // Dispatch event so UI can show a toast
     window.dispatchEvent(new CustomEvent('tpp:migration-complete', {
       detail: { 
         totalMigrated,
         results
       }
     }));
-  } else {
-    console.log('ℹ️ All migrations already completed or no data to migrate');
   }
   
   return results;

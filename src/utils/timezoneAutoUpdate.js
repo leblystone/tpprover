@@ -25,14 +25,9 @@ export function initTimezoneAutoUpdate() {
         // If stored timezone matches browser timezone, just initialize and skip
         if (storedTimezone === currentTimezone) {
           lastKnownTimezone = currentTimezone;
-          console.log(`⏰ Timezone initialized: ${currentTimezone}`);
           return;
         }
-        
-        // Stored timezone is stale or missing — fall through to update it
-        console.log(`🌍 Timezone mismatch on init: stored=${storedTimezone || 'none'}, browser=${currentTimezone}`);
       } else {
-        console.log(`🌍 Timezone changed: ${lastKnownTimezone} → ${currentTimezone}`);
       }
 
       // Update settings with current browser timezone
@@ -55,7 +50,6 @@ export function initTimezoneAutoUpdate() {
         }
       }));
 
-      console.log(`✅ Timezone updated to: ${currentTimezone}`);
     } catch (error) {
       console.error('❌ Error checking timezone:', error);
     }

@@ -30,7 +30,6 @@ export default function NativeFirstLaunchPermission({ theme }) {
     const checkAndShowPrompt = async () => {
       // ONLY run on native platforms (Android/iOS from app stores)
       if (!Capacitor.isNativePlatform()) {
-        console.log('📱 Not a native platform - skipping first launch permission prompt');
         return;
       }
 

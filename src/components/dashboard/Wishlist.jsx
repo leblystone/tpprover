@@ -23,7 +23,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
       justDeletedIdsRef.current.add(String(id));
     });
     if (persistentDeletedIds.length > 0 && !hasLoggedRef.current) {
-      console.log('🔒 Initialized deleted IDs from persistent tracking:', persistentDeletedIds);
       hasLoggedRef.current = true;
     }
     initializedRef.current = true;

@@ -128,11 +128,9 @@ export function diagnoseDataBleed() {
 export function logDataBleedDiagnostic() {
   const report = diagnoseDataBleed();
   
-  console.group('🔍 Data Bleed Diagnostic Report');
-  console.log('Timestamp:', report.timestamp);
-  
+  // Only surface issues and warnings — suppress routine info/recommendations
   if (report.issues.length > 0) {
-    console.group('🚨 CRITICAL ISSUES');
+    console.group('🚨 Data Bleed Diagnostic - CRITICAL ISSUES');
     report.issues.forEach(issue => {
       console.error(`${issue.severity}: ${issue.message}`, issue.details);
     });
@@ -140,7 +138,7 @@ export function logDataBleedDiagnostic() {
   }
   
   if (report.warnings.length > 0) {
-    console.group('⚠️ WARNINGS');
+    console.group('⚠️ Data Bleed Diagnostic - WARNINGS');
     report.warnings.forEach(warning => {
       if (typeof warning === 'object') {
         console.warn(warning.message, warning.details);
@@ -150,28 +148,6 @@ export function logDataBleedDiagnostic() {
     });
     console.groupEnd();
   }
-  
-  if (report.info.length > 0) {
-    console.group('ℹ️ INFO');
-    report.info.forEach(info => {
-      if (typeof info === 'object') {
-        console.log(info.message, info);
-      } else {
-        console.log(info);
-      }
-    });
-    console.groupEnd();
-  }
-  
-  if (report.recommendations.length > 0) {
-    console.group('💡 RECOMMENDATIONS');
-    report.recommendations.forEach(rec => {
-      console.log(`[${rec.priority}] ${rec.action} - ${rec.reason}`);
-    });
-    console.groupEnd();
-  }
-  
-  console.groupEnd();
   
   return report;
 }
