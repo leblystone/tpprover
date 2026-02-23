@@ -1,0 +1,99 @@
+﻿# -------------------------------------------------
+# .cursorignore  -  TPP Spendide
+# Excludes files that are expensive to tokenize
+# but add zero value to code-logic assistance.
+# -------------------------------------------------
+
+
+# -- Dependencies & package managers
+node_modules/
+**/node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+
+# -- Build outputs & caches
+dist/
+.vite/
+.netlify/
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/Pods/
+ios/App/build/
+*.map
+
+
+# -- Native platform source (Capacitor)
+# AI does not need to read Java/Swift/Kotlin to fix JS logic
+android/
+ios/
+plugins/
+
+
+# -- Git internals
+.git/
+
+
+# -- Project worktree / duplicate copy
+TPPRover/
+
+
+# -- Binary & media assets
+public/*.png
+public/*.jpg
+public/*.jpeg
+public/*.webp
+public/*.ico
+public/*.gif
+store-assets/
+screenshots/
+src/assets/**/*.png
+src/assets/**/*.jpg
+src/assets/**/*.svg
+src/assets/**/*.webp
+
+
+# -- Root-level documentation noise
+# ~150+ planning/blog/guide .md files in the project root
+*.md
+*.txt
+*.html
+!index.html
+
+
+# -- Secrets / env files
+.env
+.env.*
+*.env
+
+
+# -- Temp & scratch files
+tmp.js
+temp_activate_function.txt
+*.tmp
+*.log
+auto-dev.bat
+auto-run-mobile.bat
+watch-mobile.bat
+auto-commit-pwa.bat
+compare-worktrees.ps1
+test-worktree.ps1
+clean-android-build.bat
+build-and-deploy-android.bat
+CLEAN_GIT_HISTORY.bat
+
+
+# -- Firebase / cloud config (large, rarely edited)
+firebase.json
+firestore.indexes.json
+firestore.rules
+storage.rules
+.firebaserc
+
+
+# -- OS junk
+.DS_Store
+Thumbs.db
