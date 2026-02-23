@@ -5043,8 +5043,19 @@ exports.addTicketMessage = onCall(
 
       await ticketRef.update(updateData);
 
-      // No email notifications for messages - all communication happens in-app
-      // Users see the Support Response chip, admins see tickets in the admin panel
+      // Send email notification to user when admin sends a reply
+      if (senderType === 'admin') {
+        try {
+          const userEmail = ticketData.userEmail;
+          const ticketSubject = ticketData.subject || 'Support Request';
+          if (userEmail) {
+            await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
+            logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
+          }
+        } catch (emailError) {
+          logger.warn(`⚠️ Failed to send ticket reply email (non-fatal):`, emailError);
+        }
+      }
 
       logger.info(`✅ Message added to ticket: ${ticketId}`);
       return { 

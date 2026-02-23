@@ -4622,6 +4622,60 @@ exports.emailChangeVerificationWithLinkEmail = (newEmail, oldEmail, verification
 };
 
 /**
+ * Support ticket reply notification -- sent to user when admin responds to their open ticket
+ */
+exports.supportTicketReplyEmail = (userEmail, ticketSubject, adminMessage, ticketId) => {
+  const content = `
+    <div style="padding: 48px 32px; color: ${MODERN_COLORS.text};">
+      <h1 style="color: ${MODERN_COLORS.primary}; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;">
+        You have a new reply 💬
+      </h1>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 28px 0;">
+        Support team responded to your ticket
+      </p>
+
+      <div style="background: ${MODERN_COLORS.accent}; border-left: 4px solid ${MODERN_COLORS.primary}; border-radius: 8px; padding: 16px 20px; margin: 0 0 28px 0;">
+        <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: ${MODERN_COLORS.textLight}; margin: 0 0 6px 0;">
+          Ticket Subject
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: ${MODERN_COLORS.text}; margin: 0;">
+          ${ticketSubject || 'Support Request'}
+        </p>
+      </div>
+
+      <p style="font-size: 15px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
+        Our support team just sent you a reply:
+      </p>
+
+      <div style="background: ${MODERN_COLORS.secondary}; border: 1px solid ${MODERN_COLORS.accent}; border-radius: 12px; padding: 20px 24px; margin: 0 0 28px 0;">
+        <p style="font-size: 14px; font-weight: 600; color: ${MODERN_COLORS.primaryDark}; margin: 0 0 10px 0;">
+          🛡️ The Pep Planner Support
+        </p>
+        <p style="font-size: 15px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0; white-space: pre-wrap;">
+          ${adminMessage || ''}
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="https://thepepplanner.app/app/support" style="display: inline-block; background: ${MODERN_COLORS.primary}; color: #fff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          View Full Conversation →
+        </a>
+      </div>
+
+      <p style="font-size: 14px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 24px 0;">
+        You can reply directly in the app. If you have any additional questions, our team is happy to help!
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 24px 0 0 0;">
+        – The Pep Planner Support Team
+      </p>
+    </div>
+  `;
+  return modernEmailWrapper(content);
+};
+
+/**
  * Win-back email -- honest, confident re-engagement for users who couldn't subscribe
  */
 exports.winBackEmail = (userName = null, promoCode = null) => {

@@ -2273,3 +2273,34 @@ exports.sendDisputeResolutionEmail = async (userEmail, status, reason) => {
   });
 };
 
+/**
+ * Send support ticket reply notification to user when admin responds
+ */
+exports.sendSupportTicketReplyEmail = async (userEmail, ticketSubject, adminMessage, ticketId) => {
+  try {
+    const customTemplate = await loadEmailTemplate('supportTicketReply');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'You have a new reply on your support ticket - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, {
+        ticketSubject: ticketSubject || 'Support Request',
+        adminMessage: adminMessage || '',
+        ticketId: ticketId || ''
+      });
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'support_ticket_reply',
+        sentBy: 'system'
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load supportTicketReply template, using default:', e);
+  }
+  const subject = 'You have a new reply on your support ticket - The Pep Planner';
+  const html = emailTemplates.supportTicketReplyEmail(userEmail, ticketSubject, adminMessage, ticketId);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'support_ticket_reply',
+    sentBy: 'system'
+  });
+};
+

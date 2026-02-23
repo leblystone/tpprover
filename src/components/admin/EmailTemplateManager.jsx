@@ -653,6 +653,21 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: '',
     features: [],
     postCtaNote: 'The Pep Planner'
+  },
+  supportTicketReply: {
+    name: 'Support Ticket Reply',
+    subject: 'You have a new reply on your support ticket - The Pep Planner',
+    heading: 'You have a new reply 💬',
+    greeting: 'Our support team just responded to your ticket: %TICKETSUBJECT%',
+    mainMessage: '%ADMINMESSAGE%',
+    ctaText: 'View Full Conversation →',
+    ctaLink: 'https://thepepplanner.app/app/support',
+    highlightTitle: 'Ticket Subject',
+    highlightMessage: '%TICKETSUBJECT%',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'You can reply directly in the app. Our team is happy to help!'
   }
 };
 
