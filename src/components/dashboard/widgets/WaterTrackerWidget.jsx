@@ -41,22 +41,27 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     const reload = () => {
       try {
         const saved = localStorage.getItem('tpprover_water_tracker');
-        if (saved) setWaterData(JSON.parse(saved));
+        if (saved) {
+          isExternalUpdate.current = true;
+          setWaterData(JSON.parse(saved));
+        }
       } catch {}
     };
     window.addEventListener('tpp:cloud-data-loaded', reload);
-    window.addEventListener('tpp:water-tracker-updated', reload);
     return () => {
       window.removeEventListener('tpp:cloud-data-loaded', reload);
-      window.removeEventListener('tpp:water-tracker-updated', reload);
     };
   }, []);
 
-  // Save water data whenever it changes
+  // Save water data whenever it changes (skip the event to avoid re-triggering our own listener)
+  const isExternalUpdate = React.useRef(false);
   useEffect(() => {
+    if (isExternalUpdate.current) {
+      isExternalUpdate.current = false;
+      return;
+    }
     try {
       localStorage.setItem('tpprover_water_tracker', JSON.stringify(waterData));
-      window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData } }));
     } catch (error) {
       console.warn('Failed to save water data:', error);
     }

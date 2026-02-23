@@ -46,6 +46,9 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
         });
     }, [protocols]);
 
+    // Stable key so we only re-load notes when the set of active protocols actually changes
+    const activeProtocolIds = useMemo(() => activeProtocols.map(p => p.id).join(','), [activeProtocols]);
+
     // Load notes count for each active protocol
     useEffect(() => {
         const protocolsWithData = activeProtocols.map(protocol => {
@@ -63,7 +66,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
             };
         });
         setProtocolsWithNotes(protocolsWithData);
-    }, [activeProtocols]);
+    }, [activeProtocolIds]);
 
     const handleAddNoteClick = (protocol) => {
         setSelectedProtocol(protocol);
