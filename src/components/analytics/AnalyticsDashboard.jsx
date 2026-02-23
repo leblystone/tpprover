@@ -29,7 +29,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const supplements = ctxSupplements || []
   const reconItems = ctxReconItems || []
   const protocolHistory = useLocal('tpprover_protocol_history', [])
-  const goals = useLocal('tpprover_goals', [])
+  const goals = useLocal('tpprover_user_goals', [])
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())
   const [internalTab, setInternalTab] = useState(defaultTab || 'compliance')
   const activeTab = controlledTab || internalTab

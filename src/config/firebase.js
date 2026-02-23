@@ -57,11 +57,17 @@ export const storage = getStorage(app);
 
 // Initialize Analytics (non-blocking, only in browser environments that support it)
 let analytics = null;
-isAnalyticsSupported().then(supported => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  }
-}).catch(() => {});
+if (firebaseConfig.measurementId) {
+  isAnalyticsSupported().then(supported => {
+    if (supported) {
+      try {
+        analytics = getAnalytics(app);
+      } catch {
+        // Analytics init failed (e.g. measurement ID mismatch) — skip silently
+      }
+    }
+  }).catch(() => {});
+}
 
 export { analytics };
 

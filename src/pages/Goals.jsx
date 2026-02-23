@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import useLocalStorage from '../utils/hooks'
+import { useSyncedGoals } from '../utils/hooks'
 import GoalModal from '../components/research/GoalModal'
+import { prepareItemForSave } from '../utils/userDataSave'
 import { Check, Edit, PlusCircle } from 'lucide-react'
 
 export default function Goals() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
-  const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
+  const [goals, setGoals] = useSyncedGoals()
   const [showGoal, setShowGoal] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
 
@@ -60,14 +61,14 @@ export default function Goals() {
                     {g.completed && <Check size={12} className="text-white" />}
                   </button>
                   <div style={{ color: g.completed ? theme.textLight : theme.text }} className={g.completed ? 'line-through' : ''}>
-                    <div className="font-medium text-sm">{g.text}</div>
-                    {g.dueDate && (
+                    <div className="font-medium text-sm">{g.text || g.title}</div>
+                    {(g.dueDate || g.targetDate) && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs" style={{ color: theme.textLight }}>
-                          Due: {new Date(g.dueDate).toLocaleDateString()}
+                          Due: {new Date(g.dueDate || g.targetDate).toLocaleDateString()}
                         </span>
                         {!g.completed && (() => {
-                          const dueDate = new Date(g.dueDate);
+                          const dueDate = new Date(g.dueDate || g.targetDate);
                           const today = new Date();
                           today.setHours(0, 0, 0, 0);
                           dueDate.setHours(0, 0, 0, 0);
@@ -113,8 +114,8 @@ export default function Goals() {
         goal={editingGoal}
         onSave={(form) => {
           setGoals(prev => {
-            if (form.id) return prev.map(g => g.id === form.id ? form : g)
-            return [{ ...form, id: generateId() }, ...prev]
+            if (form.id) return prev.map(g => g.id === form.id ? prepareItemForSave(form) : g)
+            return [prepareItemForSave({ ...form, title: form.text || form.title, targetDate: form.dueDate || form.targetDate }, { isNew: true }), ...prev]
           })
           setShowGoal(false)
           setEditingGoal(null)

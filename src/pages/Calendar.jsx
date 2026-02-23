@@ -169,17 +169,24 @@ export default function Calendar() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [goals, setGoals] = useState([]);
   
-  // Load goals from localStorage with user validation
+  // Load goals from cloud-synced localStorage (tpprover_user_goals) with user validation
   useEffect(() => {
-    if (!firebaseUser?.email) return;
-    try {
-      const savedGoals = safeLocalStorageGet('tpprover_goals', firebaseUser.email);
-      if (savedGoals) {
-        setGoals(savedGoals);
+    const load = () => {
+      if (!firebaseUser?.email) return;
+      try {
+        const savedGoals = safeLocalStorageGet('tpprover_user_goals', firebaseUser.email);
+        setGoals(Array.isArray(savedGoals) ? savedGoals : []);
+      } catch (error) {
+        console.error('Error loading goals:', error);
       }
-    } catch (error) {
-      console.error('Error loading goals:', error);
-    }
+    };
+    load();
+    window.addEventListener('tpp:user-goals-updated', load);
+    window.addEventListener('tpp:cloud-data-loaded', load);
+    return () => {
+      window.removeEventListener('tpp:user-goals-updated', load);
+      window.removeEventListener('tpp:cloud-data-loaded', load);
+    };
   }, [firebaseUser?.email]);
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState(() => {

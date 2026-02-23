@@ -16,7 +16,7 @@ import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import { calculateRecon } from '../utils/recon'
-import useLocalStorage from '../utils/hooks'
+import useLocalStorage, { useSyncedGoals } from '../utils/hooks'
 import { formatMMDDYYYY, parseDateString } from '../utils/date'
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted } from '../utils/taskCompletion'
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
@@ -158,7 +158,7 @@ export default function Dashboard() {
   const [showNewOrder, setShowNewOrder] = useState(false)
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   // vendorNames removed — use `vendors` from AppContext instead
-  const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
+  const [goals, setGoals] = useSyncedGoals()
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
   const [showMetrics, setShowMetrics] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)

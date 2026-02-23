@@ -204,6 +204,7 @@ const GoalsOnlyWidget = ({
         goal.id === goalId ? { ...goal, archived: false, archivedAt: undefined } : goal
       );
       localStorage.setItem('tpprover_user_goals', JSON.stringify(updatedGoals));
+      window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: updatedGoals } }));
       loadGoals(); // Reload to update both active and archived lists
     } catch (error) {
       console.error('Failed to restore goal:', error);
