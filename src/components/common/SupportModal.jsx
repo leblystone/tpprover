@@ -298,6 +298,24 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 
                 console.log('✅ Support ticket created:', ticketId);
                 
+                // Also submit to feedback collection so bug reports appear in admin Bugs tab
+                if (ticketType === 'bug') {
+                    try {
+                        await submitFeedback({
+                            type: 'bug',
+                            message: formData.message.trim(),
+                            userEmail: user?.email || 'anonymous',
+                            userId: user?.uid || null,
+                            userAgent: navigator.userAgent,
+                            url: window.location.href,
+                            timestamp: new Date().toISOString()
+                        });
+                        console.log('✅ Bug also submitted to feedback collection');
+                    } catch (fbErr) {
+                        console.warn('⚠️ Bug ticket created but feedback entry failed:', fbErr.message);
+                    }
+                }
+                
                 // Reload user tickets to show the new one
                 if (user?.email) {
                     await loadUserTickets();

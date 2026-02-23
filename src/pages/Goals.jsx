@@ -53,7 +53,7 @@ export default function Goals() {
               <li key={g.id} className="flex items-start justify-between p-2 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}>
                 <div className="flex items-start gap-2">
                   <button
-                    onClick={() => setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: !x.completed } : x))}
+                    onClick={() => setGoals(prev => prev.map(x => x.id === g.id ? prepareItemForSave({ ...x, completed: !x.completed }) : x))}
                     className="w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5"
                     style={{ borderColor: g.completed ? theme.success : theme.border, backgroundColor: g.completed ? theme.success : 'transparent' }}
                     title={g.completed ? 'Mark incomplete' : 'Mark complete'}

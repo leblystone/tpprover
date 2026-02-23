@@ -32,6 +32,7 @@ import ResearchStatusWidget from '../components/dashboard/ResearchStatusWidget'
 import ConversionWidget from '../components/dashboard/ConversionWidget'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
+import { prepareItemForSave } from '../utils/userDataSave'
 import { useBadgeStats } from '../utils/badges'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
@@ -795,7 +796,7 @@ export default function Dashboard() {
                                     setShowUpgradeModal(true);
                                     return;
                                   }
-                                  setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: !x.completed } : x));
+                                  setGoals(prev => prev.map(x => x.id === g.id ? prepareItemForSave({ ...x, completed: !x.completed }) : x));
                                 }}
                                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5`}
                                 style={{borderColor: g.completed ? theme.success : theme.border, backgroundColor: g.completed ? theme.success : 'transparent'}}
@@ -803,12 +804,12 @@ export default function Dashboard() {
                                 {g.completed && <Check size={10} className="text-white" />}
                             </button>
                             <div className={g.completed ? 'line-through' : ''} style={{ color: g.completed ? theme.textLight : theme.text }}>
-                                <div className="font-medium text-xs">{g.text}</div>
-                                {g.dueDate && !g.completed &&
+                                <div className="font-medium text-xs">{g.text || g.title}</div>
+                                {(g.dueDate || g.targetDate) && !g.completed &&
                                     (() => {
-                                        const dueDate = new Date(g.dueDate);
+                                        const dueDate = new Date(g.dueDate || g.targetDate);
                                         const today = new Date();
-                                        today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+                                        today.setHours(0, 0, 0, 0);
                                         dueDate.setHours(0, 0, 0, 0);
                                         const diffTime = dueDate.getTime() - today.getTime();
                                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1232,8 +1233,8 @@ export default function Dashboard() {
         goal={editingGoal}
         onSave={(form) => {
         setGoals(prev => {
-            if (form.id) return prev.map(g => g.id === form.id ? { ...g, text: form.text, dueDate: form.dueDate } : g)
-            return [{ id: generateId(), text: form.text, dueDate: form.dueDate, completed: false }, ...prev]
+            if (form.id) return prev.map(g => g.id === form.id ? prepareItemForSave({ ...g, text: form.text, title: form.text || form.title, dueDate: form.dueDate, targetDate: form.dueDate || form.targetDate, notes: form.notes, completed: form.completed }) : g)
+            return [prepareItemForSave({ text: form.text, title: form.text || form.title, dueDate: form.dueDate, targetDate: form.dueDate || form.targetDate, notes: form.notes, completed: false }, { isNew: true }), ...prev]
         })
         setShowGoal(false)
         setEditingGoal(null)

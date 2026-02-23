@@ -665,7 +665,7 @@ export default function CustomizableDashboard() {
   // Goal management
   const handleGoalToggle = (goalId) => {
     setGoals(prev => prev.map(g => 
-      g.id === goalId ? { ...g, completed: !g.completed } : g
+      g.id === goalId ? prepareItemForSave({ ...g, completed: !g.completed }) : g
     ));
   };
 

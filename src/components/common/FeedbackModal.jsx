@@ -28,6 +28,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
             });
 
             const feedbackId = await submitFeedback({
+                type: 'suggestion',
                 message: message.trim(),
                 userEmail: user?.email || 'anonymous',
                 userId: user?.uid || null,

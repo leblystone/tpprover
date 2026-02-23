@@ -368,7 +368,7 @@ export default function RecentlyDeleted({ theme }) {
             let allGoals = allGoalsStr ? JSON.parse(allGoalsStr) : []
             allGoals = [...allGoals, itemData]
             localStorage.setItem('tpprover_user_goals', JSON.stringify(allGoals))
-            window.dispatchEvent(new CustomEvent('tpp:goals-updated'))
+            window.dispatchEvent(new CustomEvent('tpp:user-goals-updated', { detail: { goals: allGoals } }))
           } catch (e) {
             console.error('Failed to restore goal:', e)
           }
