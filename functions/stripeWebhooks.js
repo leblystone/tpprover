@@ -1229,46 +1229,19 @@ async function handleInvoicePaymentFailed(event, stripe) {
 }
 
 /**
- * Handle upcoming invoice (renewal reminder)
+ * Handle upcoming invoice (renewal reminder) - email sending disabled.
+ * We are not sending renewal reminder emails. Event is still logged.
  */
 async function handleInvoiceUpcoming(event, stripe) {
   const invoice = event.data.object;
   logger.info(`📅 Invoice upcoming: ${invoice.id}`);
 
-  // Get user email
   const customer = await stripe.customers.retrieve(invoice.customer);
-  const userEmail = customer.email;
-
-  if (!userEmail) {
-    logger.warn('⚠️ No email found for customer:', invoice.customer);
-    return;
-  }
-
-  // Get subscription details
+  const userEmail = customer.email || null;
   const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
   const planName = subscription.items.data[0]?.price?.nickname || 'Pro Plan';
 
-  // Get userId and check billing notification preference
-  let userId = subscription.metadata?.userId;
-  if (!userId) {
-    userId = await findUserIdByEmail(userEmail);
-  }
-
-  // Check if user has billing notifications enabled
-  if (userId) {
-    const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
-    const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
-    
-    if (!billingEnabled) {
-      logger.info(`⏭️ Skipping renewal reminder email for ${userEmail} - billing notifications disabled`);
-      return;
-    }
-  }
-
-  // Send renewal reminder email
-  await emailService.sendRenewalReminderEmail(userEmail, planName);
-
-  // Log the event
+  // Log the event only (renewal reminder emails are disabled)
   await admin.firestore().collection('stripeEvents').add({
     type: 'invoice.upcoming',
     invoiceId: invoice.id,

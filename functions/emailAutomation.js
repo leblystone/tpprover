@@ -277,8 +277,8 @@ exports.checkTrialEndingSoon = onSchedule({
 );
 
 /**
- * 9. Subscription Renewal Reminder - 3 days before renewal
- * Runs daily at 10 AM EST to check for renewals in 3 days
+ * 9. Subscription Renewal Reminder - DISABLED
+ * We are not sending renewal reminder emails. Schedule kept for backward compatibility.
  */
 exports.checkRenewalReminders = onSchedule({
     schedule: '0 15 * * *', // 10 AM EST (15:00 UTC)
@@ -286,92 +286,8 @@ exports.checkRenewalReminders = onSchedule({
     secrets: ['RESEND_API_KEY']
   },
   async (event) => {
-    logger.info('🔍 Checking for subscription renewals in 3 days...');
-    
-    try {
-      // Calculate date 3 days from now
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-      threeDaysFromNow.setHours(0, 0, 0, 0);
-      
-      const fourDaysFromNow = new Date(threeDaysFromNow);
-      fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 1);
-
-      // Query users whose subscription renews in 3 days (exclude gift subscriptions)
-      const usersSnapshot = await getDb().collection('users')
-        .where('subscriptionRenewalDate', '>=', threeDaysFromNow)
-        .where('subscriptionRenewalDate', '<', fourDaysFromNow)
-        .where('subscriptionStatus', 'in', ['active', 'trialing'])
-        .get();
-
-      // Filter out users with gift subscriptions
-      const filteredUsers = [];
-      for (const doc of usersSnapshot.docs) {
-        const userData = doc.data();
-        
-        // Check if user has a gift subscription
-        const giftSubscriptionSnapshot = await getDb().collection('userSubscriptions')
-          .where('userId', '==', doc.id)
-          .where('type', '==', 'gift')
-          .where('status', '==', 'active')
-          .get();
-        
-        // Only include users without active gift subscriptions
-        if (giftSubscriptionSnapshot.empty) {
-          filteredUsers.push({ doc, data: userData });
-        }
-      }
-
-      logger.info(`📧 Found ${filteredUsers.length} users with renewals in 3 days (excluding gift subscriptions)`);
-
-      // Import pushNotifications to check billing preferences
-      const pushNotifications = require('./pushNotifications');
-
-      const emailPromises = [];
-      
-      for (const { doc, data: userData } of filteredUsers) {
-        const userEmail = userData.email;
-        const userId = doc.id;
-        
-        if (userEmail) {
-          // Check if user has billing notifications enabled
-          const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
-          const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
-          
-          if (!billingEnabled) {
-            logger.info(`⏭️ Skipping renewal reminder for ${userEmail} - billing notifications disabled`);
-            continue;
-          }
-          
-          logger.info(`📤 Sending renewal reminder to ${userEmail}`);
-          emailPromises.push(
-            emailService.sendRenewalReminderEmail(userEmail, userData.subscriptionPlan || 'Pro Plan')
-              .then(success => {
-                if (success) {
-                  // Log the email event
-                  return getDb().collection('emailLogs').add({
-                    type: 'renewal_reminder',
-                    userEmail,
-                    userId: doc.id,
-                    subscriptionPlan: userData.subscriptionPlan,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                  });
-                }
-              })
-              .catch(error => {
-                logger.error(`❌ Failed to send renewal reminder to ${userEmail}:`, error);
-              })
-          );
-        }
-      }
-
-      await Promise.all(emailPromises);
-      logger.info('✅ Renewal reminder check completed');
-      
-    } catch (error) {
-      logger.error('❌ Error in renewal reminder check:', error);
-    }
+    logger.info('🔍 Renewal reminder check skipped - renewal reminder emails are disabled');
+    return;
   }
 );
 

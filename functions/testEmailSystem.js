@@ -30,8 +30,9 @@ async function sendEmailViaResend(to, subject, html) {
   let result;
   
   try {
+    // Use Resend's sandbox sender so test emails work without verifying thepepplanner.app
     result = await resend.emails.send({
-      from: 'The Pep Planner <noreply@thepepplanner.app>',
+      from: 'The Pep Planner <onboarding@resend.dev>',
       to,
       subject,
       html,

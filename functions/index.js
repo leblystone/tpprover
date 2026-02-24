@@ -2648,132 +2648,203 @@ exports.onUserCreated = onDocumentCreated(
 // Trial ending reminders are handled by emailAutomation.checkTrialEndingSoon
 // (removed duplicate scheduledTrialReminders)
 
-// Win-back campaign: email churned users who had a paid subscription that ended 14+ days ago
-exports.bulkWinBackCampaign = onSchedule({
-  schedule: '0 17 * * 5', // Every Friday at 10 AM Mountain Time (17:00 UTC)
-  timeZone: 'UTC',
-  memory: '512MiB',
-  timeoutSeconds: 300,
-  secrets: ['RESEND_API_KEY'],
-}, async (event) => {
-  logger.info('📧 Running bulk win-back campaign...');
-  const db = admin.firestore();
+// Shared logic for the win-back campaign — used by both the scheduled and manual triggers
+async function runWinBackCampaign(db, sentBy = 'scheduled') {
+  logger.info(`📧 Running win-back campaign (triggered by: ${sentBy})...`);
 
-  try {
-    const now = new Date();
-    const fourteenDaysAgo = new Date(now);
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    const oneEightyDaysAgo = new Date(now);
-    oneEightyDaysAgo.setDate(oneEightyDaysAgo.getDate() - 180);
+  const now = new Date();
+  const fourteenDaysAgo = new Date(now);
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const oneEightyDaysAgo = new Date(now);
+  oneEightyDaysAgo.setDate(oneEightyDaysAgo.getDate() - 180);
+  const sixtyDaysAgo = new Date(now);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-    // Target: expired/canceled subs AND expired trials (users who couldn't subscribe)
-    const usersSnapshot = await db.collection('users')
-      .where('subscription.status', 'in', ['canceled', 'expired', 'trialing'])
-      .get();
+  // Pre-fetch all win-back emails — query on type only (no composite index needed), filter date in JS
+  const recentWinBackSnap = await db.collection('emailHistory')
+    .where('type', '==', 'winBack')
+    .get();
+  const recentWinBackEmails = new Set(
+    recentWinBackSnap.docs
+      .filter(d => {
+        const sentAt = d.data().sentAt;
+        if (!sentAt) return false;
+        const date = sentAt.toDate ? sentAt.toDate() : new Date(sentAt);
+        return date >= sixtyDaysAgo;
+      })
+      .map(d => d.data().recipientEmail)
+      .filter(Boolean)
+  );
+  logger.info(`📬 Pre-loaded ${recentWinBackEmails.size} recent win-back recipients (60-day dedup set)`);
 
-    let sent = 0;
-    let skipped = 0;
+  // Query all users — filter in JS since subscription.status is inconsistent
+  const usersSnapshot = await db.collection('users').get();
+  logger.info(`📊 Total users scanned: ${usersSnapshot.size}`);
 
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      const userEmail = userData.email;
-      const userId = userDoc.id;
-      const subscription = userData.subscription || {};
+  let sent = 0;
+  let skipped = 0;
 
-      if (!userEmail) { skipped++; continue; }
+  for (const userDoc of usersSnapshot.docs) {
+    const userData = userDoc.data();
+    const userEmail = userData.email;
+    const userId = userDoc.id;
+    const subscription = userData.subscription || {};
 
-      // Skip admin accounts
-      if (userData.role === 'admin') { skipped++; continue; }
+    if (!userEmail) { skipped++; continue; }
 
-      // Skip users with active paid subscriptions or lifetime access
-      if (subscription.status === 'active' && subscription.interval !== 'trial') { skipped++; continue; }
-      if (subscription.hasLifetimeAccess) { skipped++; continue; }
+    // Skip admin accounts
+    if (userData.role === 'admin') { skipped++; continue; }
 
-      // Skip users who had a real paid subscription and canceled — they chose to leave
-      const paidIntervals = ['monthly', 'annual', 'yearly', 'lifetime'];
-      if (paidIntervals.includes(subscription.interval)) { skipped++; continue; }
+    // Skip lifetime access
+    if (subscription.hasLifetimeAccess || subscription.interval === 'lifetime') { skipped++; continue; }
 
-      // For trialing users: only target if their trial has already expired
-      if (subscription.status === 'trialing') {
-        const trialEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
-        if (!trialEnd || trialEnd > now) { skipped++; continue; }
-      }
+    // Skip users with active paid subscriptions
+    if (subscription.status === 'active' &&
+        subscription.plan &&
+        !['30-Day Research Trial', '7-Day Free Trial'].includes(subscription.plan)) {
+      skipped++; continue;
+    }
 
-      // Check if their access ended in the 14–180 day window
-      const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
-      const createdAt = userData.createdAt ? new Date(userData.createdAt) : null;
-      const relevantDate = periodEnd || createdAt;
+    // Skip users who EVER had a paid subscription (payment history indicators)
+    const hasPaymentHistory =
+      subscription.stripeSubscriptionId ||
+      subscription.stripeCustomerId ||
+      subscription.paymentMethodId ||
+      subscription.paymentProvider ||
+      (subscription.platform && ['stripe', 'google-play', 'apple', 'squarespace'].includes(subscription.platform)) ||
+      subscription.googlePlayPurchaseToken ||
+      subscription.appleTransactionId ||
+      subscription.customerId;
+    if (hasPaymentHistory) { skipped++; continue; }
 
-      if (!relevantDate || relevantDate > fourteenDaysAgo || relevantDate < oneEightyDaysAgo) {
+    // Skip if plan name indicates paid subscription
+    const plan = (subscription.plan || '').toLowerCase();
+    const paidPlanIndicators = ['monthly', 'annual', 'yearly', 'year', 'lifetime', 'subscription'];
+    if (paidPlanIndicators.some(ind => plan.includes(ind) && !plan.includes('trial'))) {
+      if (!plan.includes('trial') && !plan.includes('free')) { skipped++; continue; }
+    }
+
+    // Determine trial end date (same logic as ExpiredTrialManager)
+    let trialEndDate = null;
+    if (subscription.currentPeriodEnd) {
+      trialEndDate = subscription.currentPeriodEnd.toDate
+        ? subscription.currentPeriodEnd.toDate()
+        : new Date(subscription.currentPeriodEnd);
+    } else if (userData.trialEndDate) {
+      trialEndDate = userData.trialEndDate.toDate
+        ? userData.trialEndDate.toDate()
+        : new Date(userData.trialEndDate);
+    } else if (userData.createdAt) {
+      const created = userData.createdAt.toDate
+        ? userData.createdAt.toDate()
+        : new Date(userData.createdAt);
+      trialEndDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+
+    if (!trialEndDate || isNaN(trialEndDate.getTime())) { skipped++; continue; }
+
+    // Skip users whose trial is still active
+    if (trialEndDate > now) { skipped++; continue; }
+
+    // Must be in the 14–180 day expired window
+    if (trialEndDate > fourteenDaysAgo || trialEndDate < oneEightyDaysAgo) { skipped++; continue; }
+
+    // Skip if already received a win-back in the last 60 days (O(1) Set lookup — no Firestore read)
+    if (recentWinBackEmails.has(userEmail)) { skipped++; continue; }
+
+    try {
+      const userName = userData.displayName || userEmail.split('@')[0];
+      const emailSent = await emailService.sendWinBackEmail(userEmail, userName, null);
+
+      if (!emailSent) {
+        logger.warn(`⚠️ Win-back email failed (Resend rejected) for ${userEmail}`);
         skipped++;
         continue;
       }
 
-      // Skip if already sent a win-back in the last 60 days
-      const recentEmailQuery = await db.collection('emailHistory')
-        .where('recipientEmail', '==', userEmail)
-        .where('type', '==', 'winBack')
-        .limit(1)
-        .get();
+      // Only grant trial extension and log history if email actually sent
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 14);
 
-      if (!recentEmailQuery.empty) {
-        const lastSent = recentEmailQuery.docs[0].data()?.sentAt?.toDate?.();
-        if (lastSent && (now - lastSent) < 60 * 24 * 60 * 60 * 1000) {
-          skipped++;
-          continue;
+      await db.collection('userSubscriptions').doc(userId).set({
+        subscription: {
+          status: 'trialing',
+          currentPeriodEnd: trialEnd.toISOString(),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          winBackTrialGranted: true,
+          winBackTrialGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
         }
-      }
+      }, { merge: true });
 
-      try {
-        // Grant a 14-day trial extension so they can explore without paying immediately
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 14);
-        await db.collection('userSubscriptions').doc(userId).set({
-          subscription: {
-            status: 'trialing',
-            currentPeriodEnd: trialEnd.toISOString(),
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-            winBackTrialGranted: true,
-            winBackTrialGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
-          }
-        }, { merge: true });
-        await db.collection('users').doc(userId).set({
-          subscription: {
-            status: 'trialing',
-            currentPeriodEnd: trialEnd.toISOString(),
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-          }
-        }, { merge: true });
+      await db.collection('users').doc(userId).set({
+        subscription: {
+          status: 'trialing',
+          currentPeriodEnd: trialEnd.toISOString(),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }
+      }, { merge: true });
 
-        const userName = userData.displayName || userEmail.split('@')[0];
-        await emailService.sendWinBackEmail(userEmail, userName, null);
+      await db.collection('emailHistory').add({
+        type: 'winBack',
+        recipientEmail: userEmail,
+        userId,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'sent',
+        sentBy,
+        trialExtended: true,
+        trialEndDate: trialEnd.toISOString(),
+      });
 
-        await db.collection('emailHistory').add({
-          type: 'winBack',
-          recipientEmail: userEmail,
-          userId,
-          sentAt: admin.firestore.FieldValue.serverTimestamp(),
-          status: 'sent',
-          sentBy: 'scheduled',
-          trialExtended: true,
-          trialEndDate: trialEnd.toISOString(),
-        });
-
-        sent++;
-      } catch (emailError) {
-        logger.warn(`⚠️ Failed to send win-back email to ${userEmail}: ${emailError.message}`);
-      }
-
-      // Rate limit: small delay between emails
-      if (sent % 10 === 0 && sent > 0) {
-        await new Promise(r => setTimeout(r, 1000));
-      }
+      recentWinBackEmails.add(userEmail);
+      sent++;
+      logger.info(`✅ Win-back sent to ${userEmail} (${sent} so far)`);
+    } catch (emailError) {
+      logger.warn(`⚠️ Exception sending win-back to ${userEmail}: ${emailError.message}`);
+      skipped++;
     }
 
-    logger.info(`✅ Win-back campaign complete. Sent: ${sent}, Skipped: ${skipped}`);
-    return { success: true, sent, skipped };
+    // 300ms between every email + 2s pause every 10 to stay under Resend rate limits
+    await new Promise(r => setTimeout(r, 300));
+    if (sent % 10 === 0 && sent > 0) {
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  logger.info(`✅ Win-back campaign complete. Sent: ${sent}, Skipped: ${skipped}`);
+  return { success: true, sent, skipped };
+}
+
+// Win-back campaign: email churned users (canceled/expired) whose access ended 14–180 days ago
+exports.bulkWinBackCampaign = onSchedule({
+  schedule: '0 17 * * 5', // Every Friday at 10 AM Mountain Time (17:00 UTC)
+  timeZone: 'UTC',
+  memory: '1GiB',
+  timeoutSeconds: 540,
+  secrets: ['RESEND_API_KEY'],
+}, async (event) => {
+  const db = admin.firestore();
+  try {
+    return await runWinBackCampaign(db, 'scheduled');
   } catch (error) {
     logger.error('❌ Win-back campaign failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manual admin trigger for the win-back campaign — bypasses the Friday schedule
+exports.manualTriggerWinBackCampaign = onCall({
+  cors: true,
+  memory: '1GiB',
+  timeoutSeconds: 540,
+  secrets: ['RESEND_API_KEY'],
+}, async (request) => {
+  verifyAdmin(request);
+  logger.info(`🔧 Win-back campaign manually triggered by admin: ${request.auth.token.email}`);
+  const db = admin.firestore();
+  try {
+    return await runWinBackCampaign(db, 'manual');
+  } catch (error) {
+    logger.error('❌ Manual win-back campaign failed:', error);
     return { success: false, error: error.message };
   }
 });

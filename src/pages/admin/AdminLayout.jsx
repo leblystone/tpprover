@@ -12,6 +12,8 @@ import {
   Layers,
   MailOpen,
   Sliders,
+  Menu,
+  X,
 } from 'lucide-react';
 import { auth } from '../../config/firebase';
 import { loginUser } from '../../services/firebase';
@@ -221,6 +223,16 @@ function AdminLayout() {
   );
 }
 
+const SIDEBAR_WIDTH = 240;
+
+const iconMap = {
+  LayoutDashboard,
+  Users,
+  Layers,
+  MailOpen,
+  Sliders,
+};
+
 function AdminAuthenticatedLayout({
   theme,
   pathname,
@@ -230,6 +242,8 @@ function AdminAuthenticatedLayout({
   timeMessage,
   handleLogout,
 }) {
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  React.useEffect(() => setSidebarOpen(false), [pathname]);
   const {
     isUserModalOpen,
     selectedUser,
@@ -241,147 +255,135 @@ function AdminAuthenticatedLayout({
 
   return (
     <div
-      className="min-h-screen w-screen flex flex-col"
+      className="min-h-screen w-screen flex"
       style={{ backgroundColor: theme.background }}
     >
-      <header
-        className="border-b flex-shrink-0 relative z-10"
+      {/* Mobile backdrop when sidebar open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-10 lg:hidden"
+          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      {/* Fixed left sidebar */}
+      <aside
+        className={`fixed left-0 top-0 bottom-0 flex flex-col flex-shrink-0 z-20 border-r overflow-y-auto transition-transform duration-200 ease-out lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
         style={{
+          width: SIDEBAR_WIDTH,
+          backgroundColor: theme.cardBackground ?? '#f8f9fa',
           borderColor: theme.border,
-          backgroundColor: theme.cardBackground,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
         }}
       >
-        <div className="px-4 lg:px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div>
-                <img src="/tpp_logo.png" alt="The Pep Planner" className="w-10 h-10 object-contain" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold" style={{ color: theme.text }}>
-                  The Pep Planner
-                </h1>
-                <p className="text-xs hidden sm:block" style={{ color: theme.textLight }}>
-                  Admin Panel
-                </p>
-              </div>
-            </div>
-
-            <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-4xl">
-              {adminPrimaryTabs.map((tab) => {
-                const defaultPath = tab.children?.length
-                  ? tab.children[0].path
-                  : tab.path;
-                const isActive = tab.children
-                  ? tab.children.some((c) => c.path === pathname)
-                  : pathname === tab.path;
-                return (
-                  <NavLink
-                    key={tab.id}
-                    to={defaultPath}
-                    end={!tab.children?.length}
-                    className="px-3 py-2 rounded-lg flex items-center gap-2 transition-all relative"
-                    style={{
-                      backgroundColor: isActive ? theme.primary + '15' : 'transparent',
-                      border: `1px solid ${isActive ? theme.primary + '30' : 'transparent'}`,
-                      color: isActive ? theme.primary : theme.text,
-                      fontWeight: isActive ? 600 : 500,
-                    }}
-                  >
-                    <span className="text-sm font-medium">{tab.label}</span>
-                    {isActive && (
-                      <span
-                        className="absolute bottom-0 left-0 right-0 rounded-full"
-                        style={{
-                          backgroundColor: theme.primary,
-                          height: 3,
-                          boxShadow: `0 0 8px ${theme.primary}60`,
-                        }}
-                      />
-                    )}
-                  </NavLink>
-                );
-              })}
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                style={{
-                  backgroundColor: timeColor + '15',
-                  border: `1px solid ${timeColor}30`,
-                  color: timeColor,
-                }}
-              >
-                <TimeIcon size={14} />
-                <span className="text-xs font-semibold hidden sm:inline">{timeMessage}</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="p-2 rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity"
-                style={{
-                  backgroundColor: theme.error + '15',
-                  border: `1px solid ${theme.error}30`,
-                  color: theme.error,
-                }}
-                title="Sign Out"
-              >
-                <LogOut size={16} />
-              </button>
+        <div className="p-4 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: theme.border }}>
+          <div className="flex items-center gap-2">
+            <img src="/tpp_logo.png" alt="The Pep Planner" className="w-9 h-9 object-contain" />
+            <div>
+              <h1 className="text-sm font-bold leading-tight" style={{ color: theme.text }}>
+                The Pep Planner
+              </h1>
+              <p className="text-[10px]" style={{ color: theme.textLight }}>
+                Admin
+              </p>
             </div>
           </div>
-
-          {/* Mobile: primary tabs as horizontal scroll */}
-          <div
-            className="lg:hidden mt-3 flex items-center gap-1.5 overflow-x-auto pb-2 px-1"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          <button
+            type="button"
+            className="lg:hidden p-2 rounded-lg hover:opacity-80"
+            style={{ color: theme.text }}
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
           >
-            {adminPrimaryTabs.map((tab) => {
-              const defaultPath = tab.children?.length
-                ? tab.children[0].path
-                : tab.path;
-              const isActive = tab.children
-                ? tab.children.some((c) => c.path === pathname)
-                : pathname === tab.path;
-              return (
-                <NavLink
-                  key={tab.id}
-                  to={defaultPath}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap"
-                  style={{
-                    backgroundColor: isActive ? theme.primary + '15' : 'transparent',
-                    color: isActive ? theme.primary : theme.textLight,
-                    border: `1px solid ${isActive ? theme.primary + '30' : 'transparent'}`,
-                  }}
-                >
-                  {tab.label}
-                </NavLink>
-              );
-            })}
-          </div>
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Secondary nav when in a group */}
-        {secondaryTabs.length > 0 && (
+        <nav className="flex-1 py-3 px-2 space-y-0.5">
+          {adminPrimaryTabs.map((tab) => {
+            const defaultPath = tab.children?.length ? tab.children[0].path : tab.path;
+            const isActive = tab.children
+              ? tab.children.some((c) => c.path === pathname || pathname.startsWith(c.path + '/'))
+              : pathname === tab.path;
+            const Icon = iconMap[tab.icon] || LayoutDashboard;
+            return (
+              <NavLink
+                key={tab.id}
+                to={defaultPath}
+                end={!tab.children?.length}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: isActive ? theme.primary : 'transparent',
+                  color: isActive ? (theme.textOnPrimary ?? '#fff') : theme.text,
+                }}
+              >
+                <Icon size={18} strokeWidth={2} />
+                <span>{tab.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="p-2 border-t flex flex-col gap-1 flex-shrink-0" style={{ borderColor: theme.border }}>
           <div
-            className="px-3 lg:px-6 flex-shrink-0 border-t overflow-x-auto"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            style={{ backgroundColor: timeColor + '18', color: timeColor }}
+          >
+            <TimeIcon size={14} />
+            <span>{timeMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
             style={{
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
+              backgroundColor: theme.error + '15',
+              color: theme.error,
+              border: `1px solid ${theme.error}30`,
             }}
           >
-            <div className="flex items-center gap-6 py-2">
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content: sub-pages on top, then page content */}
+      <div
+        className="flex-1 flex flex-col min-w-0 min-h-screen lg:ml-[240px]"
+      >
+        {/* Sub-page tabs at top of main content (with menu button on mobile) */}
+        <div
+          className="flex-shrink-0 border-b px-3 lg:px-6 overflow-x-auto flex items-center gap-2"
+          style={{
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <button
+            type="button"
+            className="lg:hidden p-2 rounded-lg hover:opacity-80 flex-shrink-0"
+            style={{ color: theme.text, backgroundColor: theme.background }}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu size={22} />
+          </button>
+          {secondaryTabs.length > 0 ? (
+            <div className="flex items-center gap-6 py-2 min-w-max flex-1 overflow-x-auto">
               {secondaryTabs.map((t) => {
                 const isActive = pathname === t.path;
                 return (
                   <NavLink
                     key={t.id}
                     to={t.path}
-                    className="px-2 pb-1 pt-1 text-sm font-medium whitespace-nowrap relative"
+                    className="px-2 pb-2 pt-3 text-sm font-medium whitespace-nowrap relative"
                     style={{
                       color: isActive ? theme.text : theme.textLight,
                       fontWeight: isActive ? 600 : 500,
@@ -402,20 +404,21 @@ function AdminAuthenticatedLayout({
                 );
               })}
             </div>
-          </div>
-        )}
-      </header>
-
-      <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
-        <div className="flex-1 p-3 lg:p-6">
-          {/* Max-width container for desktop */}
-          <div className="mx-auto max-w-7xl w-full">
-            <Suspense fallback={<div className="p-4" style={{ color: theme.textLight }}>Loading…</div>}>
-              <Outlet context={{ theme }} />
-            </Suspense>
-          </div>
+          ) : (
+            <div className="py-2 flex-1" />
+          )}
         </div>
-      </main>
+
+        <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
+          <div className="flex-1 p-4 lg:p-6">
+            <div className="mx-auto max-w-7xl w-full">
+              <Suspense fallback={<div className="p-4" style={{ color: theme.textLight }}>Loading…</div>}>
+                <Outlet context={{ theme }} />
+              </Suspense>
+            </div>
+          </div>
+        </main>
+      </div>
 
       {isUserModalOpen && selectedUser && (
         <UserDetailModal
