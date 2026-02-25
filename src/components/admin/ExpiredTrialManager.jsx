@@ -7,6 +7,7 @@ import { getFirestore, collection, query, where, limit, getDocs } from 'firebase
 
 const HISTORY_LIMIT = 300;
 
+/** Expired trials + win-back campaign (manual trigger + email history) */
 export default function ExpiredTrialManager({ theme }) {
   const [activeTab, setActiveTab] = useState('users');
   const [expiredUsers, setExpiredUsers] = useState([]);
