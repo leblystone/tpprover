@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useOutletContext, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
+import { useOutletContext, useNavigate } from 'react-router-dom'
+import { ArrowLeft, TrendingUp, Settings, Sparkles, CreditCard, Crown, ExternalLink, Shield } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -23,20 +21,8 @@ export default function AccountSubscription() {
   const [sub, setSub] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isRestoringPurchases, setIsRestoringPurchases] = useState(false)
-  const [restoreCooldown, setRestoreCooldown] = useState(0)
 
   const founderOffer = useFounderOffer()
-  
-  // Cooldown timer for restore purchases
-  useEffect(() => {
-    if (restoreCooldown > 0) {
-      const timer = setTimeout(() => {
-        setRestoreCooldown(restoreCooldown - 1)
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [restoreCooldown])
   
   // Load subscription
   useEffect(() => {
@@ -90,110 +76,6 @@ export default function AccountSubscription() {
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
       }))
-    }
-  }
-
-  const handleRestorePurchases = async () => {
-    if (isRestoringPurchases || restoreCooldown > 0) return
-    
-    setIsRestoringPurchases(true)
-    
-    try {
-      const { isAndroid, isIOS } = await import('../utils/platform')
-      let restorePurchases;
-      let providerName;
-      
-      if (isAndroid()) {
-        const gpService = await import('../services/payment/googlePlayBillingService')
-        restorePurchases = gpService.restorePurchases
-        providerName = 'Google Play'
-      } else if (isIOS()) {
-        const appleService = await import('../services/payment/appStoreIAPService')
-        restorePurchases = appleService.restorePurchases
-        providerName = 'App Store'
-      } else {
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: 'Restore is only available on mobile devices.', type: 'info' }
-        }))
-        setIsRestoringPurchases(false)
-        return
-      }
-      
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: {
-          message: `Checking ${providerName} for purchases...`,
-          type: 'info'
-        }
-      }))
-      
-      const result = await restorePurchases({
-        userId: firebaseUser?.uid,
-        userEmail: firebaseUser?.email
-      })
-      
-      if (result.success) {
-        if (result.purchasesVerified > 0) {
-          // Subscription found and restored
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: {
-              message: `✅ Subscription restored successfully! Found ${result.purchasesVerified} purchase(s).`,
-              type: 'success',
-              duration: 5000
-            }
-          }))
-          
-          // Reload subscription data
-          const { loadUserSubscription } = await import('../services/cloudStorage')
-          const subscription = await loadUserSubscription(firebaseUser.uid)
-          setSub(subscription)
-          
-          // Set cooldown to prevent spam
-          setRestoreCooldown(60) // 60 second cooldown
-        } else if (result.purchasesFound === 0) {
-          // No purchases found - not an error (message uses same provider as restore: Google Play or App Store)
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: {
-              message: `ℹ️ No active subscriptions found in ${providerName}. If you recently purchased, please wait a few minutes and try again.`,
-              type: 'info',
-              duration: 6000
-            }
-          }))
-          setRestoreCooldown(30) // 30 second cooldown
-        } else {
-          // Purchases found but verification failed
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: {
-              message: '⚠️ Found purchases but verification failed. Please check your internet connection and try again.',
-              type: 'error',
-              duration: 5000
-            }
-          }))
-          setRestoreCooldown(30)
-        }
-      }
-    } catch (error) {
-      console.error('Restore purchases error:', error)
-      
-      let errorMessage = 'Failed to restore purchases. '
-      if (error.message.includes('not available')) {
-        errorMessage += 'Google Play Billing is not available on this device.'
-      } else if (error.message.includes('network') || error.message.includes('internet')) {
-        errorMessage += 'Please check your internet connection.'
-      } else {
-        errorMessage += error.message || 'Please try again later.'
-      }
-      
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: {
-          message: errorMessage,
-          type: 'error',
-          duration: 5000
-        }
-      }))
-      
-      setRestoreCooldown(30)
-    } finally {
-      setIsRestoringPurchases(false)
     }
   }
 
@@ -603,57 +485,8 @@ export default function AccountSubscription() {
         </div>
       </div>
 
-      {/* RESTORE PURCHASES (Android + iOS native only, hidden when user has active paid subscription) */}
-      {isNative() && !['active', 'lifetime', 'monthly', 'annual'].includes(status.type) && (
-        <div 
-          className="p-4 rounded-2xl"
-          style={{ 
-            backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`
-          }}
-        >
-          <div className="flex items-start gap-3 mb-3">
-            <FontAwesomeIcon 
-              icon={isIOS() ? faApple : faGooglePlay} 
-              size="lg" 
-              style={{ color: theme.text, opacity: 0.4 }} 
-            />
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
-                Subscription Not Showing?
-              </h3>
-              <p className="text-xs leading-relaxed mb-3" style={{ color: theme.text, opacity: 0.6 }}>
-                If you purchased through the app store but your subscription isn't recognized, use this button to restore your purchase.
-              </p>
-              <button
-                onClick={handleRestorePurchases}
-                disabled={isRestoringPurchases || restoreCooldown > 0}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 btn-primary-inset"
-                style={{ 
-                  backgroundColor: theme.primary,
-                  color: theme.primaryText || '#ffffff'
-                }}
-              >
-                <RefreshCw 
-                  size={16} 
-                  className={isRestoringPurchases ? 'animate-spin' : ''}
-                />
-                <span>
-                  {isRestoringPurchases 
-                    ? 'Restoring...' 
-                    : restoreCooldown > 0 
-                      ? `Restore in ${restoreCooldown}s` 
-                      : 'Restore Purchases'
-                  }
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* UPGRADE OPTIONS */}
-      {status.type !== 'lifetime' && (
+      {/* UPGRADE OPTIONS - hidden on iOS until Apple IAP is implemented */}
+      {status.type !== 'lifetime' && !isIOS() && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />
@@ -795,10 +628,6 @@ export default function AccountSubscription() {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-xs">
-            <Link to="/terms" className="underline hover:opacity-80" style={{ color: theme.primary }}>Terms of Use</Link>
-            <Link to="/privacy" className="underline hover:opacity-80" style={{ color: theme.primary }}>Privacy Policy</Link>
-          </div>
         </div>
       )}
 
@@ -838,17 +667,19 @@ export default function AccountSubscription() {
         </button>
       </div>
 
-      {/* Secure Payment Disclaimer */}
+      {/* Trust - Secure payment disclaimer */}
       <div className="pt-8 pb-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2 mb-2">
             <Shield size={16} className="opacity-40" style={{ color: theme.text }} />
             <span className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Secure Payment Processing
             </span>
           </div>
+
           <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>
-            The Pep Planner does not store or process any private payment information.
+            The Pep Planner does not store or process any private payment information. 
+            All payments are securely handled exclusively through your platform provider.
           </p>
         </div>
       </div>
