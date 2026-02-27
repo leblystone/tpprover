@@ -5,6 +5,28 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Critical: prevent stale cache for entry points so PWA users get code updates
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Hashed assets are immutable (Vite adds content hashes to filenames)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # Netlify automatically serves static files from dist/ directory
 # Static files (images, CSS, JS) are served directly without redirect
 # Only non-file routes go to index.html for SPA routing
