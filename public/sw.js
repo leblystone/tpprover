@@ -1,6 +1,8 @@
-const CACHE_NAME = 'tpp-cache-v9-network-fix'; // Updated version - NETWORK TIMEOUT FIX
-const STATIC_CACHE = 'tpp-static-v9';
-const DYNAMIC_CACHE = 'tpp-dynamic-v9';
+// __SW_BUILD_VERSION__ is replaced at build time so every deploy gets a new SW
+const SW_BUILD_VERSION = '__SW_BUILD_VERSION__';
+const CACHE_NAME = 'tpp-cache-' + SW_BUILD_VERSION;
+const STATIC_CACHE = 'tpp-static-' + SW_BUILD_VERSION;
+const DYNAMIC_CACHE = 'tpp-dynamic-' + SW_BUILD_VERSION;
 
 // Essential assets to cache
 const STATIC_ASSETS = [
@@ -32,7 +34,7 @@ self.addEventListener('activate', (event) => {
       try {
         const cacheNames = await caches.keys();
         const deletePromises = cacheNames
-          .filter(name => !name.includes('v9')) // Delete old cache versions - NETWORK TIMEOUT FIX
+          .filter(name => name !== CACHE_NAME && name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
           .map(name => caches.delete(name));
         
         await Promise.all(deletePromises);

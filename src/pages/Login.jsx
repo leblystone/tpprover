@@ -468,14 +468,15 @@ export default function Login() {
           uid: firebaseUser.uid
         };
         
-        // CRITICAL SECURITY: Check for user change and clear data immediately
-        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-        if (lastUserEmail && lastUserEmail !== user.email) {
+        // CRITICAL SECURITY: Check for user change and clear data immediately (case-insensitive)
+        const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+        const currentEmail = (user.email || '').toLowerCase();
+        if (lastUserEmail && lastUserEmail !== currentEmail) {
           clearAllUserData();
         }
         
-        // Update last user email
-        localStorage.setItem('tpprover_last_user_email', user.email);
+        // Update last user email (store lowercase for consistent comparison)
+        localStorage.setItem('tpprover_last_user_email', currentEmail);
         
         // Set createdAt for account age tracking - use Firebase user creation date
         try {
@@ -794,12 +795,13 @@ export default function Login() {
         uid: firebaseUser.uid
       };
       
-      const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-      if (lastUserEmail && lastUserEmail !== user.email) {
+      const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+      const currentEmail = (user.email || '').toLowerCase();
+      if (lastUserEmail && lastUserEmail !== currentEmail) {
         clearAllUserData();
       }
       
-      localStorage.setItem('tpprover_last_user_email', user.email);
+      localStorage.setItem('tpprover_last_user_email', currentEmail);
       
       try {
         const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
@@ -1010,11 +1012,12 @@ export default function Login() {
           termsAgreed: { date: new Date().toISOString() }
         };
         
-        // CRITICAL SECURITY: Check for user change and clear data immediately
-        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-        const isNewAccount = !lastUserEmail || lastUserEmail !== user.email;
+        // CRITICAL SECURITY: Check for user change and clear data immediately (case-insensitive)
+        const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+        const currentEmail = (user.email || '').toLowerCase();
+        const isNewAccount = !lastUserEmail || lastUserEmail !== currentEmail;
         
-        if (lastUserEmail && lastUserEmail !== user.email) {
+        if (lastUserEmail && lastUserEmail !== currentEmail) {
           // Clear ALL user-specific data from localStorage
           clearAllUserData();
           
@@ -1035,8 +1038,8 @@ export default function Login() {
           }
         }
         
-        // Update last user email
-        localStorage.setItem('tpprover_last_user_email', user.email);
+        // Update last user email (store lowercase for consistent comparison)
+        localStorage.setItem('tpprover_last_user_email', currentEmail);
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         

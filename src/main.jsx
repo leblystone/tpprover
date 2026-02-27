@@ -125,28 +125,18 @@ if ('serviceWorker' in navigator) {
         }
 
 
-        // Unregister old service workers first to ensure clean slate (web only)
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-          await registration.unregister();
-        }
-
-        // Register new service worker (web only)
+        // Register service worker (web only). Use normal lifecycle so update detection works.
         const registration = await navigator.serviceWorker.register('/sw.js', {
-          // Force update check on every page load
           updateViaCache: 'none'
         });
 
-
-        // Listen for updates
+        // When a new SW is installed and we already have an active controller, reload to get new code
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
-
           newWorker?.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Don't auto-reload - let user manually refresh if needed
-              // Auto-reload can cause React hooks errors during dev
-              // window.location.reload();
+              console.log('🔄 New version available – reloading to apply update');
+              window.location.reload();
             }
           });
         });

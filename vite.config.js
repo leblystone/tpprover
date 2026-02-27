@@ -1,5 +1,26 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { writeFileSync, readFileSync, existsSync } from 'fs'
+import { join } from 'path'
+
+// Injects build timestamp into dist/sw.js so every deploy produces a new file (PWA update detection)
+function swVersionPlugin() {
+  return {
+    name: 'sw-version',
+    closeBundle() {
+      const outDir = join(process.cwd(), 'dist')
+      const swPath = join(outDir, 'sw.js')
+      if (!existsSync(swPath)) return
+      const version = `ts-${Date.now()}`
+      let content = readFileSync(swPath, 'utf8')
+      if (content.includes('__SW_BUILD_VERSION__')) {
+        content = content.replace(/__SW_BUILD_VERSION__/g, version)
+        writeFileSync(swPath, content)
+        console.log('[sw-version] Injected build version into sw.js:', version)
+      }
+    }
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -8,7 +29,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   
   return {
-    plugins: [react()],
+    plugins: [react(), swVersionPlugin()],
     server: {
       // Fixed port for this project — use different ports in other projects (e.g. 5174, 5175) to avoid conflicts
       port: 5173,

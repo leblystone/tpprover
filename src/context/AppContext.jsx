@@ -271,8 +271,8 @@ export function AppProvider({ children }) {
         sessionStorage.setItem('tpp_initial_data_loading', 'true');
         
         try {
-            // CRITICAL SECURITY CHECK: Verify data ownership before loading
-            const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+            // CRITICAL SECURITY CHECK: Verify data ownership before loading (case-insensitive)
+            const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
             const currentUserData = localStorage.getItem('tpprover_user');
             
             // SAFETY: If no user tracking email exists, skip instant load
@@ -287,9 +287,9 @@ export function AppProvider({ children }) {
             if (currentUserData) {
                 try {
                     const parsedUser = JSON.parse(currentUserData);
-                    
+                    const storedEmail = (parsedUser.email || '').toLowerCase();
                     // If last user email doesn't match the stored user, this is stale data
-                    if (lastUserEmail && parsedUser.email && lastUserEmail !== parsedUser.email) {
+                    if (lastUserEmail && storedEmail && lastUserEmail !== storedEmail) {
                         console.log('🚨 SECURITY: Stale user data detected during instant load');
                         console.log('  Last user:', lastUserEmail);
                         console.log('  Stored user:', parsedUser.email);
@@ -1274,12 +1274,13 @@ export function AppProvider({ children }) {
                             }
                         }
                         
-                        // CRITICAL SECURITY: Check if user changed and clear data if needed
-                        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-                        if (lastUserEmail && lastUserEmail !== parsedUser.email) {
+                        // CRITICAL SECURITY: Check if user changed and clear data if needed (case-insensitive)
+                        const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+                        const currentEmail = (parsedUser.email || '').toLowerCase();
+                        if (lastUserEmail && lastUserEmail !== currentEmail) {
                             console.log('🚨 SECURITY: User changed in auth listener!');
                             console.log('  Previous user:', lastUserEmail);
-                            console.log('  Current user:', parsedUser.email);
+                            console.log('  Current user:', currentEmail);
                             
                             // Clear ALL user-specific data from localStorage
                             clearAllUserData();
@@ -1302,8 +1303,8 @@ export function AppProvider({ children }) {
                             console.log('✅ Confirmed: Account data cleared for new user (localStorage + React state)');
                         }
                         
-                        // Update last user email
-                        localStorage.setItem('tpprover_last_user_email', parsedUser.email);
+                        // Update last user email (store lowercase for consistent comparison)
+                        localStorage.setItem('tpprover_last_user_email', currentEmail);
                     } else {
                         // Create user profile if it doesn't exist
                         const userProfile = {
@@ -1313,7 +1314,7 @@ export function AppProvider({ children }) {
                         };
                         setUser(userProfile);
                         localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
-                        localStorage.setItem('tpprover_last_user_email', userProfile.email);
+                        localStorage.setItem('tpprover_last_user_email', (userProfile.email || '').toLowerCase());
                         
                         // Set parsedUser for use below (CRITICAL: must be set before isNewUser check)
                         parsedUser = userProfile;

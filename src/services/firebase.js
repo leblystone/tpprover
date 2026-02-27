@@ -258,7 +258,7 @@ export async function registerUser(email, password, inviteCode) {
       console.log('🔥 Attempting to save user to Firestore...');
       // Add timeout to prevent hanging
       await Promise.race([
-        setDoc(doc(db, 'users', user.uid), userData),
+        setDoc(doc(db, 'users', user.uid), userData, { merge: true }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
       ]);
       console.log('✅ User document saved to Firestore');

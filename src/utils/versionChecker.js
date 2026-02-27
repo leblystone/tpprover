@@ -146,14 +146,8 @@ export async function fetchVersionConfig() {
  */
 export async function checkForUpdates() {
   try {
-    // CRITICAL: Only check for updates on native apps (Android/iOS)
-    // PWA users get instant updates automatically via service worker, so no need to check
-    const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
-    if (!isNative) {
-      console.log('ℹ️ PWA user detected - no update check needed (automatic updates enabled)');
-      return null; // PWA users NEVER see UpdatePromptModal
-    }
-    
+    // Check for updates on both native and PWA. PWA users may run stale cached code
+    // until they refresh, so they can be prompted to refresh when a new version is available.
     // Skip if recently dismissed
     if (wasRecentlyDismissed()) {
       console.log('✅ Update check: Recently dismissed');
