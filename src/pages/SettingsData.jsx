@@ -943,6 +943,8 @@ export default function SettingsData() {
         onClose={() => setShowDeleteAccountModal(false)}
         theme={theme}
       />
+
+      <p className="text-center mt-6 mb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v.1.00.1</p>
     </section>
   )
 }
