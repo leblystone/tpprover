@@ -562,7 +562,24 @@ exports.ghostWorkerOnNewMessage = onDocumentCreated(
     const ticketSnap = await ticketRef.get();
     if (!ticketSnap.exists) return;
     const ticketData = { ticketId, ...ticketSnap.data() };
-    if (ticketData.status === 'closed' || ticketData.status === 'resolved') return;
+
+    // If the ticket was closed/resolved but the user sent a new message, re-open it
+    // so it surfaces back in the admin work queue. Don't silently drop it.
+    if (ticketData.status === 'closed' || ticketData.status === 'resolved') {
+      logger.info(`🔓 User replied to closed ticket ${ticketId} — re-opening and queueing for review`);
+      try {
+        await ticketRef.update({
+          status: 'open',
+          reopenedAt: admin.firestore.FieldValue.serverTimestamp(),
+          reopenedByUser: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        ticketData.status = 'open';
+      } catch (reopenErr) {
+        logger.error(`Failed to re-open ticket ${ticketId}:`, reopenErr);
+        return;
+      }
+    }
 
     const messagesSnap = await ticketRef.collection('messages').orderBy('createdAt', 'asc').get();
     const messageCount = messagesSnap.size;

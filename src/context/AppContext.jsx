@@ -23,6 +23,7 @@ import { safeParseLocalStorage, sanitizeForLocalStorage } from '../utils/dataVal
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
+import { migrateTaskCompletionIds } from '../utils/taskCompletion';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
 
@@ -309,7 +310,13 @@ export function AppProvider({ children }) {
             
             // Safe to load data - no user mismatch detected
             const savedProtocols = localStorage.getItem('tpprover_protocols');
-            if (savedProtocols) setProtocols(migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols)));
+            if (savedProtocols) {
+                const parsedProtocols = migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols));
+                setProtocols(parsedProtocols);
+                // Remap old dose-embedded task IDs to dose-independent IDs so that
+                // dose changes no longer wipe historical check-off records (Z109)
+                migrateTaskCompletionIds(parsedProtocols);
+            }
 
             const savedRecon = safeParseLocalStorage('tpprover_recon_items', []);
             if (savedRecon.length) setReconItems(savedRecon);

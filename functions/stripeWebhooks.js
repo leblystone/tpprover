@@ -1315,14 +1315,27 @@ async function handleDisputeCreated(event, stripe) {
       disputeId: dispute.id,
       disputeReason: dispute.reason,
       disputedAt: FieldValue.serverTimestamp(),
+      hasLifetimeAccess: false,
+      interval: null,
+      plan: null,
       lastUpdated: FieldValue.serverTimestamp(),
     };
-    await db.collection('userSubscriptions').doc(context.userId).set(
-      { subscription: disputePayload }, { merge: true }
-    );
-    await db.collection('users').doc(context.userId).set(
-      { subscription: disputePayload }, { merge: true }
-    );
+    const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
+    const userRef = db.collection('users').doc(context.userId);
+    const batch = db.batch();
+    batch.set(userSubscriptionsRef, { subscription: disputePayload }, { merge: true });
+    batch.set(userRef, { subscription: disputePayload }, { merge: true });
+    const historyRef = userSubscriptionsRef.collection('history').doc();
+    batch.set(historyRef, {
+      status: 'disputed',
+      disputeId: dispute.id,
+      disputeReason: dispute.reason,
+      disputedAt: FieldValue.serverTimestamp(),
+      eventTimestamp: FieldValue.serverTimestamp(),
+      source: 'stripe_webhook',
+      eventType: 'charge.dispute.created',
+    });
+    await batch.commit();
     logger.info(`🔒 Access suspended for user ${context.userId} due to dispute ${dispute.id}`);
     adminAlerts.alertDispute(context.userId, userEmail, dispute.id, dispute.reason, dispute.amount).catch(() => {});
   }
@@ -1384,40 +1397,58 @@ async function handleDisputeClosed(event, stripe) {
   const context = await resolveUserContext({ customerId: charge.customer, emailHint: userEmail });
   if (context?.userId) {
     const db = admin.firestore();
+    const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
+    const userRef = db.collection('users').doc(context.userId);
+    const batch = db.batch();
     // dispute.status: won = merchant wins (restore), lost = customer wins (revoke stays)
     if (dispute.status === 'won') {
-      await db.collection('userSubscriptions').doc(context.userId).set({
-        subscription: {
-          status: 'active',
-          disputeResolved: true,
-          disputeResolvedAt: FieldValue.serverTimestamp(),
-          lastUpdated: FieldValue.serverTimestamp(),
-        }
-      }, { merge: true });
-      await db.collection('users').doc(context.userId).set({
-        subscription: {
-          status: 'active',
-          disputeResolved: true,
-          lastUpdated: FieldValue.serverTimestamp(),
-        }
-      }, { merge: true });
+      const wonPayload = {
+        status: 'active',
+        disputeResolved: true,
+        disputeResolvedAt: FieldValue.serverTimestamp(),
+        lastUpdated: FieldValue.serverTimestamp(),
+      };
+      batch.set(userSubscriptionsRef, { subscription: wonPayload }, { merge: true });
+      batch.set(userRef, { subscription: wonPayload }, { merge: true });
+      const historyRef = userSubscriptionsRef.collection('history').doc();
+      batch.set(historyRef, {
+        status: 'active',
+        disputeResolved: true,
+        disputeId: dispute.id,
+        eventTimestamp: FieldValue.serverTimestamp(),
+        source: 'stripe_webhook',
+        eventType: 'charge.dispute.closed',
+        outcome: 'won',
+      });
+      await batch.commit();
       logger.info(`✅ Access restored for user ${context.userId} -- dispute won`);
     } else {
-      // Lost or other status -- keep access revoked
-      await db.collection('userSubscriptions').doc(context.userId).set({
+      const revokedPayload = {
+        status: 'revoked',
+        revokedReason: `dispute_${dispute.status}`,
+        disputeResolvedAt: FieldValue.serverTimestamp(),
+        hasLifetimeAccess: false,
+        interval: null,
+        plan: null,
+        lastUpdated: FieldValue.serverTimestamp(),
+      };
+      batch.set(userSubscriptionsRef, { subscription: revokedPayload }, { merge: true });
+      batch.set(userRef, {
         subscription: {
           status: 'revoked',
-          revokedReason: `dispute_${dispute.status}`,
-          disputeResolvedAt: FieldValue.serverTimestamp(),
           lastUpdated: FieldValue.serverTimestamp(),
-        }
+        },
       }, { merge: true });
-      await db.collection('users').doc(context.userId).set({
-        subscription: {
-          status: 'revoked',
-          lastUpdated: FieldValue.serverTimestamp(),
-        }
-      }, { merge: true });
+      const historyRef = userSubscriptionsRef.collection('history').doc();
+      batch.set(historyRef, {
+        status: 'revoked',
+        disputeId: dispute.id,
+        outcome: dispute.status,
+        eventTimestamp: FieldValue.serverTimestamp(),
+        source: 'stripe_webhook',
+        eventType: 'charge.dispute.closed',
+      });
+      await batch.commit();
       logger.info(`🚫 Access permanently revoked for user ${context.userId} -- dispute ${dispute.status}`);
     }
   }
@@ -1470,22 +1501,52 @@ async function handleChargeRefunded(event, stripe) {
       });
     }
 
-    await db.collection('userSubscriptions').doc(context.userId).set({
-      subscription: {
-        status: 'refunded',
-        refundedAt: FieldValue.serverTimestamp(),
-        hasLifetimeAccess: false,
-        lastUpdated: FieldValue.serverTimestamp(),
-      }
+    // Full subscription object so stale fields (interval, plan, etc.) are cleared, not merged
+    const refundedSubscription = {
+      status: 'refunded',
+      refundedAt: FieldValue.serverTimestamp(),
+      hasLifetimeAccess: false,
+      interval: null,
+      plan: null,
+      cancelAt: null,
+      cancelAtPeriodEnd: false,
+      lastUpdated: FieldValue.serverTimestamp(),
+    };
+
+    const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
+    const userRef = db.collection('users').doc(context.userId);
+    const batch = db.batch();
+
+    batch.set(userSubscriptionsRef, {
+      subscription: refundedSubscription,
+      lastUpdated: FieldValue.serverTimestamp(),
     }, { merge: true });
 
-    await db.collection('users').doc(context.userId).set({
+    batch.set(userRef, {
       subscription: {
         status: 'refunded',
         hasLifetimeAccess: false,
+        interval: null,
+        plan: null,
         lastUpdated: FieldValue.serverTimestamp(),
-      }
+      },
+      updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
+
+    // Audit trail: write refund event to history subcollection
+    const historyRef = userSubscriptionsRef.collection('history').doc();
+    batch.set(historyRef, {
+      status: 'refunded',
+      refundedAt: FieldValue.serverTimestamp(),
+      hasLifetimeAccess: false,
+      stripeChargeId: charge.id,
+      amountRefunded: charge.amount_refunded != null ? charge.amount_refunded / 100 : null,
+      eventTimestamp: FieldValue.serverTimestamp(),
+      source: 'stripe_webhook',
+      eventType: 'charge.refunded',
+    });
+
+    await batch.commit();
 
     logger.info(`🚫 Access revoked for user ${context.userId} due to full refund on charge ${charge.id}`);
     adminAlerts.alertRefund(context.userId, userEmail, charge.amount_refunded, 'stripe').catch(() => {});

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faStripe, faGooglePlay, faApple, faSquarespace } from '@fortawesome/free-brands-svg-icons'
+import { faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
@@ -614,7 +614,7 @@ export default function AccountSubscription() {
         >
           <div className="flex items-start gap-3 mb-3">
             <FontAwesomeIcon 
-              icon={faGooglePlay} 
+              icon={isIOS() ? faApple : faGooglePlay} 
               size="lg" 
               style={{ color: theme.text, opacity: 0.4 }} 
             />
@@ -834,77 +834,17 @@ export default function AccountSubscription() {
         </button>
       </div>
 
-      {/* Trust Badges - Payment Providers */}
+      {/* Secure Payment Disclaimer */}
       <div className="pt-8 pb-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2">
             <Shield size={16} className="opacity-40" style={{ color: theme.text }} />
             <span className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
               Secure Payment Processing
             </span>
           </div>
-          
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {/* Stripe Logo */}
-            <div 
-              className="flex items-center justify-center px-5 py-3 rounded-xl transition-all hover:opacity-80"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
-              }}
-            >
-              <FontAwesomeIcon 
-                icon={faStripe} 
-                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#635BFF' }}
-              />
-            </div>
-
-            {/* Google Play Logo */}
-            <div 
-              className="flex items-center justify-center px-5 py-3 rounded-xl transition-all hover:opacity-80"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
-              }}
-            >
-              <FontAwesomeIcon 
-                icon={faGooglePlay} 
-                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#01875F' }}
-              />
-            </div>
-
-            {/* Apple App Store Logo */}
-            <div 
-              className="flex items-center justify-center px-5 py-3 rounded-xl transition-all hover:opacity-80"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
-              }}
-            >
-              <FontAwesomeIcon 
-                icon={faApple} 
-                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#000000' }}
-              />
-            </div>
-
-            {/* Squarespace Logo */}
-            <div 
-              className="flex items-center justify-center px-5 py-3 rounded-xl transition-all hover:opacity-80"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
-              }}
-            >
-              <FontAwesomeIcon 
-                icon={faSquarespace} 
-                style={{ fontSize: '32px', color: theme.isDark ? '#ffffff' : '#222222' }}
-              />
-            </div>
-          </div>
-
           <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>
-            The Pep Planner does not store or process any private payment information. 
-            All payments are securely handled exclusively through Stripe, Google Play, Apple App Store, and Squarespace.
+            The Pep Planner does not store or process any private payment information.
           </p>
         </div>
       </div>

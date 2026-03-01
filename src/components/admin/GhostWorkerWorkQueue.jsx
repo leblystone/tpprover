@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../config/firebase';
 import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
 // Admin password removed — cloud functions verify admin via Firebase Auth email token
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
   DollarSign, Calendar, TrendingUp, FileText, HelpCircle,
-  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck
+  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck,
+  Search, Plus
 } from 'lucide-react';
 
 // Quick response templates
@@ -121,6 +123,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
   const conversationEndRef = useRef(null);
   const [justClosedTicket, setJustClosedTicket] = useState(null);
   const [uidCopySuccess, setUidCopySuccess] = useState(false);
+  const [reopenedTickets, setReopenedTickets] = useState([]);
+  const [showAddMissed, setShowAddMissed] = useState(false);
+  const [addMissedSearch, setAddMissedSearch] = useState('');
+  const [addMissedResult, setAddMissedResult] = useState(null);
+  const [addMissedError, setAddMissedError] = useState('');
+  const [addMissedSearching, setAddMissedSearching] = useState(false);
+  const [addMissedAdding, setAddMissedAdding] = useState(false);
+  const [showBacklogScan, setShowBacklogScan] = useState(false);
+  const [backlogScanning, setBacklogScanning] = useState(false);
+  const [backlogResults, setBacklogResults] = useState(null);
+
+  const [loadError, setLoadError] = useState(null);
 
   // Load work queue data
   useEffect(() => {
@@ -128,6 +142,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
     const q = query(logsRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+      setLoadError(null);
       const tickets = [];
       let todayCost = 0, weekCost = 0, monthCost = 0, allTimeCost = 0;
       
@@ -231,8 +246,26 @@ export default function GhostWorkerWorkQueue({ theme }) {
       setWorkQueue(deduped);
       setCosts({ today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost });
       setLoading(false);
+    }, (err) => {
+      console.error('Work queue snapshot error:', err);
+      setLoadError(err?.message || 'Failed to load work queue');
+      setLoading(false);
     });
 
+    return () => unsubscribe();
+  }, []);
+
+  // Watch for tickets re-opened by users (replied to a closed ticket)
+  // These won't have a pending ai_worker_logs entry yet if Ghosty hasn't processed them
+  useEffect(() => {
+    const ticketsRef = collection(db, 'supportTickets');
+    const q = query(ticketsRef, where('reopenedByUser', '==', true), where('status', '==', 'open'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setReopenedTickets(items);
+    }, () => {
+      setReopenedTickets([]);
+    });
     return () => unsubscribe();
   }, []);
 
@@ -256,6 +289,125 @@ export default function GhostWorkerWorkQueue({ theme }) {
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [ticketMessages]);
+
+  const searchMissedTicket = async () => {
+    const term = addMissedSearch.trim();
+    if (!term) return;
+    setAddMissedSearching(true);
+    setAddMissedResult(null);
+    setAddMissedError('');
+    try {
+      const firestore = getFirestore();
+      // Search by ticketNumber first
+      const byNumber = await getDocs(
+        query(collection(firestore, 'supportTickets'), where('ticketNumber', '==', term.toUpperCase()))
+      );
+      if (!byNumber.empty) {
+        const d = byNumber.docs[0];
+        setAddMissedResult({ id: d.id, ...d.data() });
+        return;
+      }
+      // Fallback: search by requestNumbers array
+      const byRequest = await getDocs(
+        query(collection(firestore, 'supportTickets'), where('requestNumbers', 'array-contains', term.toUpperCase()))
+      );
+      if (!byRequest.empty) {
+        const d = byRequest.docs[0];
+        setAddMissedResult({ id: d.id, ...d.data() });
+        return;
+      }
+      setAddMissedError(`No ticket found for "${term}". Try the exact ticket number, e.g. Z100.`);
+    } catch (err) {
+      setAddMissedError('Search failed: ' + (err?.message || err));
+    } finally {
+      setAddMissedSearching(false);
+    }
+  };
+
+  const addMissedTicketToQueue = async () => {
+    if (!addMissedResult) return;
+    setAddMissedAdding(true);
+    setAddMissedError('');
+    try {
+      const addToQueue = httpsCallable(functions, 'addTicketToWorkQueue');
+      const result = await addToQueue({ ticketId: addMissedResult.id });
+      if (!result.data?.success) throw new Error(result.data?.message || 'Failed to add ticket');
+
+      const ticket = addMissedResult;
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `Ticket #${ticket.ticketNumber || ticket.id.slice(-6)} added to queue ✓`, type: 'success' }
+      }));
+      setShowAddMissed(false);
+      setAddMissedSearch('');
+      setAddMissedResult(null);
+      setAddMissedError('');
+    } catch (err) {
+      setAddMissedError('Failed to add: ' + (err?.message || err));
+    } finally {
+      setAddMissedAdding(false);
+    }
+  };
+
+  const runBacklogScan = async () => {
+    setBacklogScanning(true);
+    setBacklogResults(null);
+    try {
+      const firestore = getFirestore();
+      // Build a map: ticketId → { latestLogTimestamp, isMarkedFixed }
+      const logMap = new Map();
+      for (const item of workQueue) {
+        if (!item.ticketId) continue;
+        const itemTs = item.timestamp?.toDate?.()?.getTime() ?? item.timestamp ?? 0;
+        const existing = logMap.get(item.ticketId);
+        if (!existing || itemTs > (existing.ts ?? 0)) {
+          logMap.set(item.ticketId, { ts: itemTs, markedFixed: item.markedFixed });
+        }
+      }
+
+      // Scan supportTickets with any activity in last 90 days
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      const snap = await getDocs(
+        query(
+          collection(firestore, 'supportTickets'),
+          where('lastMessageAt', '>=', cutoff),
+          orderBy('lastMessageAt', 'desc')
+        )
+      );
+
+      const missed = [];
+      for (const d of snap.docs) {
+        const data = d.data();
+        const lastMsgTs = data.lastMessageAt?.toDate?.()?.getTime() ?? 0;
+        const logEntry = logMap.get(d.id);
+
+        // Missed if: no log at all, OR log is marked fixed and user sent a message after it was fixed
+        const noLog = !logEntry;
+        const repliedAfterClose = logEntry?.markedFixed && lastMsgTs > (logEntry.ts ?? 0);
+
+        if (noLog || repliedAfterClose) {
+          // Check if it's already pending in our queue (noLog but in workQueue as pending)
+          const alreadyPending = workQueue.some(q => q.ticketId === d.id && !q.markedFixed);
+          if (!alreadyPending) {
+            missed.push({
+              id: d.id,
+              ticketNumber: data.ticketNumber,
+              userEmail: data.userEmail,
+              subject: data.subject,
+              status: data.status,
+              lastMessageAt: data.lastMessageAt,
+              reason: noLog ? 'Never processed by Ghosty' : 'User replied after ticket was closed',
+            });
+          }
+        }
+      }
+      setBacklogResults(missed);
+    } catch (err) {
+      setBacklogResults({ error: err?.message || 'Scan failed' });
+    } finally {
+      setBacklogScanning(false);
+    }
+  };
 
   const pendingTickets = workQueue.filter(t => !t.markedFixed);
   const completedTickets = workQueue.filter(t => t.markedFixed).sort((a, b) => {
@@ -534,6 +686,21 @@ export default function GhostWorkerWorkQueue({ theme }) {
     return <div style={{ padding: '40px', textAlign: 'center', color: t.textLight }}>Loading...</div>;
   }
 
+  if (loadError) {
+    return (
+      <div style={{ padding: '32px', textAlign: 'center' }}>
+        <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+        <div style={{ fontWeight: '600', color: '#DC2626', marginBottom: '6px' }}>Work queue failed to load</div>
+        <div style={{ fontSize: '12px', color: t.textLight, marginBottom: '16px', fontFamily: 'monospace', backgroundColor: '#FEF2F2', padding: '8px 12px', borderRadius: '6px', display: 'inline-block' }}>
+          {loadError}
+        </div>
+        <div style={{ fontSize: '12px', color: t.textLight }}>
+          Check Firestore rules for <code>ai_worker_logs</code> collection, then refresh the page.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '16px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Cost Stats Bar - Compact */}
@@ -570,7 +737,7 @@ export default function GhostWorkerWorkQueue({ theme }) {
       </div>
 
       {/* Queue Stats */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{
           padding: '6px 14px',
           borderRadius: '16px',
@@ -592,7 +759,343 @@ export default function GhostWorkerWorkQueue({ theme }) {
         }} onClick={() => setShowHistory(!showHistory)}>
           📁 {completedTickets.length} Archive {showHistory ? '▼' : '▶'}
         </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => { setShowBacklogScan(v => !v); setBacklogResults(null); }}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '16px',
+              border: `1px solid ${t.border}`,
+              backgroundColor: showBacklogScan ? '#FEF3C7' : 'transparent',
+              color: showBacklogScan ? '#92400E' : t.textLight,
+              fontWeight: '600',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <Search size={13} /> Backlog Scan
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowAddMissed(v => !v); setAddMissedResult(null); setAddMissedError(''); setAddMissedSearch(''); }}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '16px',
+              border: `1px solid ${t.border}`,
+              backgroundColor: showAddMissed ? t.primary + '15' : 'transparent',
+              color: showAddMissed ? t.primary : t.textLight,
+              fontWeight: '600',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <Plus size={13} /> Add Missed Ticket
+          </button>
+        </div>
       </div>
+
+      {/* Add Missed Ticket panel */}
+      {showAddMissed && (
+        <div style={{
+          backgroundColor: t.cardBackground,
+          border: `1px solid ${t.primary}40`,
+          borderRadius: '10px',
+          padding: '14px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ fontWeight: '600', fontSize: '13px', color: t.text, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Search size={14} style={{ color: t.primary }} />
+            Find & Add Missed Ticket
+          </div>
+          <p style={{ fontSize: '12px', color: t.textLight, margin: '0 0 10px 0' }}>
+            Got an email notification about a ticket that's not in the queue? Enter the ticket number to pull it in manually.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <input
+              type="text"
+              value={addMissedSearch}
+              onChange={e => setAddMissedSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchMissedTicket()}
+              placeholder="e.g. Z100"
+              style={{
+                flex: 1,
+                padding: '7px 10px',
+                border: `1px solid ${t.border}`,
+                borderRadius: '6px',
+                fontSize: '13px',
+                color: t.text,
+                backgroundColor: t.background,
+                fontFamily: 'monospace',
+                textTransform: 'uppercase'
+              }}
+            />
+            <button
+              type="button"
+              onClick={searchMissedTicket}
+              disabled={addMissedSearching || !addMissedSearch.trim()}
+              style={{
+                padding: '7px 14px',
+                backgroundColor: t.primary,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: addMissedSearching || !addMissedSearch.trim() ? 'not-allowed' : 'pointer',
+                opacity: addMissedSearching || !addMissedSearch.trim() ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <Search size={13} /> {addMissedSearching ? 'Searching…' : 'Search'}
+            </button>
+          </div>
+
+          {addMissedError && (
+            <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '8px', padding: '6px 10px', backgroundColor: '#FEF2F2', borderRadius: '6px' }}>
+              {addMissedError}
+            </div>
+          )}
+
+          {addMissedResult && (
+            <div style={{
+              padding: '10px 12px',
+              backgroundColor: t.background,
+              border: `1px solid ${t.border}`,
+              borderRadius: '8px',
+              marginBottom: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
+                  #{addMissedResult.ticketNumber || addMissedResult.id?.slice(-6).toUpperCase()}
+                </span>
+                <span style={{
+                  fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+                  backgroundColor: addMissedResult.status === 'closed' ? '#FEE2E2' : '#D1FAE5',
+                  color: addMissedResult.status === 'closed' ? '#DC2626' : '#065F46',
+                  fontWeight: '600'
+                }}>
+                  {addMissedResult.status || 'unknown'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: t.textLight }}>
+                {addMissedResult.userEmail} • {addMissedResult.subject || 'No subject'}
+              </div>
+              <button
+                type="button"
+                onClick={addMissedTicketToQueue}
+                disabled={addMissedAdding}
+                style={{
+                  marginTop: '10px',
+                  padding: '7px 14px',
+                  backgroundColor: addMissedAdding ? t.border : t.primary,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: addMissedAdding ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Plus size={13} /> {addMissedAdding ? 'Adding…' : 'Add to Work Queue'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Backlog Scan panel */}
+      {showBacklogScan && (
+        <div style={{
+          backgroundColor: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          borderRadius: '10px',
+          padding: '14px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ fontWeight: '600', fontSize: '13px', color: '#92400E', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Search size={14} style={{ color: '#F59E0B' }} />
+            Backlog Audit — Last 90 Days
+          </div>
+          <p style={{ fontSize: '12px', color: '#B45309', margin: '0 0 10px 0' }}>
+            Scans all support tickets against your work queue logs to find any that were never processed or had a user reply after being closed.
+          </p>
+          <button
+            type="button"
+            onClick={runBacklogScan}
+            disabled={backlogScanning}
+            style={{
+              padding: '7px 16px',
+              backgroundColor: backlogScanning ? '#FCD34D' : '#F59E0B',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: backlogScanning ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              marginBottom: backlogResults ? '12px' : '0'
+            }}
+          >
+            <Search size={13} /> {backlogScanning ? 'Scanning…' : 'Run Scan'}
+          </button>
+
+          {backlogResults && !backlogResults.error && backlogResults.length === 0 && (
+            <div style={{ marginTop: '10px', fontSize: '13px', color: '#065F46', padding: '8px 12px', backgroundColor: '#D1FAE5', borderRadius: '6px' }}>
+              ✅ No missed tickets found in the last 90 days.
+            </div>
+          )}
+
+          {backlogResults?.error && (
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#DC2626', padding: '8px 12px', backgroundColor: '#FEF2F2', borderRadius: '6px' }}>
+              ⚠️ {backlogResults.error}
+            </div>
+          )}
+
+          {Array.isArray(backlogResults) && backlogResults.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400E', marginBottom: '8px' }}>
+                ⚠️ {backlogResults.length} potentially missed ticket{backlogResults.length > 1 ? 's' : ''} found:
+              </div>
+              {backlogResults.map((item, idx) => (
+                <div
+                  key={item.id}
+                  style={{
+                    padding: '10px 12px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #FCD34D',
+                    borderRadius: '8px',
+                    marginBottom: idx < backlogResults.length - 1 ? '8px' : '0',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '3px' }}>
+                      <span style={{ fontWeight: '600', color: '#92400E', fontSize: '13px' }}>
+                        #{item.ticketNumber || item.id.slice(-6).toUpperCase()}
+                      </span>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600',
+                        backgroundColor: item.status === 'closed' ? '#FEE2E2' : '#FEF3C7',
+                        color: item.status === 'closed' ? '#DC2626' : '#92400E'
+                      }}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#B45309' }}>{item.userEmail}</div>
+                    <div style={{ fontSize: '11px', color: '#92400E', marginTop: '2px', opacity: 0.8 }}>
+                      📋 {item.reason}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddMissedSearch(item.ticketNumber || '');
+                      setAddMissedResult({ id: item.id, ticketNumber: item.ticketNumber, userEmail: item.userEmail, subject: item.subject, status: item.status });
+                      setShowAddMissed(true);
+                      setShowBacklogScan(false);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      backgroundColor: '#F59E0B',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    + Add to Queue
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Re-opened tickets — user replied to a closed ticket, Ghosty hasn't processed yet */}
+      {reopenedTickets.length > 0 && (
+        <div style={{
+          backgroundColor: '#FFF7ED',
+          borderRadius: '10px',
+          border: '1px solid #FED7AA',
+          marginBottom: '16px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '10px 14px',
+            borderBottom: '1px solid #FED7AA',
+            fontWeight: '600',
+            color: '#92400E',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <MessageSquare size={15} style={{ color: '#F59E0B' }} />
+            🔁 User Replied to Closed Ticket — Waiting for Ghosty
+            <span style={{
+              marginLeft: 'auto',
+              fontSize: '11px',
+              backgroundColor: '#FEF3C7',
+              color: '#92400E',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              fontWeight: '600'
+            }}>
+              {reopenedTickets.length} pending
+            </span>
+          </div>
+          {reopenedTickets.map((ticket, idx) => (
+            <div
+              key={ticket.id}
+              style={{
+                padding: '10px 14px',
+                borderBottom: idx < reopenedTickets.length - 1 ? '1px solid #FED7AA' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '13px'
+              }}
+            >
+              <AlertCircle size={15} style={{ color: '#F59E0B', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontWeight: '600', color: '#92400E' }}>
+                  #{ticket.ticketNumber || ticket.id?.slice(-6).toUpperCase()}
+                </span>
+                <span style={{ color: '#B45309', marginLeft: '8px', fontSize: '12px' }}>
+                  {ticket.userEmail || ticket.userName || 'Unknown'}
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', color: '#B45309' }}>
+                Ghosty processing…
+              </span>
+            </div>
+          ))}
+          <div style={{ padding: '8px 14px', fontSize: '11px', color: '#92400E', borderTop: '1px solid #FED7AA' }}>
+            💡 These tickets were re-opened when a user replied. Ghosty will process them and they'll appear in Pending Queue shortly. Refresh if they don't appear after ~30 seconds.
+          </div>
+        </div>
+      )}
 
       {/* Pending Queue */}
       <div style={{
@@ -656,6 +1159,17 @@ export default function GhostWorkerWorkQueue({ theme }) {
                       fontWeight: '600'
                     }}>
                       🗑️ DELETION REQUEST
+                    </span>
+                  ) : ticket.addedManually ? (
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      backgroundColor: '#FEF3C7',
+                      color: '#92400E',
+                      fontWeight: '600'
+                    }}>
+                      📌 Added Manually
                     </span>
                   ) : (
                     <span style={{

@@ -21,6 +21,7 @@ const appleInAppPurchase = require('./appleInAppPurchase');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
 const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
+const getUserActivityHistory = require('./getUserActivityHistory');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 const emailQueue = require('./emailQueue');
@@ -511,6 +512,10 @@ exports.adminExtendTrialPeriod = onCall(
 
 // Manual Subscription Sync - Admin function to resync subscriptions from Stripe
 exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
+
+// User activity and communications (admin User Detail modal)
+exports.getUserActivityHistory = getUserActivityHistory.getUserActivityHistory;
+exports.getUserCommunications = getUserActivityHistory.getUserCommunications;
 
 // Audit Lifetime Access - Read-only function to find conflicting lifetime grants
 const auditLifetimeAccess = require('./auditLifetimeAccess');
@@ -5349,6 +5354,74 @@ exports.closeSupportTicketFromWorkQueue = onCall(
       logger.error('closeSupportTicketFromWorkQueue:', error.message);
       throw new HttpsError('internal', error.message || 'Failed to close ticket');
     }
+  }
+);
+
+// Manually add a missed support ticket to the work queue (admin action)
+exports.addTicketToWorkQueue = onCall(
+  { cors: true },
+  async (request) => {
+    verifyAdmin(request);
+    const { ticketId } = request.data;
+    if (!ticketId) throw new HttpsError('invalid-argument', 'ticketId is required');
+
+    const db = admin.firestore();
+    const FieldValue = admin.firestore.FieldValue;
+
+    const ticketRef = db.collection('supportTickets').doc(ticketId);
+    const ticketSnap = await ticketRef.get();
+    if (!ticketSnap.exists) throw new HttpsError('not-found', `Ticket ${ticketId} not found`);
+    const ticket = ticketSnap.data();
+
+    // Get latest user message for context
+    let latestMsg = '';
+    try {
+      const msgs = await ticketRef.collection('messages')
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+      const userMsg = msgs.docs.find(d => d.data().senderType === 'user');
+      latestMsg = userMsg?.data()?.message || userMsg?.data()?.text || '';
+    } catch (_) {}
+
+    // Re-open the ticket
+    await ticketRef.update({
+      status: 'open',
+      reopenedByAdmin: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Create work queue log entry
+    const logRef = await db.collection('ai_worker_logs').add({
+      ticketId: ticketId,
+      ticketNumber: ticket.ticketNumber || ticketId.slice(-6).toUpperCase(),
+      ticketType: ticket.type || 'support',
+      subject: ticket.subject || 'Support Request',
+      userName: ticket.userName || ticket.userDisplayName || 'Unknown',
+      userEmail: ticket.userEmail || '',
+      originalMessage: latestMsg || ticket.subject || '',
+      timestamp: FieldValue.serverTimestamp(),
+      route: 'manual',
+      confidence: 100,
+      reasoning: 'Manually added to queue by admin',
+      complexity: 'unknown',
+      urgency: 'medium',
+      keywords: [],
+      executionModel: 'manual',
+      executionCost: 0,
+      triageCost: 0,
+      totalCost: 0,
+      responseGenerated: false,
+      responsePosted: false,
+      responseContent: null,
+      markedFixed: false,
+      humanOverride: true,
+      addedManually: true,
+      addedManuallyAt: FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`✅ Admin manually added ticket ${ticketId} to work queue as log ${logRef.id}`);
+    return { success: true, logId: logRef.id };
   }
 );
 

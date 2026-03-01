@@ -10,6 +10,7 @@ import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration'
 import DeleteAccountModal from '../components/common/DeleteAccountModal'
 import RecentlyDeleted from '../components/settings/RecentlyDeleted'
+import { APP_VERSION } from '../utils/appVersion'
 
 function formatBackupTime(isoOrMs) {
   if (!isoOrMs) return '';
@@ -944,7 +945,7 @@ export default function SettingsData() {
         theme={theme}
       />
 
-      <p className="text-center mt-6 mb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v.1.00.1</p>
+      <p className="text-center mt-6 mb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v{APP_VERSION}</p>
     </section>
   )
 }

@@ -35,6 +35,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries, addPhaseEvent } from '../utils/protocolHistory';
+import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } from '../utils/protocolSettingsHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
@@ -2652,6 +2653,28 @@ export default function Protocols() {
             console.log('🔄 Recalculated endDate for active protocol:', updatedProtocol.name || updatedProtocol.protocolName, 'from', updatedProtocol.endDate, 'to', newEndDate);
           }
 
+          // Settings history: apply edits "this + future" only; snapshot old state and log to activity
+          if (editing?.active && hasSchedulingChanges(editing, finalProtocol)) {
+            const today = getLocalDateString();
+            const yesterday = getLocalDateString(new Date(Date.now() - 86400000));
+            const existing = finalProtocol.settingsHistory || [];
+            const lastSegment = existing.length > 0 ? existing[existing.length - 1] : null;
+            const addOneDay = (dateStr) => {
+              const d = new Date(dateStr + 'T12:00:00');
+              d.setDate(d.getDate() + 1);
+              return getLocalDateString(d);
+            };
+            const effectiveFromNew = lastSegment ? addOneDay(lastSegment.effectiveTo) : (editing.startDate || yesterday);
+            if (effectiveFromNew <= yesterday) {
+              finalProtocol.settingsHistory = [...existing, buildSettingsSnapshot(editing, effectiveFromNew, yesterday)];
+            }
+            const activeEntry = findActiveProtocolHistoryEntry(editing.id);
+            if (activeEntry) {
+              const { summary, changes } = diffProtocolSettings(editing, finalProtocol);
+              addPhaseEvent(activeEntry.id, { type: 'settings_change', date: today, summary, changes });
+            }
+          }
+
           // Update protocol with force sync for immediate cross-device update
           updateProtocolWithForceSync(finalProtocol);
           
@@ -3279,6 +3302,27 @@ export default function Protocols() {
                       linkedItems: manageConfirm.linkedItems ?? data.linkedItems,
                       emoji: manageConfirm.emoji ?? data.emoji
                     };
+                    // Settings history: apply edits "this + future" only; snapshot old state and log to activity
+                    if (manageConfirm?.active && hasSchedulingChanges(manageConfirm, updatedProtocol)) {
+                      const today = getLocalDateString();
+                      const yesterday = getLocalDateString(new Date(Date.now() - 86400000));
+                      const existing = updatedProtocol.settingsHistory || [];
+                      const lastSegment = existing.length > 0 ? existing[existing.length - 1] : null;
+                      const addOneDay = (dateStr) => {
+                        const d = new Date(dateStr + 'T12:00:00');
+                        d.setDate(d.getDate() + 1);
+                        return getLocalDateString(d);
+                      };
+                      const effectiveFromNew = lastSegment ? addOneDay(lastSegment.effectiveTo) : (manageConfirm.startDate || yesterday);
+                      if (effectiveFromNew <= yesterday) {
+                        updatedProtocol.settingsHistory = [...existing, buildSettingsSnapshot(manageConfirm, effectiveFromNew, yesterday)];
+                      }
+                      const activeEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                      if (activeEntry) {
+                        const { summary, changes } = diffProtocolSettings(manageConfirm, updatedProtocol);
+                        addPhaseEvent(activeEntry.id, { type: 'settings_change', date: today, summary, changes });
+                      }
+                    }
                     updateProtocolWithForceSync(updatedProtocol);
                     setManageConfirm(null);
                     setManageTab('manage');
@@ -3717,6 +3761,8 @@ export default function Protocols() {
                           ev.push({ date: evt.date, sort: 4, type: 'resumed', icon: Play, label: `Phase ${phaseNum} resumed for ${name}.`, detail: null });
                         } else if (evt.type === 'next_phase') {
                           ev.push({ date: evt.date, sort: 4, type: 'next_phase', icon: SkipForward, label: `Phase ${phaseNum} skipped; Phase ${phaseNum + 1} started for ${name}.`, detail: null });
+                        } else if (evt.type === 'settings_change') {
+                          ev.push({ date: evt.date, sort: 4, type: 'settings_change', icon: EditIcon, label: evt.summary || 'Protocol settings updated.', detail: null });
                         }
                       });
                     }

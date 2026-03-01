@@ -890,6 +890,31 @@ export async function getAdminUserProfile(userId) {
 }
 
 /**
+ * Fetch aggregated activity history for a user (admin User Detail modal - Activity Log tab).
+ * @param {string} userId - Firebase user ID
+ * @param {number} [limit=100] - Max events to return
+ * @returns {Promise<{ success: boolean, events: Array }>}
+ */
+export async function fetchUserActivityHistory(userId, limit = 100) {
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'getUserActivityHistory');
+  const result = await fn({ userId, limit });
+  return result.data;
+}
+
+/**
+ * Fetch communications (emails, admin messages, support tickets) for a user (admin User Detail modal - Communications tab).
+ * @param {string} userId - Firebase user ID
+ * @returns {Promise<{ success: boolean, emails: Array, adminMessages: Array, supportTickets: Array }>}
+ */
+export async function fetchUserCommunications(userId) {
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'getUserCommunications');
+  const result = await fn({ userId });
+  return result.data;
+}
+
+/**
  * Extend a researcher's trial access window
  * @param {string} userId
  * @param {number} additionalDays

@@ -229,27 +229,133 @@ export function syncToCalendarDone() {
 }
 
 /**
- * Generate a unique task ID from task properties
- * @param {Object} task - Task object with name, dose, unit, type, time; protocolId/peptideId for protocol scoping
+ * Generate a unique task ID from task properties.
+ * NOTE: dose and unit are intentionally excluded so that dose changes
+ * do not orphan historical completion records. Protocol scope
+ * (protocolId + peptideId) is sufficient to uniquely identify a peptide task.
+ * @param {Object} task - Task object with name, type, time; protocolId/peptideId for protocol scoping
  */
 export function generateTaskId(task) {
-  const { name, dose, unit, type, time, protocolId, peptideId } = task;
-  // Create a stable ID that's unique but consistent across renders
+  const { name, type, time, protocolId, peptideId } = task;
   const normalizedName = (name || '').trim();
-  const normalizedDose = (dose || '').trim();
-  const normalizedUnit = (unit || '').trim();
   const normalizedType = (type || '').trim();
   const normalizedTime = (time || '').trim();
 
-  let taskId = `${normalizedType}-${normalizedName}-${normalizedDose}-${normalizedUnit}-${normalizedTime}`;
+  let taskId = `${normalizedType}-${normalizedName}-${normalizedTime}`;
   // Include protocol scope for peptides so completion doesn't bleed across protocols
-  // (prevents new protocol from showing today as checked due to same peptide in another protocol)
   const pid = String(protocolId || '').trim();
   const pepId = String(peptideId || '').trim();
   if (type === 'peptide' && (pid || pepId)) {
     taskId += `-${pid.toLowerCase()}-${pepId.toLowerCase()}`;
   }
   return taskId.toLowerCase().replace(/\s+/g, '-');
+}
+
+/**
+ * One-time migration: remap old task completion IDs (which embedded dose/unit)
+ * to the new dose-independent format.
+ * Old format: peptide-{name}-{dose}-{unit}-{slot}-{protocolId}-{peptideId}
+ * New format: peptide-{name}-{slot}-{protocolId}-{peptideId}
+ *
+ * @param {Array} protocols - Current user protocols from app state
+ */
+export function migrateTaskCompletionIds(protocols) {
+  const MIGRATION_KEY = 'tpprover_task_completion_id_migrated_v1';
+  if (localStorage.getItem(MIGRATION_KEY)) return false;
+
+  const completionData = getTaskCompletion();
+  if (!completionData || Object.keys(completionData).length === 0) {
+    localStorage.setItem(MIGRATION_KEY, '1');
+    return false;
+  }
+
+  // Build suffix -> new ID mappings from current protocols
+  // suffix: `-${protocolId}-${peptideId}` (lowercase)
+  const suffixMap = {};
+  (protocols || []).forEach(p => {
+    const pid = (p.id || '').toLowerCase();
+    if (!pid) return;
+
+    const basePeptides = (Array.isArray(p.peptides) && p.peptides.length > 0)
+      ? p.peptides
+      : [{ name: p.name || p.peptide, id: null }];
+
+    basePeptides.forEach((pep, idx) => {
+      const pepId = (pep.id || `peptide-${idx}`).toLowerCase();
+      const normalizedName = (pep.name || 'Peptide').trim().toLowerCase().replace(/\s+/g, '-');
+      const suffix = `-${pid}-${pepId}`;
+
+      if (!suffixMap[suffix]) suffixMap[suffix] = [];
+      ['am', 'pm'].forEach(slot => {
+        suffixMap[suffix].push({
+          newId: `peptide-${normalizedName}-${slot}-${pid}-${pepId}`,
+          slot
+        });
+      });
+    });
+
+    // Blended protocol pseudo-peptide
+    const blendedPepId = `${pid}-blended`;
+    const blendedSuffix = `-${pid}-${blendedPepId}`;
+    const blendedName = (p.protocolName || p.name || 'blended-protocol').trim().toLowerCase().replace(/\s+/g, '-');
+    if (!suffixMap[blendedSuffix]) suffixMap[blendedSuffix] = [];
+    ['am', 'pm'].forEach(slot => {
+      suffixMap[blendedSuffix].push({
+        newId: `peptide-${blendedName}-${slot}-${pid}-${blendedPepId}`,
+        slot
+      });
+    });
+  });
+
+  let migratedCount = 0;
+  const newCompletionData = {};
+
+  Object.keys(completionData).forEach(date => {
+    newCompletionData[date] = {};
+    Object.keys(completionData[date]).forEach(slotKey => {
+      newCompletionData[date][slotKey] = {};
+      const slotLower = slotKey.toLowerCase();
+
+      Object.keys(completionData[date][slotKey]).forEach(taskId => {
+        const value = completionData[date][slotKey][taskId];
+        let newTaskId = taskId;
+
+        if (taskId.startsWith('peptide-')) {
+          for (const [suffix, mappings] of Object.entries(suffixMap)) {
+            if (taskId.endsWith(suffix)) {
+              const mapping = mappings.find(m => m.slot === slotLower);
+              if (mapping && taskId !== mapping.newId) {
+                newTaskId = mapping.newId;
+                migratedCount++;
+              }
+              break;
+            }
+          }
+        }
+
+        // Avoid clobbering an already-migrated key for the same new ID
+        if (!newCompletionData[date][slotKey][newTaskId]) {
+          newCompletionData[date][slotKey][newTaskId] = value;
+        }
+      });
+
+      if (Object.keys(newCompletionData[date][slotKey]).length === 0) {
+        delete newCompletionData[date][slotKey];
+      }
+    });
+
+    if (Object.keys(newCompletionData[date]).length === 0) {
+      delete newCompletionData[date];
+    }
+  });
+
+  saveTaskCompletion(newCompletionData);
+  localStorage.setItem(MIGRATION_KEY, '1');
+
+  if (migratedCount > 0) {
+    console.log(`✅ Migrated ${migratedCount} task completion IDs to dose-independent format`);
+  }
+  return migratedCount > 0;
 }
 
 /**

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug } from 'lucide-react';
-import { createAdminMessage, createSupportTicket, debugUserSubscription } from '../../services/firebase';
+import React, { useMemo, useState, useEffect } from 'react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink } from 'lucide-react';
+import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications } from '../../services/firebase';
 
 export default function UserDetailModal({
   user,
@@ -43,6 +43,13 @@ export default function UserDetailModal({
   
   // Debug state
   const [isDebugging, setIsDebugging] = useState(false);
+
+  // Tabs: overview | activity | communications
+  const [activeTab, setActiveTab] = useState('overview');
+  const [activityEvents, setActivityEvents] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [communications, setCommunications] = useState({ emails: [], adminMessages: [], supportTickets: [] });
+  const [commsLoading, setCommsLoading] = useState(false);
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
 
@@ -114,6 +121,17 @@ export default function UserDetailModal({
       return { label: 'Active', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
     }
     
+    // Check for refunded / disputed / revoked
+    if (user.subscription?.status === 'refunded') {
+      return { label: 'Refunded', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+    }
+    if (user.subscription?.status === 'disputed') {
+      return { label: 'Disputed', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+    }
+    if (user.subscription?.status === 'revoked') {
+      return { label: 'Revoked', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+    }
+
     // Check for expired subscription
     if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
       return { label: 'Subscription Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
@@ -415,6 +433,34 @@ export default function UserDetailModal({
             </div>
           </div>
 
+          {/* Tab bar */}
+          <div className="flex gap-1 p-1 rounded-xl border" style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background }}>
+            {[
+              { id: 'overview', label: 'Overview', icon: Users },
+              { id: 'activity', label: 'Activity Log', icon: History },
+              { id: 'communications', label: 'Communications', icon: MessageCircle }
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: activeTab === id ? enhancedTheme.primary : 'transparent',
+                  color: activeTab === id ? '#FFFFFF' : enhancedTheme.textLight
+                }}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          {activeTab === 'overview' && (
+            <>
+          {/* Subscription Lifecycle Summary */}
+          <SubscriptionLifecycleSummary user={user} theme={enhancedTheme} subscriptionStatusDisplay={subscriptionStatusDisplay} />
+
           {/* Technical Details */}
           <TechnicalDetailsSection user={user} theme={enhancedTheme} />
 
@@ -707,6 +753,50 @@ export default function UserDetailModal({
               </button>
             </div>
           </div>
+          </>
+          )}
+
+          {activeTab === 'activity' && (
+            <ActivityLogTab
+              user={user}
+              theme={enhancedTheme}
+              events={activityEvents}
+              loading={activityLoading}
+              onLoad={() => {
+                if (activityEvents.length === 0 && !activityLoading) {
+                  setActivityLoading(true);
+                  fetchUserActivityHistory(user.uid || user.id)
+                    .then((data) => { if (data?.events) setActivityEvents(data.events); })
+                    .catch(() => setActivityEvents([]))
+                    .finally(() => setActivityLoading(false));
+                }
+              }}
+            />
+          )}
+
+          {activeTab === 'communications' && (
+            <CommunicationsTab
+              user={user}
+              theme={enhancedTheme}
+              data={communications}
+              loading={commsLoading}
+              onLoad={() => {
+                const empty = communications.emails.length === 0 && communications.adminMessages.length === 0 && communications.supportTickets.length === 0;
+                if (!empty || commsLoading) return;
+                setCommsLoading(true);
+                fetchUserCommunications(user.uid || user.id)
+                  .then((data) => {
+                    setCommunications({
+                      emails: data?.emails || [],
+                      adminMessages: data?.adminMessages || [],
+                      supportTickets: data?.supportTickets || []
+                    });
+                  })
+                  .catch(() => setCommunications({ emails: [], adminMessages: [], supportTickets: [] }))
+                  .finally(() => setCommsLoading(false));
+              }}
+            />
+          )}
           
           {/* One-Way Message Modal */}
           {showOneWayModal && (
@@ -903,8 +993,202 @@ export default function UserDetailModal({
   );
 }
 
-// Sync from Stripe Button Component
-function SyncFromStripeButton({ user, theme }) {
+// Subscription Lifecycle Summary - at-a-glance status, trial bar, billing dates, provider links
+function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }) {
+  const sub = user.subscription || {};
+  const now = new Date();
+  let trialEndDate = null;
+  if (user.trialEndDate) trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+  else if (user.createdAt) {
+    const created = user.createdAt?.toDate?.() || new Date(user.createdAt);
+    trialEndDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+  }
+  const trialDaysTotal = trialEndDate && user.createdAt ? Math.ceil((trialEndDate - (user.createdAt?.toDate?.() || new Date(user.createdAt))) / (24 * 60 * 60 * 1000)) : 30;
+  const trialDaysLeft = trialEndDate && trialEndDate > now ? Math.ceil((trialEndDate - now) / (24 * 60 * 60 * 1000)) : 0;
+  const trialDaysUsed = trialDaysTotal - trialDaysLeft;
+  const trialProgress = trialDaysTotal > 0 ? Math.min(100, (trialDaysUsed / trialDaysTotal) * 100) : 0;
+
+  const stripeCustomerId = sub.stripeCustomerId || user.stripeCustomerId;
+  const source = sub.paymentProvider || sub.source;
+  const stripeUrl = stripeCustomerId ? `https://dashboard.stripe.com/customers/${stripeCustomerId}` : null;
+  const googlePlayUrl = (source === 'google_play' || source === 'googleplay') ? 'https://play.google.com/console/developers' : null;
+  const appStoreUrl = (source === 'apple' || source === 'appstore') ? 'https://appstoreconnect.apple.com' : null;
+
+  const lastBilledRaw = sub.latestInvoice?.createdAt || sub.lastPaymentDate;
+  const lastBilled = lastBilledRaw ? (lastBilledRaw.toDate ? lastBilledRaw.toDate() : new Date(lastBilledRaw)) : null;
+  const nextBillingRaw = sub.currentPeriodEnd;
+  const nextBilling = nextBillingRaw ? (typeof nextBillingRaw === 'string' ? new Date(nextBillingRaw) : nextBillingRaw) : null;
+
+  return (
+    <div className="rounded-xl border p-4 relative overflow-hidden"
+      style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.info}08 100%)` }}>
+      <div className="flex items-center gap-2 mb-3">
+        <CreditCard size={16} style={{ color: theme.info }} />
+        <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Subscription Lifecycle</h4>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium" style={{ color: theme.textLight }}>Status</span>
+          <span className="px-2 py-1 rounded-lg text-xs font-semibold"
+            style={{ backgroundColor: subscriptionStatusDisplay.bgColor, color: subscriptionStatusDisplay.color, border: `1px solid ${subscriptionStatusDisplay.borderColor}` }}>
+            {subscriptionStatusDisplay.label}
+          </span>
+        </div>
+        {trialEndDate && trialEndDate > now && (
+          <div>
+            <div className="flex justify-between text-xs mb-1" style={{ color: theme.textLight }}>
+              <span>Trial</span>
+              <span>{trialDaysLeft}d left</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.background }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${trialProgress}%`, backgroundColor: theme.warning }} />
+            </div>
+          </div>
+        )}
+        {lastBilled && !Number.isNaN(lastBilled.getTime()) && (
+          <div className="flex justify-between text-xs">
+            <span style={{ color: theme.textLight }}>Last billed</span>
+            <span style={{ color: theme.text }}>{lastBilled.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        )}
+        {nextBilling && !Number.isNaN(new Date(nextBilling).getTime()) && sub.status === 'active' && (
+          <div className="flex justify-between text-xs">
+            <span style={{ color: theme.textLight }}>Next billing</span>
+            <span style={{ color: theme.text }}>{new Date(nextBilling).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        )}
+        {(sub.status === 'refunded' || sub.status === 'canceled' || sub.status === 'expired') && (
+          <div className="text-xs" style={{ color: theme.error }}>{sub.status}</div>
+        )}
+        <div className="flex flex-wrap gap-2 pt-1 border-t" style={{ borderColor: theme.border }}>
+          {stripeUrl && (
+            <a href={stripeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.info + '20', color: theme.info }}>
+              <ExternalLink size={12} /> Stripe
+            </a>
+          )}
+          {googlePlayUrl && (
+            <a href={googlePlayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
+              <ExternalLink size={12} /> Google Play
+            </a>
+          )}
+          {appStoreUrl && (
+            <a href={appStoreUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+              <ExternalLink size={12} /> App Store
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Activity Log tab - chronological event timeline
+function ActivityLogTab({ user, theme, events, loading, onLoad }) {
+  React.useEffect(() => { onLoad(); }, [onLoad]);
+  const severityColors = { success: theme.success, info: theme.info, warning: theme.warning, error: theme.error };
+  return (
+    <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center gap-2 mb-4">
+        <History size={18} style={{ color: theme.primary }} />
+        <h4 className="font-bold" style={{ color: theme.primaryDark }}>Activity Log</h4>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
+          <Loader size={20} className="animate-spin" />
+          <span>Loading activity...</span>
+        </div>
+      ) : events.length === 0 ? (
+        <p className="text-sm py-4" style={{ color: theme.textLight }}>No activity events found.</p>
+      ) : (
+        <div className="space-y-0 max-h-[60vh] overflow-y-auto">
+          {events.map((ev) => (
+            <div key={ev.id} className="flex gap-3 py-3 border-b last:border-b-0" style={{ borderColor: theme.border }}>
+              <div className="w-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: severityColors[ev.severity] || theme.textLight }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold" style={{ color: theme.text }}>{ev.title}</div>
+                {ev.description && <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>{ev.description}</div>}
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] uppercase" style={{ color: theme.textLight }}>{ev.timestamp ? new Date(ev.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: theme.background, color: theme.textLight }}>{ev.source}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Communications tab - emails, admin messages, support tickets
+function CommunicationsTab({ user, theme, data, loading, onLoad }) {
+  React.useEffect(() => { onLoad(); }, [onLoad]);
+  const { emails, adminMessages, supportTickets } = data;
+  return (
+    <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center gap-2">
+        <MessageCircle size={18} style={{ color: theme.primary }} />
+        <h4 className="font-bold" style={{ color: theme.primaryDark }}>Communications</h4>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
+          <Loader size={20} className="animate-spin" />
+          <span>Loading...</span>
+        </div>
+      ) : (
+        <>
+          {emails.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase mb-2" style={{ color: theme.textLight }}>Emails sent</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {emails.slice(0, 30).map((e) => (
+                  <div key={e.id} className="p-2 rounded-lg text-xs" style={{ backgroundColor: theme.background }}>
+                    <span className="font-medium" style={{ color: theme.text }}>{e.type}</span>
+                    {e.subject && <span className="ml-1" style={{ color: theme.textLight }}> – {e.subject}</span>}
+                    <div style={{ color: theme.textLight }}>{e.sentAt ? new Date(e.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} · {e.status}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {adminMessages.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase mb-2" style={{ color: theme.textLight }}>Admin messages</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {adminMessages.slice(0, 20).map((m) => (
+                  <div key={m.id} className="p-2 rounded-lg text-xs" style={{ backgroundColor: theme.background }}>
+                    <div style={{ color: theme.text }}>{m.message?.slice(0, 80)}{m.message?.length > 80 ? '...' : ''}</div>
+                    <div style={{ color: theme.textLight }}>{m.createdAt ? new Date(m.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {supportTickets.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase mb-2" style={{ color: theme.textLight }}>Support tickets</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {supportTickets.slice(0, 20).map((t) => (
+                  <div key={t.id} className="p-2 rounded-lg text-xs" style={{ backgroundColor: theme.background }}>
+                    <span className="font-medium" style={{ color: theme.text }}>#{t.ticketNumber}</span>
+                    <span className="ml-1" style={{ color: theme.textLight }}>{t.subject}</span>
+                    <div style={{ color: theme.textLight }}>{t.status} · {t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {emails.length === 0 && adminMessages.length === 0 && supportTickets.length === 0 && (
+            <p className="text-sm py-4" style={{ color: theme.textLight }}>No communications found.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Sync from Stripe Button Component (forceRefresh = show as "Force refresh" when user already has subscription data)
+function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -953,16 +1237,22 @@ function SyncFromStripeButton({ user, theme }) {
   return (
     <div className="p-4 rounded-lg flex flex-col gap-3"
       style={{ backgroundColor: theme.warning + '10', border: `2px solid ${theme.warning}30` }}>
-      <div className="flex items-start gap-2">
-        <Siren size={16} style={{ color: theme.warning }} className="mt-0.5" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold" style={{ color: theme.warning }}>EMPTY SUBSCRIPTION DATA</p>
-          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-            This user has no subscription data in Firestore. If they have a paid subscription in Stripe, click below to sync it.
-          </p>
+      {!forceRefresh && (
+        <div className="flex items-start gap-2">
+          <Siren size={16} style={{ color: theme.warning }} className="mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{ color: theme.warning }}>EMPTY SUBSCRIPTION DATA</p>
+            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+              This user has no subscription data in Firestore. If they have a paid subscription in Stripe, click below to sync it.
+            </p>
+          </div>
         </div>
-      </div>
-      
+      )}
+      {forceRefresh && (
+        <p className="text-xs" style={{ color: theme.textLight }}>
+          Overwrite Firestore with current data from Stripe (e.g. after a refund or status change).
+        </p>
+      )}
       <button
         onClick={handleSync}
         disabled={isSyncing}
@@ -981,7 +1271,7 @@ function SyncFromStripeButton({ user, theme }) {
         ) : (
           <>
             <RefreshCw size={16} />
-            Sync Subscription from Stripe
+            {forceRefresh ? 'Force Refresh from Stripe' : 'Sync Subscription from Stripe'}
           </>
         )}
       </button>
@@ -1016,7 +1306,7 @@ function SubscriptionDebugSection({ user, theme }) {
       return theme.success;
     } else if (subscription.status === 'trialing' || subscription.interval === 'trial') {
       return theme.info;
-    } else if (subscription.status === 'canceled' || subscription.status === 'expired') {
+    } else if (subscription.status === 'canceled' || subscription.status === 'expired' || subscription.status === 'refunded' || subscription.status === 'disputed' || subscription.status === 'revoked') {
       return theme.error;
     }
     return theme.textLight;
@@ -1097,6 +1387,7 @@ function SubscriptionDebugSection({ user, theme }) {
                 <div>✓ Lifetime: hasLifetimeAccess={String(!!subscription.hasLifetimeAccess)} OR interval='lifetime'</div>
                 <div>✓ Subscribed: status='active' AND plan exists = {String(subscription.status === 'active' && !!subscription.plan)}</div>
                 <div>✓ Trialing: Has valid currentPeriodEnd and not expired</div>
+                <div>✓ Refunded/Disputed/Revoked: status in ['refunded','disputed','revoked'] = {String(['refunded', 'disputed', 'revoked'].includes(subscription.status))}</div>
               </div>
             </div>
 
@@ -1107,6 +1398,7 @@ function SubscriptionDebugSection({ user, theme }) {
                 <div>✓ Active Subscription: status='active' AND interval≠'trial' = {String(subscription.status === 'active' && subscription.interval !== 'trial')}</div>
                 <div>✓ Lifetime: interval='lifetime' = {String(subscription.interval === 'lifetime')}</div>
                 <div>✓ Trialing: status='trialing' = {String(subscription.status === 'trialing')}</div>
+                <div>✓ No access: status in ['refunded','disputed','revoked'] = {String(['refunded', 'disputed', 'revoked'].includes(subscription.status))}</div>
               </div>
             </div>
 
@@ -1150,9 +1442,16 @@ function SubscriptionDebugSection({ user, theme }) {
               </div>
             )}
 
-            {/* Empty subscription fix */}
+            {/* Empty subscription: show sync CTA */}
             {(!subscription.status || Object.keys(subscription).length === 0) && (
               <SyncFromStripeButton user={user} theme={theme} />
+            )}
+
+            {/* Always show Sync from Stripe so admin can force-refresh stale data */}
+            {subscription.stripeCustomerId && (
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+                <SyncFromStripeButton user={user} theme={theme} forceRefresh />
+              </div>
             )}
           </div>
         )}

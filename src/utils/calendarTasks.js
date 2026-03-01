@@ -174,6 +174,29 @@ function getWindows(p) {
     }
 }
 
+/**
+ * Get the protocol settings effective for a given date (for "this + future" edit behavior).
+ * If the protocol has settingsHistory and the date falls within a closed segment, returns
+ * a protocol-like object with peptides and blendMode from that segment; otherwise returns the protocol.
+ * @param {Object} protocol
+ * @param {string} dateStr - YYYY-MM-DD
+ * @returns {Object} protocol with effective peptides/blendMode for that date
+ */
+function getEffectiveSettings(protocol, dateStr) {
+    const history = protocol?.settingsHistory;
+    if (!Array.isArray(history) || history.length === 0) return protocol;
+    const segment = history.find(
+        seg => seg.effectiveFrom && seg.effectiveTo &&
+        dateStr >= seg.effectiveFrom && dateStr <= seg.effectiveTo
+    );
+    if (!segment) return protocol;
+    return {
+        ...protocol,
+        peptides: segment.peptides ?? protocol.peptides,
+        blendMode: segment.blendMode ?? protocol.blendMode
+    };
+}
+
 // Normalize peptides helper
 function getNormalizedPeptides(p) {
     const basePeptides = (Array.isArray(p.peptides) && p.peptides.length > 0)
@@ -329,10 +352,11 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
 
         if (!inRange) continue;
 
-        const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
+        const ep = getEffectiveSettings(p, dateKey);
+        const isBlended = (ep.blendMode || '').toLowerCase() === 'blended' && Array.isArray(ep.peptides) && ep.peptides.length > 1;
         
         // Find matching recon item
-        const protocolPeptideNames = getNormalizedPeptides(p).map(pep => (pep.name || '').toLowerCase().trim()).sort();
+        const protocolPeptideNames = getNormalizedPeptides(ep).map(pep => (pep.name || '').toLowerCase().trim()).sort();
         const reconItem = reconItems.find(r => {
             if (!r.peptides || r.peptides.length === 0) return false;
             const reconPeptideNames = r.peptides.map(pep => (pep.name || '').toLowerCase().trim()).sort();
@@ -342,7 +366,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         });
 
         if (isBlended) {
-            const peptides = getNormalizedPeptides(p);
+            const peptides = getNormalizedPeptides(ep);
             if (peptides.length === 0) continue;
 
             const freq = peptides[0].frequency || {};
@@ -400,7 +424,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 
                 // Build dose display accounting for titration
                 const doseParts = peptides.map(pep => {
-                    const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
+                    const titrationResult = getTitrationDoseForDate(ep, pep, dateNormalized);
                     return `${pep.name} ${titrationResult.dose} ${titrationResult.unit || 'mcg'}`;
                 });
                 const anyUsingTitration = peptides.some(pep => (pep.titration && pep.titration.length > 0) && pep.dosageScheduleType !== 'fixed');
@@ -461,7 +485,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                         result.bySlot[t] = { peptides: [], supplements: [] };
                     }
                     const peptideData = {
-                        name: p.protocolName || 'Blended Protocol',
+                        name: ep.protocolName || p.protocolName || 'Blended Protocol',
                         dose: dose,
                         unit: unit,
                         deliveryMethod: deliveryMethod,
@@ -482,7 +506,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
             }
         } else {
             // Separate peptides
-            getNormalizedPeptides(p).forEach(pep => {
+            getNormalizedPeptides(ep).forEach(pep => {
                 const freq = pep.frequency || {};
                 let isScheduledToday = false;
 
@@ -531,7 +555,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const times = freq.time || ['AM'];
                     
                     // Get dose/unit accounting for titration schedule
-                    const titrationResult = getTitrationDoseForDate(p, pep, dateNormalized);
+                    const titrationResult = getTitrationDoseForDate(ep, pep, dateNormalized);
                     let dose = titrationResult.dose;
                     let unit = titrationResult.unit;
                     const useFixedDoseForUnits = pep.dosageScheduleType === 'fixed' || !pep.titration || pep.titration.length === 0;
@@ -570,7 +594,7 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     }
 
                     // Get delivery method from multiple sources
-                    const peptideId = pep.id || `peptide-${getNormalizedPeptides(p).indexOf(pep)}`;
+                    const peptideId = pep.id || `peptide-${getNormalizedPeptides(ep).indexOf(pep)}`;
                     const linkedItem = p.linkedItems?.[peptideId] || {};
                     const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
                     

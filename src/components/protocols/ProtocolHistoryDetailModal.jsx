@@ -151,6 +151,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     ev.push({ date: evt.date, sort: 4, type: 'resumed', icon: Play, label: `Phase ${phaseNum} resumed for ${name}.`, detail: null });
                 } else if (evt.type === 'next_phase') {
                     ev.push({ date: evt.date, sort: 4, type: 'next_phase', icon: SkipForward, label: `Phase ${phaseNum} skipped; Phase ${phaseNum + 1} started for ${name}.`, detail: null });
+                } else if (evt.type === 'settings_change') {
+                    ev.push({ date: evt.date, sort: 4, type: 'settings_change', icon: Edit3, label: evt.summary || 'Protocol settings updated.', detail: null });
                 }
             });
         }
