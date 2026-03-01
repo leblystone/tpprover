@@ -80,10 +80,10 @@ html, body, #root {
   }
 }
 
-/* Global Dark Mode Button Hover Effect - Inspired by Quick Actions */
+/* Global Dark Mode Button Hover Effect - subtle lift, stay dark (no light-mode brightening) */
 [data-theme="softDark"] button:not(:disabled):hover,
 .dark button:not(:disabled):hover {
-  filter: brightness(1.15);
+  filter: brightness(1.06);
   transition: filter 0.2s ease, background-color 0.2s ease;
 }
 
@@ -392,15 +392,21 @@ html, body, #root {
 /* Interactive surface hover */
 .interactive-hover { transition: background-color 200ms ease, transform 150ms ease, box-shadow 200ms ease; }
 .interactive-hover:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); }
+[data-theme="softDark"] .interactive-hover:hover,
+.dark .interactive-hover:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
 
 /* Buttons */
 .btn-modern { border-radius: 12px; }
 .btn-hover { transition: transform 160ms ease, box-shadow 200ms ease; }
 .btn-hover:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(0,0,0,0.12); }
+[data-theme="softDark"] .btn-hover:hover,
+.dark .btn-hover:hover { box-shadow: 0 10px 22px rgba(0,0,0,0.4); }
 
 /* Sidebar icon buttons */
 .sidebar-link { transition: background-color 160ms ease, color 160ms ease, transform 150ms ease; border-radius: 12px; }
 .sidebar-link:hover { background-color: rgba(0,0,0,0.04); transform: translateY(-1px); }
+[data-theme="softDark"] .sidebar-link:hover,
+.dark .sidebar-link:hover { background-color: rgba(255,255,255,0.08); }
 .sidebar-link-active { background-color: #111827; color: white; }
 
 /* Topbar */
@@ -431,6 +437,10 @@ html, body, #root {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
+[data-theme="softDark"] .dashboard-hover-lift:hover,
+.dark .dashboard-hover-lift:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
 
 .dashboard-hover-glow {
   transition: all 0.3s ease;
@@ -451,6 +461,10 @@ html, body, #root {
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
+}
+[data-theme="softDark"] .dashboard-hover-glow::before,
+.dark .dashboard-hover-glow::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
 }
 
 .dashboard-hover-glow:hover::before {
@@ -489,6 +503,10 @@ html, body, #root {
 .dashboard-hover-fade:hover {
   opacity: 0.8;
   background-color: rgba(92, 118, 89, 0.1);
+}
+[data-theme="softDark"] .dashboard-hover-fade:hover,
+.dark .dashboard-hover-fade:hover {
+  background-color: rgba(92, 118, 89, 0.15);
 }
 
 .dashboard-hover-rotate {
@@ -536,6 +554,14 @@ html, body, #root {
     0 3px 6px rgba(0, 0, 0, 0.10),
     0 6px 16px rgba(0, 0, 0, 0.08) !important;
 }
+[data-theme="softDark"] .widget-card-hover:hover,
+.dark .widget-card-hover:hover {
+  background: rgba(55, 62, 75, 0.85) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
 
 /* Depth panel hover */
 .glass-panel-depth.widget-card-hover:hover {
@@ -546,10 +572,22 @@ html, body, #root {
     0 4px 8px rgba(0, 0, 0, 0.12),
     0 8px 20px rgba(0, 0, 0, 0.10) !important;
 }
+[data-theme="softDark"] .glass-panel-depth.widget-card-hover:hover,
+.dark .glass-panel-depth.widget-card-hover:hover {
+  background: rgba(58, 65, 78, 0.9) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    0 10px 28px rgba(0, 0, 0, 0.35) !important;
+}
 
 .widget-card-hover:active {
   transform: scale(0.985);
   background: rgba(255, 255, 255, 0.80) !important;
+}
+[data-theme="softDark"] .widget-card-hover:active,
+.dark .widget-card-hover:active {
+  background: rgba(45, 52, 65, 0.9) !important;
 }
 
 .task-checkbox-hover {
@@ -581,6 +619,10 @@ html, body, #root {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transition: left 0.6s;
 }
+[data-theme="softDark"] .action-button-hover::before,
+.dark .action-button-hover::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
 
 .action-button-hover:hover::before {
   left: 100%;
@@ -595,6 +637,10 @@ html, body, #root {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   border-color: rgba(92, 118, 89, 0.3);
 }
+[data-theme="softDark"] .metric-card-hover:hover,
+.dark .metric-card-hover:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
 
 .supplement-card-hover {
   transition: all 0.3s ease;
@@ -604,6 +650,11 @@ html, body, #root {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   background-color: rgba(92, 118, 89, 0.05);
+}
+[data-theme="softDark"] .supplement-card-hover:hover,
+.dark .supplement-card-hover:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background-color: rgba(92, 118, 89, 0.12);
 }
 
 .plan-button-hover {
@@ -653,6 +704,10 @@ html, body, #root {
 .text-hover:hover {
   opacity: 0.8;
   color: #5C7659;
+}
+[data-theme="softDark"] .text-hover:hover,
+.dark .text-hover:hover {
+  color: #7F9E95;
 }
 
 /* Extending Search Box Animation */
@@ -762,6 +817,10 @@ html, body, #root {
 
 .search-box-wrapper button[type="reset"]:hover {
   background: rgba(0, 0, 0, 0.1);
+}
+[data-theme="softDark"] .search-box-wrapper button[type="reset"]:hover,
+.dark .search-box-wrapper button[type="reset"]:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .search-box-wrapper button[type="reset"]:before,

@@ -21,6 +21,11 @@
     --safe-area-right: max(var(--sar, 0px), var(--android-safe-area-right, 0px));
     --safe-area-bottom: max(var(--sab, 0px), var(--android-safe-area-bottom, 0px));
     --safe-area-left: max(var(--sal, 0px), var(--android-safe-area-left, 0px));
+    --hover-border-color: rgba(127, 158, 149, 0.35);
+}
+html.dark,
+html[data-theme="softDark"] {
+    --hover-border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Utility class for fixed bottom elements - automatically handles safe area insets */
