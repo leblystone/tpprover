@@ -230,13 +230,15 @@ exports.getUserActivityHistory = onCall(
     const limit = Math.min(Number(request.data?.limit) || 100, 150);
 
     try {
+      // No orderBy on cross-collection queries to avoid composite index requirements.
+      // Sorting is done in memory after fetching.
       const [userSnap, lifetimeSnap, subHistorySnap, stripeEventsSnap, emailByUserIdSnap] = await Promise.all([
         db.collection('users').doc(userId).get(),
         db.collection('lifetimeAccess').doc(userId).get(),
         db.collection('userSubscriptions').doc(userId).collection('history')
           .orderBy('eventTimestamp', 'desc').limit(50).get(),
-        db.collection('stripeEvents').where('userId', '==', userId).orderBy('timestamp', 'desc').limit(50).get(),
-        db.collection('emailHistory').where('userId', '==', userId).orderBy('sentAt', 'desc').limit(50).get()
+        db.collection('stripeEvents').where('userId', '==', userId).limit(60).get(),
+        db.collection('emailHistory').where('userId', '==', userId).limit(60).get()
       ]);
 
       const userData = userSnap.exists ? userSnap.data() : null;
@@ -246,8 +248,7 @@ exports.getUserActivityHistory = onCall(
       if (userEmail) {
         emailByEmailSnap = await db.collection('emailHistory')
           .where('recipientEmail', '==', userEmail)
-          .orderBy('sentAt', 'desc')
-          .limit(50)
+          .limit(60)
           .get();
       }
 
@@ -326,12 +327,13 @@ exports.getUserCommunications = onCall(
 
       const limit = 80;
 
+      // No orderBy on cross-collection queries — sort in memory to avoid composite index requirements.
       const [emailByUserIdSnap, emailByEmailSnap, adminMessagesSnap, ticketsByUserIdSnap, ticketsByEmailSnap] = await Promise.all([
-        db.collection('emailHistory').where('userId', '==', userId).orderBy('sentAt', 'desc').limit(limit).get(),
-        userEmail ? db.collection('emailHistory').where('recipientEmail', '==', userEmail).orderBy('sentAt', 'desc').limit(limit).get() : Promise.resolve({ docs: [] }),
-        userEmail ? db.collection('adminMessages').where('userEmail', '==', userEmail).orderBy('createdAt', 'desc').limit(limit).get() : Promise.resolve({ docs: [] }),
-        db.collection('supportTickets').where('userId', '==', userId).orderBy('createdAt', 'desc').limit(limit).get(),
-        userEmail ? db.collection('supportTickets').where('userEmail', '==', userEmail).orderBy('createdAt', 'desc').limit(limit).get() : Promise.resolve({ docs: [] })
+        db.collection('emailHistory').where('userId', '==', userId).limit(limit).get(),
+        userEmail ? db.collection('emailHistory').where('recipientEmail', '==', userEmail).limit(limit).get() : Promise.resolve({ docs: [] }),
+        userEmail ? db.collection('adminMessages').where('userEmail', '==', userEmail).limit(limit).get() : Promise.resolve({ docs: [] }),
+        db.collection('supportTickets').where('userId', '==', userId).limit(limit).get(),
+        userEmail ? db.collection('supportTickets').where('userEmail', '==', userEmail).limit(limit).get() : Promise.resolve({ docs: [] })
       ]);
 
       const seenEmailIds = new Set();

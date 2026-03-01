@@ -1084,7 +1084,13 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
 
 // Activity Log tab - chronological event timeline
 function ActivityLogTab({ user, theme, events, loading, onLoad }) {
-  React.useEffect(() => { onLoad(); }, [onLoad]);
+  const calledRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!calledRef.current) {
+      calledRef.current = true;
+      onLoad();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const severityColors = { success: theme.success, info: theme.info, warning: theme.warning, error: theme.error };
   return (
     <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -1122,7 +1128,13 @@ function ActivityLogTab({ user, theme, events, loading, onLoad }) {
 
 // Communications tab - emails, admin messages, support tickets
 function CommunicationsTab({ user, theme, data, loading, onLoad }) {
-  React.useEffect(() => { onLoad(); }, [onLoad]);
+  const calledRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!calledRef.current) {
+      calledRef.current = true;
+      onLoad();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { emails, adminMessages, supportTickets } = data;
   return (
     <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
