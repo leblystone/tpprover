@@ -84,7 +84,67 @@ function mapApplePurchaseToSubscription(transaction, productId, options = {}) {
   return subscriptionData;
 }
 
-async function syncAppleSubscriptionToFirestore(userId, userEmail, subscriptionData) {
+async function snapshotTrialOnPurchase(userId, db) {
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return null;
+    const userData = userDoc.data();
+    const now = new Date();
+    let trialEnd = null;
+    if (userData.trialEndDate?.toDate) trialEnd = userData.trialEndDate.toDate();
+    else if (userData.trialEndDate) trialEnd = new Date(userData.trialEndDate);
+    else if (userData.createdAt) {
+      const created = userData.createdAt?.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+      trialEnd = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+    const daysRemaining = trialEnd && trialEnd > now ? Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000)) : 0;
+    return { trialDaysRemainingAtPurchase: daysRemaining, trialEndDateAtPurchase: trialEnd ? trialEnd.toISOString() : null };
+  } catch (e) {
+    logger.warn(`⚠️ Could not snapshot trial for ${userId}: ${e.message}`);
+    return null;
+  }
+}
+
+async function calcTrialRestoration(userId, db) {
+  const now = new Date();
+  const [lifetimeDoc, userDoc] = await Promise.all([
+    db.collection('lifetimeAccess').doc(userId).get(),
+    db.collection('users').doc(userId).get(),
+  ]);
+  const lifetimeData = lifetimeDoc.exists ? lifetimeDoc.data() : null;
+  const userData = userDoc.exists ? userDoc.data() : null;
+  let restoredTrialEndDate = null;
+  let trialDaysRestored = 0;
+  let trialRestoredNote = '';
+  const snapshotDays = lifetimeData?.trialDaysRemainingAtPurchase;
+  if (snapshotDays != null && snapshotDays > 0) {
+    restoredTrialEndDate = new Date(now.getTime() + snapshotDays * 24 * 60 * 60 * 1000);
+    trialDaysRestored = snapshotDays;
+    trialRestoredNote = `${snapshotDays} day(s) restored from purchase-time snapshot.`;
+  } else if (userData) {
+    const created = userData.createdAt?.toDate ? userData.createdAt.toDate() : userData.createdAt ? new Date(userData.createdAt) : null;
+    let originalTrialEnd = null;
+    if (userData.trialEndDate?.toDate) originalTrialEnd = userData.trialEndDate.toDate();
+    else if (userData.trialEndDate) originalTrialEnd = new Date(userData.trialEndDate);
+    else if (created) originalTrialEnd = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (originalTrialEnd && created) {
+      const purchasedAt = lifetimeData?.grantedAt?.toDate ? lifetimeData.grantedAt.toDate() : now;
+      const daysConsumed = Math.max(0, Math.floor((purchasedAt - created) / (24 * 60 * 60 * 1000)));
+      const totalDays = Math.round((originalTrialEnd - created) / (24 * 60 * 60 * 1000));
+      const daysRemaining = Math.max(0, totalDays - daysConsumed);
+      if (daysRemaining > 0) {
+        restoredTrialEndDate = new Date(now.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
+        trialDaysRestored = daysRemaining;
+        trialRestoredNote = `${daysRemaining} of ${totalDays} day(s) restored (${daysConsumed} used before purchase).`;
+      } else {
+        trialRestoredNote = 'Trial fully elapsed before purchase; no days to restore.';
+      }
+    }
+  }
+  return { restoredTrialEndDate, trialDaysRestored, trialRestoredNote };
+}
+
+async function syncAppleSubscriptionToFirestore(userId, userEmail, subscriptionData, opts = {}) {
   const db = admin.firestore();
   const batch = db.batch();
   const subRef = db.collection('userSubscriptions').doc(userId);
@@ -100,15 +160,23 @@ async function syncAppleSubscriptionToFirestore(userId, userEmail, subscriptionD
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 
-  // Audit trail
   const historyRef = subRef.collection('history').doc();
   batch.set(historyRef, {
-    ...subscriptionData,
-    eventTimestamp: FieldValue.serverTimestamp(),
+    eventType: opts.eventType || 'apple_subscription_update',
+    title: opts.title || 'Apple subscription updated',
+    description: opts.description || '',
+    severity: opts.severity || 'info',
+    status: subscriptionData.status,
     source: 'apple_iap',
+    eventTimestamp: FieldValue.serverTimestamp(),
+    appleProductId: subscriptionData.appleProductId || null,
+    appleTransactionId: subscriptionData.appleTransactionId || null,
+    currentPeriodEnd: subscriptionData.currentPeriodEnd || null,
   });
 
   if (subscriptionData.hasLifetimeAccess) {
+    // Snapshot trial days before granting
+    const snapshot = await snapshotTrialOnPurchase(userId, db);
     const lifetimeRef = db.collection('lifetimeAccess').doc(userId);
     batch.set(lifetimeRef, {
       userId,
@@ -117,12 +185,30 @@ async function syncAppleSubscriptionToFirestore(userId, userEmail, subscriptionD
       grantedBy: 'apple-in-app-purchase',
       grantedAt: FieldValue.serverTimestamp(),
       status: 'active',
+      trialDaysRemainingAtPurchase: snapshot?.trialDaysRemainingAtPurchase ?? null,
+      trialEndDateAtPurchase: snapshot?.trialEndDateAtPurchase ?? null,
       metadata: {
         appleProductId: subscriptionData.appleProductId,
         appleTransactionId: subscriptionData.appleTransactionId,
         appleOriginalTransactionId: subscriptionData.appleOriginalTransactionId,
       },
     }, { merge: true });
+
+    // History: trial on hold
+    const trialHoldRef = subRef.collection('history').doc();
+    batch.set(trialHoldRef, {
+      eventType: 'trial_on_hold',
+      status: 'active',
+      title: 'Trial paused — Apple lifetime purchase',
+      description: snapshot?.trialDaysRemainingAtPurchase != null
+        ? `${snapshot.trialDaysRemainingAtPurchase} trial day(s) remaining at purchase. Restorable if refunded.`
+        : 'Trial state snapshotted at Apple lifetime purchase.',
+      trialDaysRemainingAtPurchase: snapshot?.trialDaysRemainingAtPurchase ?? null,
+      trialEndDateAtPurchase: snapshot?.trialEndDateAtPurchase ?? null,
+      source: 'apple_iap',
+      severity: 'info',
+      eventTimestamp: FieldValue.serverTimestamp(),
+    });
   }
 
   await batch.commit();
@@ -207,108 +293,168 @@ exports.appleWebhook = onRequest(
         case 'DID_RENEW':
         case 'SUBSCRIBED': {
           const subData = mapApplePurchaseToSubscription(transactionInfo, transactionInfo.productId, { userId, userEmail });
-          await syncAppleSubscriptionToFirestore(userId, userEmail, subData);
+          await syncAppleSubscriptionToFirestore(userId, userEmail, subData, {
+            eventType: notificationType === 'DID_RENEW' ? 'subscription_renewed' : 'subscription_started',
+            title: notificationType === 'DID_RENEW' ? 'Subscription renewed' : 'Subscription started',
+            severity: 'success',
+          });
           if (userEmail) await emailService.sendPaymentSuccessfulEmail(userEmail, null, 'USD', null);
           break;
         }
 
         case 'DID_CHANGE_RENEWAL_STATUS': {
           const autoRenew = subtype !== 'AUTO_RENEW_DISABLED';
-          await db.collection('userSubscriptions').doc(userId).set({
-            subscription: {
-              cancelAtPeriodEnd: !autoRenew,
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
-          await db.collection('users').doc(userId).set({
-            subscription: {
-              cancelAtPeriodEnd: !autoRenew,
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
+          const renewalPayload = { cancelAtPeriodEnd: !autoRenew, lastUpdated: FieldValue.serverTimestamp() };
+          await db.collection('userSubscriptions').doc(userId).set({ subscription: renewalPayload }, { merge: true });
+          await db.collection('users').doc(userId).set({ subscription: renewalPayload }, { merge: true });
+          // History
+          await db.collection('userSubscriptions').doc(userId).collection('history').add({
+            eventType: 'renewal_status_changed',
+            title: autoRenew ? 'Auto-renew enabled' : 'Auto-renew disabled',
+            description: autoRenew ? 'Subscription will renew automatically.' : 'Subscription set to cancel at end of period.',
+            status: autoRenew ? 'active' : 'canceling',
+            severity: autoRenew ? 'success' : 'warning',
+            source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
           break;
         }
 
         case 'DID_FAIL_TO_RENEW': {
-          const failPayload = {
-            status: subtype === 'GRACE_PERIOD' ? 'grace_period' : 'past_due',
-            billingStatus: 'payment_failed',
-            lastUpdated: FieldValue.serverTimestamp(),
-          };
-          await db.collection('userSubscriptions').doc(userId).set(
-            { subscription: failPayload }, { merge: true }
-          );
-          await db.collection('users').doc(userId).set(
-            { subscription: failPayload }, { merge: true }
-          );
+          const failStatus = subtype === 'GRACE_PERIOD' ? 'grace_period' : 'past_due';
+          const failPayload = { status: failStatus, billingStatus: 'payment_failed', lastUpdated: FieldValue.serverTimestamp() };
+          await db.collection('userSubscriptions').doc(userId).set({ subscription: failPayload }, { merge: true });
+          await db.collection('users').doc(userId).set({ subscription: failPayload }, { merge: true });
+          await db.collection('userSubscriptions').doc(userId).collection('history').add({
+            eventType: 'payment_failed',
+            title: failStatus === 'grace_period' ? 'Payment failed — in grace period' : 'Payment failed — past due',
+            description: 'Apple subscription renewal payment failed.',
+            status: failStatus,
+            severity: 'error',
+            source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
           if (userEmail) await emailService.sendPaymentFailedEmail(userEmail, null, 'USD', null);
           break;
         }
 
         case 'EXPIRED': {
-          const expPayload = {
+          const expPayload = { status: 'expired', hasLifetimeAccess: false, interval: null, plan: null, lastUpdated: FieldValue.serverTimestamp() };
+          await db.collection('userSubscriptions').doc(userId).set({ subscription: expPayload }, { merge: true });
+          await db.collection('users').doc(userId).set({ subscription: expPayload }, { merge: true });
+          await db.collection('userSubscriptions').doc(userId).collection('history').add({
+            eventType: 'subscription_expired',
+            title: 'Subscription expired',
+            description: 'Apple subscription expired — access ended.',
             status: 'expired',
-            lastUpdated: FieldValue.serverTimestamp(),
-          };
-          await db.collection('userSubscriptions').doc(userId).set(
-            { subscription: expPayload }, { merge: true }
-          );
-          await db.collection('users').doc(userId).set(
-            { subscription: expPayload }, { merge: true }
-          );
+            severity: 'warning',
+            source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
           break;
         }
 
         case 'REFUND': {
-          await db.collection('userSubscriptions').doc(userId).set({
-            subscription: {
-              status: 'refunded',
-              hasLifetimeAccess: false,
-              refundedAt: FieldValue.serverTimestamp(),
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
-          await db.collection('users').doc(userId).set({
-            subscription: {
-              status: 'refunded',
-              hasLifetimeAccess: false,
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
+          // Restore trial days
+          const { restoredTrialEndDate, trialDaysRestored, trialRestoredNote } = await calcTrialRestoration(userId, db);
 
-          const lifetimeDoc = await db.collection('lifetimeAccess').doc(userId).get();
-          if (lifetimeDoc.exists) {
-            await db.collection('lifetimeAccess').doc(userId).update({
-              status: 'revoked',
-              revokedAt: FieldValue.serverTimestamp(),
-              revokedReason: 'apple_refund',
-            });
+          const refundedSub = {
+            status: restoredTrialEndDate ? 'trialing' : 'refunded',
+            hasLifetimeAccess: false,
+            interval: restoredTrialEndDate ? 'trial' : null,
+            plan: null,
+            refundedAt: FieldValue.serverTimestamp(),
+            lastUpdated: FieldValue.serverTimestamp(),
+            ...(restoredTrialEndDate && {
+              currentPeriodEnd: restoredTrialEndDate.toISOString(),
+              trialRestoredAt: FieldValue.serverTimestamp(),
+              trialRestoredDays: trialDaysRestored,
+            }),
+          };
+
+          const refundBatch = db.batch();
+          const refundSubRef = db.collection('userSubscriptions').doc(userId);
+          const refundUserRef = db.collection('users').doc(userId);
+
+          refundBatch.set(refundSubRef, { subscription: refundedSub, lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
+          const refundUserUpdate = { subscription: refundedSub, updatedAt: FieldValue.serverTimestamp() };
+          if (restoredTrialEndDate) refundUserUpdate.trialEndDate = restoredTrialEndDate;
+          refundBatch.set(refundUserRef, refundUserUpdate, { merge: true });
+
+          const lifetimeDocSnap = await db.collection('lifetimeAccess').doc(userId).get();
+          if (lifetimeDocSnap.exists) {
+            refundBatch.update(db.collection('lifetimeAccess').doc(userId), { status: 'revoked', revokedAt: FieldValue.serverTimestamp(), revokedReason: 'apple_refund' });
           }
 
+          // History: refund event
+          refundBatch.set(refundSubRef.collection('history').doc(), {
+            eventType: 'apple_refund',
+            title: 'Apple refund — access revoked',
+            description: `App Store refund processed. Transaction: ${transactionInfo.transactionId || originalTransactionId}`,
+            status: 'refunded',
+            severity: 'error',
+            source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
+
+          // History: trial restoration
+          refundBatch.set(refundSubRef.collection('history').doc(), {
+            eventType: restoredTrialEndDate ? 'trial_restored' : 'trial_expired_no_restore',
+            title: restoredTrialEndDate ? `Trial restored — ${trialDaysRestored} day(s)` : 'Refunded — no trial days to restore',
+            description: trialRestoredNote,
+            status: refundedSub.status,
+            trialDaysRestored,
+            restoredTrialEndDate: restoredTrialEndDate ? restoredTrialEndDate.toISOString() : null,
+            severity: restoredTrialEndDate ? 'success' : 'warning',
+            source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
+
+          await refundBatch.commit();
           adminAlerts.alertRefund(userId, userEmail, null, 'apple').catch(() => {});
-          logger.info(`🚫 Access revoked for user ${userId} due to Apple refund`);
-          if (userEmail) {
-            await emailService.sendDisputeNotificationEmail(userEmail, 'App Store refund', null);
-          }
+          logger.info(`🚫 Apple refund processed for user ${userId}. Trial restored: ${trialDaysRestored} day(s).`);
+          if (userEmail) await emailService.sendDisputeNotificationEmail(userEmail, 'App Store refund', null);
           break;
         }
 
         case 'REVOKE': {
-          await db.collection('userSubscriptions').doc(userId).set({
-            subscription: {
-              status: 'revoked',
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
-          await db.collection('users').doc(userId).set({
-            subscription: {
-              status: 'revoked',
-              lastUpdated: FieldValue.serverTimestamp(),
-            }
-          }, { merge: true });
-          if (userEmail) {
-            await emailService.sendDisputeNotificationEmail(userEmail, 'App Store subscription revoked', null);
-          }
+          // Restore trial on revocation too
+          const { restoredTrialEndDate: revokeTrialEnd, trialDaysRestored: revokeDays, trialRestoredNote: revokeNote } = await calcTrialRestoration(userId, db);
+
+          const revokedSub = {
+            status: 'revoked',
+            hasLifetimeAccess: false,
+            interval: revokeTrialEnd ? 'trial' : null,
+            plan: null,
+            lastUpdated: FieldValue.serverTimestamp(),
+            ...(revokeTrialEnd && { currentPeriodEnd: revokeTrialEnd.toISOString(), trialRestoredAt: FieldValue.serverTimestamp(), trialRestoredDays: revokeDays }),
+          };
+          const revokeBatch = db.batch();
+          const revokeSubRef = db.collection('userSubscriptions').doc(userId);
+          revokeBatch.set(revokeSubRef, { subscription: revokedSub, lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
+          const revokeUserUpdate = { subscription: revokedSub, updatedAt: FieldValue.serverTimestamp() };
+          if (revokeTrialEnd) revokeUserUpdate.trialEndDate = revokeTrialEnd;
+          revokeBatch.set(db.collection('users').doc(userId), revokeUserUpdate, { merge: true });
+
+          revokeBatch.set(revokeSubRef.collection('history').doc(), {
+            eventType: 'apple_revoke',
+            title: 'Apple subscription revoked',
+            description: 'App Store subscription revoked by Apple.',
+            status: 'revoked', severity: 'error', source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
+          revokeBatch.set(revokeSubRef.collection('history').doc(), {
+            eventType: revokeTrialEnd ? 'trial_restored' : 'trial_expired_no_restore',
+            title: revokeTrialEnd ? `Trial restored — ${revokeDays} day(s)` : 'Revoked — no trial days to restore',
+            description: revokeNote,
+            status: revokedSub.status, trialDaysRestored: revokeDays,
+            restoredTrialEndDate: revokeTrialEnd ? revokeTrialEnd.toISOString() : null,
+            severity: revokeTrialEnd ? 'success' : 'warning', source: 'apple_iap',
+            eventTimestamp: FieldValue.serverTimestamp(),
+          });
+
+          await revokeBatch.commit();
+          if (userEmail) await emailService.sendDisputeNotificationEmail(userEmail, 'App Store subscription revoked', null);
           break;
         }
 

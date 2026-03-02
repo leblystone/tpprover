@@ -75,6 +75,32 @@ async function findUserIdByEmail(email) {
   return snapshot.docs[0].id;
 }
 
+/**
+ * Safely retrieve email from a Stripe charge, handling guest customers (gcus_)
+ * which cannot be fetched via the regular customers API endpoint.
+ */
+async function resolveEmailFromCharge(charge, stripe) {
+  // Prefer email directly on the charge — always populated for one-time payments
+  const directEmail =
+    charge.billing_details?.email ||
+    charge.receipt_email ||
+    charge.metadata?.userEmail ||
+    null;
+  if (directEmail) return directEmail;
+
+  // Only attempt customer retrieve for regular cus_ IDs
+  const customerId = charge.customer;
+  if (customerId && !String(customerId).startsWith('gcus_')) {
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      return customer.email || null;
+    } catch (err) {
+      logger.warn(`⚠️ Could not retrieve customer ${customerId}: ${err.message}`);
+    }
+  }
+  return null;
+}
+
 async function resolveUserContext({ customerId, userIdHint, emailHint }) {
   const db = admin.firestore();
 
@@ -1298,8 +1324,7 @@ async function handleDisputeCreated(event, stripe) {
   logger.info(`🚨 Dispute created: ${dispute.id} for charge: ${dispute.charge}`);
 
   const charge = await stripe.charges.retrieve(dispute.charge);
-  const customer = await stripe.customers.retrieve(charge.customer);
-  const userEmail = customer.email;
+  const userEmail = await resolveEmailFromCharge(charge, stripe);
 
   if (!userEmail) {
     logger.warn('⚠️ No email found for disputed charge');
@@ -1362,10 +1387,8 @@ async function handleDisputeUpdated(event, stripe) {
   const dispute = event.data.object;
   logger.info(`📝 Dispute updated: ${dispute.id} - Status: ${dispute.status}`);
 
-  // Get customer email
   const charge = await stripe.charges.retrieve(dispute.charge);
-  const customer = await stripe.customers.retrieve(charge.customer);
-  const userEmail = customer.email;
+  const userEmail = await resolveEmailFromCharge(charge, stripe);
 
   if (!userEmail) {
     logger.warn('⚠️ No email found for disputed charge');
@@ -1386,8 +1409,7 @@ async function handleDisputeClosed(event, stripe) {
   logger.info(`✅ Dispute closed: ${dispute.id} - Status: ${dispute.status}`);
 
   const charge = await stripe.charges.retrieve(dispute.charge);
-  const customer = await stripe.customers.retrieve(charge.customer);
-  const userEmail = customer.email;
+  const userEmail = await resolveEmailFromCharge(charge, stripe);
 
   if (!userEmail) {
     logger.warn('⚠️ No email found for disputed charge');
@@ -1472,17 +1494,58 @@ async function handleDisputeClosed(event, stripe) {
  */
 async function handleChargeRefunded(event, stripe) {
   const charge = event.data.object;
-  logger.info(`💸 Charge refunded: ${charge.id}, amount_refunded: ${charge.amount_refunded}`);
+  logger.info(`💸 Charge refunded: ${charge.id}, amount_refunded: ${charge.amount_refunded}, customer: ${charge.customer}`);
 
-  const customer = await stripe.customers.retrieve(charge.customer);
-  const userEmail = customer.email;
+  // Guest customers (gcus_) cannot be retrieved via the regular customers endpoint.
+  // Always prefer email directly from the charge object first.
+  let userEmail =
+    charge.billing_details?.email ||
+    charge.receipt_email ||
+    charge.metadata?.userEmail ||
+    null;
+
+  // Only attempt customer retrieve for regular cus_ IDs — gcus_ will throw "No such customer"
+  if (!userEmail && charge.customer && !String(charge.customer).startsWith('gcus_')) {
+    try {
+      const customer = await stripe.customers.retrieve(charge.customer);
+      userEmail = customer.email || null;
+    } catch (err) {
+      logger.warn(`⚠️ Could not retrieve customer ${charge.customer}: ${err.message}`);
+    }
+  }
+
+  if (!userEmail) {
+    logger.warn(`⚠️ No email available for refunded charge ${charge.id} (customer: ${charge.customer}). Logging for manual review.`);
+    await admin.firestore().collection('stripeEvents').add({
+      type: 'charge.refunded.unresolved',
+      chargeId: charge.id,
+      customerId: charge.customer,
+      amountRefunded: charge.amount_refunded,
+      isFullRefund: charge.refunded === true,
+      error: 'No email found — guest customer or missing billing details',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return;
+  }
+
   const context = await resolveUserContext({
     customerId: charge.customer,
     emailHint: userEmail
   });
 
   if (!context?.userId) {
-    logger.warn(`⚠️ Cannot resolve user for refunded charge ${charge.id}`);
+    logger.warn(`⚠️ Cannot resolve user for refunded charge ${charge.id}, email: ${userEmail}`);
+    // Still log it so it's visible for manual admin action
+    await admin.firestore().collection('stripeEvents').add({
+      type: 'charge.refunded.unresolved',
+      chargeId: charge.id,
+      customerId: charge.customer,
+      userEmail,
+      amountRefunded: charge.amount_refunded,
+      isFullRefund: charge.refunded === true,
+      error: 'User not found by email in Firestore',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
     return;
   }
 
@@ -1490,9 +1553,20 @@ async function handleChargeRefunded(event, stripe) {
   const isFullRefund = charge.refunded === true;
 
   if (isFullRefund) {
-    // Check if this was a lifetime purchase
-    const lifetimeDoc = await db.collection('lifetimeAccess').doc(context.userId).get();
-    if (lifetimeDoc.exists && lifetimeDoc.data()?.metadata?.stripeChargeId === charge.id) {
+    const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
+    const userRef = db.collection('users').doc(context.userId);
+
+    // Look up lifetime doc + user doc together to calculate trial restoration
+    const [lifetimeDoc, userDoc] = await Promise.all([
+      db.collection('lifetimeAccess').doc(context.userId).get(),
+      userRef.get()
+    ]);
+
+    const lifetimeData = lifetimeDoc.exists ? lifetimeDoc.data() : null;
+    const userData = userDoc.exists ? userDoc.data() : null;
+
+    // Revoke lifetime doc if it matches this charge
+    if (lifetimeDoc.exists && (lifetimeData?.metadata?.stripeChargeId === charge.id || lifetimeData?.status === 'active')) {
       await db.collection('lifetimeAccess').doc(context.userId).update({
         status: 'revoked',
         revokedAt: FieldValue.serverTimestamp(),
@@ -1501,20 +1575,61 @@ async function handleChargeRefunded(event, stripe) {
       });
     }
 
-    // Full subscription object so stale fields (interval, plan, etc.) are cleared, not merged
+    // ─── Trial Restoration ───────────────────────────────────────────────
+    // If trial days were snapshotted at purchase, restore them from today.
+    // Otherwise fall back to calculating from original createdAt.
+    const now = new Date();
+    let restoredTrialEndDate = null;
+    let trialDaysRestored = 0;
+    let trialRestoredNote = '';
+
+    const snapshotDays = lifetimeData?.trialDaysRemainingAtPurchase;
+    if (snapshotDays != null && snapshotDays > 0) {
+      // We know exactly how many days were left — restore them from today
+      restoredTrialEndDate = new Date(now.getTime() + snapshotDays * 24 * 60 * 60 * 1000);
+      trialDaysRestored = snapshotDays;
+      trialRestoredNote = `${snapshotDays} day(s) restored from purchase-time snapshot.`;
+    } else if (userData) {
+      // Fallback: calculate from original trial window
+      const created = userData.createdAt?.toDate ? userData.createdAt.toDate() : userData.createdAt ? new Date(userData.createdAt) : null;
+      let originalTrialEnd = null;
+      if (userData.trialEndDate?.toDate) originalTrialEnd = userData.trialEndDate.toDate();
+      else if (userData.trialEndDate) originalTrialEnd = new Date(userData.trialEndDate);
+      else if (created) originalTrialEnd = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      if (originalTrialEnd && created) {
+        // How many days of trial were consumed before purchase?
+        const purchasedAt = lifetimeData?.grantedAt?.toDate ? lifetimeData.grantedAt.toDate() : now;
+        const daysConsumed = Math.max(0, Math.floor((purchasedAt - created) / (24 * 60 * 60 * 1000)));
+        const totalTrialDays = Math.round((originalTrialEnd - created) / (24 * 60 * 60 * 1000));
+        const daysRemaining = Math.max(0, totalTrialDays - daysConsumed);
+        if (daysRemaining > 0) {
+          restoredTrialEndDate = new Date(now.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
+          trialDaysRestored = daysRemaining;
+          trialRestoredNote = `${daysRemaining} of ${totalTrialDays} trial day(s) restored (${daysConsumed} days were used before purchase).`;
+        } else {
+          trialRestoredNote = 'Trial period had already fully elapsed before purchase; no days to restore.';
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
+
     const refundedSubscription = {
-      status: 'refunded',
+      status: restoredTrialEndDate ? 'trialing' : 'refunded',
       refundedAt: FieldValue.serverTimestamp(),
       hasLifetimeAccess: false,
-      interval: null,
+      interval: restoredTrialEndDate ? 'trial' : null,
       plan: null,
       cancelAt: null,
       cancelAtPeriodEnd: false,
       lastUpdated: FieldValue.serverTimestamp(),
+      ...(restoredTrialEndDate && {
+        currentPeriodEnd: restoredTrialEndDate.toISOString(),
+        trialRestoredAt: FieldValue.serverTimestamp(),
+        trialRestoredDays: trialDaysRestored,
+      }),
     };
 
-    const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
-    const userRef = db.collection('users').doc(context.userId);
     const batch = db.batch();
 
     batch.set(userSubscriptionsRef, {
@@ -1522,33 +1637,46 @@ async function handleChargeRefunded(event, stripe) {
       lastUpdated: FieldValue.serverTimestamp(),
     }, { merge: true });
 
-    batch.set(userRef, {
-      subscription: {
-        status: 'refunded',
-        hasLifetimeAccess: false,
-        interval: null,
-        plan: null,
-        lastUpdated: FieldValue.serverTimestamp(),
-      },
+    // On the user doc, also restore trialEndDate so the trial countdown works
+    const userRefundUpdate = {
+      subscription: refundedSubscription,
       updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+      ...(restoredTrialEndDate && { trialEndDate: restoredTrialEndDate }),
+    };
+    batch.set(userRef, userRefundUpdate, { merge: true });
 
-    // Audit trail: write refund event to history subcollection
-    const historyRef = userSubscriptionsRef.collection('history').doc();
-    batch.set(historyRef, {
-      status: 'refunded',
-      refundedAt: FieldValue.serverTimestamp(),
+    // Audit history: refund event
+    const historyRefundRef = userSubscriptionsRef.collection('history').doc();
+    batch.set(historyRefundRef, {
+      eventType: 'charge.refunded',
+      status: refundedSubscription.status,
+      title: 'Refund processed — access revoked',
+      description: `Full refund applied. Stripe charge ${charge.id}. Amount: $${charge.amount_refunded != null ? (charge.amount_refunded / 100).toFixed(2) : '?'}`,
       hasLifetimeAccess: false,
       stripeChargeId: charge.id,
       amountRefunded: charge.amount_refunded != null ? charge.amount_refunded / 100 : null,
-      eventTimestamp: FieldValue.serverTimestamp(),
       source: 'stripe_webhook',
-      eventType: 'charge.refunded',
+      severity: 'error',
+      eventTimestamp: FieldValue.serverTimestamp(),
+    });
+
+    // Audit history: trial restoration event (separate entry for clarity)
+    const historyTrialRef = userSubscriptionsRef.collection('history').doc();
+    batch.set(historyTrialRef, {
+      eventType: restoredTrialEndDate ? 'trial_restored' : 'trial_expired_no_restore',
+      status: refundedSubscription.status,
+      title: restoredTrialEndDate ? 'Trial restored after refund' : 'Refunded — no trial days to restore',
+      description: trialRestoredNote || 'No trial restoration applicable.',
+      trialDaysRestored,
+      restoredTrialEndDate: restoredTrialEndDate ? restoredTrialEndDate.toISOString() : null,
+      source: 'stripe_webhook',
+      severity: restoredTrialEndDate ? 'success' : 'warning',
+      eventTimestamp: FieldValue.serverTimestamp(),
     });
 
     await batch.commit();
 
-    logger.info(`🚫 Access revoked for user ${context.userId} due to full refund on charge ${charge.id}`);
+    logger.info(`🚫 Access revoked for user ${context.userId} due to full refund. Trial restored: ${trialDaysRestored} day(s). ${trialRestoredNote}`);
     adminAlerts.alertRefund(context.userId, userEmail, charge.amount_refunded, 'stripe').catch(() => {});
   }
 
@@ -1674,7 +1802,10 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
 
   if (resolvedUserId) {
     const lifetimeDocRef = db.collection('lifetimeAccess').doc(resolvedUserId);
-    const existingLifetimeDoc = await lifetimeDocRef.get();
+    const [existingLifetimeDoc, userDoc] = await Promise.all([
+      lifetimeDocRef.get(),
+      db.collection('users').doc(resolvedUserId).get()
+    ]);
 
     if (existingLifetimeDoc.exists) {
       const existingData = existingLifetimeDoc.data();
@@ -1684,6 +1815,34 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
       }
     }
 
+    // Snapshot remaining trial days at time of purchase so they can be restored on refund
+    const now = new Date();
+    let trialDaysRemainingAtPurchase = null;
+    let trialEndDateAtPurchase = null;
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      let trialEnd = null;
+      if (userData.trialEndDate?.toDate) {
+        trialEnd = userData.trialEndDate.toDate();
+      } else if (userData.trialEndDate) {
+        trialEnd = new Date(userData.trialEndDate);
+      } else if (userData.createdAt) {
+        const created = userData.createdAt?.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+        trialEnd = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+      }
+      if (trialEnd && trialEnd > now) {
+        trialDaysRemainingAtPurchase = Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000));
+        trialEndDateAtPurchase = trialEnd.toISOString();
+      } else if (trialEnd) {
+        trialDaysRemainingAtPurchase = 0;
+        trialEndDateAtPurchase = trialEnd.toISOString();
+      }
+    }
+    if (trialDaysRemainingAtPurchase !== null) {
+      metadataPayload.trialDaysRemainingAtPurchase = trialDaysRemainingAtPurchase;
+      metadataPayload.trialEndDateAtPurchase = trialEndDateAtPurchase;
+    }
+
     await lifetimeDocRef.set({
       userId: resolvedUserId,
       email: normalizedEmail,
@@ -1691,6 +1850,8 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
       grantedBy: 'stripe-webhook',
       grantedAt: FieldValue.serverTimestamp(),
       status: 'active',
+      trialDaysRemainingAtPurchase,
+      trialEndDateAtPurchase,
       metadata: metadataPayload,
     }, { merge: true });
 
@@ -1731,6 +1892,22 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
     });
 
     await db.collection('users').doc(resolvedUserId).set(userUpdatePayload, { merge: true });
+
+    // History: record "trial on hold" so we know days to restore on refund
+    await db.collection('userSubscriptions').doc(resolvedUserId).collection('history').add({
+      eventType: 'trial_on_hold',
+      status: 'active',
+      title: 'Trial paused — lifetime access started',
+      description: trialDaysRemainingAtPurchase != null
+        ? `${trialDaysRemainingAtPurchase} trial day(s) remaining at time of purchase. These can be restored if refunded.`
+        : 'Trial state snapshotted at lifetime purchase.',
+      trialDaysRemainingAtPurchase,
+      trialEndDateAtPurchase,
+      stripePaymentIntentId: paymentIntent.id,
+      source: 'stripe_webhook',
+      severity: 'info',
+      eventTimestamp: FieldValue.serverTimestamp(),
+    });
 
     await emailService.sendLifetimeAccessGrantedEmail(userEmail, reason);
     logger.info(`🎉 Lifetime access granted to user ${resolvedUserId} (${normalizedEmail}) via Stripe payment ${paymentIntent.id}`);

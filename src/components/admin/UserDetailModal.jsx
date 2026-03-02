@@ -1,6 +1,121 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink } from 'lucide-react';
-import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications } from '../../services/firebase';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink, Globe, Tablet } from 'lucide-react';
+import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
+
+function RevokeAndRestoreTrialAction({ user, theme }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleRevoke = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await adminRevokeAndRestoreTrial(user.uid || user.id, reason || 'Refund confirmed — admin manual revocation');
+      setResult({ type: 'success', data: res });
+      setTimeout(() => window.location.reload(), 2500);
+    } catch (e) {
+      setResult({ type: 'error', message: e.message || 'Failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+        style={{ backgroundColor: theme.error + '15', color: theme.error, border: `1px solid ${theme.error}30` }}
+      >
+        <RefreshCw size={12} />
+        Stripe refunded but account not updated? Revoke &amp; Restore Trial
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: theme.error + '10', border: `1px solid ${theme.error}30` }}>
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={14} style={{ color: theme.error }} className="mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-xs font-bold" style={{ color: theme.error }}>Revoke Lifetime &amp; Restore Trial</p>
+          <p className="text-[11px] mt-0.5" style={{ color: theme.textLight }}>
+            Use when Stripe confirmed a refund but the webhook didn&apos;t fire. This will revoke lifetime access, calculate remaining trial days, and put the account back into trial.
+          </p>
+        </div>
+      </div>
+      <textarea
+        value={reason}
+        onChange={e => setReason(e.target.value)}
+        placeholder="Reason / notes (e.g. Refund confirmed in Stripe on Feb 28)"
+        rows={2}
+        className="w-full text-xs p-2 rounded-lg resize-none"
+        style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}`, outline: 'none' }}
+      />
+      {result?.type === 'success' && (
+        <div className="p-2 rounded text-xs" style={{ backgroundColor: theme.success + '15', color: theme.success, border: `1px solid ${theme.success}30` }}>
+          ✅ Done — {result.data.trialDaysRestored > 0 ? `${result.data.trialDaysRestored} trial day(s) restored.` : 'No trial days remaining.'} {result.data.trialRestoredNote} Refreshing...
+        </div>
+      )}
+      {result?.type === 'error' && (
+        <div className="p-2 rounded text-xs" style={{ backgroundColor: theme.error + '15', color: theme.error }}>
+          ❌ {result.message}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={handleRevoke}
+          disabled={loading}
+          className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-60"
+          style={{ backgroundColor: theme.error, color: '#fff' }}
+        >
+          {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+          {loading ? 'Processing...' : 'Confirm Revoke & Restore'}
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          className="px-3 py-2 rounded-lg text-xs font-semibold"
+          style={{ backgroundColor: theme.background, color: theme.textLight, border: `1px solid ${theme.border}` }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UserHeaderUID({ user, theme }) {
+  const [copied, setCopied] = useState(false);
+  const uid = user.uid || user.id || 'N/A';
+  const copy = () => {
+    navigator.clipboard.writeText(uid);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="flex flex-col gap-1 mb-2">
+      <p className="text-sm flex items-center gap-1.5" style={{ color: theme.textLight }}>
+        <Mail size={12} className="opacity-60" />
+        {user.email}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-50" style={{ color: theme.textLight }}>UID:</span>
+        <code className="text-[10px] font-mono px-1.5 py-0.5 rounded truncate max-w-[160px]"
+          style={{ backgroundColor: theme.background, color: theme.textLight, border: `1px solid ${theme.border}60` }}>
+          {uid}
+        </code>
+        <button onClick={copy} className="p-1 rounded flex-shrink-0 transition-all"
+          style={{ backgroundColor: theme.info + '20' }} title="Copy UID">
+          {copied
+            ? <Check size={11} style={{ color: theme.success }} />
+            : <Copy size={11} style={{ color: theme.info }} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function UserDetailModal({
   user,
@@ -43,6 +158,32 @@ export default function UserDetailModal({
   
   // Debug state
   const [isDebugging, setIsDebugging] = useState(false);
+
+  // Auto-fix stale lifetime flags when status is refunded/revoked/disputed
+  const [autoSyncStatus, setAutoSyncStatus] = useState(null); // null | 'syncing' | 'done' | 'error'
+  React.useEffect(() => {
+    const status = user.subscription?.status;
+    const staleLifetime = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
+    const isStale = ['refunded', 'revoked', 'disputed'].includes(status) && staleLifetime;
+    if (!isStale || !user.subscription?.stripeCustomerId) return;
+
+    let cancelled = false;
+    setAutoSyncStatus('syncing');
+    (async () => {
+      try {
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const syncFn = httpsCallable(getFunctions(), 'manualSyncSubscription');
+        await syncFn({ userId: user.uid || user.id });
+        if (!cancelled) {
+          setAutoSyncStatus('done');
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      } catch (e) {
+        if (!cancelled) setAutoSyncStatus('error');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Tabs: overview | activity | communications
   const [activeTab, setActiveTab] = useState('overview');
@@ -375,11 +516,8 @@ export default function UserDetailModal({
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm flex items-center gap-1.5 mb-2" style={{ color: enhancedTheme.textLight }}>
-                  <Mail size={12} className="opacity-60" />
-                  {user.email}
-                </p>
+              <div className="flex-1 min-w-0">
+                <UserHeaderUID user={user} theme={enhancedTheme} />
                 <span className="px-3 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
                   style={{
                     backgroundColor: subscriptionStatusDisplay.bgColor,
@@ -488,6 +626,34 @@ export default function UserDetailModal({
                 </div>
                 <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Access & Subscription</h4>
               </div>
+              {/* Auto-sync status indicator */}
+              {autoSyncStatus === 'syncing' && (
+                <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
+                  style={{ backgroundColor: enhancedTheme.info + '12', border: `1px solid ${enhancedTheme.info}30` }}>
+                  <Loader size={13} style={{ color: enhancedTheme.info }} className="animate-spin flex-shrink-0" />
+                  <p className="text-xs" style={{ color: enhancedTheme.textLight }}>
+                    Detected stale data — auto-syncing with Stripe...
+                  </p>
+                </div>
+              )}
+              {autoSyncStatus === 'done' && (
+                <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
+                  style={{ backgroundColor: enhancedTheme.success + '12', border: `1px solid ${enhancedTheme.success}30` }}>
+                  <Check size={13} style={{ color: enhancedTheme.success }} className="flex-shrink-0" />
+                  <p className="text-xs" style={{ color: enhancedTheme.textLight }}>
+                    Synced — refreshing...
+                  </p>
+                </div>
+              )}
+              {autoSyncStatus === 'error' && (
+                <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
+                  style={{ backgroundColor: enhancedTheme.warning + '12', border: `1px solid ${enhancedTheme.warning}30` }}>
+                  <AlertTriangle size={13} style={{ color: enhancedTheme.warning }} className="flex-shrink-0" />
+                  <p className="text-xs" style={{ color: enhancedTheme.textLight }}>
+                    Auto-sync failed — use Force Sync in debug panel
+                  </p>
+                </div>
+              )}
               {hasLifetimeAccess ? (
                 <div className="space-y-2">
                   <div className="p-3 rounded-lg"
@@ -518,6 +684,8 @@ export default function UserDetailModal({
                       </p>
                     )}
                   </div>
+                  {/* Manual revoke + trial restore — for when Stripe webhook doesn't fire */}
+                  <RevokeAndRestoreTrialAction user={user} theme={enhancedTheme} />
                 </div>
               ) : subscriptionPlan !== 'No subscription' ? (
                 <div className="grid grid-cols-2 gap-2">
@@ -1082,6 +1250,73 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
   );
 }
 
+// Derive lifecycle milestones from user + already-fetched events
+function buildLifecycleMilestones(user, events) {
+  const now = new Date();
+  const sub = user.subscription || {};
+  const milestones = [];
+
+  const registered = user.createdAt?.toDate ? user.createdAt.toDate() : user.createdAt ? new Date(user.createdAt) : null;
+  if (registered && !Number.isNaN(registered.getTime())) {
+    milestones.push({ key: 'registered', label: 'Registered', date: registered, color: 'info', icon: '👤' });
+  }
+
+  // Trial window
+  let trialEnd = user.trialEndDate?.toDate ? user.trialEndDate.toDate() : user.trialEndDate ? new Date(user.trialEndDate) : null;
+  if (!trialEnd && registered) trialEnd = new Date(registered.getTime() + 30 * 24 * 60 * 60 * 1000);
+  if (trialEnd && !Number.isNaN(trialEnd.getTime())) {
+    const expired = trialEnd <= now;
+    milestones.push({ key: 'trial_end', label: expired ? 'Trial Ended' : 'Trial Ends', date: trialEnd, color: expired ? 'warning' : 'info', icon: '⏳' });
+  }
+
+  // Find first conversion (payment success / subscription created) from events
+  const conversionTypes = ['invoice.payment_succeeded', 'customer.subscription.created', 'subscription_change'];
+  const conversionStatuses = ['active'];
+  let conversionDate = null;
+  for (const ev of [...events].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
+    const t = ev.timestamp ? new Date(ev.timestamp) : null;
+    if (!t || Number.isNaN(t.getTime())) continue;
+    const isConversion =
+      (ev.type === 'payment' && (ev.metadata?.type === 'invoice.payment_succeeded' || ev.title?.toLowerCase().includes('payment succeeded'))) ||
+      (ev.type === 'subscription_change' && ev.severity === 'success' && t > (registered || new Date(0)));
+    if (isConversion && (!conversionDate || t < conversionDate)) conversionDate = t;
+  }
+  if (!conversionDate && sub.status === 'active' && sub.currentPeriodStart) {
+    const d = new Date(sub.currentPeriodStart);
+    if (!Number.isNaN(d.getTime())) conversionDate = d;
+  }
+  if (conversionDate) {
+    const daysIntoTrial = registered ? Math.round((conversionDate - registered) / (24 * 60 * 60 * 1000)) : null;
+    milestones.push({
+      key: 'converted',
+      label: 'Converted',
+      sublabel: daysIntoTrial != null ? `Day ${daysIntoTrial} of trial` : null,
+      date: conversionDate,
+      color: 'success',
+      icon: '✅',
+      highlight: true
+    });
+  }
+
+  // Refund / cancellation / revoke
+  const endStatuses = { refunded: { label: 'Refunded', icon: '↩️', color: 'error' }, revoked: { label: 'Revoked', icon: '🚫', color: 'error' }, disputed: { label: 'Disputed', icon: '⚠️', color: 'error' }, canceled: { label: 'Canceled', icon: '✖️', color: 'warning' }, expired: { label: 'Expired', icon: '⌛', color: 'warning' } };
+  if (endStatuses[sub.status]) {
+    // Try to find when it happened from events
+    let endDate = null;
+    for (const ev of events) {
+      if (['error', 'warning'].includes(ev.severity) && ev.type !== 'communication') {
+        const t = ev.timestamp ? new Date(ev.timestamp) : null;
+        if (t && !Number.isNaN(t.getTime())) { endDate = t; break; }
+      }
+    }
+    if (!endDate) endDate = now;
+    milestones.push({ key: 'ended', ...endStatuses[sub.status], date: endDate });
+  }
+
+  milestones.sort((a, b) => a.date - b.date);
+  return milestones;
+}
+
 // Activity Log tab - chronological event timeline
 function ActivityLogTab({ user, theme, events, loading, onLoad }) {
   const calledRef = React.useRef(false);
@@ -1091,37 +1326,110 @@ function ActivityLogTab({ user, theme, events, loading, onLoad }) {
       onLoad();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const severityColors = { success: theme.success, info: theme.info, warning: theme.warning, error: theme.error };
+  const milestones = useMemo(() => buildLifecycleMilestones(user, events), [user, events]);
+
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const fmtTs = (d) => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+
+  const colorMap = { success: theme.success, info: theme.info, warning: theme.warning, error: theme.error };
+
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-      <div className="flex items-center gap-2 mb-4">
-        <History size={18} style={{ color: theme.primary }} />
-        <h4 className="font-bold" style={{ color: theme.primaryDark }}>Activity Log</h4>
-      </div>
-      {loading ? (
-        <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
-          <Loader size={20} className="animate-spin" />
-          <span>Loading activity...</span>
+    <div className="space-y-3">
+      {/* Subscription Lifecycle */}
+      <div className="rounded-xl border p-4"
+        style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.primary}06 100%)` }}>
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard size={15} style={{ color: theme.primary }} />
+          <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Subscription Lifecycle</h4>
         </div>
-      ) : events.length === 0 ? (
-        <p className="text-sm py-4" style={{ color: theme.textLight }}>No activity events found.</p>
-      ) : (
-        <div className="space-y-0 max-h-[60vh] overflow-y-auto">
-          {events.map((ev) => (
-            <div key={ev.id} className="flex gap-3 py-3 border-b last:border-b-0" style={{ borderColor: theme.border }}>
-              <div className="w-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: severityColors[ev.severity] || theme.textLight }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold" style={{ color: theme.text }}>{ev.title}</div>
-                {ev.description && <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>{ev.description}</div>}
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] uppercase" style={{ color: theme.textLight }}>{ev.timestamp ? new Date(ev.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: theme.background, color: theme.textLight }}>{ev.source}</span>
+
+        {milestones.length === 0 ? (
+          <p className="text-xs" style={{ color: theme.textLight }}>No lifecycle data available.</p>
+        ) : (
+          <>
+            {/* Horizontal milestone track */}
+            <div className="relative flex items-start gap-0 overflow-x-auto pb-1">
+              {milestones.map((m, i) => {
+                const col = colorMap[m.color] || theme.textLight;
+                return (
+                  <div key={m.key} className="flex items-start min-w-0" style={{ flex: '1 1 0' }}>
+                    <div className="flex flex-col items-center w-full">
+                      {/* Node */}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 shadow-sm"
+                        style={{ backgroundColor: col + (m.highlight ? 'FF' : '22'), border: `2px solid ${col}`, fontSize: 14 }}>
+                        {m.icon}
+                      </div>
+                      {/* Connector line */}
+                      {i < milestones.length - 1 && (
+                        <div className="absolute" style={{ top: 15, left: `calc(${(i + 0.5) * (100 / milestones.length)}% + 16px)`, width: `calc(${100 / milestones.length}% - 32px)`, height: 2, backgroundColor: theme.border }} />
+                      )}
+                      <div className="text-center mt-1.5 px-0.5 w-full">
+                        <div className="text-[10px] font-bold leading-tight" style={{ color: col }}>{m.label}</div>
+                        {m.sublabel && <div className="text-[9px] mt-0.5 font-semibold px-1 py-0.5 rounded-full inline-block" style={{ backgroundColor: col + '20', color: col }}>{m.sublabel}</div>}
+                        <div className="text-[9px] mt-0.5" style={{ color: theme.textLight }}>{fmt(m.date)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Conversion stat callout */}
+            {(() => {
+              const reg = milestones.find(m => m.key === 'registered');
+              const conv = milestones.find(m => m.key === 'converted');
+              if (!reg || !conv) return null;
+              const days = Math.round((conv.date - reg.date) / (24 * 60 * 60 * 1000));
+              return (
+                <div className="mt-3 p-2.5 rounded-lg flex items-center gap-2"
+                  style={{ backgroundColor: theme.success + '12', border: `1px solid ${theme.success}30` }}>
+                  <Award size={14} style={{ color: theme.success }} />
+                  <span className="text-xs" style={{ color: theme.text }}>
+                    Converted <span className="font-bold" style={{ color: theme.success }}>Day {days}</span> after registration
+                    {days <= 7 && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: theme.success + '20', color: theme.success }}>Fast convert</span>}
+                    {days > 7 && days <= 20 && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>Mid-trial</span>}
+                    {days > 20 && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: theme.info + '20', color: theme.info }}>Late convert</span>}
+                  </span>
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </div>
+
+      {/* Chronological event list */}
+      <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 mb-4">
+          <History size={15} style={{ color: theme.primary }} />
+          <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Event Timeline</h4>
+        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
+            <Loader size={20} className="animate-spin" />
+            <span>Loading activity...</span>
+          </div>
+        ) : events.length === 0 ? (
+          <p className="text-sm py-4" style={{ color: theme.textLight }}>No activity events found.</p>
+        ) : (
+          <div className="space-y-0 max-h-[52vh] overflow-y-auto">
+            {events.map((ev) => (
+              <div key={ev.id} className="flex gap-3 py-3 border-b last:border-b-0" style={{ borderColor: theme.border }}>
+                <div className="w-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: severityColors[ev.severity] || theme.textLight }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold" style={{ color: theme.text }}>{ev.title}</div>
+                  {ev.description && <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>{ev.description}</div>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] uppercase" style={{ color: theme.textLight }}>{fmtTs(ev.timestamp)}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: theme.background, color: theme.textLight }}>{ev.source}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1475,113 +1783,95 @@ function SubscriptionDebugSection({ user, theme }) {
 
 // Technical Details Component
 function TechnicalDetailsSection({ user, theme }) {
-  const [copiedUid, setCopiedUid] = useState(false);
   const deviceInfo = user.deviceInfo || {};
-  const deviceType = deviceInfo.deviceType || 'Unknown';
-  const mobileOS = deviceInfo.mobileOS;
+  const deviceType = (deviceInfo.deviceType || 'Unknown').toLowerCase();
+  const mobileOS = (deviceInfo.mobileOS || '').toLowerCase();
   const browser = deviceInfo.browser || 'Unknown';
-  const userId = user.uid || user.id || 'N/A';
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopiedUid(true);
-    setTimeout(() => setCopiedUid(false), 2000);
+  const DeviceIcon = deviceType === 'mobile' ? Smartphone : deviceType === 'tablet' ? Tablet : Monitor;
+  const deviceColor = deviceType === 'mobile' ? theme.info : deviceType === 'tablet' ? theme.warning : theme.success;
+
+  const OsIcon = () => {
+    if (mobileOS.includes('ios') || mobileOS.includes('mac')) {
+      return (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+      );
+    }
+    if (mobileOS.includes('android')) {
+      return (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M17.523 15.341c-.606 0-1.096-.49-1.096-1.096s.49-1.096 1.096-1.096 1.096.49 1.096 1.096-.49 1.096-1.096 1.096m-11.046 0c-.606 0-1.096-.49-1.096-1.096s.49-1.096 1.096-1.096 1.096.49 1.096 1.096-.49 1.096-1.096 1.096m11.405-6.836l2.18-3.774a.453.453 0 0 0-.166-.619.453.453 0 0 0-.619.166l-2.207 3.822C15.375 7.432 13.739 7 12 7c-1.739 0-3.375.432-4.07 1.1L5.723 4.278a.453.453 0 0 0-.619-.166.453.453 0 0 0-.166.619l2.18 3.774C4.98 9.657 3.5 11.549 3.5 13.744V15h17v-1.256c0-2.195-1.48-4.087-3.618-5.239"/>
+        </svg>
+      );
+    }
+    return <Globe size={20} />;
   };
 
+  const cards = [
+    {
+      label: 'Device',
+      value: deviceType === 'unknown' ? 'Unknown' : deviceType.charAt(0).toUpperCase() + deviceType.slice(1),
+      icon: <DeviceIcon size={20} />,
+      color: deviceColor,
+    },
+    {
+      label: 'OS / Platform',
+      value: deviceInfo.mobileOS || (deviceType === 'desktop' ? 'Desktop' : 'Unknown'),
+      icon: <OsIcon />,
+      color: mobileOS.includes('ios') || mobileOS.includes('mac') ? '#555' : mobileOS.includes('android') ? '#3DDC84' : theme.textLight,
+    },
+    {
+      label: 'Browser',
+      value: browser,
+      icon: <Globe size={20} />,
+      color: theme.primary,
+    },
+  ];
+
   return (
-    <div className="rounded-xl border p-5 relative overflow-hidden"
+    <div className="rounded-xl border p-4 relative overflow-hidden"
       style={{ 
         borderColor: theme.border,
         backgroundColor: theme.cardBackground,
         background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.info}05 100%)`
       }}>
-      <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-        <Code size={100} style={{ color: theme.info }} />
-      </div>
-      <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ 
-              background: `linear-gradient(135deg, ${theme.info} 0%, ${theme.info}DD 100%)`,
-              boxShadow: `0 2px 8px ${theme.info}30`
-            }}>
-            <Code size={16} style={{ color: '#FFFFFF' }} />
-          </div>
-          <h4 className="font-bold" style={{ color: theme.primaryDark }}>Technical Details</h4>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{ background: `linear-gradient(135deg, ${theme.info} 0%, ${theme.info}DD 100%)`, boxShadow: `0 2px 8px ${theme.info}30` }}>
+          <Code size={14} style={{ color: '#FFFFFF' }} />
         </div>
-        
-        <div className="space-y-3">
-          {/* UID */}
-          <div className="flex items-center justify-between p-3 rounded-lg"
-            style={{ backgroundColor: theme.background + '60' }}>
-            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Firebase UID:</span>
-            <div className="flex items-center gap-2">
-              <code className="text-xs font-mono px-2 py-1 rounded" 
-                style={{ 
-                  backgroundColor: theme.background, 
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`
-                }}>
-                {user.uid}
-              </code>
-              <button
-                onClick={() => copyToClipboard(user.uid)}
-                className="p-1.5 rounded hover:bg-opacity-80 transition-all"
-                style={{ backgroundColor: theme.info + '20' }}
-                title="Copy UID"
-              >
-                {copiedUid ? <Check size={14} style={{ color: theme.success }} /> : <Copy size={14} style={{ color: theme.info }} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Device Type */}
-          <div className="flex items-center justify-between p-3 rounded-lg"
-            style={{ backgroundColor: theme.background + '60' }}>
-            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Device Type:</span>
-            <div className="flex items-center gap-2">
-              {deviceType === 'mobile' && <Smartphone size={16} style={{ color: theme.info }} />}
-              {deviceType === 'tablet' && <Smartphone size={16} style={{ color: theme.warning }} />}
-              {deviceType === 'desktop' && <Monitor size={16} style={{ color: theme.success }} />}
-              {deviceType === 'Unknown' && <Monitor size={16} style={{ color: theme.textLight }} />}
-              <span className="text-sm font-semibold capitalize" style={{ color: theme.text }}>{deviceType}</span>
-            </div>
-          </div>
-
-          {/* Mobile OS (if applicable) */}
-          {mobileOS && (
-            <div className="flex items-center justify-between p-3 rounded-lg"
-              style={{ backgroundColor: theme.background + '60' }}>
-              <span className="text-sm font-medium" style={{ color: theme.textLight }}>Mobile OS:</span>
-              <span className="text-sm font-semibold" style={{ color: theme.text }}>{mobileOS}</span>
-            </div>
-          )}
-
-          {/* Browser */}
-          <div className="flex items-center justify-between p-3 rounded-lg"
-            style={{ backgroundColor: theme.background + '60' }}>
-            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Browser:</span>
-            <span className="text-sm font-semibold" style={{ color: theme.text }}>{browser}</span>
-          </div>
-
-          {/* No device info warning */}
-          {deviceType === 'Unknown' && (
-            <div className="p-3 rounded-lg flex items-start gap-2"
-              style={{ 
-                backgroundColor: theme.warning + '10',
-                border: `1px solid ${theme.warning}30`
-              }}>
-              <Coffee size={14} style={{ color: theme.warning }} className="mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold" style={{ color: theme.warning }}>Device info not available</p>
-                <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
-                  This user registered before device tracking was implemented. Device info will be captured on their next login.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Technical Details</h4>
       </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {cards.map(({ label, value, icon, color }) => (
+          <div key={label} className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-center"
+            style={{ backgroundColor: theme.background + '80', border: `1px solid ${theme.border}40` }}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: color + '18', color }}>
+              {icon}
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>{label}</span>
+            <span className="text-xs font-bold leading-tight" style={{ color: theme.text }}>{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* No device info warning */}
+      {deviceType === 'unknown' && (
+        <div className="mt-3 p-3 rounded-lg flex items-start gap-2"
+          style={{ backgroundColor: theme.warning + '10', border: `1px solid ${theme.warning}30` }}>
+          <Coffee size={14} style={{ color: theme.warning }} className="mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold" style={{ color: theme.warning }}>Device info not available</p>
+            <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+              This user registered before device tracking was implemented. Device info will be captured on their next login.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
 const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
 const getUserActivityHistory = require('./getUserActivityHistory');
+const adminRevokeAndRestoreTrial = require('./adminRevokeAndRestoreTrial');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 const emailQueue = require('./emailQueue');
@@ -516,6 +517,9 @@ exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
 // User activity and communications (admin User Detail modal)
 exports.getUserActivityHistory = getUserActivityHistory.getUserActivityHistory;
 exports.getUserCommunications = getUserActivityHistory.getUserCommunications;
+
+// Admin manual: revoke lifetime access + restore remaining trial days
+exports.adminRevokeAndRestoreTrial = adminRevokeAndRestoreTrial.adminRevokeAndRestoreTrial;
 
 // Audit Lifetime Access - Read-only function to find conflicting lifetime grants
 const auditLifetimeAccess = require('./auditLifetimeAccess');

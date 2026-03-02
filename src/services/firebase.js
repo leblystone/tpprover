@@ -915,6 +915,17 @@ export async function fetchUserCommunications(userId) {
 }
 
 /**
+ * Manually revoke lifetime access for a user and restore their remaining trial days.
+ * Used when Stripe webhooks fail to deliver a refund/cancellation event.
+ */
+export async function adminRevokeAndRestoreTrial(userId, reason = '', refundAmount = null) {
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'adminRevokeAndRestoreTrial');
+  const result = await fn({ userId, reason, refundAmount });
+  return result.data;
+}
+
+/**
  * Extend a researcher's trial access window
  * @param {string} userId
  * @param {number} additionalDays
