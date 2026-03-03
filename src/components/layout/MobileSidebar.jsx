@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope, NotebookPen } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 
-export default function MobileSidebar({ open, onClose, theme, onSupportClick, onBetaClick }) {
+export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -117,68 +117,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick, on
             </NavLink>
           ))}
           
-          <style>{`
-            @keyframes swing-mobile {
-              0%, 100% {
-                transform: rotate(0deg);
-              }
-              20% {
-                transform: rotate(15deg);
-              }
-              40% {
-                transform: rotate(-10deg);
-              }
-              60% {
-                transform: rotate(5deg);
-              }
-              80% {
-                transform: rotate(-5deg);
-              }
-            }
-            .beta-icon-mobile {
-              animation: swing-mobile 2s ease-in-out infinite;
-              transform-origin: top center;
-            }
-            .beta-chip-button-mobile {
-              cursor: pointer;
-              border: none;
-              transition: all 0.3s ease;
-            }
-            .beta-chip-button-mobile:hover {
-              background-color: #e8e6dd !important;
-            }
-            .beta-chip-button-mobile:active {
-              transform: scale(0.95);
-            }
-            .beta-chip-button-mobile:active .beta-icon-mobile {
-              animation: swing-mobile 1s ease-in-out infinite;
-            }
-          `}</style>
-          
           <div className="mt-auto flex-shrink-0 overflow-hidden" style={{ borderColor: theme.border, overflowY: 'hidden', overflowX: 'hidden' }}>
-            {/* Beta Chip - Clickable - Right ABOVE page break line */}
-            <div className="flex justify-center px-4 mb-2">
-              <button
-                onClick={onBetaClick}
-                className="beta-chip-button-mobile flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl transition-all active:scale-95 shadow-lg"
-                style={{
-                  backgroundColor: '#f0eee7',
-                }}
-              >
-                <span 
-                  className="font-bold text-lg tracking-widest"
-                  style={{ 
-                    color: '#042617',
-                    fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
-                    letterSpacing: '0.2em'
-                  }}
-                >
-                  BETA
-                </span>
-                <NotebookPen className="beta-icon-mobile h-6 w-6 flex-shrink-0" style={{ color: '#042617' }} />
-              </button>
-            </div>
-            
             <div className="border-t pt-2" style={{ borderColor: theme.border }}>
             {/* Physical Planner Shop Link */}
             <a

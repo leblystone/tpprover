@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useOutletContext, useNavigate } from 'react-router-dom'
+import { useOutletContext, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, RefreshCw, Settings, Gift, Lock, Sparkles, CreditCard, Crown, ExternalLink, Shield, CheckCircle2 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGooglePlay, faApple } from '@fortawesome/free-brands-svg-icons'
@@ -652,8 +652,8 @@ export default function AccountSubscription() {
         </div>
       )}
 
-      {/* UPGRADE OPTIONS - hidden on iOS until Apple IAP is implemented */}
-      {status.type !== 'lifetime' && !isIOS() && (
+      {/* UPGRADE OPTIONS */}
+      {status.type !== 'lifetime' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />
@@ -794,6 +794,10 @@ export default function AccountSubscription() {
                 </button>
               </div>
             )}
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-xs">
+            <Link to="/terms" className="underline hover:opacity-80" style={{ color: theme.primary }}>Terms of Use</Link>
+            <Link to="/privacy" className="underline hover:opacity-80" style={{ color: theme.primary }}>Privacy Policy</Link>
           </div>
         </div>
       )}

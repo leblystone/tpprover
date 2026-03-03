@@ -32,7 +32,7 @@ export const CancellationPolicyContent = () => (
             <p><strong>Free Trial Period:</strong> If you cancel during your free trial period, you will not be charged. No refund is necessary as no payment has been processed.</p>
             <p><strong>Lifetime Access:</strong> Lifetime access purchases are non-refundable and non-transferable. If you have purchased lifetime access, cancellation of your account does not entitle you to a refund.</p>
             <p><strong>Legal Requirements:</strong> In jurisdictions where applicable law requires refunds for cancelled subscriptions, we will comply with such requirements.</p>
-            <p><strong>In-App Purchases:</strong> Refunds for subscriptions or purchases made through the Apple App Store or Google Play are handled by Apple and Google respectively, per their policies. This Cancellation Policy applies to subscriptions and purchases made on our website (e.g. via Stripe or Squarespace).</p>
+            <p><strong>In-App Purchases:</strong> Refunds for subscriptions or purchases made through the Apple App Store or applicable mobile app stores are handled by the respective platform per their policies. This Cancellation Policy applies to subscriptions and purchases made on our website (e.g. via Stripe or Squarespace).</p>
         </div>
 
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">

@@ -785,39 +785,6 @@ export default function AccountProfile() {
                 {/* Subtle Gradient Overlay on Hover */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/20 to-transparent dark:from-white/5" />
               </button>
-
-              {/* 2FA Button - Coming Soon */}
-              <div>
-                <div
-                  className="content-section w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative opacity-40 cursor-not-allowed"
-                  style={{
-                    borderColor: 'transparent',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div 
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                        style={{ backgroundColor: theme.mutedText + '10' }}
-                      >
-                        <Shield size={22} style={{ color: theme.mutedText }} />
-                      </div>
-                      <div className="px-1">
-                        <div className="font-semibold text-lg tracking-tight mb-1" style={{ color: theme.text }}>
-                          Two-Factor Authentication
-                        </div>
-                        <div className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
-                          Add an extra layer of security
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-[10px] leading-relaxed opacity-40 italic mt-2 text-center" style={{ color: theme.text }}>
-                  Coming soon
-                </div>
-              </div>
             </div>
           </div>
         </div>

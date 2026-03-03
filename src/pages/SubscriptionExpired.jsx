@@ -1,7 +1,7 @@
 // Subscription Ended - Resubscribe Page
 import React, { useState } from 'react';
 import { CreditCard, Download, Trash2, Eye, BookOpenCheck, FileText, Crown, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
 import { useFounderOffer } from '../context/FounderOfferContext';
@@ -391,6 +391,11 @@ export default function SubscriptionExpired() {
             <Trash2 size={12} />
             Delete Account
           </button>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-6 text-xs">
+          <Link to="/terms" className="underline hover:opacity-80" style={{ color: theme.primary }}>Terms of Use</Link>
+          <Link to="/privacy" className="underline hover:opacity-80" style={{ color: theme.primary }}>Privacy Policy</Link>
         </div>
       </div>
     </div>

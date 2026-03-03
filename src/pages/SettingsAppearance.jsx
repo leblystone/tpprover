@@ -142,17 +142,6 @@ export default function SettingsAppearance() {
                 )
               })
             }
-            
-            {/* "More Coming" Placeholder Card */}
-            <div 
-              className="flex flex-col items-center justify-center p-4 rounded-[2rem] border-2 border-dashed opacity-40"
-              style={{ borderColor: theme.border }}
-            >
-              <Sparkles size={24} style={{ color: theme.textLight }} className="mb-2" />
-              <p className="text-xs font-semibold uppercase tracking-widest text-center" style={{ color: theme.textLight }}>
-                Sequencing New<br/>Color Chains
-              </p>
-            </div>
           </div>
         </div>
       </div>

@@ -139,7 +139,7 @@ export default function AccountSecurity() {
       try {
         // TODO: Implement email OTP later
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Email OTP 2FA coming soon!', type: 'info' } 
+          detail: { message: 'Email 2FA is not available yet. Please use the Authenticator App option.', type: 'info' } 
         }))
         return
       } catch (error) {
@@ -543,7 +543,7 @@ export default function AccountSecurity() {
                   <Mail size={20} style={{ color: theme.accent }} />
                   <div>
                     <div className="font-medium" style={{ color: theme.text }}>Email</div>
-                    <div className="text-xs" style={{ color: theme.mutedText }}>Receive codes via email (Coming Soon)</div>
+                    <div className="text-xs" style={{ color: theme.mutedText }}>Receive codes via email</div>
                   </div>
                 </label>
                 
@@ -637,7 +637,7 @@ export default function AccountSecurity() {
             {twoFAMethod === 'email' && (
               <div className="p-4 rounded-lg" style={{ backgroundColor: theme.secondary }}>
                 <div className="text-sm" style={{ color: theme.mutedText }}>
-                  Email-based two-factor authentication is coming soon. Please use the Authenticator App option for now.
+                  Email-based two-factor authentication is not available yet. Please use the Authenticator App option.
                 </div>
               </div>
             )}

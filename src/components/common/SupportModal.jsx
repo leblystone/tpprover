@@ -340,7 +340,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                 onClick={ticketType ? () => setTicketType(null) : onBack}
                                 className="p-2 rounded-full transition-colors hover:opacity-70"
                                 style={{ backgroundColor: theme.background }}
-                                title={ticketType ? 'Back to support options' : 'Back to Beta Info'}
+                                title={ticketType ? 'Back to support options' : 'Back'}
                             >
                                 <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
                             </button>

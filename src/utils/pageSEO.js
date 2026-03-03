@@ -9,7 +9,7 @@ import { useLocation } from 'react-router-dom';
 export const PAGE_SEO = {
   '/': {
     title: 'The Pep Planner - Track Peptide Research & Injection Schedules | Planner App',
-    description: 'Planner to track peptide research and injection schedules: injection logging, smart scheduling, dose calculations, vial tracking, protocol management. Free trial on web and Android.',
+    description: 'Planner to track peptide research and injection schedules: injection logging, smart scheduling, dose calculations, vial tracking, protocol management. Free trial on web and mobile.',
     canonical: 'https://thepepplanner.app/'
   },
   '/about': {

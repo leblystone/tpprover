@@ -112,7 +112,7 @@ export function useBadgeStats() {
       { category: 'Milestones', name: 'Veteran Researcher', description: 'One year of app usage from account creation.', check: s => s.accountAgeDays >= 365, progress: s => s.accountAgeDays / 365 },
 
       // Program
-      { category: 'Program', name: 'The Catalyst', description: 'Participate as a beta tester during official beta testing periods.', check: (s) => s.isBetaTester, progress: s => s.isBetaTester ? 1 : 0 },
+      { category: 'Program', name: 'The Catalyst', description: 'An early supporter who helped shape the app.', check: (s) => s.isBetaTester, progress: s => s.isBetaTester ? 1 : 0 },
       { category: 'Program', name: 'The Founders Circle', description: 'Be one of the first 100 users.', check: (s) => s.isFounder, progress: s => s.isFounder ? 1 : 0 }
     ];
     }, []);

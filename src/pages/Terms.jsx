@@ -136,10 +136,10 @@ export default function Terms() {
                   <strong>Subscription Plans:</strong> After the trial period, you must subscribe to a paid plan to continue using the Service. Subscription fees are billed in advance.
                 </p>
                 <p>
-                  <strong>Payment:</strong> Subscriptions and one-time purchases may be processed by Stripe (web), Google Play (Android app), Apple App Store (iOS app), or Squarespace (website purchases), as applicable. You agree to pay all fees associated with your subscription. Fees are non-refundable except as required by law.
+                  <strong>Payment:</strong> Subscriptions and one-time purchases may be processed by Stripe (web), Apple App Store (iOS app), applicable mobile app stores, or Squarespace (website purchases), as applicable. You agree to pay all fees associated with your subscription. Fees are non-refundable except as required by law.
                 </p>
                 <p>
-                  <strong>Refunds:</strong> Refunds for in-app purchases made through the Apple App Store or Google Play are subject to Apple's and Google's respective refund policies. Refunds for purchases made on our website (Stripe, Squarespace) are governed by our Cancellation Policy.
+                  <strong>Refunds:</strong> Refunds for in-app purchases made through the Apple App Store or applicable mobile app stores are subject to their respective refund policies. Refunds for purchases made on our website (Stripe, Squarespace) are governed by our Cancellation Policy.
                 </p>
                 <p>
                   <strong>Cancellation:</strong> You may cancel your subscription at any time through your Account or by contacting us. Cancellation takes effect at the end of your current billing period and you retain access until then. We do not automatically delete your account or data; deletion only occurs if you request it. By subscribing or purchasing, you agree to our full Cancellation Policy, which is incorporated into these Terms and available in the app and on our website.

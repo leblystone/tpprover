@@ -26,7 +26,7 @@ import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
-import { shouldShowIntro, isNative, isPWAInstalled } from '../utils/platform';
+import { shouldShowIntro, isNative, isPWAInstalled, isIOS } from '../utils/platform';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -1813,7 +1813,7 @@ export default function Login() {
                                 </div>
                             </button>
 
-                            {/* Google Play Store Button */}
+                            {!isIOS() && (
                             <a 
                                 href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
                                 className="transition-opacity hover:opacity-80"
@@ -1828,6 +1828,7 @@ export default function Login() {
                                     <span className="text-[10px] text-white font-medium">Android</span>
                                 </div>
                             </a>
+                            )}
 
                             {/* Web Access Button */}
                             <button 

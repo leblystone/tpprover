@@ -83,7 +83,7 @@ export const PrivacyPolicyContent = () => (
                     <li>Secure authentication using Firebase Auth</li>
                     <li>We periodically review our security practices</li>
                     <li>Access controls and user authentication</li>
-                    <li>Secure payment processing through Stripe and applicable platform providers (Apple, Google Play, Squarespace)</li>
+                    <li>Secure payment processing through Stripe and applicable platform providers (Apple, applicable app stores, Squarespace)</li>
                 </ul>
             </div>
         </div>
@@ -92,7 +92,7 @@ export const PrivacyPolicyContent = () => (
             <h3 className="font-semibold text-gray-800">4. Data Sharing and Third Parties</h3>
             <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app (Firebase, Stripe, and when you use in-app or web purchases, payment processing may also be performed by Apple, Google Play, or Squarespace; their privacy policies apply to that processing)</li>
+                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app (Firebase, Stripe, and when you use in-app or web purchases, payment processing may also be performed by Apple, applicable app stores, or Squarespace; their privacy policies apply to that processing)</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
                 <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of assets</li>
                 <li><strong>Consent:</strong> When you explicitly consent to sharing your information</li>

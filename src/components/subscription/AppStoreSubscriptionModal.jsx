@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Modal from '../common/Modal';
 import { subscribe } from '../../services/payment/paymentService';
 import { useAppContext } from '../../context/AppContext';
@@ -53,12 +54,12 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
       // App Store IAP will handle the UI flow
       // The purchase result will be handled by the IAP service
       
-    } catch (error) {
-      console.error('❌ AppStoreSubscriptionModal: Subscription error:', error);
-      setError(error.message || 'Failed to start subscription. Please try again.');
-      
+    } catch (err) {
+      console.error('❌ AppStoreSubscriptionModal: Subscription error:', err);
+      const message = err?.message || 'Failed to start subscription. Please try again.';
+      setError(message);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: error.message || 'Failed to start subscription. Please try again.', type: 'error' } 
+        detail: { message, type: 'error' } 
       }));
     } finally {
       setIsProcessing(false);
@@ -186,8 +187,12 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
           </div>
         )}
 
-        <div className="text-xs text-center pt-2" style={{ color: theme.textLight }}>
-          Your subscription will be managed through App Store
+        <div className="text-xs text-center pt-2 space-y-1" style={{ color: theme.textLight }}>
+          <p>Your subscription will be managed through App Store.</p>
+          <p className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <Link to="/terms" className="underline hover:opacity-80" style={{ color: theme.primary }} onClick={onClose}>Terms of Use</Link>
+            <Link to="/privacy" className="underline hover:opacity-80" style={{ color: theme.primary }} onClick={onClose}>Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </Modal>

@@ -11,7 +11,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
-import { Crown, FlaskConical, BookOpen, Gift } from '../../icons/lucide-safe';
+import { Crown, BookOpen, Gift } from '../../icons/lucide-safe';
 import GiftPurchaseModal from '../common/GiftPurchaseModal';
 
 export default function StripeSubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
@@ -103,25 +103,6 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
       >
         <div className="p-2">
           <div className="space-y-4">
-            {/* Beta Pricing Banner */}
-            <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #DBEAFE, #93C5FD)', border: '2px solid #3B82F6' }}>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <FlaskConical size={22} style={{ color: '#1E40AF' }} />
-                <div className="text-lg font-semibold" style={{ color: '#1E40AF' }}>
-                  Beta Pricing
-                </div>
-              </div>
-              
-              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(219, 234, 254, 0.8)' }}>
-                <p className="text-xs leading-relaxed font-semibold" style={{ color: '#1E40AF' }}>
-                  Building with you, not for you
-                </p>
-                <p className="text-xs leading-relaxed italic" style={{ color: '#1E40AF' }}>
-                  You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
-                </p>
-              </div>
-            </div>
-            
             {/* Monthly and Annual in 2-column layout */}
             <div className="grid grid-cols-2 gap-3">
               {/* Monthly Plan */}

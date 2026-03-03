@@ -29,7 +29,6 @@ import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import SubscriptionGuard from './components/common/SubscriptionGuard';
 import SupportModal from './components/common/SupportModal';
-import BetaModal from './components/common/BetaModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
@@ -48,7 +47,7 @@ const mockUpdates = {
     urgency: "optional",
     isRequired: false,
     releaseNotes: "Bug fixes and performance improvements\nSmall UI tweaks\nBetter error handling",
-    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+    storeUrls: { ios: "https://apps.apple.com/app/id000000000", android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
   },
   recommended: {
     currentVersion: "1.0.5",
@@ -56,7 +55,7 @@ const mockUpdates = {
     urgency: "recommended",
     isRequired: false,
     releaseNotes: "Fixed those pesky bugs from yesterday\nMade the dashboard even prettier\nProtocols load faster now\nLots of small improvements you'll love",
-    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+    storeUrls: { ios: "https://apps.apple.com/app/id000000000", android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
   },
   critical: {
     currentVersion: "1.0.5",
@@ -65,7 +64,7 @@ const mockUpdates = {
     urgency: "critical",
     isRequired: true,
     releaseNotes: "Important security updates to keep your data safe\nFixed critical issues\nYour app will be safer and faster",
-    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+    storeUrls: { ios: "https://apps.apple.com/app/id000000000", android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
   }
 };
 
@@ -180,7 +179,6 @@ function App() {
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [showBetaModal, setShowBetaModal] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [showFeatureAnnouncement, setShowFeatureAnnouncement] = useState(false);
@@ -633,10 +631,6 @@ function App() {
         open={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)}
         onSupportClick={() => setShowSupportModal(true)}
-        onBetaClick={() => {
-          setMobileMenuOpen(false);
-          setShowBetaModal(true);
-        }}
       />
       <WelcomeModal
         open={showWelcome}
@@ -686,11 +680,6 @@ function App() {
       <SupportModal 
         open={showSupportModal}
         onClose={() => setShowSupportModal(false)}
-        theme={theme}
-      />
-      <BetaModal 
-        open={showBetaModal}
-        onClose={() => setShowBetaModal(false)}
         theme={theme}
       />
       

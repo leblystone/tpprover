@@ -73,8 +73,7 @@ const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSet
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
 const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
 const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
-const BetaEndedSurvey = lazyWithRetry(() => import('./pages/BetaEndedSurvey.jsx'), 'BetaEndedSurvey')
-const LaunchComingSoon = lazyWithRetry(() => import('./pages/LaunchComingSoon.jsx'), 'LaunchComingSoon')
+// Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
@@ -169,7 +168,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/launch-coming-soon',
-    element: <LaunchComingSoon />,
+    element: <Navigate to="/" replace />,
     errorElement: <NotFound />,
   },
   {
@@ -331,8 +330,8 @@ export const router = createBrowserRouter([
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'test-error', element: <ErrorBoundaryTest /> },
-          { path: 'beta-survey', element: <BetaEndedSurvey /> },
-          { path: 'launch-coming-soon', element: <LaunchComingSoon /> },
+          { path: 'beta-survey', element: <Navigate to="/app/dashboard" replace /> },
+          { path: 'launch-coming-soon', element: <Navigate to="/app/dashboard" replace /> },
           { index: true, element: <Navigate to="/app/dashboard" replace /> },
         ]
       }

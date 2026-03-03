@@ -32,7 +32,7 @@ import logo from '../assets/tpp_logo.png';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import LandingFooter from '../components/layout/LandingFooter';
 import LandingHeader from '../components/layout/LandingHeader';
-import { isNative, isPWAInstalled } from '../utils/platform';
+import { isNative, isPWAInstalled, isIOS } from '../utils/platform';
 import { usePageSEO } from '../utils/pageSEO';
 
 export default function Landing() {
@@ -98,12 +98,6 @@ export default function Landing() {
       title: 'Vendors',
       description: 'Domestic, International or GB vendor info at your fingertips! Never lose your contact again.'
     }
-  ];
-
-  const platforms = [
-    { icon: Apple, name: 'iOS', status: 'Available' },
-    { icon: Play, name: 'Android', status: 'Available' },
-    { icon: Monitor, name: 'Web', status: 'Available' }
   ];
 
   return (
@@ -302,7 +296,7 @@ export default function Landing() {
               Download the App
             </h2>
             <p className="text-lg" style={{ color: '#6B7D7A' }}>
-              Available on iOS, Android, and Web.
+              {isIOS() ? 'Available on iOS and Web.' : 'Available on iOS, Android, and Web.'}
             </p>
           </div>
           
@@ -324,7 +318,7 @@ export default function Landing() {
               </div>
             </button>
 
-            {/* Google Play Store Button */}
+            {!isIOS() && (
             <a 
               href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
               className="inline-block transition-transform hover:scale-105"
@@ -342,6 +336,7 @@ export default function Landing() {
                 </div>
               </div>
             </a>
+            )}
 
             {/* Web Access Button */}
             <button 

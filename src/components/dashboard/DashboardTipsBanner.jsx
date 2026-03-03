@@ -34,7 +34,7 @@ const DashboardTipsBanner = ({ theme }) => {
     { text: 'Add order tracking for dashboard updates', icon: Truck },
     { text: 'Customize your dashboard experience', icon: LayoutDashboard },
     { text: 'Add protocols to start scheduling', icon: Calendar },
-    { text: "We're in Beta!", icon: FlaskConical },
+    { text: 'New features added regularly!', icon: FlaskConical },
     { text: 'Tap vendor contact → Telegram takes you there!', icon: MessageCircle },
     { text: "Two of the same? Merge em'", icon: GitMerge },
     { text: 'New protocol history timeline', icon: Clock },

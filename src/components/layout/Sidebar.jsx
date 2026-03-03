@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
-import BetaModal from '../common/BetaModal';
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope, NotebookPen } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
@@ -10,7 +9,6 @@ import { isNative } from '../../utils/platform'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [showBetaModal, setShowBetaModal] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
 
@@ -71,39 +69,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           color: ${theme.textOnPrimary} !important;
           border-radius: 0.5rem;
         }
-        @keyframes swing {
-          0%, 100% {
-            transform: rotate(0deg);
-          }
-          20% {
-            transform: rotate(15deg);
-          }
-          40% {
-            transform: rotate(-10deg);
-          }
-          60% {
-            transform: rotate(5deg);
-          }
-          80% {
-            transform: rotate(-5deg);
-          }
-        }
-        .beta-icon {
-          animation: swing 2s ease-in-out infinite;
-          transform-origin: top center;
-        }
-        .beta-chip-button {
-          cursor: pointer;
-          border: none;
-          transition: all 0.3s ease;
-        }
-        .beta-chip-button:hover {
-          background-color: #e8e6dd !important;
-          transform: scale(1.05);
-        }
-        .beta-chip-button:hover .beta-icon {
-          animation: swing 1s ease-in-out infinite;
-        }
       `}</style>
       <aside 
         className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden overflow-y-hidden glass-bar"
@@ -137,33 +102,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             </NavLink>
           ))}
         </nav>
-        
-        {/* Beta Chip - Clickable - Right above page break - Shows on sidebar hover */}
-        <div className="flex justify-center px-2 my-3 beta-chip-container flex-shrink-0" style={{ opacity: 0, transition: 'opacity 0.2s ease-in-out' }}>
-          <button
-            onClick={() => setShowBetaModal(true)}
-            className="beta-chip-button flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl transition-all hover:scale-105 shadow-lg"
-            style={{
-              backgroundColor: '#f0eee7',
-            }}
-            title="Click to learn about our beta program"
-          >
-            <span 
-              className="font-bold text-lg tracking-widest"
-              style={{ 
-                color: '#042617',
-                fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
-                letterSpacing: '0.2em'
-              }}
-            >
-              BETA
-            </span>
-            <NotebookPen 
-              className="beta-icon h-6 w-6 flex-shrink-0" 
-              style={{ color: '#042617' }} 
-            />
-          </button>
-        </div>
         
         <div className="mt-auto space-y-2 flex-shrink-0 overflow-hidden" style={{
           borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
@@ -218,15 +156,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           </button>
         </div>
       </aside>
-      
-      {/* Beta Modal */}
-      {showBetaModal && (
-        <BetaModal 
-          open={showBetaModal} 
-          onClose={() => setShowBetaModal(false)} 
-          theme={theme} 
-        />
-      )}
     </>
   )
 }
