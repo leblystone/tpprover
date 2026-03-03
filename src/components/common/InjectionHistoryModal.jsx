@@ -5,11 +5,12 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 import { getInjectionHistory, deleteInjectionRecord, updateInjectionRecord } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
-export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
+export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTaskName }) {
     const [injectionHistory, setInjectionHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-    const [dateFilter, setDateFilter] = useState('last7days');
+    const [dateFilter, setDateFilter] = useState('all');
+    const [activeTaskFilter, setActiveTaskFilter] = useState(filterTaskName || null);
     
     // Edit state
     const [editingId, setEditingId] = useState(null);
@@ -27,16 +28,29 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
             setLoading(true);
             loadHistory();
             setLoading(false);
+            setActiveTaskFilter(filterTaskName || null);
         } else {
             // Reset edit state when modal closes
             setEditingId(null);
         }
-    }, [isOpen]);
+    }, [isOpen, filterTaskName]);
 
-    // Filter history based on date filter
+    // All unique task names for task filter chips
+    const uniqueTaskNames = useMemo(() => {
+        return [...new Set(injectionHistory.map(r => r.taskName).filter(Boolean))].sort();
+    }, [injectionHistory]);
+
+    // Filter history based on date filter + optional task filter
     const filteredHistory = useMemo(() => {
+        let base = injectionHistory;
+
+        // Apply task name filter
+        if (activeTaskFilter) {
+            base = base.filter(r => r.taskName === activeTaskFilter);
+        }
+
         if (dateFilter === 'all') {
-            return injectionHistory;
+            return base;
         }
 
         const now = new Date();
@@ -53,19 +67,21 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                 cutoffDate.setDate(now.getDate() - 30);
                 break;
             default:
-                return injectionHistory;
+                return base;
         }
 
         cutoffDate.setHours(0, 0, 0, 0);
 
-        return injectionHistory.filter(record => {
+        const filtered = base.filter(record => {
             const recordDate = typeof record.timestamp === 'number' 
                 ? new Date(record.timestamp) 
                 : new Date(record.date || record.timestamp);
             recordDate.setHours(0, 0, 0, 0);
             return recordDate >= cutoffDate;
         });
-    }, [injectionHistory, dateFilter]);
+
+        return filtered;
+    }, [injectionHistory, dateFilter, activeTaskFilter]);
 
     const parseInjectionSite = (site) => {
         if (!site) return { site: '', side: '', custom: '' };
@@ -202,6 +218,35 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                 theme={theme}
                 maxHeight="85vh"
             >
+                {/* Task Filter Chips — shown when there are multiple tasks */}
+                {uniqueTaskNames.length > 1 && (
+                    <div className="flex gap-1.5 mb-3 flex-wrap">
+                        <button
+                            onClick={() => setActiveTaskFilter(null)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                            style={{
+                                backgroundColor: !activeTaskFilter ? theme.primary : theme.secondary,
+                                color: !activeTaskFilter ? '#ffffff' : theme.textLight,
+                            }}
+                        >
+                            All
+                        </button>
+                        {uniqueTaskNames.map(name => (
+                            <button
+                                key={name}
+                                onClick={() => setActiveTaskFilter(activeTaskFilter === name ? null : name)}
+                                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                                style={{
+                                    backgroundColor: activeTaskFilter === name ? theme.primary : theme.secondary,
+                                    color: activeTaskFilter === name ? '#ffffff' : theme.textLight,
+                                }}
+                            >
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {/* Date Filter Pills */}
                 <div className="flex gap-1.5 mb-4 flex-wrap">
                     {filterOptions.map((option) => (

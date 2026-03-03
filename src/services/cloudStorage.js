@@ -463,7 +463,13 @@ export function mergeInjectionHistory(localArr, serverArr) {
   const local = Array.isArray(localArr) ? localArr : [];
   const server = Array.isArray(serverArr) ? serverArr : [];
   const byId = new Map();
-  const ts = (r) => (r && (r.timestamp != null)) ? Number(r.timestamp) : (r && r.date ? new Date(r.date).getTime() : 0);
+  const ts = (r) => {
+    if (!r) return 0;
+    if (r.updatedAt != null) { const n = typeof r.updatedAt === 'number' ? r.updatedAt : new Date(r.updatedAt).getTime(); if (!isNaN(n)) return n; }
+    if (r.timestamp != null) { const n = typeof r.timestamp === 'number' ? r.timestamp : new Date(r.timestamp).getTime(); if (!isNaN(n)) return n; }
+    if (r.date != null) { const n = new Date(r.date).getTime(); if (!isNaN(n)) return n; }
+    return 0;
+  };
   [...server, ...local].forEach((r) => {
     if (!r || typeof r !== 'object') return;
     const id = r.id || `legacy_${ts(r)}_${Math.random().toString(36).slice(2)}`;
