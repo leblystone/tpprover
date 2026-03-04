@@ -196,6 +196,8 @@ exports.createCheckoutSession = onCall(
           cancel_url: cancelUrl,
           customer_email: userEmail,
           metadata,
+          automatic_tax: { enabled: true },
+          billing_address_collection: 'required',
         };
 
         if (sessionMode === 'payment') {
