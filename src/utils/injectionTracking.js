@@ -141,10 +141,12 @@ export function getRecentInjectionSites(taskName) {
     }
   });
 
-  return Object.entries(siteToLastUsed)
+  const results = Object.entries(siteToLastUsed)
     .map(([site, lastUsed]) => ({ site, lastUsed }))
     .sort((a, b) => new Date(b.lastUsed) - new Date(a.lastUsed))
     .slice(0, 5);
+
+  return results;
 }
 
 /**

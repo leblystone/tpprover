@@ -253,6 +253,18 @@ export default function Orders() {
 		}
 	}, [orders, editingOrder?.id, showAddModal])
 
+	// Clear any stale tracking cache entries that may have corrupt mock-delivered data.
+	// Runs once on mount so next tracking sync fetches fresh real data.
+	useEffect(() => {
+		try {
+			const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('tracking_'));
+			keysToRemove.forEach(k => localStorage.removeItem(k));
+			if (keysToRemove.length > 0) {
+				console.log(`🧹 Cleared ${keysToRemove.length} stale tracking cache entries`);
+			}
+		} catch (e) { /* ignore */ }
+	}, []);
+
 	// Automatically sync order status from tracking data
 	useEffect(() => {
 		let syncInterval;
@@ -366,10 +378,10 @@ export default function Orders() {
 		syncOrdersFromTracking();
 	}, 2000);
 	
-	// Then sync every 5 minutes (tracking cache is 30 minutes, so this is reasonable)
+	// Fallback sync every 30 minutes (EasyPost webhooks handle real-time updates)
 	syncInterval = setInterval(() => {
 		syncOrdersFromTracking();
-	}, 5 * 60 * 1000);
+	}, 30 * 60 * 1000);
 	
 	return () => {
 		clearTimeout(initialTimeout);

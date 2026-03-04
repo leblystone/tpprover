@@ -1,6 +1,6 @@
 /**
  * Shipment Tracking Service
- * Integrates with Shippo API for real-time USPS/UPS tracking via Firebase Functions
+ * Integrates with EasyPost API for real-time tracking via Firebase Functions and webhooks
  */
 
 import { httpsCallable } from 'firebase/functions';
@@ -9,29 +9,31 @@ import { getFunctions } from 'firebase/functions';
 // Initialize Firebase Functions
 const functions = getFunctions();
 
-// Only warn once when Shippo token isn't configured (avoids console spam)
+// Only warn once when EasyPost API key isn't configured (avoids console spam)
 let hasWarnedTokenNotConfigured = false;
 
 /**
- * Check if error indicates Shippo API key is not configured
+ * Check if error indicates EasyPost API key is not configured
  */
-function isShippoTokenNotConfigured(resultOrError) {
+function isEasyPostNotConfigured(resultOrError) {
   if (!resultOrError) return false;
+  const msg = (resultOrError.error || resultOrError.message || '').toLowerCase();
   const details = typeof resultOrError.details === 'string'
     ? resultOrError.details
     : JSON.stringify(resultOrError.details || '');
   const status = resultOrError.status;
   return (
     status === 401 ||
-    details.includes('Token does not exist')
+    msg.includes('not configured') ||
+    details.includes('not configured')
   );
 }
 
 /**
  * Get tracking information for a shipment
- * Uses Firebase Cloud Function to proxy Shippo API requests (avoids CORS issues)
+ * Uses Firebase Cloud Function to proxy EasyPost API (getEasyPostTrackerStatus)
  * @param {string} trackingNumber - The tracking number
- * @param {string} carrier - The carrier (usps, ups, fedex, etc.)
+ * @param {string} carrier - Unused for EasyPost (carrier can be auto-detected server-side)
  * @returns {Promise<Object>} Tracking information
  */
 export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
@@ -40,7 +42,6 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
     }
 
     try {
-        // Check if Functions are available
         if (!functions) {
             console.error('🚫 Firebase Functions not initialized');
             return { 
@@ -49,21 +50,14 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
             };
         }
 
-        // Call Firebase Cloud Function to proxy Shippo API request
-        const getTrackingInfoFn = httpsCallable(functions, 'getTrackingInfo');
-        
-        const result = await getTrackingInfoFn({
-            trackingNumber,
-            carrier: carrier.toLowerCase()
-        });
+        const getEasyPostTrackerStatusFn = httpsCallable(functions, 'getEasyPostTrackerStatus');
+        const result = await getEasyPostTrackerStatusFn({ trackingNumber: trackingNumber.trim() });
 
-        // Check if the function returned an error
         if (result.data.error) {
-            // Suppress repetitive logs when Shippo API key isn't configured (401 "Token does not exist")
-            if (isShippoTokenNotConfigured(result.data)) {
+            if (isEasyPostNotConfigured(result.data)) {
                 if (!hasWarnedTokenNotConfigured) {
                     hasWarnedTokenNotConfigured = true;
-                    console.warn('⚠️ Tracking: Shippo API key not configured. To enable order tracking: set SHIPPO_API_KEY in Firebase Functions secrets.');
+                    console.warn('⚠️ Tracking: EasyPost API key not configured. Set EASYPOST_API_KEY in Firebase Functions secrets.');
                 }
             } else {
                 console.error('❌ Tracking API error:', result.data);
@@ -76,31 +70,20 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
             };
         }
 
-        // Parse Shippo response into our format
         if (result.data.success && result.data.data) {
-            return parseTrackingData(result.data.data);
-        } else {
-            // Unexpected response format - return error instead of mock data
-            console.error('⚠️ Unexpected response format from tracking API:', result.data);
-            return { 
-                error: 'Unexpected response format from tracking service',
-                hasError: true
-            };
+            return parseEasyPostTrackingData(result.data.data, result.data.mappedStatus);
         }
+        console.error('⚠️ Unexpected response format from tracking API:', result.data);
+        return { error: 'Unexpected response format from tracking service', hasError: true };
     } catch (error) {
         console.error('❌ Tracking API error:', error);
-        
-        // Check if this is a "function not deployed" error
         if (error.code === 'functions/not-found' || error.message?.includes('INTERNAL') || error.message?.includes('not-found')) {
-            console.error('🚫 Firebase Functions not deployed - tracking service unavailable');
             return { 
                 error: 'Tracking service not available. Please ensure Firebase Functions are deployed.',
                 hasError: true,
                 code: error.code
             };
         }
-        
-        // Return the actual error instead of mock data
         return { 
             error: error.message || 'Network error while fetching tracking information',
             hasError: true,
@@ -110,73 +93,46 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
 }
 
 /**
- * Parse Shippo tracking data into our internal format
- * @param {Object} shippoData - Raw Shippo API response
+ * Parse EasyPost tracker response into our internal format
+ * @param {Object} data - EasyPost API tracker result (from getEasyPostTrackerStatus)
+ * @param {string} mappedStatus - Pre-mapped internal status from Cloud Function
  * @returns {Object} Parsed tracking information
  */
-function parseTrackingData(shippoData) {
-    if (!shippoData || shippoData.error) {
-        return { error: shippoData?.error || 'Invalid tracking data' };
+function parseEasyPostTrackingData(data, mappedStatus) {
+    if (!data) {
+        return { error: 'Invalid tracking data' };
     }
 
-    const status = shippoData.tracking_status?.status || 'UNKNOWN';
-    const statusDetail = shippoData.tracking_status?.status_details || '';
-    const scanLocation = shippoData.tracking_status?.location || {};
-    // For DELIVERED, show delivery address (city/state); otherwise show last scan location
-    const addressTo = shippoData.address_to || {};
-    const location = status === 'DELIVERED' && (addressTo.city || addressTo.state)
-        ? { city: addressTo.city, state: addressTo.state, zip: addressTo.zip, country: addressTo.country }
-        : scanLocation;
+    const status = (data.status || 'unknown').toLowerCase();
+    const statusDetail = data.statusDetail || data.status_detail || '';
+    const trackingDetails = data.tracking_details || [];
     
-    // Map Shippo statuses to our internal statuses
-    const statusMapping = {
-        'UNKNOWN': 'Order Placed',
-        'PRE_TRANSIT': 'Order Placed', 
-        'TRANSIT': 'Shipped',
-        'DELIVERED': 'Delivered',
-        'RETURNED': 'Returned',
-        'FAILURE': 'Delivery Failed'
-    };
-
-    const mappedStatus = statusMapping[status] || 'Order Placed';
-    
-    // Calculate progress (0-2 for our 3-step system)
+    // Progress: 0 = placed/pre_transit, 1 = in_transit/out_for_delivery, 2 = delivered
     let progress = 0;
-    if (status === 'TRANSIT') progress = 1;
-    else if (status === 'DELIVERED') progress = 2;
+    if (status === 'in_transit' || status === 'out_for_delivery') progress = 1;
+    else if (status === 'delivered') progress = 2;
 
-    // Normalize carrier name from API response
-    const rawCarrier = shippoData.carrier || '';
-    let normalizedCarrier = rawCarrier.toLowerCase();
-    // Handle various carrier name formats from Shippo API
-    if (normalizedCarrier.includes('usps') || normalizedCarrier.includes('united_states_postal') || normalizedCarrier === 'usps') {
-        normalizedCarrier = 'usps';
-    } else if (normalizedCarrier.includes('ups') || normalizedCarrier.includes('united_parcel') || normalizedCarrier === 'ups') {
-        normalizedCarrier = 'ups';
-    } else if (normalizedCarrier.includes('fedex') || normalizedCarrier.includes('federal_express') || normalizedCarrier === 'fedex') {
-        normalizedCarrier = 'fedex';
-    } else if (normalizedCarrier.includes('dhl') || normalizedCarrier === 'dhl') {
-        normalizedCarrier = 'dhl';
-    }
-    
+    const rawCarrier = (data.carrier || '').toLowerCase();
+    let normalizedCarrier = rawCarrier;
+    if (normalizedCarrier.includes('usps') || normalizedCarrier.includes('united_states')) normalizedCarrier = 'usps';
+    else if (normalizedCarrier.includes('ups') || normalizedCarrier.includes('united_parcel')) normalizedCarrier = 'ups';
+    else if (normalizedCarrier.includes('fedex')) normalizedCarrier = 'fedex';
+    else if (normalizedCarrier.includes('dhl')) normalizedCarrier = 'dhl';
+    else if (!normalizedCarrier) normalizedCarrier = 'usps';
+
     return {
-        trackingNumber: shippoData.tracking_number,
-        carrier: normalizedCarrier || shippoData.carrier,
-        status: mappedStatus,
+        trackingNumber: data.tracking_number,
+        carrier: normalizedCarrier,
+        status: mappedStatus || 'Order Placed',
         originalStatus: status,
         statusDetail,
         progress,
-        location: {
-            city: location.city,
-            state: location.state,
-            zip: location.zip,
-            country: location.country
-        },
-        estimatedDelivery: shippoData.eta,
-        lastUpdate: shippoData.tracking_status?.status_date,
-        trackingHistory: shippoData.tracking_history || [],
-        isDelivered: status === 'DELIVERED',
-        isInTransit: status === 'TRANSIT',
+        location: null,
+        estimatedDelivery: data.eta || null,
+        lastUpdate: data.statusDate || data.status_date || null,
+        trackingHistory: trackingDetails,
+        isDelivered: status === 'delivered',
+        isInTransit: status === 'in_transit' || status === 'out_for_delivery',
         hasError: false
     };
 }

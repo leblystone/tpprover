@@ -11,6 +11,8 @@ import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import { httpsCallable } from 'firebase/functions';
+import { getFunctions } from 'firebase/functions';
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
@@ -336,6 +338,21 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       };
       await onSave(payload);
       markAsSubmitted();
+
+      // Register tracking with EasyPost so webhooks can update status (and trackingIndex is populated)
+      const orderIdForTracking = payload.id || order?.id;
+      if (payload.tracking && payload.tracking.trim() && orderIdForTracking) {
+        try {
+          const createTracker = httpsCallable(getFunctions(), 'createEasyPostTracker');
+          await createTracker({
+            trackingNumber: payload.tracking.trim(),
+            orderId: orderIdForTracking,
+            carrier: detectCarrier(payload.tracking),
+          });
+        } catch (err) {
+          console.warn('EasyPost tracker registration failed (tracking still saved):', err);
+        }
+      }
 
       if (!form?.id) {
         clearSavedData();

@@ -14,7 +14,7 @@ const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
 const recoverLifetimePurchases = require('./recoverLifetimePurchases');
-const shippo = require('./shippo');
+const easypost = require('./easypost');
 const googlePlayBilling = require('./googlePlayBilling');
 const googlePlayWebhooks = require('./googlePlayWebhooks');
 const appleInAppPurchase = require('./appleInAppPurchase');
@@ -161,8 +161,10 @@ exports.getRevenueMetrics = onCall({
   }
 });
 
-// Shippo Tracking Functions
-exports.getTrackingInfo = shippo.getTrackingInfo;
+// EasyPost Tracking Functions
+exports.createEasyPostTracker = easypost.createEasyPostTracker;
+exports.getEasyPostTrackerStatus = easypost.getEasyPostTrackerStatus;
+exports.easyPostWebhook = easypost.easyPostWebhook;
 
 // Email Queue Admin Functions
 exports.getEmailQueueStats = onCall(
@@ -5032,11 +5034,15 @@ exports.createSupportTicket = onCall(
         </div>
       `;
 
-      await emailService.sendEmail(
-        'contact@thepepplanner.com',
-        `🎫 New ${safeType} Request: ${ticketNumber}`,
-        emailHtml
-      );
+      try {
+        await emailService.sendEmail(
+          'contact@thepepplanner.com',
+          `🎫 New ${safeType} Request: ${ticketNumber}`,
+          emailHtml
+        );
+      } catch (emailError) {
+        logger.warn(`⚠️ Admin notification email failed (ticket still created): ${emailError.message}`);
+      }
 
       logger.info(`✅ Support ticket created: ${ticketRef.id} (${ticketNumber})`);
       return { 

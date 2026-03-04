@@ -1,11 +1,10 @@
 /**
  * Tracking Status Sync Utility
- * Automatically syncs order status based on real-time tracking data.
- * When the tracking API is unavailable (e.g. no Shippo key), falls back to mock
- * tracking so fake/test DHL and FedEx numbers still drive status updates.
+ * Syncs order status from EasyPost tracking data (via getCachedTrackingInfo).
+ * When the tracking API is unavailable, sync is silently skipped.
  */
 
-import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../services/tracking';
+import { getCachedTrackingInfo, detectCarrier } from '../services/tracking';
 
 // Track if we've already warned about tracking service not being configured
 let hasWarnedAboutTrackingService = false;
@@ -49,8 +48,7 @@ export async function syncOrderStatusFromTracking(order) {
     const carrier = detectCarrier(order.tracking);
     let trackingInfo = await getCachedTrackingInfo(order.tracking, carrier, true);
 
-    // When API is unavailable (no key, test key, or error), use mock tracking so
-    // fake/test DHL and FedEx numbers still auto-update order status and delivery.
+    // If the tracking API returned an error, check if it's a configuration issue
     if (!trackingInfo || trackingInfo.hasError) {
       const details = trackingInfo?.details || '';
       const detailsStr = typeof details === 'string' ? details : JSON.stringify(details || '');
@@ -61,11 +59,19 @@ export async function syncOrderStatusFromTracking(order) {
         trackingInfo?.status === 401 ||
         detailsStr.includes('Token does not exist');
 
-      if (isServiceNotConfigured && !hasWarnedAboutTrackingService) {
-        console.warn('⚠️ Tracking API unavailable. Using mock tracking for test numbers (DHL/FedEx) to auto-update status.');
-        hasWarnedAboutTrackingService = true;
+      if (isServiceNotConfigured) {
+        if (!hasWarnedAboutTrackingService) {
+          console.warn('⚠️ Tracking API not configured. Status auto-sync is disabled until a tracking provider is set up.');
+          hasWarnedAboutTrackingService = true;
+        }
+        // Do NOT use mock data for real orders — a fake hash-based status would
+        // corrupt production order statuses (e.g., permanently marking orders as
+        // "Delivered" when the API is simply not yet configured).
+        return null;
       }
-      trackingInfo = getMockTrackingInfo(order.tracking);
+
+      // Non-configuration error (network issue, invalid tracking number, etc.) — skip silently
+      return null;
     }
 
     // Use tracking status from either real API or mock (test numbers)

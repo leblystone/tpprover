@@ -1819,6 +1819,9 @@ export function AppProvider({ children }) {
             );
             
             if (hasData) {
+                // #region agent log H-D/H-E: log auto-sync firing with order count
+                fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f9eea2'},body:JSON.stringify({sessionId:'f9eea2',hypothesisId:'H-D',location:'AppContext.jsx:auto-sync',message:'Auto-sync firing',data:{orderCount:userData.orders?.length,orderIds:userData.orders?.map(o=>o.id?.substring(0,8)),orderStatuses:userData.orders?.map(o=>({id:o.id?.substring(0,8),status:o.status})),userId:userId?.substring(0,8)},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
                 // Queue the sync operation to prevent overlaps
                 addToSyncQueue(
                     async () => {
@@ -3299,6 +3302,9 @@ export function AppProvider({ children }) {
                             }
                             if (freshData.orders) {
                                 const timeSinceOrdersUpdate = Date.now() - lastLocalOrdersUpdateRef.current;
+                                // #region agent log H-E: log Firestore listener order merge
+                                fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f9eea2'},body:JSON.stringify({sessionId:'f9eea2',hypothesisId:'H-E',location:'AppContext.jsx:listener-orders',message:'Firestore listener firing for orders',data:{serverOrderCount:freshData.orders?.length,localOrderCount:(orders||[]).length,timeSinceOrdersUpdate,protectionWindowMs:PROTECTION_WINDOW_MS,withinProtection:timeSinceOrdersUpdate<PROTECTION_WINDOW_MS,serverOrderStatuses:freshData.orders?.map(o=>({id:o.id?.substring(0,8),status:o.status}))},timestamp:Date.now()})}).catch(()=>{});
+                                // #endregion
                                 if (timeSinceOrdersUpdate >= PROTECTION_WINDOW_MS) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.orders.filter(o => !o.isMock)
