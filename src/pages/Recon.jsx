@@ -201,6 +201,9 @@ export default function Recon() {
 	}, [editingItem?.penColor]);
 
 	const handleSave = (item) => {
+		// #region agent log
+		fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf04e8'},body:JSON.stringify({sessionId:'cf04e8',location:'Recon.jsx:handleSave',message:'handleSave called',data:{itemId:item?.id,itemDose:item?.dose,itemDoseUnit:item?.doseUnit,hasPeptides:Array.isArray(item?.peptides)&&item?.peptides?.length>0,peptidesCount:item?.peptides?.length,peptidesDoses:item?.peptides?.map(p=>({dose:p.dose,doseUnit:p.doseUnit})),editingItemId:editingItem?.id,isEdit:!!editingItem?.id},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+		// #endregion
 		const next = editingItem?.id
 			? reconItems.map(i => i.id === editingItem.id ? prepareItemForSave({ 
 				...i, 
@@ -210,6 +213,10 @@ export default function Recon() {
 				id: generateId(), 
 				...item
 			}, { isNew: true }), ...reconItems]
+		// #region agent log
+		const savedItem = next.find(i => i.id === (editingItem?.id || next[0]?.id));
+		fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf04e8'},body:JSON.stringify({sessionId:'cf04e8',location:'Recon.jsx:handleSave-post',message:'after save - item state',data:{savedItemId:savedItem?.id,savedDose:savedItem?.dose,savedDoseUnit:savedItem?.doseUnit,savedPeptidesDoses:savedItem?.peptides?.map(p=>({name:p.name,dose:p.dose,doseUnit:p.doseUnit}))},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+		// #endregion
 		setReconItems(next)
 		setShowEditModal(false)
 	}
@@ -529,17 +536,28 @@ export default function Recon() {
         // Use vendorId from data if available, otherwise try to find it from vendor name
         const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
 
+        // For single-peptide vials, preserve the original dose and doseUnit from the peptide
+        const singlePeptideDose = peptides.length === 1 ? (Number(peptides[0]?.dose) || 0) : totalDose;
+        const singlePeptideDoseUnit = peptides.length === 1 ? (peptides[0]?.doseUnit || 'mcg') : 'mcg';
+
+        // Preserve costPerMg from data or derive from first peptide
+        const costPerMg = data.costPerMg || peptides[0]?.costPerMg || null;
+
         const newItem = prepareItemForSave({
             id: generateId(),
             peptide: peptideNames,
             mg: totalMg,
-            dose: totalDose,
+            dose: singlePeptideDose,
+            doseUnit: singlePeptideDoseUnit,
             vendor: data.vendor,
             vendorId,
             water: data.water,
             deliveryMethod: data.deliveryMethod,
+            administrationRoute: data.administrationRoute || null,
             penColor: data.penColor,
+            penType: data.penType || null,
             cost: data.cost,
+            costPerMg: costPerMg,
             date: new Date().toISOString(),
             dateAcquired: data.dateAcquired || '',
             orderId: data.orderId || null,
@@ -642,18 +660,27 @@ export default function Recon() {
         // Use vendorId from data if available, otherwise try to find it from vendor name
         const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
 
+        // For single-peptide drafts, preserve the original dose and doseUnit from the peptide
+        const draftSingleDose = peptides.length === 1 ? (Number(peptides[0]?.dose) || 0) : totalDose;
+        const draftSingleDoseUnit = peptides.length === 1 ? (peptides[0]?.doseUnit || 'mcg') : 'mcg';
+        const draftCostPerMg = data.costPerMg || peptides[0]?.costPerMg || null;
+
         const draftItem = prepareItemForSave({
             id: `draft_${generateId()}`,
             peptide: peptideNames,
             mg: totalMg,
-            dose: totalDose,
+            dose: draftSingleDose,
+            doseUnit: draftSingleDoseUnit,
             vendor: data.vendor || '',
             vendorId,
             water: data.water || 0,
             deliveryMethod: data.deliveryMethod || 'pipette',
+            administrationRoute: data.administrationRoute || null,
             penColor: data.penColor || '',
+            penType: data.penType || null,
             cost: data.cost || '',
-            date: new Date().toISOString(), // Semantic date for display, not conflict resolution
+            costPerMg: draftCostPerMg,
+            date: new Date().toISOString(),
             dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
             notes: '',
@@ -976,9 +1003,13 @@ export default function Recon() {
 									</div>
 								</div>
 							) : (
-								sortedItems.map(item => {
-								const isBlend = Array.isArray(item.peptides) && item.peptides.length > 0;
-                                const totalMg = isBlend ? item.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0) : item.mg;
+						sortedItems.map(item => {
+						const isBlend = Array.isArray(item.peptides) && item.peptides.length > 1;
+                                const hasPeptidesArray = Array.isArray(item.peptides) && item.peptides.length > 0;
+                                const totalMg = hasPeptidesArray ? item.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0) : (Number(item.mg) || 0);
+                                
+                                // For single-peptide vials stored as peptides array, use peptide's own dose/unit
+                                // For true blends (multiple peptides), sum all doses in mcg
                                 const totalDoseInMcg = isBlend 
                                     ? item.peptides.reduce((sum, p) => {
                                         const dose = Number(p.dose) || 0;
@@ -986,12 +1017,16 @@ export default function Recon() {
                                     }, 0)
                                     : 0;
 
+                                // For blends: always mcg. For single-peptide (via peptides[0] or item.doseUnit): preserve original unit
                                 const summaryDoseUnit = isBlend
                                     ? 'mcg'
-                                    : (item.doseUnit || 'mcg');
+                                    : (hasPeptidesArray ? (item.peptides[0]?.doseUnit || item.doseUnit || 'mcg') : (item.doseUnit || 'mcg'));
 
-                                const rawDoseInput = isBlend ? totalDoseInMcg : item.dose;
-                                const hasDoseValue = rawDoseInput !== undefined && rawDoseInput !== null && rawDoseInput !== '';
+                                // For single-peptide: prefer peptides[0].dose, fall back to item.dose
+                                const rawDoseInput = isBlend 
+                                    ? totalDoseInMcg 
+                                    : (hasPeptidesArray ? (item.peptides[0]?.dose ?? item.dose) : item.dose);
+                                const hasDoseValue = rawDoseInput !== undefined && rawDoseInput !== null && rawDoseInput !== '' && Number(rawDoseInput) > 0;
                                 const summaryDoseValueNumeric = hasDoseValue ? Number(rawDoseInput) : 0;
                                 const displayDoseValue = hasDoseValue ? rawDoseInput : null;
 
@@ -1202,8 +1237,8 @@ export default function Recon() {
                                                     <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-y-1 gap-x-4">
-                                                    <DataPoint icon={Beaker} label="Amount" value={`${totalMg} mg`} theme={theme} />
-                                                    <DataPoint icon={Droplet} label="Water" value={`${item.water} mL`} theme={theme} />
+                                                    <DataPoint icon={Beaker} label="Amount" value={totalMg ? `${totalMg} mg` : 'N/A'} theme={theme} />
+                                                    <DataPoint icon={Droplet} label="Water" value={item.water ? `${item.water} mL` : 'N/A'} theme={theme} />
                                                     <DataPoint icon={Pipette} label="Dose" value={displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit}` : 'N/A'} theme={theme} />
                                                     <DataPoint icon={Hash} label="Units/Dose" value={calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : 'N/A'} theme={theme} />
                                                     <DataPoint icon={Info} label="Doses/Vial" value={calc.dosesPerVial || 'N/A'} theme={theme} />
@@ -1999,11 +2034,11 @@ export default function Recon() {
                                         </button>
                                         {isPenTypeDropdownOpen && (
                                             <div 
-                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                className="absolute z-50 w-full bottom-full mb-1 rounded-lg shadow-lg border overflow-hidden"
                                             style={{
                                                     backgroundColor: theme.cardBackground,
                                                 borderColor: theme.border,
-                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                    boxShadow: theme.isDark ? '0 -4px 6px rgba(0,0,0,0.3)' : '0 -4px 6px rgba(0,0,0,0.1)'
                                                 }}
                                             >
                                                 {[
@@ -2093,7 +2128,7 @@ export default function Recon() {
                             updateFormData({ dateAcquired: dateString });
                         }}
                         theme={theme}
-                        placeholder="Date Acquired"
+                        placeholder="Date Reconstituted"
                     />
 
                     <TextInput 
