@@ -1389,7 +1389,6 @@ export default function Stockpile() {
                               quantity: item.quantity,
                               unit: item.unit,
                               quantityUsed: 1,
-                              dateAcquired: item.date || '',
                               documentation: item.documentation || []
                             };
                             

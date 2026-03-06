@@ -10,6 +10,14 @@ import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Drop
 import VialLabelPreview from './VialLabelPreview'
 import { useAppContext } from '../../context/AppContext'
 
+const getTodayString = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate }) {
   const { vendors: contextVendors } = useAppContext()
   // Use controlled form if provided, otherwise use internal state
@@ -18,7 +26,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     vendorId: null, 
     water: '', 
     cost: '',
-    dateAcquired: '',
+    dateAcquired: getTodayString(),
     peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }] 
   });
   // Default form structure for fallbacks
@@ -27,7 +35,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     vendorId: null, 
     water: '', 
     cost: '',
-    dateAcquired: '',
+    dateAcquired: getTodayString(),
     peptides: [{ id: 1, name: '', mg: '', mgUnit: 'mg', dose: '', doseUnit: 'mcg', iuConversionFactor: 0.001 }]
   };
 
@@ -160,7 +168,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           vendor: vendors,
           vendorId: firstVendorId,
           cost: prefill.cost || (totalCost > 0 ? totalCost.toString() : ''),
-          dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
+          dateAcquired: prev?.dateAcquired || getTodayString(),
           orderId: firstOrderId,
           documentation: allDocs,
           peptides: prefill.peptides.map((pep, index) => ({ 
@@ -196,7 +204,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           vendor: prefill.vendor || '', 
           vendorId: prefill.vendorId || null, // Include vendorId from prefill
           cost: costValue,
-          dateAcquired: prefill.dateAcquired || (prev?.dateAcquired) || '',
+          dateAcquired: prev?.dateAcquired || getTodayString(),
           orderId: prefill.orderId || null,
           documentation: prefill.documentation || [],
           peptides: [p] 
@@ -214,7 +222,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           penType: prefill.penType || (prev?.penType || ''),
           penColor: prefill.penColor || (prev?.penColor || '#9ca3af'),
           cost: (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : (prev?.cost || ''),
-          dateAcquired: prefill.dateAcquired !== undefined ? prefill.dateAcquired : (prev?.dateAcquired || '')
+          dateAcquired: prefill.dateAcquired !== undefined ? prefill.dateAcquired : (prev?.dateAcquired || getTodayString())
         }));
       }
 
@@ -887,13 +895,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                   <GlassmorphismDatePicker
-                    value={form.dateAcquired || ''}
+                    value={form.dateAcquired || getTodayString()}
                     onChange={(dateString) => setForm(prev => {
                       const safePrev = prev || defaultFormStructure;
                       return { ...safePrev, dateAcquired: dateString };
                     })}
                     theme={theme}
-                    placeholder="Date Acquired"
+                    placeholder="Date Reconstituted"
                   />
                 </div>
               ) : (
@@ -924,15 +932,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                   
-                  {/* Date Acquired */}
+                  {/* Date Reconstituted */}
                   <GlassmorphismDatePicker
-                    value={form.dateAcquired || ''}
+                    value={form.dateAcquired || getTodayString()}
                     onChange={(dateString) => setForm(prev => {
                       const safePrev = prev || defaultFormStructure;
                       return { ...safePrev, dateAcquired: dateString };
                     })}
                     theme={theme}
-                    placeholder="Date Acquired"
+                    placeholder="Date Reconstituted"
                   />
                 </>
               )}
@@ -1516,11 +1524,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           </button>
                           {isPenTypeDropdownOpen && (
                             <div 
-                              className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                              className="absolute z-50 w-full bottom-full mb-1 rounded-lg shadow-lg border overflow-hidden"
                               style={{
                                 backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                                 borderColor: theme.border,
-                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                boxShadow: theme.isDark ? '0 -4px 6px rgba(0,0,0,0.3)' : '0 -4px 6px rgba(0,0,0,0.1)'
                               }}
                             >
                               {[

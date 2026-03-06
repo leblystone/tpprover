@@ -202,7 +202,7 @@ export default function Recon() {
 
 	const handleSave = (item) => {
 		// #region agent log
-		fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf04e8'},body:JSON.stringify({sessionId:'cf04e8',location:'Recon.jsx:handleSave',message:'handleSave called',data:{itemId:item?.id,itemDose:item?.dose,itemDoseUnit:item?.doseUnit,hasPeptides:Array.isArray(item?.peptides)&&item?.peptides?.length>0,peptidesCount:item?.peptides?.length,peptidesDoses:item?.peptides?.map(p=>({dose:p.dose,doseUnit:p.doseUnit})),editingItemId:editingItem?.id,isEdit:!!editingItem?.id},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+		console.log('[DBG-cf04e8][A] handleSave called', {itemId:item?.id,itemDose:item?.dose,itemDoseUnit:item?.doseUnit,hasPeptides:Array.isArray(item?.peptides)&&item?.peptides?.length>0,peptidesCount:item?.peptides?.length,peptidesDoses:item?.peptides?.map(p=>({dose:p.dose,doseUnit:p.doseUnit})),editingItemId:editingItem?.id,isEdit:!!editingItem?.id});
 		// #endregion
 		const next = editingItem?.id
 			? reconItems.map(i => i.id === editingItem.id ? prepareItemForSave({ 
@@ -215,7 +215,7 @@ export default function Recon() {
 			}, { isNew: true }), ...reconItems]
 		// #region agent log
 		const savedItem = next.find(i => i.id === (editingItem?.id || next[0]?.id));
-		fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf04e8'},body:JSON.stringify({sessionId:'cf04e8',location:'Recon.jsx:handleSave-post',message:'after save - item state',data:{savedItemId:savedItem?.id,savedDose:savedItem?.dose,savedDoseUnit:savedItem?.doseUnit,savedPeptidesDoses:savedItem?.peptides?.map(p=>({name:p.name,dose:p.dose,doseUnit:p.doseUnit}))},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+		console.log('[DBG-cf04e8][A] after save - item state', {savedItemId:savedItem?.id,savedDose:savedItem?.dose,savedDoseUnit:savedItem?.doseUnit,savedPeptidesDoses:savedItem?.peptides?.map(p=>({name:p.name,dose:p.dose,doseUnit:p.doseUnit}))});
 		// #endregion
 		setReconItems(next)
 		setShowEditModal(false)
