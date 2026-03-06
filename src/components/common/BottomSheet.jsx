@@ -26,6 +26,7 @@ export default function BottomSheet({
   onClose, 
   onBack, 
   title, 
+  titleSuffix,
   titleExtra, 
   theme, 
   children, 
@@ -300,8 +301,11 @@ export default function BottomSheet({
               )}
               
               {/* Centered title */}
-              <h3 className="text-lg font-semibold text-center" style={{ color: headerTextColor }}>
+              <h3 className="text-xl font-bold tracking-tight text-center flex items-center justify-center gap-1.5" style={{ color: headerTextColor }}>
                 {title}
+                {titleSuffix && (
+                  <span className="text-sm font-normal opacity-55 tracking-normal">{titleSuffix}</span>
+                )}
               </h3>
               
               {/* Right side - Close button */}
@@ -351,8 +355,11 @@ export default function BottomSheet({
                     <ChevronLeft size={20} />
                   </button>
                 )}
-                <h3 className="text-lg font-semibold" style={{ color: headerTextColor }}>
+                <h3 className="text-xl font-bold tracking-tight flex items-center gap-1.5" style={{ color: headerTextColor }}>
                   {title}
+                  {titleSuffix && (
+                    <span className="text-sm font-normal opacity-55 tracking-normal">{titleSuffix}</span>
+                  )}
                 </h3>
               </div>
               <div className="flex items-center gap-3">
