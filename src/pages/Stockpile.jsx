@@ -322,6 +322,7 @@ export default function Stockpile() {
 
   const [manageName, setManageName] = useState(null)
   const [manageRows, setManageRows] = useState([])
+  const [manageRowsInitial, setManageRowsInitial] = useState([])
   const [isSavingManage, setIsSavingManage] = useState(false)
   const [outOfStockModalName, setOutOfStockModalName] = useState(null)
   const [editedManageName, setEditedManageName] = useState(null)
@@ -335,6 +336,13 @@ export default function Stockpile() {
     2000 // 2 second delay
   )
   const [showHistory, setShowHistory] = useState(false)
+
+  const hasManageChanges = (() => {
+    if (editedManageName !== manageName) return true
+    if (manageRows.length !== manageRowsInitial.length) return true
+    return JSON.stringify(manageRows) !== JSON.stringify(manageRowsInitial)
+  })()
+
   const openManage = (peptideName) => {
     // Set name first to open modal immediately
     setManageName(peptideName)
@@ -353,6 +361,7 @@ export default function Stockpile() {
       const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
       if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', priceUnit: 'vial', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
       setManageRows(rows)
+      setManageRowsInitial(JSON.parse(JSON.stringify(rows)))
     })
   }
   
@@ -992,6 +1001,7 @@ export default function Stockpile() {
       markManageSubmitted();
       setManageName(null);
       setManageRows([]);
+      setManageRowsInitial([]);
       setEditedManageName(null);
       setIsEditingName(false);
     } catch (error) {
@@ -1000,6 +1010,7 @@ export default function Stockpile() {
       markManageSubmitted();
       setManageName(null);
       setManageRows([]);
+      setManageRowsInitial([]);
       setEditedManageName(null);
       setIsEditingName(false);
     } finally {
@@ -1609,6 +1620,16 @@ export default function Stockpile() {
           clearManageSavedData(); 
         }} 
         title={`${editedManageName || manageName || 'Manage'}`}
+        titleSuffix={
+          <button
+            onClick={() => { if (isReadOnly) { setShowUpgradeModal(true); return; } setIsEditingName(true); }}
+            className="p-1 rounded-full transition-all hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 flex-shrink-0"
+            style={{ color: theme.primary }}
+            title="Rename"
+          >
+            <Pencil size={13} strokeWidth={2.5} />
+          </button>
+        }
         onBack={() => { 
           // Close manage and return to stockpile list (no separate view modal)
           setManageName(null); 
@@ -1661,14 +1682,16 @@ export default function Stockpile() {
                 setShowUpgradeModal(true);
                 return;
               }
-              if (isSavingManage) return;
+              if (isSavingManage || !hasManageChanges) return;
               saveManage();
             }} 
-            disabled={isSavingManage || isReadOnly}
-            className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed" 
+            disabled={isSavingManage || isReadOnly || !hasManageChanges}
+            className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" 
             style={{ 
-              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-              color: theme?.textOnPrimary || '#ffffff'
+              background: hasManageChanges
+                ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`
+                : theme.isDark ? '#374151' : '#e5e7eb',
+              color: hasManageChanges ? (theme?.textOnPrimary || '#ffffff') : (theme.isDark ? '#6b7280' : '#9ca3af')
             }}
           >
             {isSavingManage ? 'Saving…' : 'Save Changes'}
@@ -1676,81 +1699,27 @@ export default function Stockpile() {
         </div>
       )}>
         <div className="space-y-4">
-          {/* Rename Section - right aligned */}
-          <div className="flex justify-end">
-            {isEditingName ? (
-              <div className="flex items-center gap-2 rounded-xl border w-full max-w-sm ml-auto py-3 pl-3 pr-4 overflow-visible" style={{
-                borderColor: theme.primary + '40',
-                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'
-              }}>
-                <Pencil size={16} style={{ color: theme.primary, flexShrink: 0 }} />
-                <input
-                  autoFocus
-                  type="text"
-                  value={editedManageName || ''}
-                  onChange={(e) => setEditedManageName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && editedManageName?.trim()) {
-                      setIsEditingName(false);
-                    }
-                    if (e.key === 'Escape') {
-                      setEditedManageName(manageName);
-                      setIsEditingName(false);
-                    }
-                  }}
-                  className="flex-1 min-w-0 bg-transparent text-base font-semibold outline-none"
-                  style={{ color: theme.text }}
-                  placeholder="Enter new name..."
-                />
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      if (editedManageName?.trim()) {
-                        setIsEditingName(false);
-                      }
-                    }}
-                    className="p-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-                    style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
-                  >
-                    <Check size={16} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditedManageName(manageName);
-                      setIsEditingName(false);
-                    }}
-                    className="p-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.textLight }}
-                  >
-                    <X size={16} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (isReadOnly) {
-                    setShowUpgradeModal(true);
-                    return;
-                  }
-                  setIsEditingName(true);
+          {/* Inline rename input — only shown when editing */}
+          {isEditingName && (
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: theme.primary + '50', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
+              <Pencil size={14} style={{ color: theme.primary, flexShrink: 0 }} />
+              <input
+                autoFocus
+                type="text"
+                value={editedManageName || ''}
+                onChange={(e) => setEditedManageName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && editedManageName?.trim()) setIsEditingName(false);
+                  if (e.key === 'Escape') { setEditedManageName(manageName); setIsEditingName(false); }
                 }}
-                className="flex items-center gap-2 text-sm font-medium transition-all hover:opacity-80 active:scale-[0.98]"
-                style={{ color: theme.primary }}
-              >
-                <Pencil size={14} />
-                <span>Rename</span>
-                {editedManageName && editedManageName !== manageName && (
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                    backgroundColor: theme.primary + '15',
-                    color: theme.primary
-                  }}>
-                    {manageName} → {editedManageName}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
+                className="flex-1 bg-transparent text-sm font-semibold outline-none"
+                style={{ color: theme.text }}
+                placeholder="Enter new name..."
+              />
+              <button onClick={() => { if (editedManageName?.trim()) setIsEditingName(false); }} className="p-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}><Check size={14} strokeWidth={2.5} /></button>
+              <button onClick={() => { setEditedManageName(manageName); setIsEditingName(false); }} className="p-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}><X size={14} strokeWidth={2.5} /></button>
+            </div>
+          )}
 
           {showHistory && (
             <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
@@ -1770,31 +1739,57 @@ export default function Stockpile() {
           )}
           {/* Vials List */}
           <div className="space-y-2">
+          {/* Column headers — grid must match row layout exactly */}
+          {manageRows.length > 0 && (
+            <div
+              className="grid items-center px-3 pb-1.5"
+              style={{
+                gridTemplateColumns: '1fr 64px 72px 36px',
+                fontFamily: 'Poppins, sans-serif',
+                borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
+              }}
+            >
+              <span className="text-[9px] font-bold uppercase tracking-widest pl-6" style={{ color: theme.primary, opacity: 0.7 }}>Vendor</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.7 }}>Amount</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.7 }}>Qty</span>
+              <span /> {/* delete button column */}
+            </div>
+          )}
           {manageRows.map((row, rowIdx) => {
             const isExpanded = expandedManageRows[row.id];
+            const anyExpanded = Object.values(expandedManageRows).some(Boolean);
+            const isInactive = anyExpanded && !isExpanded;
             const vendorName = row.vendorId ? (vendorMap[row.vendorId] || row.vendor || 'Unknown') : (row.vendor || 'Unknown');
             
             return (
             <div
               id={`manage-row-${row.id}`}
               key={row.id}
-              className="transition-all"
+              className="transition-all rounded-xl border overflow-hidden"
+              style={{
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+                borderLeft: `3px solid ${isInactive ? 'transparent' : theme.primary + '60'}`,
+                opacity: isInactive ? 0.4 : 1,
+                filter: isInactive ? 'blur(1.5px)' : 'none',
+                pointerEvents: isInactive ? 'none' : 'auto',
+                transform: isInactive ? 'scale(0.99)' : 'scale(1)',
+                transition: 'opacity 250ms ease, filter 250ms ease, transform 250ms ease, border-color 250ms ease'
+              }}
             >
-              {/* Collapsible Header Row */}
+              {/* Collapsible Header Row — grid mirrors column headers exactly */}
               <div 
-                className="flex items-center justify-between p-3 cursor-pointer transition-all rounded-lg border-b"
+                className="grid items-center px-3 py-2.5 cursor-pointer transition-all rounded-lg"
                 style={{
+                  gridTemplateColumns: '1fr 64px 72px 36px',
                   backgroundColor: isExpanded 
                     ? (theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)')
-                    : 'transparent',
-                  borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'
+                    : 'transparent'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  e.preventDefault();
-                  // Immediate state update for instant feedback - use flushSync for instant DOM update
-                  const newState = !expandedManageRows[row.id];
-                  setExpandedManageRows(prev => ({ ...prev, [row.id]: newState }));
+                  // Accordion: only one row open at a time — collapse others when opening a new one
+                  const alreadyOpen = !!expandedManageRows[row.id];
+                  setExpandedManageRows(alreadyOpen ? {} : { [row.id]: true });
                 }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
@@ -1807,88 +1802,70 @@ export default function Stockpile() {
                   }
                 }}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {/* Chevron */}
-                  <div className="flex-shrink-0 transition-transform duration-150 ease-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', willChange: 'transform' }}>
-                    <ChevronDown size={18} style={{ color: theme.primary }} strokeWidth={2.5} />
-                  </div>
-                  
-                  {/* Summary Info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="text-base font-bold truncate" style={{ color: theme.text }}>
+                  {/* Col 1: Chevron + Vendor name */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex-shrink-0 transition-transform duration-150 ease-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', willChange: 'transform' }}>
+                      <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
+                    </div>
+                    <div className="text-sm font-bold truncate" style={{ color: theme.text }}>
                       {vendorName}
                     </div>
-                    <div className="text-xs font-semibold opacity-70" style={{ color: theme.text }}>
-                      {row.mg || '?'}{row.mgUnit || 'mg'}
-                    </div>
-                    <div className="text-xs font-bold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
+                  </div>
+
+                  {/* Col 2: Amount */}
+                  <div className="text-xs font-semibold text-center" style={{ color: theme.text, opacity: 0.75 }}>
+                    {row.mg || '?'}{row.mgUnit || 'mg'}
+                  </div>
+
+                  {/* Col 3: Qty badge */}
+                  <div className="flex justify-center">
+                    <div className="text-xs font-bold px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
                       {row.quantity || '0'} {getUnitLabel(row.unit, row.quantity)}
                     </div>
-                    {row.orderId && (
+                  </div>
+
+                  {/* Col 4: Delete (+ optional Merge) */}
+                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    {(manageName === 'Unknown' || !manageName || manageName.trim() === '') && (
                       <button
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all hover:scale-105"
+                        className="p-1 rounded-lg transition-all"
                         style={{
-                          backgroundColor: theme.primary + '15',
-                          color: theme.primary,
-                          border: `1px solid ${theme.primary}30`
+                          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                          color: theme.primary
                         }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/app/orders`, { state: { openOrderId: row.orderId } });
+                        onClick={() => {
+                          if (isReadOnly) { setShowUpgradeModal(true); return; }
+                          handleMergeIndividualItem(row);
                         }}
-                        title="View source order"
+                        title="Merge"
                       >
-                        Order
+                        <Merge size={14} strokeWidth={2.5} />
                       </button>
                     )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  {(manageName === 'Unknown' || !manageName || manageName.trim() === '') && (
                     <button
-                      className="p-1.5 rounded-lg transition-all"
+                      className="p-1 rounded-lg transition-all"
                       style={{
-                        backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                        color: theme.primary
+                        backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.15)' : 'rgba(200, 122, 92, 0.1)',
+                        color: '#c87a5c'
                       }}
                       onClick={() => {
-                        if (isReadOnly) {
-                          setShowUpgradeModal(true);
-                          return;
+                        if (manageName === 'Unknown' || !manageName || manageName.trim() === '') {
+                          deleteManageRow(row.id);
+                        } else {
+                          if (manageRows.length === 1) {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                              detail: { message: 'Cannot remove the last variant. Delete the entire group from the main view instead.', type: 'error' }
+                            }));
+                            return;
+                          }
+                          removeManageRow(row.id);
                         }
-                        handleMergeIndividualItem(row);
                       }}
-                      title="Merge"
+                      title="Delete"
                     >
-                      <Merge size={16} strokeWidth={2.5} />
+                      <X size={14} strokeWidth={2.5} />
                     </button>
-                  )}
-                  <button
-                    className="p-1.5 rounded-lg transition-all"
-                    style={{
-                      backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.15)' : 'rgba(200, 122, 92, 0.1)',
-                      color: '#c87a5c'
-                    }}
-                    onClick={() => {
-                      if (manageName === 'Unknown' || !manageName || manageName.trim() === '') {
-                        deleteManageRow(row.id);
-                      } else {
-                        if (manageRows.length === 1) {
-                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                            detail: { message: 'Cannot remove the last variant. Delete the entire group from the main view instead.', type: 'error' } 
-                          }));
-                          return;
-                        }
-                        removeManageRow(row.id);
-                      }
-                    }}
-                    title="Delete"
-                  >
-                    <X size={16} strokeWidth={2.5} />
-                  </button>
-                </div>
+                  </div>
               </div>
 
               {/* Expanded Edit Form */}
