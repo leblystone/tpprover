@@ -196,7 +196,7 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10002] p-4">
       <div 
         className="rounded-lg shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh]"
         style={{ backgroundColor: theme.cardBackground }}
@@ -371,8 +371,8 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Type your message... (Press Enter to send)"
-                  rows={3}
+                  placeholder="Reply..."
+                  rows={2}
                   className="flex-1 px-3 py-2 rounded-lg border text-sm resize-none"
                   style={{
                     borderColor: theme.border,
@@ -397,39 +397,38 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                   )}
                 </button>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
-                  <Lightbulb size={12} /> You'll receive a notification when the admin responds
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[10px] flex items-center gap-1 opacity-60" style={{ color: theme.textLight }}>
+                  <Lightbulb size={10} /> We'll notify you when admin responds
                 </p>
-                {/* User-initiated close */}
                 {confirmClose ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: theme.textLight }}>Mark as resolved?</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] opacity-70" style={{ color: theme.textLight }}>Resolved?</span>
                     <button
                       onClick={handleCloseTicket}
                       disabled={closing}
-                      className="px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50 transition-opacity hover:opacity-80"
+                      className="px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 disabled:opacity-50 transition-opacity hover:opacity-80"
                       style={{ backgroundColor: theme.success + '20', color: theme.success }}
                     >
-                      {closing ? <Loader size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-                      Yes, close it
+                      {closing ? <Loader size={10} className="animate-spin" /> : <CheckCheck size={10} />}
+                      Yes
                     </button>
                     <button
                       onClick={() => setConfirmClose(false)}
                       disabled={closing}
-                      className="px-2.5 py-1 rounded text-xs font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+                      className="px-2 py-0.5 rounded text-[10px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
                       style={{ color: theme.textLight }}
                     >
-                      Cancel
+                      No
                     </button>
                   </div>
                 ) : (
                   <button
                     onClick={() => setConfirmClose(true)}
-                    className="text-xs flex items-center gap-1 transition-opacity hover:opacity-70"
+                    className="text-[10px] flex items-center gap-1 opacity-60 transition-opacity hover:opacity-90"
                     style={{ color: theme.textLight }}
                   >
-                    <CheckCheck size={12} />
+                    <CheckCheck size={10} />
                     Issue resolved?
                   </button>
                 )}
