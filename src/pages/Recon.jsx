@@ -201,22 +201,35 @@ export default function Recon() {
 	}, [editingItem?.penColor]);
 
 	const handleSave = (item) => {
-		// #region agent log
-		console.log('[DBG-cf04e8][A] handleSave called', {itemId:item?.id,itemDose:item?.dose,itemDoseUnit:item?.doseUnit,hasPeptides:Array.isArray(item?.peptides)&&item?.peptides?.length>0,peptidesCount:item?.peptides?.length,peptidesDoses:item?.peptides?.map(p=>({dose:p.dose,doseUnit:p.doseUnit})),editingItemId:editingItem?.id,isEdit:!!editingItem?.id});
-		// #endregion
+		// For single-peptide items stored as a peptides array, propagate top-level dose/mg edits
+		// back into peptides[0] so the card display (which reads peptides[0].dose) stays in sync
+		let itemToSave = item;
+		if (Array.isArray(item?.peptides) && item.peptides.length === 1) {
+			const resolvedDoseUnit = item.doseUnit ?? item.peptides[0]?.doseUnit;
+			itemToSave = {
+				...item,
+				...(resolvedDoseUnit !== undefined ? { doseUnit: resolvedDoseUnit } : {}),
+				peptides: item.peptides.map((p, idx) =>
+					idx === 0
+						? {
+							...p,
+							...(item.dose !== undefined ? { dose: item.dose } : {}),
+							...(resolvedDoseUnit !== undefined ? { doseUnit: resolvedDoseUnit } : {}),
+							...(item.mg !== undefined ? { mg: item.mg } : {}),
+						  }
+						: p
+				),
+			};
+		}
 		const next = editingItem?.id
 			? reconItems.map(i => i.id === editingItem.id ? prepareItemForSave({ 
 				...i, 
-				...item
+				...itemToSave
 			}) : i)
 			: [prepareItemForSave({ 
 				id: generateId(), 
-				...item
+				...itemToSave
 			}, { isNew: true }), ...reconItems]
-		// #region agent log
-		const savedItem = next.find(i => i.id === (editingItem?.id || next[0]?.id));
-		console.log('[DBG-cf04e8][A] after save - item state', {savedItemId:savedItem?.id,savedDose:savedItem?.dose,savedDoseUnit:savedItem?.doseUnit,savedPeptidesDoses:savedItem?.peptides?.map(p=>({name:p.name,dose:p.dose,doseUnit:p.doseUnit}))});
-		// #endregion
 		setReconItems(next)
 		setShowEditModal(false)
 	}
@@ -474,7 +487,7 @@ export default function Recon() {
 
 	const getEditingMg = () => {
 		if (!editingItem) return draft.mg || '';
-		if (editingItem.mg) return editingItem.mg;
+		if (editingItem.mg !== undefined && editingItem.mg !== null) return editingItem.mg;
 		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
 			return editingItem.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
 		}
@@ -483,7 +496,7 @@ export default function Recon() {
 
 	const getEditingDose = () => {
 		if (!editingItem) return draft.dose || '';
-		if (editingItem.dose) return editingItem.dose;
+		if (editingItem.dose !== undefined && editingItem.dose !== null) return editingItem.dose;
 		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
 			return editingItem.peptides.reduce((sum, p) => {
 				const dose = Number(p.dose) || 0;
