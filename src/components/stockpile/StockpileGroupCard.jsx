@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
+import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, Link, ExternalLink, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
 
@@ -145,6 +145,17 @@ export default function StockpileGroupCard({
                     {variant.mg} {variant.unit || 'mg'} Vials
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
+                </div>
+
+                {/* Column Headers */}
+                <div
+                  className="flex items-center justify-between px-3 -mx-2 mb-0.5"
+                  style={{ fontFamily: 'Poppins, sans-serif' }}
+                >
+                  <span className="text-[9px] font-semibold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>Vendor</span>
+                  <div className="flex items-center gap-6 mr-8">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>Qty</span>
+                  </div>
                 </div>
 
                 {/* Items in this variant - Flattened List */}
@@ -371,15 +382,30 @@ function ItemStrip({
           {item.documentation?.length > 0 && (
             <div className="col-span-2 flex flex-wrap gap-2 mt-0.5">
               {item.documentation.map((doc, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); if (doc.type === 'image') onPreviewImage(doc); }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
-                  style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
-                >
-                  <FileImage size={12} strokeWidth={2.5} />
-                  View Lab Document
-                </button>
+                doc.type === 'link' ? (
+                  <a
+                    key={idx}
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
+                    style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    <ExternalLink size={12} strokeWidth={2.5} />
+                    {doc.title || 'View Link'}
+                  </a>
+                ) : (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); onPreviewImage(doc); }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
+                    style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    <FileImage size={12} strokeWidth={2.5} />
+                    {doc.title || 'View Upload'}
+                  </button>
+                )
               ))}
             </div>
           )}

@@ -89,11 +89,11 @@ export default function ColorSwatchDropdown({
 
             {/* Dropdown Menu with Color Swatches */}
             <div 
-                className="absolute z-50 w-full mt-1 overflow-hidden transition-all duration-300 ease-in-out"
+                className="absolute z-50 w-full bottom-full mb-1 overflow-hidden transition-all duration-300 ease-in-out"
                 style={{
                     maxHeight: isOpen ? '300px' : '0',
                     opacity: isOpen ? 1 : 0,
-                    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
+                    transform: isOpen ? 'translateY(0)' : 'translateY(10px)',
                     pointerEvents: isOpen ? 'auto' : 'none'
                 }}
             >

@@ -19,6 +19,21 @@ export default function DocumentationUpload({
   const [newItem, setNewItem] = useState({ type: 'link', title: '', url: '', notes: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editFields, setEditFields] = useState({ title: '', notes: '' });
+
+  const handleStartEdit = (item) => {
+    setEditingId(item.id);
+    setEditFields({ title: item.title || '', notes: item.notes || '' });
+  };
+
+  const handleSaveEdit = (id) => {
+    const updated = documentation.map(doc =>
+      doc.id === id ? { ...doc, title: editFields.title.trim(), notes: editFields.notes.trim() } : doc
+    );
+    onChange(updated);
+    setEditingId(null);
+  };
 
   // Ensure controlled inputs always have defined values
   const safeNewItem = {
@@ -132,6 +147,7 @@ export default function DocumentationUpload({
     const isImage = item.type === 'image';
     const isLink = item.type === 'link';
     const isSynced = item.source === 'synced';
+    const isEditing = editingId === item.id;
 
     return (
       <div 
@@ -151,19 +167,56 @@ export default function DocumentationUpload({
         </div>
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h4 className="font-medium text-sm truncate" style={{ color: theme.text }}>
-              {item.title}
-            </h4>
-            {isSynced && (
-              <span className="text-xs px-2 py-0.5 rounded" 
-                    style={{ backgroundColor: theme.info + '20', color: theme.info }}>
-                From Order
-              </span>
-            )}
-          </div>
+          {isEditing ? (
+            <div className="space-y-2 mb-2">
+              <input
+                type="text"
+                value={editFields.title}
+                onChange={(e) => setEditFields(f => ({ ...f, title: e.target.value }))}
+                placeholder="Link title..."
+                className="w-full px-2 py-1 rounded border text-sm font-medium"
+                style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+              />
+              <textarea
+                value={editFields.notes}
+                onChange={(e) => setEditFields(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Optional notes..."
+                rows={2}
+                className="w-full px-2 py-1 rounded border text-xs resize-none"
+                style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSaveEdit(item.id)}
+                  className="px-3 py-1 rounded text-xs font-semibold text-white"
+                  style={{ backgroundColor: theme.primary, fontFamily: 'Poppins, sans-serif' }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="px-3 py-1 rounded text-xs font-semibold"
+                  style={{ backgroundColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="font-medium text-sm truncate" style={{ color: theme.text }}>
+                {item.title}
+              </h4>
+              {isSynced && (
+                <span className="text-xs px-2 py-0.5 rounded" 
+                      style={{ backgroundColor: theme.info + '20', color: theme.info }}>
+                  From Order
+                </span>
+              )}
+            </div>
+          )}
           
-          {item.notes && (
+          {!isEditing && item.notes && (
             <p className="text-xs mb-2" style={{ color: theme.textLight }}>
               {item.notes}
             </p>
@@ -203,13 +256,25 @@ export default function DocumentationUpload({
         </div>
         
         {!readonly && !isSynced && (
-          <button
-            onClick={() => handleRemoveItem(item.id)}
-            className="flex-shrink-0 p-1 rounded hover:bg-red-100 text-red-600"
-            title="Remove"
-          >
-            <X size={14} />
-          </button>
+          <div className="flex flex-col gap-1 flex-shrink-0">
+            {!isEditing && (
+              <button
+                onClick={() => handleStartEdit(item)}
+                className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
+                title="Edit"
+                style={{ color: theme.textLight }}
+              >
+                <FileText size={14} />
+              </button>
+            )}
+            <button
+              onClick={() => handleRemoveItem(item.id)}
+              className="p-1 rounded hover:bg-red-100 text-red-600"
+              title="Remove"
+            >
+              <X size={14} />
+            </button>
+          </div>
         )}
       </div>
     );
@@ -310,7 +375,7 @@ export default function DocumentationUpload({
                   }}
                 >
                   <Camera size={14} />
-                  Photo
+                  Image
                 </button>
               )}
             </div>
@@ -320,7 +385,7 @@ export default function DocumentationUpload({
               type="text"
               value={safeNewItem.title}
               onChange={(e) => setNewItem({ ...safeNewItem, title: e.target.value })}
-              placeholder={safeNewItem.type === 'image' ? '📸 Photo title...' : '🔗 Link title...'}
+              placeholder={safeNewItem.type === 'image' ? 'Image title...' : 'Link title...'}
               className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
               style={{ 
                 borderColor: theme.border,
@@ -394,7 +459,7 @@ export default function DocumentationUpload({
             <textarea
               value={safeNewItem.notes}
               onChange={(e) => setNewItem({ ...safeNewItem, notes: e.target.value })}
-              placeholder="📝 Optional notes..."
+              placeholder="Optional notes..."
               rows={2}
               className="w-full px-3 py-2 text-sm border rounded-lg resize-none focus:ring-2 focus:ring-opacity-50 transition-all"
               style={{ 
@@ -426,7 +491,9 @@ export default function DocumentationUpload({
                   }}
                 >
                   <Plus size={14} />
-                  Add {safeNewItem.type === 'image' ? 'Photo' : 'Link'}
+                  {safeNewItem.type === 'image'
+                    ? (safeNewItem.selectedFile ? 'Upload Image' : 'Add Image')
+                    : 'Upload Link'}
                 </button>
                 <button
                   onClick={() => {

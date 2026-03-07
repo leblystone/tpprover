@@ -981,7 +981,8 @@ export async function hasUserData(userId) {
     return appData !== null;
   } catch (error) {
     console.error(`❌ Failed to check user data:`, error);
-    return false;
+    // Safe default: assume data exists on error to prevent destructive migration/wipe
+    return true;
   }
 }
 

@@ -6,7 +6,7 @@ import { isNative, isAndroid } from '../utils/platform';
 import { 
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   loadUserSubscription, saveUserState, loadUserState,
-  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
+  migrateLocalStorageToCloud, hasUserData,
   subscribeToUserState, subscribeToAppData, subscribeToUserSubscription, mergeWithTimestamps,
   mergeInjectionHistory, mergeInjectionStats, mergeWaterTracker,
   mergeTaskCompletion,
@@ -541,8 +541,6 @@ export function AppProvider({ children }) {
                     if (canMigrateSafely) {
                         console.log('🔄 Migrating existing local data for same account to cloud...');
                         await migrateLocalStorageToCloud(userId);
-                        // Clear local cache after migration
-                        clearLocalStorageData();
                     } else {
                         // Brand new user - reset theme to default (sage) for new accounts
                         console.log('🎨 New account detected - resetting theme to default (sage)');
