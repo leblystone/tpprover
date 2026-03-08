@@ -1376,7 +1376,7 @@ export default function Recon() {
 
                                         {/* Footer */}
                                         <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
-                                            <span className="text-[9px] opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
+                                            <span className="text-[9px] opacity-50 uppercase tracking-widest" style={{ color: theme.text }}>
                                                 {item.isDraft ? 'Tap to resume' : 'Tap to edit'}
                                             </span>
 
@@ -1577,7 +1577,7 @@ export default function Recon() {
 			</div>
 			</div>
 
-            <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); setDraft({}); clearSavedData(); setConfirmDelete(false); }} title={editingItem?.id && !editingItem.id.startsWith('draft_') ? 'Edit Reconstitution' : 'New Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
+            <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); setDraft({}); clearSavedData(); setConfirmDelete(false); }} title={editingItem?.id && !editingItem.id.startsWith('draft_') ? `Edit ${(editingItem.name || editingItem.peptide || '').replace(/\s*\((separate|blended)\)\s*$/i, '').trim() || ''} Vial`.trim() : 'New Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
 			<div className="w-full flex items-center justify-between gap-3">
 			{editingItem?.id && !editingItem.id.startsWith('draft_') ? (
 				<div className="flex items-center">
@@ -1615,23 +1615,36 @@ export default function Recon() {
 					</button>
 				)}
 				<div className="flex items-center gap-3 ml-auto">
-					{!(editingItem?.id && !editingItem.id.startsWith('draft_')) && (
-						<button
-							onClick={() => {
-								handleCalculatorSaveDraft({ ...editingItem, draftSource: 'modal' });
-								setShowEditModal(null);
-								setEditingItem(null);
-								setDraft({});
-								clearSavedData();
-							}}
-							className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100"
-							style={{ color: theme.primary }}
-						>
-							Save as Draft
-						</button>
-					)}
+				{!(editingItem?.id && !editingItem.id.startsWith('draft_')) && (
 					<button
-						onClick={() => handleSave(editingItem)}
+						onClick={() => {
+							handleCalculatorSaveDraft({ ...editingItem, draftSource: 'modal' });
+							setShowEditModal(null);
+							setEditingItem(null);
+							setDraft({});
+							clearSavedData();
+						}}
+						className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100"
+						style={{ color: theme.primary }}
+					>
+						Save as Draft
+					</button>
+				)}
+				{editingItem?.id && !editingItem.id.startsWith('draft_') && (
+					<button
+						onClick={() => {
+							handleMarkAsUsed(editingItem);
+							setShowEditModal(null);
+							setEditingItem(null);
+						}}
+						className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100"
+						style={{ color: theme.textLight }}
+					>
+						Vial Finished
+					</button>
+				)}
+				<button
+					onClick={() => handleSave(editingItem)}
 						className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
 						style={{
 							background: getPrimaryActionGradient(false),

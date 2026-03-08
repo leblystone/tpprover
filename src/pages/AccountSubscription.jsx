@@ -499,6 +499,25 @@ export default function AccountSubscription() {
             </h2>
           </div>
 
+          {/* Legal consent line */}
+          <p className="text-xs text-center opacity-50" style={{ color: theme.text }}>
+            By subscribing, you agree to our{' '}
+            <button
+              onClick={() => setShowTerms(true)}
+              className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            >
+              Terms of Service
+            </button>
+            {' '}and{' '}
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            >
+              Privacy Policy
+            </button>
+            .
+          </p>
+
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Monthly Plan */}

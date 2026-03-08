@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, NotebookPen, Beaker, MoreVertical, Pause, SkipForward } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, Goal } from 'lucide-react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
 import { SHARE_BASE_PATH } from '../../utils/share';
@@ -68,7 +68,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
     const terracottaShadow = theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.12)';
     
@@ -99,18 +98,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
         return () => window.removeEventListener('tpp:protocol-history-updated', handleNotesUpdate);
     }, [isActive, p?.id]);
 
-    // Close menu when clicking outside
-    React.useEffect(() => {
-        if (isMenuOpen) {
-            const handleClickOutside = (e) => {
-                if (!e.target.closest('.protocol-menu-container')) {
-                    setIsMenuOpen(false);
-                }
-            };
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
-    }, [isMenuOpen]);
     
     const handleShare = () => {
         setShareModalOpen(true);
@@ -259,186 +246,52 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
             >
                 <div className="flex-grow">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-2 gap-3">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <h3 className="font-semibold text-lg leading-tight" style={{ color: theme.text }}>
-                                    {p.protocolName || 'Unnamed Protocol'}
-                                </h3>
-                                {isActive && p.startDate && (
-                                    <div className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>
-                                        <Clock size={12} />
-                                        <span>Active since {formatMMDDYYYY(parseDateString(p.startDate))}</span>
-                                    </div>
-                                )}
-                                {isActive && p.quickStart && (!p.linkedItems || Object.keys(p.linkedItems).length === 0) && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onStartClick(p, { manage: true, tab: 'edit' });
-                                        }}
-                                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-                                        style={{ 
-                                            backgroundColor: theme.primary + '15',
-                                            color: theme.primary,
-                                            border: `1px solid ${theme.primary}40`
-                                        }}
-                                    >
-                                        🔗 Link Vials
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {!isPublicView && (
-                            <div className="relative protocol-menu-container">
+                            <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
+                                {p.protocolName || 'Unnamed Protocol'}
+                            </h3>
+                            {p.purpose && (
+                                <div className="flex items-center gap-1.5 mt-0.5 mb-1">
+                                    <Goal size={12} className="opacity-40 flex-shrink-0" style={{ color: theme.text }} />
+                                    <p className="text-sm opacity-60" style={{ color: theme.text }}>
+                                        {p.purpose}
+                                    </p>
+                                </div>
+                            )}
+                            {isActive && p.quickStart && (!p.linkedItems || Object.keys(p.linkedItems).length === 0) && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setIsMenuOpen(!isMenuOpen);
+                                        onStartClick(p, { manage: true, tab: 'edit' });
                                     }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className="p-1.5 rounded-lg hover:bg-opacity-10 transition-colors"
-                                    style={{ color: theme.textLight }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105"
+                                    style={{ 
+                                        backgroundColor: theme.primary + '15',
+                                        color: theme.primary,
+                                        border: `1px solid ${theme.primary}40`
                                     }}
                                 >
-                                    <MoreVertical size={18} />
+                                    🔗 Link Vials
                                 </button>
-                                {isMenuOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-[100]" onClick={() => setIsMenuOpen(false)} />
-                                        <div 
-                                            className="absolute right-0 top-full mt-1 rounded-lg shadow-xl z-[101] min-w-[160px] overflow-hidden"
-                                            style={{ 
-                                                backgroundColor: theme.cardBackground,
-                                                border: `1px solid ${theme.border}`,
-                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsMenuOpen(false);
-                                                    onStartClick(p, { manage: isActive });
-                                                }}
-                                                className="hidden md:flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
-                                                style={{ 
-                                                    color: theme.text,
-                                                    borderColor: theme.border
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                }}
-                                            >
-                                                <Play size={16} />
-                                                <span>{isActive ? 'Manage Protocol' : (hasDraftStart ? 'Resume Draft' : 'Start Research')}</span>
-                                            </button>
-                                            {isActive && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setIsMenuOpen(false);
-                                                        setIsNotesModalOpen(true);
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
-                                                    style={{ 
-                                                        color: theme.text,
-                                                        borderColor: theme.border
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                                    }}
-                                                >
-                                                    <NotebookPen size={16} />
-                                                    <span>Notes</span>
-                                                    {notesCount > 0 && (
-                                                        <span 
-                                                            className="ml-auto px-1.5 py-0.5 rounded-full text-xs font-bold"
-                                                            style={{ 
-                                                                backgroundColor: theme.primary, 
-                                                                color: theme.textOnPrimary
-                                                            }}
-                                                        >
-                                                            {notesCount}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsMenuOpen(false);
-                                                    handleShare();
-                                                }}
-                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
-                                                style={{ 
-                                                    color: theme.text,
-                                                    borderColor: theme.border
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                }}
-                                            >
-                                                <Share2 size={16} />
-                                                <span>Share</span>
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsMenuOpen(false);
-                                                    onHistoryClick(p);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left border-b"
-                                                style={{ 
-                                                    color: theme.text,
-                                                    borderColor: theme.border
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                }}
-                                            >
-                                                <History size={16} />
-                                                <span>History</span>
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsMenuOpen(false);
-                                                    onEditClick(p);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-opacity-10 transition-colors text-left"
-                                                style={{ color: theme.text }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                }}
-                                            >
-                                                <EditIcon size={16} />
-                                                <span>Edit</span>
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
+                            )}
+                        </div>
+
+                        {isActive && p.startDate && (
+                            <div
+                                className="flex flex-col items-end gap-0.5 flex-shrink-0 px-2.5 py-2 rounded-xl"
+                                style={{
+                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
+                                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                                }}
+                            >
+                                <span className="text-[9px] uppercase tracking-widest opacity-60" style={{ color: theme.text }}>
+                                    &nbsp;ACTIVE SINCE&nbsp;
+                                </span>
+                                <span className="text-[11px] font-semibold opacity-80" style={{ color: theme.text }}>
+                                    {formatMMDDYYYY(parseDateString(p.startDate))}
+                                </span>
                             </div>
                         )}
                     </div>
@@ -446,35 +299,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     {isActive ? (
                         /* NEW HIERARCHY FOR ACTIVE CARDS */
                         <>
-                            <SectionDivider label="RESEARCH LOG" theme={theme} icon={<FileText size={12} />} />
-                            
-                            <div className="space-y-3 px-1">
-                                {p.purpose && (
-                                    <div className="flex items-start gap-2.5">
-                                        <Target size={14} className="mt-0.5 opacity-50" style={{ color: theme.textLight }} />
-                                        <p className="text-sm leading-relaxed" style={{ color: theme.text }}>
-                                            {p.purpose}
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                {/* Only show date range if protocol has an end date (not ongoing) */}
-                                {(() => {
-                                    const dateRange = renderDateRange(p, isActive);
-                                    const isOngoing = p.duration?.noEnd || (!p.endDate && isActive);
-                                    // Hide date range section for ongoing protocols
-                                    if (isOngoing || !dateRange) return null;
-                                    return (
-                                        <div className="flex items-center gap-2.5">
-                                            <Clock size={14} className="opacity-50" style={{ color: theme.textLight }} />
-                                            <span className="text-sm font-medium" style={{ color: theme.text }}>
-                                                {dateRange}
-                                            </span>
-                                        </div>
-                                    );
-                                })()}
-                            </div>
-
                             <SectionDivider label="PEPTIDES" theme={theme} icon={<Beaker size={12} />} />
                             
                             <div className="space-y-4 px-1">
@@ -498,22 +322,63 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                     const displayDose = currentPhase ? currentPhase.dose : peptide.dosage?.amount;
                                                     const displayUnit = currentPhase ? currentPhase.unit : peptide.dosage?.unit;
                                                     
+                                                    const getFreqChips = () => {
+                                                            if (!peptide.frequency) return null;
+                                                            const chipStyle = {
+                                                                backgroundColor: (peptide.capColor || theme.primary) + '20',
+                                                                color: peptide.capColor || theme.primary,
+                                                                border: `1px solid ${(peptide.capColor || theme.primary)}35`,
+                                                            };
+                                                            const chipClass = "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-md";
+                                                            const freq = peptide.frequency;
+                                                            if (freq.type === 'weekly' && freq.days?.length > 0) {
+                                                                const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                                                const sorted = [...freq.days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+                                                                const indices = sorted.map(d => DAY_ORDER.indexOf(d));
+                                                                const isConsecutive = indices.length > 1 && indices.every((idx, i) => i === 0 || idx === indices[i - 1] + 1);
+                                                                if (isConsecutive) {
+                                                                    return <span className={chipClass} style={chipStyle}>{sorted[0].slice(0,3)}–{sorted[sorted.length-1].slice(0,3)}</span>;
+                                                                }
+                                                                return sorted.map(day => <span key={day} className={chipClass} style={chipStyle}>{day.slice(0,3)}</span>);
+                                                            }
+                                                            let label = '';
+                                                            if (freq.type === 'daily') label = freq.time?.length > 0 ? `Daily · ${freq.time.join('/')}` : 'Daily';
+                                                            else if (freq.type === 'custom') {
+                                                                const every = freq.customDays;
+                                                                if (every) {
+                                                                    const intervalLabel = `Every ${every} ${every === 1 ? 'Day' : 'Days'}`;
+                                                                    if (p.startDate) {
+                                                                        const start = new Date(p.startDate);
+                                                                        const today = new Date();
+                                                                        today.setHours(0,0,0,0);
+                                                                        start.setHours(0,0,0,0);
+                                                                        const diffDays = Math.floor((today - start) / 86400000);
+                                                                        const daysSinceLast = diffDays % every;
+                                                                        const daysUntilNext = daysSinceLast === 0 ? 0 : every - daysSinceLast;
+                                                                        if (daysUntilNext === 0) label = `${intervalLabel} · Today`;
+                                                                        else if (daysUntilNext === 1) label = `${intervalLabel} · Tomorrow`;
+                                                                        else label = `${intervalLabel} · in ${daysUntilNext}d`;
+                                                                    } else {
+                                                                        label = intervalLabel;
+                                                                    }
+                                                                } else {
+                                                                    label = 'Every X Days';
+                                                                }
+                                                            }
+                                                            else if (freq.type === 'cycle') label = `${freq.onDays || '-'}on / ${freq.offDays || '-'}off`;
+                                                            else label = formatIndividualFrequency(freq);
+                                                            return <span className={chipClass} style={chipStyle}>{label}</span>;
+                                                        };
+
                                                     return (
                                                         <>
-                                                            <div className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.text }}>
-                                                                {peptide.name || 'Unnamed Peptide'}
+                                                            <div className="flex items-center gap-1.5 flex-wrap" style={{ color: theme.text }}>
+                                                                <span className="font-semibold text-sm">{peptide.name || 'Unnamed Peptide'}</span>
                                                                 {peptide.emoji && <span className="text-base leading-none">{peptide.emoji}</span>}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-[12px] mt-0.5" style={{ color: theme.textLight }}>
                                                                 {displayDose && (
-                                                                    <span>{displayDose} {displayUnit}</span>
+                                                                    <span className="text-[11px] opacity-60" style={{ color: theme.text }}>{displayDose} {displayUnit}</span>
                                                                 )}
-                                                                {(displayDose && peptide.frequency) && (
-                                                                    <span className="opacity-30">|</span>
-                                                                )}
-                                                                {peptide.frequency && (
-                                                                    <span>{formatIndividualFrequency(peptide.frequency)}</span>
-                                                                )}
+                                                                {getFreqChips()}
                                                             </div>
                                                             {/* Titration phase indicator + controls */}
                                                             {hasTitration && currentPhase && (
@@ -653,15 +518,25 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 )}
                             </div>
 
-                            <SectionDivider label="RESEARCH DATA" theme={theme} icon={<Layers size={12} />} />
+                            <SectionDivider label="DETAILS" theme={theme} icon={<Layers size={12} />} />
                             
                             <div className="grid grid-cols-2 gap-y-3 gap-x-4 px-1 pb-2">
                                 {p.duration && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <CalendarClock size={14} className="opacity-50" style={{ color: theme.textLight }} />
-                                        <span style={{ color: theme.text }}>
-                                            {p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}
-                                        </span>
+                                    <div className="flex items-start gap-2 text-sm">
+                                        <CalendarClock size={14} className="opacity-50 mt-0.5" style={{ color: theme.textLight }} />
+                                        <div className="flex flex-col">
+                                            <span style={{ color: theme.text }}>
+                                                {p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}
+                                            </span>
+                                            {(() => {
+                                                const dateRange = renderDateRange(p, isActive);
+                                                const isOngoing = p.duration?.noEnd || (!p.endDate && isActive);
+                                                if (isOngoing || !dateRange) return null;
+                                                return (
+                                                    <span className="text-[11px] opacity-50" style={{ color: theme.text }}>{dateRange}</span>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 )}
                                 
@@ -686,8 +561,8 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             <Icon size={14} className="opacity-50" />
                                             <span style={{ color: theme.text }}>
                                                 {deliveryMethods.length === 1 
-                                                    ? (labelMap[primary] || 'Syringe')
-                                                    : 'Mixed'
+                                                    ? `${labelMap[primary] || 'Syringe'} Delivery`
+                                                    : 'Mixed Delivery'
                                                 }
                                             </span>
                                         </div>
@@ -727,11 +602,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     ) : (
                         /* ORIGINAL LAYOUT FOR INACTIVE CARDS */
                         <>
-                            {p.purpose && (
-                                <p className="text-sm mt-0.5 mb-2" style={{ color: theme.textLight }}>
-                                    {p.purpose}
-                                </p>
-                            )}
                             
                             {/* Peptides Section */}
                             {p.peptides && p.peptides.length > 0 && (
