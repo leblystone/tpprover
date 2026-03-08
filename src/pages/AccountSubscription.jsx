@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
 import { subscribe as paymentSubscribe } from '../services/payment/paymentService'
-import { isIOS, isAndroid, isNative } from '../utils/platform'
+import { isNative } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
@@ -485,8 +485,8 @@ export default function AccountSubscription() {
         </div>
       </div>
 
-      {/* UPGRADE OPTIONS - hidden on iOS until Apple IAP is implemented */}
-      {status.type !== 'lifetime' && !isIOS() && (
+      {/* UPGRADE OPTIONS */}
+      {status.type !== 'lifetime' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />
