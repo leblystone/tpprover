@@ -8,6 +8,8 @@ import { subscribe as paymentSubscribe } from '../services/payment/paymentServic
 import { isNative } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
+import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
+import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getPlanPricing } from '../utils/subscriptionPlans'
@@ -20,6 +22,8 @@ export default function AccountSubscription() {
   
   const [sub, setSub] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   const founderOffer = useFounderOffer()
@@ -681,8 +685,39 @@ export default function AccountSubscription() {
             The Pep Planner does not store or process any private payment information. 
             All payments are securely handled exclusively through your platform provider.
           </p>
+
+          <div className="flex items-center gap-4 mt-1">
+            <button
+              onClick={() => setShowTerms(true)}
+              className="text-xs opacity-40 hover:opacity-70 transition-opacity underline underline-offset-2"
+              style={{ color: theme.text }}
+            >
+              Terms of Service
+            </button>
+            <span className="text-xs opacity-20" style={{ color: theme.text }}>•</span>
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="text-xs opacity-40 hover:opacity-70 transition-opacity underline underline-offset-2"
+              style={{ color: theme.text }}
+            >
+              Privacy Policy
+            </button>
+          </div>
         </div>
       </div>
+
+      <TermsOfServiceModal
+        open={showTerms}
+        onClose={() => setShowTerms(false)}
+        onAgree={null}
+        theme={theme}
+      />
+      <LandingPrivacyModal
+        open={showPrivacy}
+        onClose={() => setShowPrivacy(false)}
+        onAgree={null}
+        theme={theme}
+      />
 
       {/* Gift Modal */}
       {showGiftModal && (

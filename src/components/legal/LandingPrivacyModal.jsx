@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import Modal from '../common/Modal';
 import { PrivacyPolicyContent } from './PrivacyPolicyContent';
 
-export default function LandingPrivacyModal({ open, onClose, onAgree }) {
+export default function LandingPrivacyModal({ open, onClose, onAgree, theme }) {
     const [scrolledToBottom, setScrolledToBottom] = useState(false);
     const contentRef = useRef(null);
 
@@ -24,59 +24,36 @@ export default function LandingPrivacyModal({ open, onClose, onAgree }) {
         }
     }, [open]);
 
-    if (!open) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <div 
-                className="absolute inset-0 bg-black bg-opacity-50"
-                onClick={onClose}
-            />
-            
-            {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-bold text-gray-900">Privacy Policy</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                </div>
-                
-                {/* Content */}
-                <div 
-                    ref={contentRef}
-                    onScroll={handleScroll}
-                    className="flex-1 overflow-y-auto p-6"
-                >
-                    <PrivacyPolicyContent />
-                </div>
-                
-                {/* Footer */}
-                <div className="p-6 border-t border-gray-200">
-                    <div className="flex justify-end gap-3">
-                        <button 
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        <Modal
+            open={open}
+            onClose={onClose}
+            title="Privacy Policy"
+            theme={theme}
+            maxWidth="max-w-3xl"
+            footer={
+                <div className="flex items-center w-full">
+                    <button onClick={onClose} className="text-sm font-medium" style={{ color: theme?.textLight || theme?.text, background: 'none', border: 'none', padding: 0 }}>{onAgree ? 'Cancel' : 'Close'}</button>
+                    {onAgree && (
+                        <button
+                            onClick={onAgree}
+                            disabled={!scrolledToBottom}
+                            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                            style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
                         >
-                            {onAgree ? 'Cancel' : 'Close'}
+                            I Agree
                         </button>
-                        {onAgree && (
-                            <button 
-                                onClick={onAgree} 
-                                disabled={!scrolledToBottom}
-                                className="px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                            >
-                                I Agree
-                            </button>
-                        )}
-                    </div>
+                    )}
                 </div>
+            }
+        >
+            <div
+                ref={contentRef}
+                onScroll={handleScroll}
+                className="max-h-[60vh] overflow-y-auto pr-4"
+            >
+                <PrivacyPolicyContent />
             </div>
-        </div>
+        </Modal>
     );
 }

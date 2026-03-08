@@ -1795,8 +1795,8 @@ export default function Login() {
                         </button>
                     </div>
 
-                    {/* Download Section - Simplified */}
-                    <div className="mt-6 pt-6 border-t w-full max-w-md" style={{ borderColor: theme.border }}>
+                    {/* Download Section - Simplified - hidden on native apps */}
+                    {!isNative() && <div className="mt-6 pt-6 border-t w-full max-w-md" style={{ borderColor: theme.border }}>
                         <p className="text-xs text-center mb-3" style={{ color: theme.textLight }}>Also available on</p>
                         <div className="flex gap-2 justify-center items-center">
                             {/* Apple App Store Button */}
@@ -1830,20 +1830,8 @@ export default function Login() {
                             </a>
                             )}
 
-                            {/* Web Access Button */}
-                            <button 
-                                className="cursor-default"
-                            >
-                                <div 
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm opacity-60"
-                                    style={{ backgroundColor: '#2d3d34' }}
-                                >
-                                    <Monitor className="w-4 h-4 text-white" />
-                                    <span className="text-[10px] text-white font-medium">Web</span>
-                                </div>
-                            </button>
                         </div>
-                    </div>
+                    </div>}
                 </div>
             </div>
 
@@ -1859,6 +1847,7 @@ export default function Login() {
                 <LandingPrivacyModal
                     open={showPrivacy}
                     onClose={() => setShowPrivacy(false)}
+                    theme={theme}
                 />
             )}
 

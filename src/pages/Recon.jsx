@@ -30,6 +30,7 @@ import { prepareItemForSave } from '../utils/userDataSave'
 import { useFirebase } from '../context/FirebaseContext'
 import { recordDeletion } from '../utils/deletionTracking'
 import { getProtocolHistory } from '../utils/protocolHistory'
+import { getCurrentTitrationPhase } from '../utils/calendarTasks'
 
 function DataPoint({ icon: Icon, label, value, theme }) {
 	return (
@@ -69,6 +70,7 @@ export default function Recon() {
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	const [confirmDelete, setConfirmDelete] = useState(false)
 	const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false)
 	const penTypeDropdownRef = useRef(null)
 	const [penColor, setPenColor] = useState('#9ca3af')
@@ -232,6 +234,9 @@ export default function Recon() {
 			}, { isNew: true }), ...reconItems]
 		setReconItems(next)
 		setShowEditModal(false)
+		setEditingItem(null)
+		setDraft({})
+		clearSavedData()
 	}
 
 	const handleSaveEdit = (editedData) => {
@@ -310,11 +315,22 @@ export default function Recon() {
 			}
 		}
 		
-		// If not, search through protocol history entries
+		// Second: scan active protocols' linkedItems for a matching reconId
+		for (const protocol of protocols) {
+			const linkedItems = protocol.linkedItems || {};
+			const hasMatch = Object.values(linkedItems).some(link => link.reconId === reconItem.id);
+			if (hasMatch) {
+				return {
+					id: protocol.id,
+					name: protocol.protocolName || protocol.name
+				};
+			}
+		}
+		
+		// Third: search through protocol history entries
 		const allHistory = getProtocolHistory();
 		for (const historyEntry of allHistory) {
 			if (historyEntry.reconstitutionData) {
-				// Check if this recon item is in the reconstitutionData
 				const reconData = historyEntry.reconstitutionData;
 				if (reconData.id === reconItem.id || 
 				    (Array.isArray(reconData.peptides) && reconData.peptides.some(p => p.stockpileId === reconItem.stockpileId))) {
@@ -325,7 +341,6 @@ export default function Recon() {
 							name: protocol.protocolName || protocol.name
 						};
 					}
-					// Fallback to protocol name from history entry
 					return {
 						id: historyEntry.protocolId,
 						name: historyEntry.protocolName || 'Unknown Protocol'
@@ -597,9 +612,11 @@ export default function Recon() {
         // Adjust stockpile - this will update quantities and remove items with 0
         adjustStockpileAfterRecon(peptides);
 
-        // Clear prefill and draft tracking
+        // Clear prefill, draft tracking, and autosave draft
         setPrefill(null);
         setDraftIdToRemove(null);
+        setDraft({});
+        clearSavedData();
         
         try {
             localStorage.removeItem('tpprover_recon_prefill');
@@ -696,8 +713,9 @@ export default function Recon() {
             date: new Date().toISOString(),
             dateAcquired: data.dateAcquired || '',
             peptides, // Include full peptides array with stockpileId
-            notes: '',
-            isDraft: true
+            notes: data.notes || '',
+            isDraft: true,
+            draftSource: data.draftSource || 'calculator'
         }, { isNew: true });
         
         setReconItems(prev => {
@@ -1041,26 +1059,54 @@ export default function Recon() {
                                     : (hasPeptidesArray ? (item.peptides[0]?.dose ?? item.dose) : item.dose);
                                 const hasDoseValue = rawDoseInput !== undefined && rawDoseInput !== null && rawDoseInput !== '' && Number(rawDoseInput) > 0;
                                 const summaryDoseValueNumeric = hasDoseValue ? Number(rawDoseInput) : 0;
-                                const displayDoseValue = hasDoseValue ? rawDoseInput : null;
 
-								const calc = calculateRecon({ ...item, mg: totalMg, dose: summaryDoseValueNumeric, doseUnit: summaryDoseUnit });
+                                // Live titration dose: if this recon is linked to a protocol with titration,
+                                // override the snapshotted dose with the current phase dose so Details
+                                // always reflects the dose the user is actually on right now.
+                                let liveDoseValue = summaryDoseValueNumeric;
+                                let liveDoseUnit = summaryDoseUnit;
+                                if (!item.isDraft && !isBlend) {
+                                    // Use getProtocolForReconItem which handles all lookup paths
+                                    // (protocolId direct, linkedItems scan, history scan)
+                                    const linkedRef = getProtocolForReconItem(item);
+                                    const linkedProtocol = linkedRef ? protocols.find(p => p.id === linkedRef.id) : null;
+                                    if (linkedProtocol) {
+                                        // Try to match on peptide name; fall back to first protocol peptide
+                                        const reconPeptideNames = hasPeptidesArray
+                                            ? item.peptides.map(rp => (rp.name || '').toLowerCase())
+                                            : [(item.peptide || item.name || '').toLowerCase()];
+                                        const matchingProtocolPeptide = linkedProtocol.peptides?.find(pp =>
+                                            reconPeptideNames.includes((pp.name || '').toLowerCase())
+                                        ) || linkedProtocol.peptides?.[0];
+                                        if (matchingProtocolPeptide && matchingProtocolPeptide.dosageScheduleType === 'titration') {
+                                            const livePhase = getCurrentTitrationPhase(linkedProtocol, matchingProtocolPeptide);
+                                            if (livePhase) {
+                                                liveDoseValue = Number(livePhase.dose) || summaryDoseValueNumeric;
+                                                liveDoseUnit = livePhase.unit || summaryDoseUnit;
+                                            }
+                                        }
+                                    }
+                                }
+                                const displayDoseValue = liveDoseValue > 0 ? liveDoseValue : null;
+
+								const calc = calculateRecon({ ...item, mg: totalMg, dose: liveDoseValue, doseUnit: liveDoseUnit });
 								
-								// Calculate cost per dose: use costPerMg if available, otherwise divide cost by doses per vial
-								let costPerDose = null;
-								if (item.costPerMg && summaryDoseValueNumeric > 0) {
-									// Convert dose to mg for calculation
-									let doseInMg = 0;
-									if (summaryDoseUnit === 'mg') {
-										doseInMg = summaryDoseValueNumeric;
-									} else if (summaryDoseUnit === 'mcg') {
-										doseInMg = summaryDoseValueNumeric / 1000;
-									} else if (summaryDoseUnit === 'sprays') {
-										doseInMg = (summaryDoseValueNumeric * 100) / 1000; // 100 mcg per spray
-									} else if (summaryDoseUnit === 'mL') {
-										const concentration = calc.concentration || 0; // mcg per mL
-										const doseMcg = summaryDoseValueNumeric * concentration;
-										doseInMg = doseMcg / 1000;
-									}
+							// Calculate cost per dose: use costPerMg if available, otherwise divide cost by doses per vial
+							let costPerDose = null;
+							if (item.costPerMg && liveDoseValue > 0) {
+								// Convert live dose to mg for calculation
+								let doseInMg = 0;
+								if (liveDoseUnit === 'mg') {
+									doseInMg = liveDoseValue;
+								} else if (liveDoseUnit === 'mcg') {
+									doseInMg = liveDoseValue / 1000;
+								} else if (liveDoseUnit === 'sprays') {
+									doseInMg = (liveDoseValue * 100) / 1000; // 100 mcg per spray
+								} else if (liveDoseUnit === 'mL') {
+									const concentration = calc.concentration || 0; // mcg per mL
+									const doseMcg = liveDoseValue * concentration;
+									doseInMg = doseMcg / 1000;
+								}
 									
 									if (doseInMg > 0) {
 										const costPerMgNum = Number(item.costPerMg);
@@ -1082,138 +1128,152 @@ export default function Recon() {
 											fontFamily: 'Poppins, sans-serif',
 											border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
 										}}
-										onClick={item.isDraft ? () => {
-											// Open calculator tab with draft data
-											// Ensure peptides array is properly formatted
-											const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
-												? item.peptides.map(p => ({
-													id: p.id || generateId(),
-													name: p.name || '',
-													mg: p.mg || '',
-													dose: p.dose || '',
-													doseUnit: p.doseUnit || 'mcg',
-													vendor: p.vendor || item.vendor || '',
-													stockpileId: p.stockpileId || null,
-													quantityUsed: p.quantityUsed || 1
-												}))
-												: [{ 
-													id: generateId(),
-													name: item.peptide || '', 
-													mg: item.mg || '', 
-													dose: item.dose || '', 
-													doseUnit: item.doseUnit || 'mcg',
-													vendor: item.vendor || '',
-													stockpileId: null,
-													quantityUsed: 1
-												}];
-											
-                                                            setPrefill({
-                                                                peptides: draftPeptides,
-                                                                vendor: item.vendor || '',
-                                                                water: item.water || 2,
-                                                                deliveryMethod: item.deliveryMethod || 'pipette',
-                                                                administrationRoute: item.administrationRoute || 'subq',
-                                                                penType: item.penType || '',
-                                                                penColor: item.penColor || '',
-                                                                cost: item.cost || '',
-                                                                dateAcquired: item.dateAcquired || ''
-                                                            });
-											setDraftIdToRemove(item.id); // Track which draft to remove when saving
-											setShowCalculatorModal(true);
-											// Draft will be removed when user saves the calculation
-										} : undefined}
+								onClick={item.isDraft ? () => {
+									setDraftIdToRemove(item.id);
+									if (item.draftSource === 'modal') {
+										// Reopen in New Reconstitution modal
+										setEditingItem({ ...item, dateAcquired: item.dateAcquired || item.date || '' });
+										setShowEditModal(true);
+									} else {
+										// Reopen in Calculator (default for calculator-originated drafts)
+										const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
+											? item.peptides.map(p => ({
+												id: p.id || generateId(),
+												name: p.name || '',
+												mg: p.mg || '',
+												dose: p.dose || '',
+												doseUnit: p.doseUnit || 'mcg',
+												vendor: p.vendor || item.vendor || '',
+												stockpileId: p.stockpileId || null,
+												quantityUsed: p.quantityUsed || 1
+											}))
+											: [{ 
+												id: generateId(),
+												name: item.peptide || '', 
+												mg: item.mg || '', 
+												dose: item.dose || '', 
+												doseUnit: item.doseUnit || 'mcg',
+												vendor: item.vendor || '',
+												stockpileId: null,
+												quantityUsed: 1
+											}];
+										setPrefill({
+											peptides: draftPeptides,
+											vendor: item.vendor || '',
+											water: item.water || 2,
+											deliveryMethod: item.deliveryMethod || 'pipette',
+											administrationRoute: item.administrationRoute || 'subq',
+											penType: item.penType || '',
+											penColor: item.penColor || '',
+											cost: item.cost || '',
+											dateAcquired: item.dateAcquired || ''
+										});
+										setShowCalculatorModal(true);
+									}
+								} : () => {
+										setEditingItem({ ...item, dateAcquired: item.dateAcquired || item.date || '' });
+										setShowEditModal(true);
+									}}
 									>
                                         {/* Header */}
-                                        <div className="flex items-start justify-between mb-3 gap-3">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-base mb-2 truncate" style={{ color: theme.text }}>
-                                                    {item.name || item.peptide}
-                                                </h3>
-                                                <div className="flex items-center gap-2 opacity-85">
-                                                    <Package size={12} style={{ color: '#8ca68c' }} />
-                                                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text }}>
-                                                        {item.vendorId ? (vendorMap && vendorMap[item.vendorId]) : item.vendor || 'Unknown Source'}
-                                                    </span>
-                                                </div>
-                                                {/* Protocol "In Use" Badge */}
-                                                {!item.isDraft && (() => {
-                                                    const linkedProtocol = getProtocolForReconItem(item);
-                                                    if (linkedProtocol) {
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    navigate('/app/protocols', { 
-                                                                        state: { highlightProtocolId: linkedProtocol.id } 
-                                                                    });
-                                                                }}
-                                                                className="mt-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 border"
+                                        {(() => {
+                                            const linkedProtocol = !item.isDraft ? getProtocolForReconItem(item) : null;
+                                            const displayName = (item.name || item.peptide || '').replace(/\s*\((separate|blended)\)\s*$/i, '').trim();
+                                            return (
+                                            <div className="flex items-start justify-between mb-3 gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-base mb-1 truncate" style={{ color: theme.text }}>
+                                                        {displayName}
+                                                    </h3>
+                                                    <div className="flex flex-wrap gap-1.5 mb-1">
+                                                        {item.deliveryMethod === 'pen' && item.penColor ? (
+                                                            <div 
+                                                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm" 
                                                                 style={{ 
-                                                                    backgroundColor: theme.primary + '15', 
-                                                                    borderColor: theme.primary + '40',
-                                                                    color: theme.primary,
-                                                                    cursor: 'pointer',
-                                                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = theme.primary + '25';
-                                                                    e.currentTarget.style.borderColor = theme.primary + '60';
-                                                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = theme.primary + '15';
-                                                                    e.currentTarget.style.borderColor = theme.primary + '40';
-                                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                                    background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
+                                                                    color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
                                                                 }}
                                                             >
-                                                                <Link size={12} />
-                                                                <span>Used in: <strong>{linkedProtocol.name}</strong></span>
-                                                            </button>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
-                                                {item.leftover && (
-                                                    <div
-                                                        className="mt-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5"
-                                                        style={{
-                                                            backgroundColor: theme.isDark ? '#78350f' : '#fef3c7',
-                                                            color: theme.isDark ? '#fcd34d' : '#92400e',
-                                                            border: `1px solid ${theme.isDark ? '#92400e' : '#fcd34d'}`
-                                                        }}
-                                                    >
-                                                        Leftover{item.leftoverFromProtocol ? ` · ${item.leftoverFromProtocol}` : ''}
+                                                                <PenTool size={9} strokeWidth={2.5} />
+                                                                <span>{item.penColor.startsWith('#') ? 'Custom' : item.penColor} Pen</span>
+                                                            </div>
+                                                        ) : item.deliveryMethod === 'nasal' ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                                <Droplet className="w-2.5 h-2.5 opacity-70" />
+                                                                Nasal
+                                                            </span>
+                                                        ) : item.deliveryMethod === 'topical' ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                                <Hand className="w-2.5 h-2.5 opacity-70" />
+                                                                Topical
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                                <Pipette className="w-2.5 h-2.5 opacity-70" />
+                                                                Syringe
+                                                            </span>
+                                                        )}
+                                                        {item.administrationRoute && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
+                                                                {item.administrationRoute.toUpperCase()}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                                                {item.isDraft ? (
-                                                    <div 
-                                                        className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
-                                                        style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
-                                                    >
-                                                        Draft
+                                                    {item.leftover && (
+                                                        <div
+                                                            className="mt-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5"
+                                                            style={{
+                                                                backgroundColor: theme.isDark ? '#78350f' : '#fef3c7',
+                                                                color: theme.isDark ? '#fcd34d' : '#92400e',
+                                                                border: `1px solid ${theme.isDark ? '#92400e' : '#fcd34d'}`
+                                                            }}
+                                                        >
+                                                            Leftover{item.leftoverFromProtocol ? ` · ${item.leftoverFromProtocol}` : ''}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div 
+                                                    className="flex flex-col items-end gap-1.5 flex-shrink-0 px-2.5 py-2 rounded-xl"
+                                                    style={{ 
+                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+                                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
+                                                    }}
+                                                >
+                                                    {item.isDraft && (
+                                                        <div 
+                                                            className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
+                                                            style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                                                        >
+                                                            Draft
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[9px] font-medium opacity-80 uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                            {item.isDraft ? 'Started' : 'Reconstituted'}
+                                                        </span>
+                                                        <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
+                                                        <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
+                                                            {item.date || item.createdAt ? formatMMDDYYYY(item.date || item.createdAt) : 'No Date'}
+                                                        </span>
                                                     </div>
-                                                ) : (
-                                                    <div 
-                                                        className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-sm"
-                                                        style={{ backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: '#6b8e6b' }}
-                                                    >
-                                                        In Use
-                                                    </div>
-                                                )}
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-[9px] font-medium opacity-60 uppercase tracking-wider" style={{ color: theme.textLight }}>
-                                                        {item.isDraft ? 'Started' : 'Reconstituted'}
-                                                    </span>
-                                                    <Calendar size={11} style={{ color: theme.textLight, opacity: 0.7 }} />
-                                                    <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wide" style={{ color: theme.text }}>
-                                                        {item.date || item.createdAt ? formatMMDDYYYY(item.date || item.createdAt) : 'No Date'}
-                                                    </span>
+                                                    {linkedProtocol && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate('/app/protocols', { state: { highlightProtocolId: linkedProtocol.id } });
+                                                            }}
+                                                            className="text-[9px] font-medium opacity-80 hover:opacity-100 transition-opacity uppercase tracking-wider text-right"
+                                                            style={{ color: theme.textLight }}
+                                                        >
+                                                            Protocol: <strong>{linkedProtocol.name}</strong>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
+                                            );
+                                        })()}
 
                                         {/* Content Area */}
                                         <div className="flex-1 space-y-3">
@@ -1228,79 +1288,72 @@ export default function Recon() {
                                                         </div>
                                                         <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                     </div>
-                                                    <div className="space-y-0.5">
-                                                        {item.peptides.map((p, idx) => (
-                                                            <div key={idx} className="flex items-center justify-between text-[12px]">
-                                                                <span className="font-medium opacity-80" style={{ color: theme.text }}>{p.name}</span>
-                                                                <span className="opacity-80" style={{ color: theme.text }}>{p.dose} {p.doseUnit || 'mcg'}</span>
+                                                    <div className="space-y-2">
+                                                        {item.peptides.map((p, idx) => {
+                                                            const peptideVendor = p.vendorId ? (vendorMap && vendorMap[p.vendorId]) : p.vendor;
+                                                            const vialMg = p.mg || item.mg;
+                                                            return (
+                                                            <div key={idx} className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                <span className="font-semibold text-[12px] leading-snug" style={{ color: theme.text }}>{p.name}</span>
+                                                                {(peptideVendor || vialMg) && (
+                                                                    <span className="text-[12px] leading-snug opacity-60" style={{ color: theme.textLight }}>
+                                                                        {peptideVendor && <span>from {peptideVendor}</span>}
+                                                                        {peptideVendor && vialMg && <span> · </span>}
+                                                                        {vialMg && <span>{vialMg} {p.mgUnit || 'mg'} vial</span>}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Recon Details Section */}
+                                            {/* Details Section */}
                                             <div className="relative pl-3">
                                                 <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
                                                 <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                                         <Calculator size={10} style={{ color: '#8ca68c' }} />
-                                                        Reconstitution Info
+                                                        Details
                                                     </div>
                                                     <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-y-1 gap-x-4">
-                                                    <DataPoint icon={Beaker} label="Amount" value={totalMg ? `${totalMg} mg` : 'N/A'} theme={theme} />
-                                                    <DataPoint icon={Droplet} label="Water" value={item.water ? `${item.water} mL` : 'N/A'} theme={theme} />
-                                                    <DataPoint icon={Pipette} label="Dose" value={displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit}` : 'N/A'} theme={theme} />
-                                                    <DataPoint icon={Hash} label="Units/Dose" value={calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : 'N/A'} theme={theme} />
-                                                    <DataPoint icon={Info} label="Doses/Vial" value={calc.dosesPerVial || 'N/A'} theme={theme} />
-                                                    <DataPoint icon={Tag} label="Cost/Dose" value={costPerDose || 'N/A'} theme={theme} />
-                                                </div>
-                                            </div>
-
-                                            {/* Delivery Section */}
-                                            <div className="relative pl-3">
-                                                <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
-                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                        <Pipette size={10} style={{ color: '#8ca68c' }} />
-                                                        Delivery Method
-                                                    </div>
-                                                    <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
-                                                </div>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {item.deliveryMethod === 'pen' && item.penColor ? (
-                                                        <div 
-                                                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-sm" 
-                                                            style={{ 
-                                                                background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
-                                                                color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
-                                                            }}
-                                                        >
-                                                            <PenTool size={9} strokeWidth={2.5} />
-                                                            <span>{item.penColor.startsWith('#') ? 'Custom' : item.penColor} Pen</span>
+                                                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                                    {item.water && (
+                                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                                            <Droplet size={10} style={{ color: '#8ca68c' }} />
+                                                            <span style={{ color: theme.text }}>{item.water} mL</span>
+                                                            <span className="opacity-50" style={{ color: theme.textLight }}>water</span>
                                                         </div>
-                                                    ) : item.deliveryMethod === 'nasal' ? (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
-                                                            <Droplet className="w-2.5 h-2.5 opacity-70" />
-                                                            Nasal
-                                                        </span>
-                                                    ) : item.deliveryMethod === 'topical' ? (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
-                                                            <Hand className="w-2.5 h-2.5 opacity-70" />
-                                                            Topical
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
-                                                            <Pipette className="w-2.5 h-2.5 opacity-70" />
-                                                            Syringe
-                                                        </span>
                                                     )}
-                                                    {item.administrationRoute && (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}>
-                                                            {item.administrationRoute.toUpperCase()}
-                                                        </span>
+                                                    {displayDoseValue !== null && (
+                                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                                            <Pipette size={10} style={{ color: '#8ca68c' }} />
+                                                            <span style={{ color: theme.text }}>{displayDoseValue} {liveDoseUnit}</span>
+                                                            <span className="opacity-50" style={{ color: theme.textLight }}>dose</span>
+                                                        </div>
+                                                    )}
+                                                    {calc.unitsPerDose > 0 && (
+                                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                                            <Hash size={10} style={{ color: '#8ca68c' }} />
+                                                            <span style={{ color: theme.text }}>{calc.unitsPerDose.toFixed(0)}</span>
+                                                            <span className="opacity-50" style={{ color: theme.textLight }}>units/dose</span>
+                                                        </div>
+                                                    )}
+                                                    {calc.dosesPerVial > 0 && (
+                                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                                            <Info size={10} style={{ color: '#8ca68c' }} />
+                                                            <span style={{ color: theme.text }}>{calc.dosesPerVial}</span>
+                                                            <span className="opacity-50" style={{ color: theme.textLight }}>doses/vial</span>
+                                                        </div>
+                                                    )}
+                                                    {costPerDose && (
+                                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                                            <Tag size={10} style={{ color: '#8ca68c' }} />
+                                                            <span style={{ color: theme.text }}>{costPerDose}</span>
+                                                            <span className="opacity-50" style={{ color: theme.textLight }}>cost/dose</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -1323,35 +1376,9 @@ export default function Recon() {
 
                                         {/* Footer */}
                                         <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
-                                            <button 
-                                                className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (item.isDraft) {
-                                                        setPrefill({
-                                                            peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
-                                                            vendor: item.vendor || '',
-                                                            water: item.water || 2,
-                                                            deliveryMethod: item.deliveryMethod || 'pipette',
-                                                            administrationRoute: item.administrationRoute || 'subq',
-                                                            penType: item.penType || '',
-                                                            penColor: item.penColor || '',
-                                                            cost: item.cost || '',
-                                                            dateAcquired: item.dateAcquired || ''
-                                                        });
-                                                                setDraftIdToRemove(item.id);
-                                                                setShowCalculatorModal(true);
-                                                    } else {
-                                                        setEditingItem(item);
-                                                        setShowEditModal(true);
-                                                    }
-                                                }}
-                                            >
-                                                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
-                                                    {item.isDraft ? 'Resume' : 'Details'}
-                                                </span>
-                                                <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
-                                            </button>
+                                            <span className="text-[9px] opacity-30 uppercase tracking-widest" style={{ color: theme.text }}>
+                                                {item.isDraft ? 'Tap to resume' : 'Tap to edit'}
+                                            </span>
 
                                             <div className="absolute right-0 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                                                 {item.isDraft ? (
@@ -1359,19 +1386,24 @@ export default function Recon() {
                                                         className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                                                         style={{ color: theme.primary }}
                                                         onClick={() => {
-                                                            setPrefill({
-                                                                peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
-                                                                vendor: item.vendor || '',
-                                                                water: item.water || 2,
-                                                                deliveryMethod: item.deliveryMethod || 'pipette',
-                                                                administrationRoute: item.administrationRoute || 'subq',
-                                                                penType: item.penType || '',
-                                                                penColor: item.penColor || '',
-                                                                cost: item.cost || '',
-                                                                dateAcquired: item.dateAcquired || ''
-                                                            });
                                                             setDraftIdToRemove(item.id);
-                                                            setShowCalculatorModal(true);
+                                                            if (item.draftSource === 'modal') {
+                                                                setEditingItem({ ...item, dateAcquired: item.dateAcquired || item.date || '' });
+                                                                setShowEditModal(true);
+                                                            } else {
+                                                                setPrefill({
+                                                                    peptides: Array.isArray(item.peptides) && item.peptides.length > 0 ? item.peptides : [{ id: generateId(), name: item.peptide || '', mg: item.mg || '', dose: item.dose || '', doseUnit: item.doseUnit || 'mcg', vendor: item.vendor || '', stockpileId: null, quantityUsed: 1 }],
+                                                                    vendor: item.vendor || '',
+                                                                    water: item.water || 2,
+                                                                    deliveryMethod: item.deliveryMethod || 'pipette',
+                                                                    administrationRoute: item.administrationRoute || 'subq',
+                                                                    penType: item.penType || '',
+                                                                    penColor: item.penColor || '',
+                                                                    cost: item.cost || '',
+                                                                    dateAcquired: item.dateAcquired || ''
+                                                                });
+                                                                setShowCalculatorModal(true);
+                                                            }
                                                         }}
                                                     >
                                                         <Calculator size={13} />
@@ -1545,49 +1577,84 @@ export default function Recon() {
 			</div>
 			</div>
 
-            <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'Add Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
-				<div className="w-full flex items-center justify-between gap-3">
-					{editingItem ? (
-						<button
-							onClick={() => handleDelete(editingItem.id)}
-							className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-							style={{
-								background: terracottaGradient,
-								color: '#ffffff',
-								border: 'none'
-							}}
-							onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
-							onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
-						>
-							Delete
-						</button>
-					) : <span />}
-					<div className="flex items-center gap-2 ml-auto">
-						<button
-							onClick={() => handleSave(editingItem)}
-							className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
-							style={{
-								background: getPrimaryActionGradient(false),
-								color: theme?.textOnPrimary || '#ffffff',
-								border: 'none',
-								boxShadow: primaryActionDefaultShadow
-							}}
-							onMouseEnter={(e) => {
-								e.currentTarget.style.transform = 'translateY(-1px)';
-								e.currentTarget.style.boxShadow = primaryActionHoverShadow;
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.transform = 'translateY(0)';
-								e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
-								e.currentTarget.style.background = getPrimaryActionGradient(false);
-							}}
-						>
-							Save
-						</button>
-					</div>
+            <BottomSheet open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); setDraft({}); clearSavedData(); setConfirmDelete(false); }} title={editingItem?.id && !editingItem.id.startsWith('draft_') ? 'Edit Reconstitution' : 'New Reconstitution'} theme={theme} maxHeight="90vh" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
+			<div className="w-full flex items-center justify-between gap-3">
+			{editingItem?.id && !editingItem.id.startsWith('draft_') ? (
+				<div className="flex items-center">
+					<style>{`
+						@keyframes tapConfirmPop {
+							0%, 100% { transform: scale(1); }
+							50% { transform: scale(1.08); }
+						}
+						.tap-confirm-pop {
+							animation: tapConfirmPop 0.45s ease-out 2;
+						}
+					`}</style>
+					<button
+						onClick={() => {
+							if (confirmDelete) {
+								setConfirmDelete(false);
+								handleDelete(editingItem.id);
+							} else {
+								setConfirmDelete(true);
+							}
+						}}
+						className={`py-2 text-sm font-medium transition-all ${confirmDelete ? 'tap-confirm-pop' : ''}`}
+						style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
+					>
+						{confirmDelete ? 'Tap Again to Confirm!' : 'Delete'}
+					</button>
 				</div>
+				) : (
+					<button
+						onClick={() => { setShowEditModal(null); setEditingItem(null); setDraft({}); clearSavedData(); }}
+						className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100"
+						style={{ color: theme.textLight }}
+					>
+						Cancel
+					</button>
+				)}
+				<div className="flex items-center gap-3 ml-auto">
+					{!(editingItem?.id && !editingItem.id.startsWith('draft_')) && (
+						<button
+							onClick={() => {
+								handleCalculatorSaveDraft({ ...editingItem, draftSource: 'modal' });
+								setShowEditModal(null);
+								setEditingItem(null);
+								setDraft({});
+								clearSavedData();
+							}}
+							className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100"
+							style={{ color: theme.primary }}
+						>
+							Save as Draft
+						</button>
+					)}
+					<button
+						onClick={() => handleSave(editingItem)}
+						className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+						style={{
+							background: getPrimaryActionGradient(false),
+							color: theme?.textOnPrimary || '#ffffff',
+							border: 'none',
+							boxShadow: primaryActionDefaultShadow
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.transform = 'translateY(-1px)';
+							e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.transform = 'translateY(0)';
+							e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
+							e.currentTarget.style.background = getPrimaryActionGradient(false);
+						}}
+					>
+						Save
+					</button>
+				</div>
+			</div>
 			}>
-                <div className="space-y-4">
+                <div className="space-y-4 pb-6">
                     {/* VIAL DETAILS Section Header */}
                     <div className="flex items-center gap-4 mb-2">
                         <TestTube size={32} style={{ color: theme.primary }} />
@@ -1919,18 +1986,29 @@ export default function Recon() {
                             </label>
                         </div>
                         
-                        {/* Units field */}
-                        <TextInput 
-                            label="Units" 
-                            type="text" 
-                            value={editingItem?.units || draft.units || ''} 
-                            onChange={v => { updateEditingItem({ units: v }); updateFormData({ units: v }); }} 
-                            theme={theme}
-                            placeholder="10"
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                        />
+                        {/* Calculated Units/Dose & Doses/Vial display */}
+                        {(() => {
+                            const liveCalc = calculateRecon({
+                                mg: editingItem?.mg,
+                                water: editingItem?.water,
+                                dose: editingItem?.dose,
+                                doseUnit: editingItem?.doseUnit || 'mcg'
+                            });
+                            return (
+                                <div 
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                                    style={{ 
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
+                                    }}
+                                >
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>Units/Dose</span>
+                                    <span className="text-sm font-bold" style={{ color: theme.primary }}>
+                                        {liveCalc.unitsPerDose ? liveCalc.unitsPerDose.toFixed(0) : '—'}
+                                    </span>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
@@ -1948,7 +2026,7 @@ export default function Recon() {
                     </div>
 
                     <div>
-                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                        <div className="grid grid-cols-2 gap-1.5">
                             {[
                                 { key: 'pipette', label: 'Syringe', Icon: Pipette, sprays: false },
                                 { key: 'pen', label: 'Pen', Icon: PenTool, sprays: false },
@@ -1965,14 +2043,15 @@ export default function Recon() {
                                             if (!sprays && editingItem?.doseUnit === 'sprays') updates.doseUnit = 'mcg';
                                             updateEditingItem(updates);
                                         }}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-95"
+                                        className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium transition-all active:scale-95"
                                         style={{
-                                            backgroundColor: isActive ? '#445952' : 'transparent',
+                                            backgroundColor: isActive ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                                             color: isActive ? '#fff' : theme.text,
-                                            boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                                            border: isActive ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                                            boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
-                                        <Icon size={16} /> {label}
+                                        <Icon size={14} className="flex-shrink-0" /> {label}
                                     </button>
                                 );
                             })}
@@ -2144,6 +2223,17 @@ export default function Recon() {
                         placeholder="Date Reconstituted"
                     />
 
+                    <TextInput
+                        label="Cost ($)"
+                        value={editingItem?.cost || ''}
+                        onChange={v => updateEditingItem({ cost: v })}
+                        theme={theme}
+                        type="number"
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
+
                     <TextInput 
                         label="Notes" 
                         value={editingItem?.notes || ''} 
@@ -2296,70 +2386,83 @@ export default function Recon() {
 								</div>
 							</div>
 						</div>
-						<button
-							type="button"
-							onClick={async () => {
-								if (!calculatorFormData || isSavingCalculator || isReadOnly) {
-									if (isReadOnly) {
-										setShowUpgradeModal(true);
-									}
-									return;
-								}
-								
-								setIsSavingCalculator(true);
-								try {
-									// Convert hex color to name before saving if needed
-									const formDataToSave = { ...calculatorFormData };
+						<div className="flex items-center gap-3">
+							<button
+								type="button"
+								onClick={() => {
+									if (!calculatorFormData) return;
+									const formDataToSave = { ...calculatorFormData, draftSource: 'calculator' };
 									if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
 										const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
-										if (selectedPenColor) {
-											formDataToSave.penColor = selectedPenColor.name;
-										}
+										if (selectedPenColor) formDataToSave.penColor = selectedPenColor.name;
 									}
-									
-									// Ensure peptides have required fields
-									if (formDataToSave.peptides) {
-										formDataToSave.peptides = formDataToSave.peptides.map(pep => ({
-											...pep,
-											stockpileId: pep.stockpileId || null,
-											quantityUsed: pep.quantityUsed || 1
-										}));
-									}
-									
-									await handleCalculatorSave(formDataToSave);
+									handleCalculatorSaveDraft(formDataToSave);
 									setShowCalculatorModal(false);
 									setPrefill(null);
 									setDraftIdToRemove(null);
 									setCalculatorFormData(null);
-								} catch (error) {
-									console.error('Failed to save calculation:', error);
-								} finally {
-									setIsSavingCalculator(false);
-								}
-							}}
-							disabled={isSavingCalculator || isReadOnly || !calculatorFormData}
-							className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
-							style={{
-								background: getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData),
-								color: (isSavingCalculator || isReadOnly || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
-								border: 'none',
-								boxShadow: (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow
-							}}
-							onMouseEnter={(e) => {
-								if (isSavingCalculator || isReadOnly || !calculatorFormData) return;
-								e.currentTarget.style.transform = 'translateY(-1px)';
-								e.currentTarget.style.boxShadow = primaryActionHoverShadow;
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.transform = 'translateY(0)';
-								e.currentTarget.style.boxShadow = (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow;
-								e.currentTarget.style.background = getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData);
-							}}
-							title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
-						>
-							<FilePlus size={16} />
-							{isSavingCalculator ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
-						</button>
+								}}
+							className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap flex-shrink-0"
+							style={{ color: theme.primary }}
+							>
+								Save as Draft
+							</button>
+							<button
+								type="button"
+								onClick={async () => {
+									if (!calculatorFormData || isSavingCalculator || isReadOnly) {
+										if (isReadOnly) setShowUpgradeModal(true);
+										return;
+									}
+									setIsSavingCalculator(true);
+									try {
+										const formDataToSave = { ...calculatorFormData };
+										if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
+											const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
+											if (selectedPenColor) formDataToSave.penColor = selectedPenColor.name;
+										}
+										if (formDataToSave.peptides) {
+											formDataToSave.peptides = formDataToSave.peptides.map(pep => ({
+												...pep,
+												stockpileId: pep.stockpileId || null,
+												quantityUsed: pep.quantityUsed || 1
+											}));
+										}
+										await handleCalculatorSave(formDataToSave);
+										setShowCalculatorModal(false);
+										setPrefill(null);
+										setDraftIdToRemove(null);
+										setCalculatorFormData(null);
+									} catch (error) {
+										console.error('Failed to save calculation:', error);
+									} finally {
+										setIsSavingCalculator(false);
+									}
+								}}
+								disabled={isSavingCalculator || isReadOnly || !calculatorFormData}
+								className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+								style={{
+									background: getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData),
+									color: (isSavingCalculator || isReadOnly || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+									border: 'none',
+									boxShadow: (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow
+								}}
+								onMouseEnter={(e) => {
+									if (isSavingCalculator || isReadOnly || !calculatorFormData) return;
+									e.currentTarget.style.transform = 'translateY(-1px)';
+									e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.transform = 'translateY(0)';
+									e.currentTarget.style.boxShadow = (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow;
+									e.currentTarget.style.background = getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData);
+								}}
+								title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
+							>
+								<FilePlus size={16} />
+								{isSavingCalculator ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
+							</button>
+						</div>
 						{/* Research disclaimer - subtle inline text */}
 						<p className="text-[9px] text-center opacity-40 flex items-center justify-center gap-1" style={{ color: theme.text }}>
 							<Info size={10} className="opacity-60 flex-shrink-0" />
