@@ -1,5 +1,5 @@
 const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
-const {onCall, HttpsError} = require('firebase-functions/v2/https');
+const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
@@ -4795,7 +4795,7 @@ exports.createSupportTicket = onCall(
       // Check for existing OPEN ticket for this user (combine multiple requests into one thread)
       const existingOpen = await db.collection('supportTickets')
         .where('userEmail', '==', normalizedEmail)
-        .where('status', 'in', ['new', 'in-progress'])
+        .where('status', 'in', ['new', 'in-progress', 'open'])
         .limit(1)
         .get();
 
@@ -4974,6 +4974,43 @@ exports.createSupportTicket = onCall(
       }
       
       await messageRef.set(messageData);
+
+      // === AUTO-QUEUE: immediately add to work queue bypassing Ghosty ===
+      // Ghosty may be paused, erroring, or slow — every ticket must land in queue regardless.
+      try {
+        await db.collection('ai_worker_logs').add({
+          ticketId: ticketRef.id,
+          ticketNumber: ticketNumber,
+          ticketType: type,
+          subject: subject || `Support Request - ${type}`,
+          userName: userName || userEmail.split('@')[0],
+          userEmail: normalizedEmail,
+          originalMessage: message,
+          timestamp: FieldValue.serverTimestamp(),
+          route: null,
+          confidence: null,
+          reasoning: 'Auto-queued on ticket creation',
+          complexity: null,
+          urgency: type === 'bug' ? 'high' : 'medium',
+          keywords: [],
+          executionModel: null,
+          executionCost: 0,
+          triageCost: 0,
+          totalCost: 0,
+          responseGenerated: false,
+          responsePosted: false,
+          responseContent: null,
+          markedFixed: false,
+          humanOverride: false,
+          addedManually: false,
+          autoQueued: true,
+          userAccountInfo: userAccountInfo || null,
+        });
+        logger.info(`✅ Auto-queued ticket ${ticketRef.id} (${ticketNumber}) in work queue`);
+      } catch (queueError) {
+        logger.error(`⚠️ Failed to auto-queue ticket ${ticketRef.id}:`, queueError.message);
+        // Don't fail ticket creation if queue write fails
+      }
 
       // Send email notification to admin
       const escapeHtml = (text) => {
@@ -5193,6 +5230,42 @@ exports.submitFeedback = onCall(
       await feedbackRef.set(feedbackData);
 
       logger.info(`✅ Feedback created: ${feedbackRef.id}`);
+
+      // === AUTO-QUEUE feedback in work queue so it surfaces in admin panel ===
+      try {
+        await db.collection('ai_worker_logs').add({
+          feedbackId: feedbackRef.id,
+          ticketId: null,
+          ticketNumber: `F-${feedbackRef.id.slice(-6).toUpperCase()}`,
+          ticketType: type === 'bug' ? 'bug' : 'feedback',
+          subject: type === 'bug' ? `Bug Report: ${message.slice(0, 60)}` : `Suggestion: ${message.slice(0, 60)}`,
+          userName: userEmail ? userEmail.split('@')[0] : 'Anonymous',
+          userEmail: userEmail || 'anonymous',
+          originalMessage: message,
+          timestamp: FieldValue.serverTimestamp(),
+          route: null,
+          confidence: null,
+          reasoning: 'Auto-queued from feedback submission',
+          complexity: null,
+          urgency: type === 'bug' ? 'high' : 'low',
+          keywords: [],
+          executionModel: null,
+          executionCost: 0,
+          triageCost: 0,
+          totalCost: 0,
+          responseGenerated: false,
+          responsePosted: false,
+          responseContent: null,
+          markedFixed: false,
+          humanOverride: false,
+          addedManually: false,
+          autoQueued: true,
+          isFeedback: true,
+        });
+        logger.info(`✅ Auto-queued feedback ${feedbackRef.id} in work queue`);
+      } catch (queueError) {
+        logger.error(`⚠️ Failed to auto-queue feedback ${feedbackRef.id}:`, queueError.message);
+      }
 
       // Trigger Ghosty to send acknowledgment message
       try {
@@ -5432,6 +5505,228 @@ exports.addTicketToWorkQueue = onCall(
 
     logger.info(`✅ Admin manually added ticket ${ticketId} to work queue as log ${logRef.id}`);
     return { success: true, logId: logRef.id };
+  }
+);
+
+/**
+ * Merge all pending tickets from a user into a single thread.
+ * Moves every message from secondary tickets into the primary (oldest open) ticket,
+ * then marks the secondary tickets as 'merged' and closes their work queue logs.
+ */
+exports.mergeUserTickets = onCall(
+  { cors: true },
+  async (request) => {
+    verifyAdmin(request);
+    const { userEmail } = request.data;
+    if (!userEmail) throw new HttpsError('invalid-argument', 'userEmail is required');
+
+    const db = admin.firestore();
+    const FieldValue = admin.firestore.FieldValue;
+
+    // Find all non-closed tickets for this user
+    const snap = await db.collection('supportTickets')
+      .where('userEmail', '==', userEmail.toLowerCase().trim())
+      .where('status', 'in', ['new', 'in-progress', 'open'])
+      .get();
+
+    if (snap.empty) throw new HttpsError('not-found', 'No open tickets found for this user');
+    if (snap.size === 1) return { success: true, message: 'Only one ticket — nothing to merge' };
+
+    // Sort oldest first — primary is the oldest ticket
+    const tickets = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const ta = a.createdAt?.toMillis?.() ?? 0;
+        const tb = b.createdAt?.toMillis?.() ?? 0;
+        return ta - tb;
+      });
+
+    const primary = tickets[0];
+    const secondaries = tickets.slice(1);
+    const primaryRef = db.collection('supportTickets').doc(primary.id);
+
+    logger.info(`🔀 Merging ${secondaries.length} tickets into primary ${primary.ticketNumber} for ${userEmail}`);
+
+    // Collect all requestNumbers across all tickets
+    const allRequestNumbers = [...(primary.requestNumbers || [primary.ticketNumber])];
+
+    for (const secondary of secondaries) {
+      const secondaryRef = db.collection('supportTickets').doc(secondary.id);
+
+      // Copy all messages from secondary → primary (preserving original timestamps)
+      const msgsSnap = await secondaryRef.collection('messages').orderBy('createdAt', 'asc').get();
+      for (const msgDoc of msgsSnap.docs) {
+        const msgData = msgDoc.data();
+        const newMsgRef = primaryRef.collection('messages').doc();
+        await newMsgRef.set({
+          ...msgData,
+          messageId: newMsgRef.id,
+          ticketId: primary.id,
+          mergedFromTicket: secondary.ticketNumber || secondary.id,
+        });
+      }
+
+      // Accumulate request numbers
+      if (Array.isArray(secondary.requestNumbers)) {
+        allRequestNumbers.push(...secondary.requestNumbers);
+      } else if (secondary.ticketNumber) {
+        allRequestNumbers.push(secondary.ticketNumber);
+      }
+
+      // Mark secondary as merged
+      await secondaryRef.update({
+        status: 'closed',
+        mergedInto: primary.id,
+        mergedIntoTicketNumber: primary.ticketNumber,
+        mergedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      // Close any open work queue logs for secondary tickets
+      const logsSnap = await db.collection('ai_worker_logs')
+        .where('ticketId', '==', secondary.id)
+        .where('markedFixed', '==', false)
+        .get();
+      for (const logDoc of logsSnap.docs) {
+        await logDoc.ref.update({
+          markedFixed: true,
+          markedFixedAt: FieldValue.serverTimestamp(),
+          adminNotes: `Merged into #${primary.ticketNumber}`,
+        });
+      }
+
+      logger.info(`   ✅ Merged ${secondary.ticketNumber} (${msgsSnap.size} messages) into ${primary.ticketNumber}`);
+    }
+
+    // Update primary ticket with all request numbers and latest timestamp
+    const deduped = [...new Set(allRequestNumbers)];
+    await primaryRef.update({
+      requestNumbers: deduped,
+      updatedAt: FieldValue.serverTimestamp(),
+      lastMessageAt: FieldValue.serverTimestamp(),
+      status: 'open',
+    });
+
+    // Ensure primary has one clean work queue log entry (upsert)
+    const existingLog = await db.collection('ai_worker_logs')
+      .where('ticketId', '==', primary.id)
+      .where('markedFixed', '==', false)
+      .limit(1)
+      .get();
+
+    if (existingLog.empty) {
+      await db.collection('ai_worker_logs').add({
+        ticketId: primary.id,
+        ticketNumber: primary.ticketNumber,
+        ticketType: primary.type || 'support',
+        subject: primary.subject || 'Support Request',
+        userName: primary.userName || primary.userEmail?.split('@')[0] || 'Unknown',
+        userEmail: primary.userEmail || userEmail,
+        originalMessage: primary.subject || '',
+        timestamp: FieldValue.serverTimestamp(),
+        route: 'manual',
+        confidence: 100,
+        reasoning: `Merged ${secondaries.length} tickets into this thread`,
+        urgency: 'medium',
+        keywords: [],
+        executionModel: 'manual',
+        executionCost: 0,
+        triageCost: 0,
+        totalCost: 0,
+        responseGenerated: false,
+        responsePosted: false,
+        responseContent: null,
+        markedFixed: false,
+        humanOverride: true,
+        addedManually: true,
+        autoQueued: false,
+      });
+    }
+
+    logger.info(`✅ Merge complete: ${secondaries.length} tickets merged into ${primary.ticketNumber}`);
+    return {
+      success: true,
+      primaryTicketId: primary.id,
+      primaryTicketNumber: primary.ticketNumber,
+      mergedCount: secondaries.length,
+      message: `${secondaries.length} tickets merged into #${primary.ticketNumber}`,
+    };
+  }
+);
+
+/**
+ * One-shot HTTP endpoint: merges ALL split tickets across all users.
+ * Protected by a secret key. Hit once, then it's done.
+ * URL: /mergeAllSplitTicketsOnce?secret=tpp-merge-2026
+ */
+exports.mergeAllSplitTicketsOnce = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.query.secret !== 'tpp-merge-2026') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const db = admin.firestore();
+    const FieldValue = admin.firestore.FieldValue;
+
+    try {
+      const snap = await db.collection('supportTickets')
+        .where('status', 'in', ['new', 'in-progress', 'open'])
+        .get();
+
+      const byEmail = new Map();
+      snap.forEach(doc => {
+        const data = doc.data();
+        const email = data.userEmail?.toLowerCase().trim();
+        if (!email) return;
+        if (!byEmail.has(email)) byEmail.set(email, []);
+        byEmail.get(email).push({ id: doc.id, ...data });
+      });
+
+      const toMerge = [...byEmail.entries()].filter(([, tickets]) => tickets.length > 1);
+      const report = [];
+
+      for (const [userEmail, tickets] of toMerge) {
+        tickets.sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0));
+        const primary = tickets[0];
+        const secondaries = tickets.slice(1);
+        const primaryRef = db.collection('supportTickets').doc(primary.id);
+        const allRequestNumbers = [...(primary.requestNumbers || [primary.ticketNumber])];
+
+        for (const secondary of secondaries) {
+          const secondaryRef = db.collection('supportTickets').doc(secondary.id);
+          const msgsSnap = await secondaryRef.collection('messages').orderBy('createdAt', 'asc').get();
+          for (const msgDoc of msgsSnap.docs) {
+            const newMsgRef = primaryRef.collection('messages').doc();
+            await newMsgRef.set({ ...msgDoc.data(), messageId: newMsgRef.id, ticketId: primary.id, mergedFromTicket: secondary.ticketNumber || secondary.id });
+          }
+          if (Array.isArray(secondary.requestNumbers)) allRequestNumbers.push(...secondary.requestNumbers);
+          else if (secondary.ticketNumber) allRequestNumbers.push(secondary.ticketNumber);
+
+          await secondaryRef.update({ status: 'closed', mergedInto: primary.id, mergedIntoTicketNumber: primary.ticketNumber, mergedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+
+          const logsSnap = await db.collection('ai_worker_logs').where('ticketId', '==', secondary.id).where('markedFixed', '==', false).get();
+          for (const logDoc of logsSnap.docs) {
+            await logDoc.ref.update({ markedFixed: true, markedFixedAt: FieldValue.serverTimestamp(), adminNotes: `Merged into #${primary.ticketNumber}` });
+          }
+        }
+
+        await primaryRef.update({ requestNumbers: [...new Set(allRequestNumbers)], status: 'open', updatedAt: FieldValue.serverTimestamp(), lastMessageAt: FieldValue.serverTimestamp() });
+
+        const existingLog = await db.collection('ai_worker_logs').where('ticketId', '==', primary.id).where('markedFixed', '==', false).limit(1).get();
+        if (existingLog.empty) {
+          await db.collection('ai_worker_logs').add({ ticketId: primary.id, ticketNumber: primary.ticketNumber, ticketType: primary.type || 'support', subject: primary.subject || 'Support Request', userName: primary.userName || userEmail.split('@')[0], userEmail, originalMessage: primary.subject || '', timestamp: FieldValue.serverTimestamp(), route: 'manual', confidence: 100, reasoning: `Merged ${secondaries.length} tickets into this thread`, urgency: 'medium', keywords: [], executionModel: 'manual', executionCost: 0, triageCost: 0, totalCost: 0, responseGenerated: false, responsePosted: false, responseContent: null, markedFixed: false, humanOverride: true, addedManually: true, autoQueued: false });
+        }
+
+        report.push({ email: userEmail, primary: primary.ticketNumber, merged: secondaries.map(s => s.ticketNumber) });
+        logger.info(`✅ Merged ${secondaries.length} tickets into #${primary.ticketNumber} for ${userEmail}`);
+      }
+
+      return res.json({ success: true, usersProcessed: report.length, report });
+    } catch (err) {
+      logger.error('mergeAllSplitTicketsOnce error:', err);
+      return res.status(500).json({ error: err.message });
+    }
   }
 );
 

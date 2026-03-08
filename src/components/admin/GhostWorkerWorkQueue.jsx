@@ -133,6 +133,10 @@ export default function GhostWorkerWorkQueue({ theme }) {
   const [showBacklogScan, setShowBacklogScan] = useState(false);
   const [backlogScanning, setBacklogScanning] = useState(false);
   const [backlogResults, setBacklogResults] = useState(null);
+  const [expandedBacklogItems, setExpandedBacklogItems] = useState({});
+  const [backlogMessages, setBacklogMessages] = useState({});
+  const [expandedUserGroups, setExpandedUserGroups] = useState({});
+  const autoScannedRef = useRef(false);
 
   const [loadError, setLoadError] = useState(null);
 
@@ -290,6 +294,15 @@ export default function GhostWorkerWorkQueue({ theme }) {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [ticketMessages]);
 
+  // Auto-run backlog scan once after initial data loads
+  useEffect(() => {
+    if (!loading && !autoScannedRef.current) {
+      autoScannedRef.current = true;
+      runBacklogScan();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   const searchMissedTicket = async () => {
     const term = addMissedSearch.trim();
     if (!term) return;
@@ -348,6 +361,26 @@ export default function GhostWorkerWorkQueue({ theme }) {
     }
   };
 
+  const toggleBacklogItem = async (itemId) => {
+    const isExpanding = !expandedBacklogItems[itemId];
+    setExpandedBacklogItems(prev => ({ ...prev, [itemId]: isExpanding }));
+    if (isExpanding && !backlogMessages[itemId]) {
+      try {
+        const firestore = getFirestore();
+        const msgsSnap = await getDocs(
+          query(collection(firestore, 'supportTickets', itemId, 'messages'), orderBy('createdAt', 'asc'))
+        );
+        const userMsg = msgsSnap.docs.find(d => d.data().senderType === 'user');
+        setBacklogMessages(prev => ({
+          ...prev,
+          [itemId]: userMsg?.data()?.message || userMsg?.data()?.text || '(no message content)'
+        }));
+      } catch {
+        setBacklogMessages(prev => ({ ...prev, [itemId]: '(could not load message)' }));
+      }
+    }
+  };
+
   const runBacklogScan = async () => {
     setBacklogScanning(true);
     setBacklogResults(null);
@@ -402,6 +435,8 @@ export default function GhostWorkerWorkQueue({ theme }) {
         }
       }
       setBacklogResults(missed);
+      // Auto-open the scan panel if missed tickets were found
+      if (missed.length > 0) setShowBacklogScan(true);
     } catch (err) {
       setBacklogResults({ error: err?.message || 'Scan failed' });
     } finally {
@@ -762,13 +797,13 @@ export default function GhostWorkerWorkQueue({ theme }) {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
           <button
             type="button"
-            onClick={() => { setShowBacklogScan(v => !v); setBacklogResults(null); }}
+            onClick={() => { setShowBacklogScan(v => !v); }}
             style={{
               padding: '5px 12px',
               borderRadius: '16px',
-              border: `1px solid ${t.border}`,
-              backgroundColor: showBacklogScan ? '#FEF3C7' : 'transparent',
-              color: showBacklogScan ? '#92400E' : t.textLight,
+              border: Array.isArray(backlogResults) && backlogResults.length > 0 ? '1px solid #F59E0B' : `1px solid ${t.border}`,
+              backgroundColor: showBacklogScan ? '#FEF3C7' : Array.isArray(backlogResults) && backlogResults.length > 0 ? '#FEF3C720' : 'transparent',
+              color: showBacklogScan || (Array.isArray(backlogResults) && backlogResults.length > 0) ? '#92400E' : t.textLight,
               fontWeight: '600',
               fontSize: '12px',
               cursor: 'pointer',
@@ -778,6 +813,19 @@ export default function GhostWorkerWorkQueue({ theme }) {
             }}
           >
             <Search size={13} /> Backlog Scan
+            {Array.isArray(backlogResults) && backlogResults.length > 0 && (
+              <span style={{
+                backgroundColor: '#EF4444',
+                color: '#fff',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: '700',
+                padding: '1px 6px',
+                lineHeight: '1.4'
+              }}>
+                {backlogResults.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -927,9 +975,12 @@ export default function GhostWorkerWorkQueue({ theme }) {
           <div style={{ fontWeight: '600', fontSize: '13px', color: '#92400E', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Search size={14} style={{ color: '#F59E0B' }} />
             Backlog Audit — Last 90 Days
+            <span style={{ fontSize: '10px', fontWeight: '500', backgroundColor: '#FEF3C7', color: '#92400E', padding: '2px 6px', borderRadius: '8px', marginLeft: '4px' }}>
+              auto-runs on load
+            </span>
           </div>
           <p style={{ fontSize: '12px', color: '#B45309', margin: '0 0 10px 0' }}>
-            Scans all support tickets against your work queue logs to find any that were never processed or had a user reply after being closed.
+            Automatically scans all support tickets against your work queue logs on every page load. Finds tickets that were never processed or had a user reply after being closed.
           </p>
           <button
             type="button"
@@ -967,66 +1018,162 @@ export default function GhostWorkerWorkQueue({ theme }) {
 
           {Array.isArray(backlogResults) && backlogResults.length > 0 && (
             <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400E', marginBottom: '8px' }}>
-                ⚠️ {backlogResults.length} potentially missed ticket{backlogResults.length > 1 ? 's' : ''} found:
-              </div>
-              {backlogResults.map((item, idx) => (
-                <div
-                  key={item.id}
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400E', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <span>⚠️ {backlogResults.length} potentially missed ticket{backlogResults.length > 1 ? 's' : ''} found — click any ticket to preview</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    for (const item of backlogResults) {
+                      try {
+                        const addToQueue = httpsCallable(functions, 'addTicketToWorkQueue');
+                        await addToQueue({ ticketId: item.id });
+                      } catch (_) {}
+                    }
+                    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `${backlogResults.length} tickets added to queue ✓`, type: 'success' } }));
+                    setBacklogResults([]);
+                    setShowBacklogScan(false);
+                  }}
                   style={{
-                    padding: '10px 12px',
-                    backgroundColor: '#fff',
-                    border: '1px solid #FCD34D',
-                    borderRadius: '8px',
-                    marginBottom: idx < backlogResults.length - 1 ? '8px' : '0',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    flexWrap: 'wrap'
+                    padding: '4px 12px',
+                    backgroundColor: '#DC2626',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '3px' }}>
-                      <span style={{ fontWeight: '600', color: '#92400E', fontSize: '13px' }}>
-                        #{item.ticketNumber || item.id.slice(-6).toUpperCase()}
-                      </span>
-                      <span style={{
-                        fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600',
-                        backgroundColor: item.status === 'closed' ? '#FEE2E2' : '#FEF3C7',
-                        color: item.status === 'closed' ? '#DC2626' : '#92400E'
-                      }}>
-                        {item.status}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#B45309' }}>{item.userEmail}</div>
-                    <div style={{ fontSize: '11px', color: '#92400E', marginTop: '2px', opacity: 0.8 }}>
-                      📋 {item.reason}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddMissedSearch(item.ticketNumber || '');
-                      setAddMissedResult({ id: item.id, ticketNumber: item.ticketNumber, userEmail: item.userEmail, subject: item.subject, status: item.status });
-                      setShowAddMissed(true);
-                      setShowBacklogScan(false);
-                    }}
+                  ⚡ Add All {backlogResults.length} to Queue
+                </button>
+              </div>
+              {backlogResults.map((item, idx) => {
+                const isExpanded = expandedBacklogItems[item.id];
+                const msgPreview = backlogMessages[item.id];
+                return (
+                  <div
+                    key={item.id}
                     style={{
-                      padding: '5px 12px',
-                      backgroundColor: '#F59E0B',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      flexShrink: 0
+                      backgroundColor: '#fff',
+                      border: '1px solid #FCD34D',
+                      borderRadius: '8px',
+                      marginBottom: idx < backlogResults.length - 1 ? '8px' : '0',
+                      overflow: 'hidden'
                     }}
                   >
-                    + Add to Queue
-                  </button>
-                </div>
-              ))}
+                    {/* Header row — clickable to expand */}
+                    <div
+                      onClick={() => toggleBacklogItem(item.id)}
+                      style={{
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '3px' }}>
+                          <span style={{ fontWeight: '600', color: '#92400E', fontSize: '13px' }}>
+                            #{item.ticketNumber || item.id.slice(-6).toUpperCase()}
+                          </span>
+                          <span style={{
+                            fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600',
+                            backgroundColor: item.status === 'closed' ? '#FEE2E2' : item.status === 'resolved' ? '#D1FAE5' : '#FEF3C7',
+                            color: item.status === 'closed' ? '#DC2626' : item.status === 'resolved' ? '#065F46' : '#92400E'
+                          }}>
+                            {item.status}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#B45309', opacity: 0.7 }}>
+                            {isExpanded ? '▲ hide' : '▼ preview'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#B45309' }}>{item.userEmail}</div>
+                        {item.subject && (
+                          <div style={{ fontSize: '11px', color: '#78350F', marginTop: '2px', fontStyle: 'italic' }}>
+                            "{item.subject}"
+                          </div>
+                        )}
+                        <div style={{ fontSize: '11px', color: '#92400E', marginTop: '2px', opacity: 0.8 }}>
+                          📋 {item.reason}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <a
+                          href={`/admin/overview/dashboard?ticketId=${item.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            padding: '5px 10px',
+                            backgroundColor: 'transparent',
+                            color: '#92400E',
+                            border: '1px solid #FCD34D',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                        >
+                          <ExternalLink size={11} /> View
+                        </a>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddMissedSearch(item.ticketNumber || '');
+                            setAddMissedResult({ id: item.id, ticketNumber: item.ticketNumber, userEmail: item.userEmail, subject: item.subject, status: item.status });
+                            setShowAddMissed(true);
+                            setShowBacklogScan(false);
+                          }}
+                          style={{
+                            padding: '5px 12px',
+                            backgroundColor: '#F59E0B',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          + Add to Queue
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded message preview */}
+                    {isExpanded && (
+                      <div style={{
+                        padding: '10px 12px',
+                        borderTop: '1px solid #FDE68A',
+                        backgroundColor: '#FFFBEB'
+                      }}>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: '#92400E', textTransform: 'uppercase', marginBottom: '6px' }}>
+                          User Message
+                        </div>
+                        {msgPreview === undefined ? (
+                          <div style={{ fontSize: '12px', color: '#B45309' }}>Loading…</div>
+                        ) : (
+                          <div style={{ fontSize: '12px', color: '#78350F', lineHeight: '1.5', whiteSpace: 'pre-wrap', maxHeight: '120px', overflowY: 'auto' }}>
+                            {msgPreview}
+                          </div>
+                        )}
+                        {item.lastMessageAt && (
+                          <div style={{ fontSize: '10px', color: '#B45309', marginTop: '6px', opacity: 0.7 }}>
+                            Last activity: {item.lastMessageAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1122,156 +1269,207 @@ export default function GhostWorkerWorkQueue({ theme }) {
           <div style={{ padding: '30px', textAlign: 'center', color: t.textLight, fontSize: '14px' }}>
             🎉 All caught up!
           </div>
-        ) : (
-          pendingTickets.map((ticket, idx) => (
-            <div
-              key={ticket.logId}
-              onClick={() => openTicket(ticket)}
-              style={{
-                padding: '12px 14px',
-                borderBottom: idx < pendingTickets.length - 1 ? `1px solid ${t.border}` : 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'background 0.15s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              {ticket.type === 'account_deletion_request' ? (
-                <Trash2 size={16} style={{ color: '#DC2626', flexShrink: 0 }} />
-              ) : (
-                <AlertCircle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
-                    #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
-                  </span>
+        ) : (() => {
+          // Group pending tickets by userEmail so multiple reports from the same user collapse into one row
+          const emailOrder = [];
+          const byEmail = new Map();
+          for (const ticket of pendingTickets) {
+            const key = ticket.userEmail || ticket.logId;
+            if (!byEmail.has(key)) { byEmail.set(key, []); emailOrder.push(key); }
+            byEmail.get(key).push(ticket);
+          }
+          // Sort each group oldest→newest so messages read in order
+          byEmail.forEach(group => group.sort((a, b) => {
+            const ta = a.timestamp?.toDate?.()?.getTime() ?? 0;
+            const tb = b.timestamp?.toDate?.()?.getTime() ?? 0;
+            return ta - tb;
+          }));
+
+          const subRowStyle = (isLast) => ({
+            padding: '10px 14px 10px 36px',
+            borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            backgroundColor: t.background,
+            transition: 'background 0.15s'
+          });
+
+          const acctBadge = (info) => {
+            if (!info) return null;
+            const bg = info.subscriptionType === 'lifetime' ? '#8B5CF620' :
+                       info.subscriptionType === 'annual' ? '#06B6D420' :
+                       info.subscriptionType === 'monthly' ? '#3B82F620' :
+                       info.subscriptionStatus === 'active' ? '#10B98120' :
+                       info.subscriptionStatus === 'canceled' || info.subscriptionStatus === 'cancelled' ? '#EF444420' :
+                       info.subscriptionStatus === 'trialing' ? '#F59E0B20' :
+                       info.subscriptionStatus === 'trial_expired' ? '#DC262620' : '#6B728020';
+            const fg = info.subscriptionType === 'lifetime' ? '#8B5CF6' :
+                       info.subscriptionType === 'annual' ? '#06B6D4' :
+                       info.subscriptionType === 'monthly' ? '#3B82F6' :
+                       info.subscriptionStatus === 'active' ? '#10B981' :
+                       info.subscriptionStatus === 'canceled' || info.subscriptionStatus === 'cancelled' ? '#EF4444' :
+                       info.subscriptionStatus === 'trialing' ? '#F59E0B' :
+                       info.subscriptionStatus === 'trial_expired' ? '#DC2626' : '#6B7280';
+            const icon = info.subscriptionType === 'lifetime' ? '👑' :
+                         info.subscriptionType === 'annual' ? '📅' :
+                         info.subscriptionType === 'monthly' ? '📆' :
+                         info.subscriptionStatus === 'trialing' ? '🔄' : '👤';
+            return { bg, fg, icon, label: info.subscriptionType || info.subscriptionStatus };
+          };
+
+          return emailOrder.map((email, groupIdx) => {
+            const tickets = byEmail.get(email);
+            const isGroup = tickets.length > 1;
+            const isExpanded = !!expandedUserGroups[email];
+            const representative = tickets[tickets.length - 1]; // most recent for account info
+            const badge = acctBadge(representative.userAccountInfo);
+            const isLastGroup = groupIdx === emailOrder.length - 1;
+
+            if (!isGroup) {
+              // Single ticket — render exactly as before
+              const ticket = tickets[0];
+              return (
+                <div
+                  key={ticket.logId}
+                  onClick={() => openTicket(ticket)}
+                  style={{
+                    padding: '12px 14px',
+                    borderBottom: isLastGroup ? 'none' : `1px solid ${t.border}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'background 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  {ticket.type === 'account_deletion_request'
+                    ? <Trash2 size={16} style={{ color: '#DC2626', flexShrink: 0 }} />
+                    : <AlertCircle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
+                        #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
+                      </span>
+                      {ticket.type === 'account_deletion_request' ? (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: '600' }}>🗑️ DELETION REQUEST</span>
+                      ) : ticket.addedManually ? (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Added Manually</span>
+                      ) : ticket.route ? (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: ticket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF', color: ticket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED' }}>
+                          {ticket.route === 'gemini-pro' ? '🎨' : '🔧'} {ticket.confidence}%
+                        </span>
+                      ) : null}
+                      {badge && (
+                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(representative.userAccountInfo); }}
+                          style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
+                          {badge.icon} {badge.label}
+                        </button>
+                      )}
+                      {!badge && ticket.userEmail && (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#6B728015', color: '#6B7280' }}>👤 No account</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: t.textLight }}>
+                      {ticket.userEmail || ticket.userName || 'Unknown'} • {formatRelativeTime(ticket.timestamp)}
+                    </div>
+                  </div>
                   {ticket.type === 'account_deletion_request' ? (
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
-                      borderRadius: '8px',
-                      backgroundColor: '#FEE2E2',
-                      color: '#DC2626',
-                      fontWeight: '600'
-                    }}>
-                      🗑️ DELETION REQUEST
-                    </span>
-                  ) : ticket.addedManually ? (
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
-                      borderRadius: '8px',
-                      backgroundColor: '#FEF3C7',
-                      color: '#92400E',
-                      fontWeight: '600'
-                    }}>
-                      📌 Added Manually
-                    </span>
+                    <div style={{ padding: '6px 12px', backgroundColor: '#DC2626', color: '#fff', borderRadius: '6px', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Trash2 size={12} /> Review
+                    </div>
                   ) : (
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
-                      borderRadius: '8px',
-                      backgroundColor: ticket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF',
-                      color: ticket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED'
-                    }}>
-                      {ticket.route === 'gemini-pro' ? '🎨' : '🔧'} {ticket.confidence}%
-                    </span>
-                  )}
-                  {ticket.userAccountInfo && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewingUserAccount(ticket.userAccountInfo);
-                      }}
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        // Prioritize subscriptionType, then subscriptionStatus
-                        backgroundColor: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF620' :
-                                         ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D420' :
-                                         ticket.userAccountInfo.subscriptionType === 'monthly' ? '#3B82F620' :
-                                         ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B98120' :
-                                         ticket.userAccountInfo.subscriptionStatus === 'canceled' || ticket.userAccountInfo.subscriptionStatus === 'cancelled' ? '#EF444420' :
-                                         ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B20' :
-                                         ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC262620' :
-                                         '#6B728020',
-                        color: ticket.userAccountInfo.subscriptionType === 'lifetime' ? '#8B5CF6' :
-                               ticket.userAccountInfo.subscriptionType === 'annual' ? '#06B6D4' :
-                               ticket.userAccountInfo.subscriptionType === 'monthly' ? '#3B82F6' :
-                               ticket.userAccountInfo.subscriptionStatus === 'active' ? '#10B981' :
-                               ticket.userAccountInfo.subscriptionStatus === 'canceled' || ticket.userAccountInfo.subscriptionStatus === 'cancelled' ? '#EF4444' :
-                               ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '#F59E0B' :
-                               ticket.userAccountInfo.subscriptionStatus === 'trial_expired' ? '#DC2626' :
-                               '#6B7280',
-                        transition: 'opacity 0.15s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      title={`Click to view account: ${ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus} | ID: ${ticket.userAccountInfo.userId || 'N/A'}`}
-                    >
-                      {ticket.userAccountInfo.subscriptionType === 'lifetime' ? '👑' : 
-                       ticket.userAccountInfo.subscriptionType === 'annual' ? '📅' : 
-                       ticket.userAccountInfo.subscriptionType === 'monthly' ? '📆' :
-                       ticket.userAccountInfo.subscriptionStatus === 'trialing' ? '🔄' :
-                       '👤'} {ticket.userAccountInfo.subscriptionType || ticket.userAccountInfo.subscriptionStatus}
-                    </button>
-                  )}
-                  {!ticket.userAccountInfo && ticket.userEmail && (
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
-                      borderRadius: '8px',
-                      backgroundColor: '#6B728015',
-                      color: '#6B7280'
-                    }} title="No account found">
-                      👤 No account
-                    </span>
+                    <div style={{ padding: '6px 12px', backgroundColor: t.primary, color: '#fff', borderRadius: '6px', fontSize: '12px', fontWeight: '500' }}>Open</div>
                   )}
                 </div>
-                <div style={{ fontSize: '12px', color: t.textLight }}>
-                  {ticket.userEmail || ticket.userName || 'Unknown'} • {formatRelativeTime(ticket.timestamp)}
+              );
+            }
+
+            // Multi-ticket group — collapsible
+            return (
+              <div key={email} style={{ borderBottom: isLastGroup ? 'none' : `1px solid ${t.border}` }}>
+                {/* Group header row */}
+                <div
+                  onClick={() => setExpandedUserGroups(prev => ({ ...prev, [email]: !prev[email] }))}
+                  style={{
+                    padding: '12px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'background 0.15s',
+                    backgroundColor: isExpanded ? t.background : 'transparent'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = isExpanded ? t.background : 'transparent'}
+                >
+                  <MessageSquare size={16} style={{ color: t.primary, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
+                        {email}
+                      </span>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '700',
+                        backgroundColor: '#FEE2E2', color: '#DC2626'
+                      }}>
+                        {tickets.length} reports
+                      </span>
+                      {badge && (
+                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(representative.userAccountInfo); }}
+                          style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
+                          {badge.icon} {badge.label}
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: t.textLight }}>
+                      Tickets: {tickets.map(t2 => `#${t2.ticketNumber}`).join(', ')} • oldest {formatRelativeTime(tickets[0].timestamp)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span style={{ fontSize: '11px', color: t.textLight }}>{isExpanded ? '▲ collapse' : '▼ expand'}</span>
+                  </div>
                 </div>
+
+                {/* Sub-rows: each ticket in chronological order */}
+                {isExpanded && tickets.map((ticket, subIdx) => (
+                  <div
+                    key={ticket.logId}
+                    onClick={() => openTicket(ticket)}
+                    style={subRowStyle(subIdx === tickets.length - 1)}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F0FDF4'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = t.background}
+                  >
+                    <div style={{ width: '4px', height: '32px', backgroundColor: t.primary, borderRadius: '2px', flexShrink: 0, opacity: 0.4 }} />
+                    <AlertCircle size={14} style={{ color: '#F59E0B', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '1px' }}>
+                        <span style={{ fontWeight: '600', color: t.text, fontSize: '12px' }}>
+                          #{ticket.ticketNumber}
+                        </span>
+                        <span style={{ fontSize: '10px', color: t.textLight }}>
+                          {formatRelativeTime(ticket.timestamp)}
+                        </span>
+                        {ticket.addedManually && (
+                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '11px', color: t.textLight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '400px' }}>
+                        {ticket.subject || ticket.originalMessage?.slice(0, 80) || 'No subject'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '5px 10px', backgroundColor: t.primary, color: '#fff', borderRadius: '5px', fontSize: '11px', fontWeight: '500', flexShrink: 0 }}>
+                      Open
+                    </div>
+                  </div>
+                ))}
               </div>
-              {ticket.type === 'account_deletion_request' ? (
-                <div style={{ 
-                  padding: '6px 12px', 
-                  backgroundColor: '#DC2626', 
-                  color: '#fff', 
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <Trash2 size={12} />
-                  Review
-                </div>
-              ) : (
-                <div style={{ 
-                  padding: '6px 12px', 
-                  backgroundColor: t.primary, 
-                  color: '#fff', 
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>
-                  Open
-                </div>
-              )}
-            </div>
-          ))
-        )}
+            );
+          });
+        })()}
       </div>
 
       {/* History Section */}
