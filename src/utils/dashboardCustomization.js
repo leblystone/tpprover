@@ -501,12 +501,10 @@ export const WIDGET_METADATA = {
   },
   [WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES]: {
     title: 'Active Research',
-    description: 'View your active research protocols and add notes during your research',
+    description: 'View all active research protocols and add notes. View All opens the Protocols page.',
     icon: 'FlaskConical',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
-    settings: [
-      { key: 'maxItems', label: 'Max protocols to show', type: 'number', default: 3, min: 1, max: 10 }
-    ]
+    settings: [] // No limit - always show all active protocols
   }
 };
 

@@ -407,7 +407,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     })}
                 </div>
 
-                {/* View All link at bottom */}
+                {/* View All → Protocols page (all active protocols shown above, no limit) */}
                 <div className="flex justify-center pt-2 pb-3 flex-shrink-0">
                     <button
                         onClick={() => navigate('/app/protocols')}
