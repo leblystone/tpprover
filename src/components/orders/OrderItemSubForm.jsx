@@ -253,7 +253,6 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 onBlur={(e) => {
                                     // Delay blur to allow dropdown clicks to register on mobile
                                     setTimeout(() => {
-                                        // Only blur if dropdown is closed or if focus moved outside the dropdown container
                                         const relatedTarget = e.relatedTarget || document.activeElement
                                         const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
                                         if (!isClickingDropdown && !isAmountUnitDropdownOpen) {
@@ -262,13 +261,11 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     }, 150)
                                 }}
                                 placeholder=" "
-                                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
+                                className="flex-1 py-3 px-3 outline-none min-w-0 rounded-l-lg transition-all"
                                 style={{
                                     backgroundColor: 'transparent',
                                     color: theme.isDark ? theme.text : '#181A18',
-                                    border: 'none',
-                                    paddingLeft: '12px',
-                                    paddingRight: '8px'
+                                    border: 'none'
                                 }}
                             />
                             <button
@@ -402,9 +399,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 onChange={e => handleChange('quantity', e.target.value)} 
                                 onFocus={() => setIsQuantityFocused(true)}
                                 onBlur={(e) => {
-                                    // Delay blur to allow dropdown clicks to register on mobile
                                     setTimeout(() => {
-                                        // Only blur if dropdown is closed or if focus moved outside the dropdown container
                                         const relatedTarget = e.relatedTarget || document.activeElement
                                         const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
                                         if (!isClickingDropdown && !isUnitDropdownOpen) {
@@ -413,7 +408,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     }, 150)
                                 }}
                                 placeholder=" "
-                                className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
+                                className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg transition-all"
                                 style={{
                                     backgroundColor: 'transparent',
                                     color: theme.isDark ? theme.text : '#181A18',
@@ -568,29 +563,52 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 
                 {/* Row 3: Price and Cost per Milligram */}
                 <div className="grid grid-cols-2 gap-3 pt-4">
-                    {/* Price Column */}
+                    {/* Price Column — same wrapper style as Amount (border/shadow/bg on wrapper, input borderless) */}
                     <div className="relative overflow-visible min-w-0">
-                        <input
-                            type="text"
-                            id={`price-input-${item.id || 'new'}`}
-                            value={item.price || ''}
-                            onChange={e => handleChange('price', e.target.value)}
-                            onFocus={() => setIsPriceFocused(true)}
-                            onBlur={() => setIsPriceFocused(false)}
-                            placeholder=" "
-                            className="w-full px-3 py-3 rounded-lg outline-none transition-all"
+                        <div
+                            className="rounded-lg flex items-stretch"
                             style={{
-                                border: `1px solid #f0eee7`,
+                                border: '1px solid #f0eee7',
                                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                color: theme.isDark ? theme.text : '#181A18'
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                             }}
-                        />
+                        >
+                            {(item.price != null && String(item.price).trim() !== '') && (
+                                <span
+                                    className="absolute pointer-events-none z-10"
+                                    style={{
+                                        left: 13,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        fontSize: '1rem',
+                                        fontWeight: 500,
+                                        color: theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'
+                                    }}
+                                >
+                                    $
+                                </span>
+                            )}
+                            <input
+                                type="text"
+                                id={`price-input-${item.id || 'new'}`}
+                                value={item.price || ''}
+                                onChange={e => handleChange('price', e.target.value)}
+                                onFocus={() => setIsPriceFocused(true)}
+                                onBlur={() => setIsPriceFocused(false)}
+                                placeholder=" "
+                                className="flex-1 min-w-0 py-3 px-3 rounded-lg outline-none transition-all border-none"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    paddingLeft: (item.price != null && String(item.price).trim() !== '') ? 24 : 12
+                                }}
+                            />
+                        </div>
                         <label 
                             htmlFor={`price-input-${item.id || 'new'}`}
                             className="absolute pointer-events-none transition-all whitespace-nowrap"
                             style={{
-                                fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.65rem' : '0.75rem',
+                                fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.65rem' : '0.875rem',
                                 top: (isPriceFocused || (item.price && String(item.price).trim())) ? '-8px' : '14px',
                                 left: (isPriceFocused || (item.price && String(item.price).trim())) ? '12px' : '16px',
                                 padding: (isPriceFocused || (item.price && String(item.price).trim())) ? '0 4px' : '0',
@@ -599,33 +617,56 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 fontWeight: 500
                             }}
                         >
-                            Price ($)
+                            Price
                         </label>
                     </div>
 
-                    {/* Cost per Milligram Column */}
+                    {/* Cost per Milligram Column — same wrapper style as Amount */}
                     <div className="relative overflow-visible min-w-0">
-                        <input
-                            type="text"
-                            id={`costpermg-input-${item.id || 'new'}`}
-                            value={item.costPerMg || ''}
-                            onChange={e => handleChange('costPerMg', e.target.value)}
-                            onFocus={() => setIsCostPerMgFocused(true)}
-                            onBlur={() => setIsCostPerMgFocused(false)}
-                            placeholder=" "
-                            className="w-full px-3 py-3 rounded-lg outline-none transition-all"
+                        <div
+                            className="rounded-lg flex items-stretch"
                             style={{
-                                border: `1px solid #f0eee7`,
+                                border: '1px solid #f0eee7',
                                 boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                                color: theme.isDark ? theme.text : '#181A18'
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                             }}
-                        />
+                        >
+                            {(item.costPerMg != null && String(item.costPerMg).trim() !== '') && (
+                                <span
+                                    className="absolute pointer-events-none z-10"
+                                    style={{
+                                        left: 13,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        fontSize: '1rem',
+                                        fontWeight: 500,
+                                        color: theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'
+                                    }}
+                                >
+                                    $
+                                </span>
+                            )}
+                            <input
+                                type="text"
+                                id={`costpermg-input-${item.id || 'new'}`}
+                                value={item.costPerMg || ''}
+                                onChange={e => handleChange('costPerMg', e.target.value)}
+                                onFocus={() => setIsCostPerMgFocused(true)}
+                                onBlur={() => setIsCostPerMgFocused(false)}
+                                placeholder=" "
+                                className="flex-1 min-w-0 py-3 px-3 rounded-lg outline-none transition-all border-none"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    paddingLeft: (item.costPerMg != null && String(item.costPerMg).trim() !== '') ? 24 : 12
+                                }}
+                            />
+                        </div>
                         <label 
                             htmlFor={`costpermg-input-${item.id || 'new'}`}
                             className="absolute pointer-events-none transition-all whitespace-nowrap"
                             style={{
-                                fontSize: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0.65rem' : '0.75rem',
+                                fontSize: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0.65rem' : '0.875rem',
                                 top: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '-8px' : '14px',
                                 left: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '12px' : '16px',
                                 padding: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0 4px' : '0',
@@ -635,7 +676,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             }}
                             title={calculatedCostPerUnit.label}
                         >
-                            $/{calculatedCostPerUnit.unit}
+                            Cost per {calculatedCostPerUnit.unit}
                         </label>
                     </div>
                 </div>

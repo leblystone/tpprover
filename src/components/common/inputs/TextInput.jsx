@@ -17,7 +17,9 @@ export default function TextInput({
   customShadow = null,
   outlined = false,
   customTextColor = null,
-  maxLength = null
+  maxLength = null,
+  prefix = null,
+  step = null,
 }) {
   const [isFocused, setIsFocused] = useState(false);
   // Ensure value is always a string to prevent controlled/uncontrolled warnings
@@ -98,6 +100,23 @@ export default function TextInput({
       `}</style>
       {outlined ? (
         <div className="outlined-input-wrapper">
+          {prefix && (
+            <span
+              style={{
+                position: 'absolute',
+                left: dense ? '12px' : '13px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+                color: customTextColor || (theme.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'),
+                fontSize: dense ? '0.875rem' : '1rem',
+                fontWeight: 500,
+                zIndex: 1,
+              }}
+            >
+              {prefix}
+            </span>
+          )}
           {multiline ? (
             <textarea
               name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
@@ -135,6 +154,7 @@ export default function TextInput({
               id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               type={type}
               value={safeValue}
+              step={step || undefined}
               onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
               onFocus={(e) => {
                 setIsFocused(true);
@@ -155,7 +175,8 @@ export default function TextInput({
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'), 
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
-                textTransform: uppercase ? 'uppercase' : 'none'
+                textTransform: uppercase ? 'uppercase' : 'none',
+                ...(prefix ? { paddingLeft: dense ? '22px' : '24px' } : {}),
               }}
             />
           )}

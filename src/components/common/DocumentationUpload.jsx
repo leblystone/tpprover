@@ -154,7 +154,7 @@ export default function DocumentationUpload({
     return (
       <div 
         key={item.id} 
-        className={`relative grid gap-2 rounded-lg border items-start ${isImage ? 'grid-cols-2 gap-3 p-3' : 'grid-cols-1 p-2.5'}`}
+        className={`relative grid gap-2 rounded-lg border ${isImage ? 'grid-cols-2 gap-3 p-3 items-stretch' : 'grid-cols-1 p-2.5 items-start'}`}
         style={{ 
           backgroundColor: isSynced ? theme.info + '10' : theme.secondary,
           borderColor: isSynced ? theme.info + '40' : theme.border
@@ -190,8 +190,8 @@ export default function DocumentationUpload({
             </div>
           </>
         )}
-        {/* Left column: data */}
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
+        {/* Left column: data — pr-6 reserves space so content never overlaps the absolute X button */}
+        <div className="flex flex-col gap-1 min-w-0 flex-1 pr-6">
           <div className="flex items-start gap-2">
             <span className="flex-shrink-0 mt-0.5">
               {isImage ? (
@@ -268,8 +268,12 @@ export default function DocumentationUpload({
                       href={item.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs hover:underline flex-shrink-0"
-                      style={{ color: theme.primary }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all hover:opacity-90 flex-shrink-0"
+                      style={{ 
+                        color: theme.isDark ? theme.textOnPrimary : theme.primary,
+                        backgroundColor: theme.isDark ? theme.primary + '40' : theme.primary + '18',
+                        border: `1px solid ${theme.primary}40`
+                      }}
                     >
                       <ExternalLink size={12} />
                       Open Link
@@ -280,7 +284,7 @@ export default function DocumentationUpload({
                       Added {new Date(item.dateAdded).toLocaleDateString()}
                     </p>
                     {!readonly && !isSynced && (
-                      <>
+                      <div className="flex items-center gap-1 ml-auto">
                         {!item.notes && (
                           <button
                             type="button"
@@ -300,7 +304,7 @@ export default function DocumentationUpload({
                         >
                           <Pencil size={14} />
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                   {isSynced && (
