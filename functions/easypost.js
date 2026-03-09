@@ -129,19 +129,34 @@ exports.getEasyPostTrackerStatus = onCall(
     }
 
     try {
-      // EasyPost: create tracker or get by tracking_code; GET /trackers?tracking_code=... may exist
-      // API: list trackers by tracking_code - we'll create if not exists (idempotent) or fetch
-      const body = new URLSearchParams();
-      body.append('tracker[tracking_code]', trackingNumber.trim());
+      const authHeader = 'Basic ' + Buffer.from(apiKey + ':', 'utf8').toString('base64');
+      const safeId = trackingNumber.trim().replace(/\s/g, '');
 
-      const res = await fetch(`${EASYPOST_API_BASE}/trackers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + Buffer.from(apiKey + ':', 'utf8').toString('base64'),
-        },
-        body: body.toString(),
-      });
+      // Check Firestore for a cached EasyPost tracker ID first — avoids re-billing ($0.02/POST)
+      const db = admin.firestore();
+      const indexSnap = await db.collection('trackingIndex').doc(safeId).get();
+      const cachedTrackerId = indexSnap.exists ? indexSnap.data().easypostTrackerId : null;
+
+      let res;
+      if (cachedTrackerId) {
+        // Free GET — no charge, uses existing tracker
+        res = await fetch(`${EASYPOST_API_BASE}/trackers/${cachedTrackerId}`, {
+          method: 'GET',
+          headers: { 'Authorization': authHeader },
+        });
+      } else {
+        // First time: POST to create tracker (~$0.02), then cache the ID
+        const body = new URLSearchParams();
+        body.append('tracker[tracking_code]', trackingNumber.trim());
+        res = await fetch(`${EASYPOST_API_BASE}/trackers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': authHeader,
+          },
+          body: body.toString(),
+        });
+      }
 
       if (!res.ok) {
         const errText = await res.text();
@@ -153,6 +168,15 @@ exports.getEasyPostTrackerStatus = onCall(
       }
 
       const tracker = await res.json();
+
+      // If this was a first-time POST, cache the tracker ID so future calls use GET (free)
+      if (!cachedTrackerId && tracker.id) {
+        await db.collection('trackingIndex').doc(safeId).set(
+          { easypostTrackerId: tracker.id },
+          { merge: true }
+        );
+      }
+
       const status = tracker.status || 'unknown';
       const trackingStatus = tracker.tracking_details && tracker.tracking_details[0];
       const statusDetail = trackingStatus ? (trackingStatus.message || trackingStatus.status_detail) : '';
