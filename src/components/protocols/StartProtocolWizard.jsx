@@ -13,6 +13,7 @@ import { appendStockEvent } from '../../utils/stockHistory';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { generateId } from '../../utils/string';
+import { calculateRecon } from '../../utils/recon';
 import SchedulingPreview from './SchedulingPreview';
 import VisualSchedulePreview from './VisualSchedulePreview';
 
@@ -1001,6 +1002,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         cost: singleVialCost, 
                                                         costPerMg: vial.costPerMg || '',
                                                         vendor: vial.vendor,
+                                                        vendorId: vial.vendorId || null,
                                                         stockpileId: vial.id,
                                                         quantityUsed: 1,
                                                         unit: vial.unit,
@@ -1033,19 +1035,32 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                     return { 
                                                         ...p, 
                                                         cost, 
-                                                        vendor: vial?.vendor || '', 
+                                                        vendor: vial?.vendor || p.vendor || '', 
+                                                        vendorId: vial?.vendorId || p.vendorId || null,
                                                         stockpileId: p.stockpileId || vial?.id || null,
                                                         quantityUsed: p.quantityUsed || 1
                                                     };
                                                 });
 
+                                                const reconDate = new Date().toISOString();
+                                                // Calculate units/doses so they're available in the edit modal and card
+                                                const reconCalc = calculateRecon({
+                                                    mg: reconData.mg,
+                                                    water: reconData.water,
+                                                    dose: reconData.dose,
+                                                    doseUnit: reconData.doseUnit || 'mcg'
+                                                });
                                                 const newReconItem = { 
                                                     ...reconData, 
                                                     id: newReconId, 
-                                                    name: `${protocol.protocolName} (${reconStrategy || 'separate'})`,
+                                                    protocolId: protocol.id,
+                                                    name: protocol.protocolName,
                                                     reconStrategy: reconStrategy || 'separate',
                                                     peptides: peptidesWithDetails,
-                                                    date: new Date().toISOString()
+                                                    date: reconDate,
+                                                    dateAcquired: reconDate,
+                                                    unitsPerDose: reconCalc.unitsPerDose,
+                                                    dosesPerVial: reconCalc.dosesPerVial,
                                                 };
 
                                                 try {

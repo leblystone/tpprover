@@ -197,6 +197,7 @@ export default function AccountLegal() {
         open={showPrivacy} 
         onClose={() => setShowPrivacy(false)} 
         onAgree={agreementData.privacyAgreement ? null : handlePrivacyAgree}
+        theme={theme}
       />
     </section>
   )

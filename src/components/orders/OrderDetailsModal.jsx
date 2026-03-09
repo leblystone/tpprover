@@ -21,6 +21,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const [originalStatus, setOriginalStatus] = useState(null);
   const [trackingInfo, setTrackingInfo] = useState(null);
   const [isLoadingTracking, setIsLoadingTracking] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const lastSyncedTrackingRef = useRef(null);
 
   const primaryColor = theme?.primary || '#3b82f6';
@@ -248,6 +249,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
   // Close handler - autosave handles data persistence, so no confirmation needed
   const handleClose = () => {
+    setConfirmDelete(false);
     onClose();
   };
 
@@ -420,20 +422,33 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         <div className="w-full flex items-center gap-3">
           <div className="flex items-center gap-2 flex-1 justify-start">
             {form?.id && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-2 hover:underline"
-                style={{
-                  color: theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.55)',
-                  background: 'none',
-                  border: 'none',
-                  padding: '0 4px'
-                }}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
+              <>
+                <style>{`
+                  @keyframes tapConfirmPop {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.08); }
+                  }
+                  .tap-confirm-pop {
+                    animation: tapConfirmPop 0.45s ease-out 2;
+                  }
+                `}</style>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmDelete) {
+                      setConfirmDelete(false);
+                      handleDelete();
+                    } else {
+                      setConfirmDelete(true);
+                    }
+                  }}
+                  disabled={isDeleting}
+                  className={`py-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${confirmDelete ? 'tap-confirm-pop' : ''}`}
+                  style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
+                >
+                  {isDeleting ? 'Deleting...' : confirmDelete ? 'Tap Again to Confirm!' : 'Delete'}
+                </button>
+              </>
             )}
           </div>
           <div className="flex items-center gap-2 flex-1 justify-end">

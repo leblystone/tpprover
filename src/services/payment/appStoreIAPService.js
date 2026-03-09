@@ -20,9 +20,20 @@ export async function subscribe(planKey, options = {}) {
       throw new Error('App Store IAP plugin not available. Make sure you are running on iOS.');
     }
 
-    const availability = await AppStoreIAP.isAvailable();
+    let availability;
+    try {
+      availability = await AppStoreIAP.isAvailable();
+    } catch (pluginErr) {
+      // UNIMPLEMENTED = native StoreKit plugin not registered with Capacitor bridge.
+      // Clean build in Xcode (Product → Clean Build Folder) typically resolves this.
+      if (pluginErr?.code === 'UNIMPLEMENTED') {
+        throw new Error('Apple IAP is not available on this device. Please restart the app and try again. If the issue persists, contact support.');
+      }
+      throw pluginErr;
+    }
+
     if (!availability || !availability.available) {
-      throw new Error('App Store IAP is not available. Check your device settings.');
+      throw new Error('In-App Purchases are disabled. Please check your device settings under Screen Time or Restrictions.');
     }
 
     const productId = getAppStoreProductId(planKey);

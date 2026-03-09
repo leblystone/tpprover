@@ -10,8 +10,8 @@ import { getEnvVar } from './appConfig.js';
  * Product IDs: monthly.apple, annual.apple, lifetime.apple
  */
 
-const APP_STORE_MONTHLY_PRODUCT_ID = getEnvVar('VITE_APP_STORE_MONTHLY_PRODUCT_ID') || 'monthly.apple';
-const APP_STORE_ANNUAL_PRODUCT_ID = getEnvVar('VITE_APP_STORE_ANNUAL_PRODUCT_ID') || 'annual.apple';
+const APP_STORE_MONTHLY_PRODUCT_ID = getEnvVar('VITE_APP_STORE_MONTHLY_PRODUCT_ID') || 'apple.monthly';
+const APP_STORE_ANNUAL_PRODUCT_ID = getEnvVar('VITE_APP_STORE_ANNUAL_PRODUCT_ID') || 'apple.annual';
 const APP_STORE_LIFETIME_PRODUCT_ID = getEnvVar('VITE_APP_STORE_LIFETIME_PRODUCT_ID') || 'lifetime.apple';
 
 export const APP_STORE_CONFIG = {
