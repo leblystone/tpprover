@@ -143,6 +143,10 @@ export default function WorkQueue({ theme }) {
   const [backlogMessages, setBacklogMessages] = useState({});
   const [expandedUserGroups, setExpandedUserGroups] = useState({});
   const autoScannedRef = useRef(false);
+  const [showCommitAudit, setShowCommitAudit] = useState(false);
+  const [commitAuditRunning, setCommitAuditRunning] = useState(false);
+  const [commitAuditResults, setCommitAuditResults] = useState(null);
+  const [commitAuditDays, setCommitAuditDays] = useState(20);
 
   const [loadError, setLoadError] = useState(null);
 
@@ -548,6 +552,131 @@ export default function WorkQueue({ theme }) {
       console.error('Failed to save linked commits:', error);
     }
   }, [selectedTicket]);
+
+  // Commit Audit — auto-match GitHub commits to tickets by keyword overlap
+  const STOP_WORDS = new Set(['a','an','the','and','or','but','in','on','at','to','for','of','with',
+    'is','it','be','as','by','this','that','was','are','from','fix','fixes','fixed','update',
+    'updates','updated','add','adds','added','remove','removes','removed','change','changes',
+    'changed','merge','branch','main','refactor','cleanup','hotfix','wip','bump','v','version',
+    'pr','feat','chore','build','ci','test','docs','style','perf','revert','release']);
+
+  const tokenize = (str) => {
+    if (!str) return new Set();
+    return new Set(
+      str.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !STOP_WORDS.has(w))
+    );
+  };
+
+  const scoreMatch = (commitMsg, ticket) => {
+    const cTokens = tokenize(commitMsg);
+    const tTokens = new Set([
+      ...tokenize(ticket.subject),
+      ...tokenize(ticket.originalMessage),
+    ]);
+    if (!cTokens.size || !tTokens.size) return 0;
+    let matches = 0;
+    for (const w of cTokens) { if (tTokens.has(w)) matches++; }
+    return matches / Math.max(cTokens.size, tTokens.size);
+  };
+
+  const runCommitAudit = useCallback(async (days = 20) => {
+    const cfg = ghConfig?.owner && ghConfig?.repo && ghConfig?.token
+      ? ghConfig
+      : (() => {
+          try { return JSON.parse(localStorage.getItem('tpp_gh_config') || '{}'); }
+          catch { return {}; }
+        })();
+
+    if (!cfg.owner || !cfg.repo || !cfg.token) {
+      setShowGhSettings(true);
+      return;
+    }
+
+    setCommitAuditRunning(true);
+    setCommitAuditResults(null);
+
+    try {
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      let page = 1;
+      let allCommits = [];
+      while (true) {
+        const res = await fetch(
+          `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/commits?since=${since}&per_page=100&page=${page}`,
+          { headers: { Authorization: `Bearer ${cfg.token}` } }
+        );
+        if (!res.ok) throw new Error(`GitHub API: ${res.statusText}`);
+        const batch = await res.json();
+        if (!Array.isArray(batch) || batch.length === 0) break;
+        allCommits = [...allCommits, ...batch];
+        if (batch.length < 100) break;
+        page++;
+      }
+
+      // Build a copy of all tickets (pending + archived) from current workQueue
+      const allTickets = workQueue;
+      const SCORE_THRESHOLD = 0.12;
+      const linked = [];
+      const noMatch = [];
+
+      for (const commit of allCommits) {
+        const sha7 = commit.sha?.slice(0, 7) || commit.sha;
+        const msg = (commit.commit?.message || '').split('\n')[0].slice(0, 120);
+        const url = commit.html_url || null;
+        const commitDate = commit.commit?.author?.date || new Date().toISOString();
+
+        // Score this commit against every ticket
+        let best = null;
+        let bestScore = 0;
+        for (const ticket of allTickets) {
+          const score = scoreMatch(msg, ticket);
+          if (score > bestScore) {
+            bestScore = score;
+            best = ticket;
+          }
+        }
+
+        if (best && bestScore >= SCORE_THRESHOLD) {
+          const entry = { sha: sha7, message: msg, url, linkedAt: commitDate, autoLinked: true };
+          // Skip if this sha is already linked to this ticket
+          const already = (best.linkedCommits || []).some(lc => lc.sha === sha7);
+          if (!already) {
+            // Write to Firestore
+            try {
+              const logRef = doc(db, 'ai_worker_logs', best.logId);
+              const updatedCommits = [...(best.linkedCommits || []), entry];
+              await updateDoc(logRef, { linkedCommits: updatedCommits });
+              // Update local state
+              setWorkQueue(prev => prev.map(t =>
+                t.logId === best.logId
+                  ? { ...t, linkedCommits: updatedCommits }
+                  : t
+              ));
+              linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: false });
+            } catch (err) {
+              console.error('Auto-link failed for', sha7, err);
+              linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: true, error: err?.message });
+            }
+          } else {
+            linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: true, reason: 'already linked' });
+          }
+        } else {
+          noMatch.push({ sha: sha7, msg, url, date: commitDate, bestScore });
+        }
+      }
+
+      setCommitAuditResults({ linked, noMatch, totalCommits: allCommits.length, days, ranAt: new Date().toISOString() });
+    } catch (err) {
+      console.error('Commit audit failed:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `Commit audit failed: ${err.message}`, type: 'error' }
+      }));
+    } finally {
+      setCommitAuditRunning(false);
+    }
+  }, [ghConfig, workQueue]);
 
   const saveAdminNotes = useCallback(async (notes) => {
     if (!selectedTicket) return;
