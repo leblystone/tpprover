@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, Calendar, FileText, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Calendar, ExternalLink } from 'lucide-react';
 import Modal from './Modal';
 
 export default function ImagePreviewModal({ 
@@ -10,16 +10,13 @@ export default function ImagePreviewModal({
   onDelete,
   readonly = false 
 }) {
-  if (!image) return null;
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Modern button gradients matching other modals
-  const getPrimaryActionGradient = () => {
-    return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
-  };
-  
-  const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-  const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-  const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+  useEffect(() => {
+    if (!open) setConfirmDelete(false);
+  }, [open]);
+
+  if (!image) return null;
 
   const handleDownload = async () => {
     try {
@@ -73,13 +70,6 @@ export default function ImagePreviewModal({
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (!bytes) return 'Unknown size';
-    const kb = bytes / 1024;
-    if (kb < 1024) return `${kb.toFixed(0)} KB`;
-    return `${(kb / 1024).toFixed(1)} MB`;
-  };
-
   return (
     <Modal
       open={open}
@@ -91,77 +81,48 @@ export default function ImagePreviewModal({
         <div className="w-full flex items-center justify-between gap-3">
           <div className="flex gap-2">
             {!readonly && image.source !== 'synced' && onDelete && (
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this image?')) {
-                    onDelete(image.id);
-                    onClose();
+              <>
+                <style>{`
+                  @keyframes tapConfirmPop {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.08); }
                   }
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
-                style={{
-                  background: terracottaGradient,
-                  color: '#ffffff',
-                  border: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = terracottaHoverGradient;
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = terracottaGradient;
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                }}
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
+                  .image-preview-tap-confirm {
+                    animation: tapConfirmPop 0.45s ease-out 2;
+                  }
+                `}</style>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmDelete) {
+                      setConfirmDelete(false);
+                      onDelete(image.id);
+                      onClose();
+                    } else {
+                      setConfirmDelete(true);
+                    }
+                  }}
+                  className={`py-2 text-sm font-medium transition-all ${confirmDelete ? 'image-preview-tap-confirm' : ''}`}
+                  style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
+                >
+                  {confirmDelete ? 'Tap again to confirm' : 'Delete'}
+                </button>
+              </>
             )}
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-              style={{
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary,
-                color: theme.primary,
-                border: theme.isDark ? 'none' : `1px solid ${theme.border}`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '15';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary;
-              }}
-            >
-              <Download size={16} />
-              Download
-            </button>
-            
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
-              style={{
-                background: getPrimaryActionGradient(),
-                color: theme.textOnPrimary || '#ffffff',
-                border: 'none',
-                boxShadow: primaryActionDefaultShadow
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
-              }}
-            >
-              Close
-            </button>
-          </div>
+
+          <button
+            onClick={handleDownload}
+            className="p-2.5 rounded-lg transition-all hover:opacity-80 active:scale-95"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary,
+              color: theme.primary,
+              border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+            }}
+            title="Download"
+          >
+            <Download size={18} />
+          </button>
         </div>
       }
     >
@@ -210,10 +171,6 @@ export default function ImagePreviewModal({
                       hour12: true
                     })}
                   </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <FileText size={14} />
-                  <span>{formatFileSize(image.fileSize)}</span>
                 </div>
               </div>
             </div>

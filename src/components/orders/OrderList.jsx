@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { formatMMDDYYYY } from '../../utils/date'
 import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from '../../utils/currencyUtils'
-import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Home, MoreVertical, Trash2, ShoppingBag, ClipboardList, ChevronDown } from 'lucide-react'
+import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Home, ShoppingBag, ClipboardList, ChevronDown } from 'lucide-react'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
@@ -17,7 +17,6 @@ const getNextStatus = (status) => {
 
 export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [] }) {
   const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
-  const [openMenuId, setOpenMenuId] = useState(null);
 
   if (!orders.length) {
     return <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>No orders.</p>
@@ -26,9 +25,10 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
   // Render one full-width card per order; assume orders already sorted chronologically
   return (
     <div className="space-y-4">
-      {orders.map(o => {
+      {orders.map((o, index) => {
         const nextStatusAction = getNextStatus(o.status);
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : o.vendor;
+        const orderNumber = Number(o?.publicOrderNumber) || index + 1;
 
         return (
           <div 
@@ -43,8 +43,11 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
             {/* Header */}
             <div className="flex items-start justify-between mb-3 gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base truncate mb-1" style={{ color: theme.text }}>
-                  {formatOrderTitle(o)}
+                <h3 className="font-semibold text-base truncate mb-1 flex items-baseline gap-1.5" style={{ color: theme.text }}>
+                  <span className="truncate">{formatOrderTitle(o)}</span>
+                  <span className="text-xs font-normal flex-shrink-0" style={{ color: theme.textLight || '#6b7d7a' }}>
+                    #{orderNumber}
+                  </span>
                 </h3>
                 {vendorName && (
                   <div className="flex items-center gap-1.5 text-[12px] opacity-70" style={{ color: theme.text }}>
@@ -60,50 +63,6 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                   style={statusStyle(o.status, theme)}
                 >
                   {displayStatus(o.status)}
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === o.id ? null : o.id);
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                    style={{ color: theme.textLight }}
-                    title="More options"
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  
-                  {openMenuId === o.id && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-10" 
-                        onClick={() => setOpenMenuId(null)}
-                      />
-                      <div 
-                        className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border z-20 min-w-[140px] overflow-hidden"
-                        style={{ 
-                          borderColor: theme.border,
-                          backgroundColor: theme.cardBackground 
-                        }}
-                      >
-                        {onDelete && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(null);
-                              onDelete?.(o.id);
-                            }}
-                            className="w-full px-4 py-2.5 text-left text-[12px] flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                            style={{ color: theme.error || '#ef4444' }}
-                          >
-                            <Trash2 size={14} />
-                            Delete Order
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
                 {nextStatusAction && (
                   <button 
@@ -280,22 +239,11 @@ function displayStatus(status) {
 
 const formatOrderTitle = (order) => {
     const items = order.items || [];
-    const baseTitle = (() => {
-        if (items.length === 0) {
-            return order.peptide || 'Unknown Order'; // Fallback for old data structure
-        }
-        const names = items.map(item => item.name).filter(Boolean);
-        if (names.length <= 2) {
-            return names.join(' & ');
-        }
-        const remaining = names.length - 2;
-        return `${names.slice(0, 2).join(', ')} +${remaining} more`;
-    })();
-    const number = Number.parseInt(order?.publicOrderNumber, 10);
-    if (Number.isFinite(number) && number > 0) {
-        return `Order #${number} · ${baseTitle}`;
+    if (items.length === 0) {
+        return order.peptide || 'Unknown Order';
     }
-    return baseTitle;
+    const firstName = items[0]?.name;
+    return firstName || 'Unknown Order';
 };
 
 const formatTotalQuantity = (order) => {

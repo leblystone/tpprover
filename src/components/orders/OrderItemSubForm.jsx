@@ -234,7 +234,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 2: Amount and Quantity */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                     <div className="relative">
                         <div 
                             className="flex items-stretch rounded-lg"
@@ -291,7 +291,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                     color: theme.isDark ? theme.text : '#181A18',
-                                    minWidth: '100px'
+                                    minWidth: '72px'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
@@ -300,7 +300,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                                 }}
                             >
-                                <span className="text-sm font-semibold">
+                                <span className="text-sm font-semibold truncate">
                                     {(item.mgUnit || 'mg')}
                                 </span>
                                 <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -440,7 +440,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                                     color: theme.isDark ? theme.text : '#181A18',
-                                    minWidth: '100px'
+                                    minWidth: '72px'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
@@ -449,7 +449,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                                 }}
                             >
-                                <span className="text-sm font-semibold">
+                                <span className="text-sm font-semibold truncate">
                                     {(() => {
                                         const unit = (item.unit || 'vial').toLowerCase();
                                         const quantity = Number(item.quantity) || 1;
@@ -567,9 +567,9 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 3: Price and Cost per Milligram */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 pt-4">
                     {/* Price Column */}
-                    <div className="relative">
+                    <div className="relative overflow-visible min-w-0">
                         <input
                             type="text"
                             id={`price-input-${item.id || 'new'}`}
@@ -588,9 +588,9 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         />
                         <label 
                             htmlFor={`price-input-${item.id || 'new'}`}
-                            className="absolute pointer-events-none transition-all"
+                            className="absolute pointer-events-none transition-all whitespace-nowrap"
                             style={{
-                                fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.75rem' : '0.9375rem',
+                                fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.65rem' : '0.75rem',
                                 top: (isPriceFocused || (item.price && String(item.price).trim())) ? '-8px' : '14px',
                                 left: (isPriceFocused || (item.price && String(item.price).trim())) ? '12px' : '16px',
                                 padding: (isPriceFocused || (item.price && String(item.price).trim())) ? '0 4px' : '0',
@@ -604,7 +604,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     </div>
 
                     {/* Cost per Milligram Column */}
-                    <div className="relative">
+                    <div className="relative overflow-visible min-w-0">
                         <input
                             type="text"
                             id={`costpermg-input-${item.id || 'new'}`}
@@ -623,9 +623,9 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         />
                         <label 
                             htmlFor={`costpermg-input-${item.id || 'new'}`}
-                            className="absolute pointer-events-none transition-all"
+                            className="absolute pointer-events-none transition-all whitespace-nowrap"
                             style={{
-                                fontSize: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0.75rem' : '0.9375rem',
+                                fontSize: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0.65rem' : '0.75rem',
                                 top: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '-8px' : '14px',
                                 left: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '12px' : '16px',
                                 padding: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0 4px' : '0',
@@ -633,8 +633,9 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 color: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? theme.primary : (theme.textLight || theme.text),
                                 fontWeight: 500
                             }}
+                            title={calculatedCostPerUnit.label}
                         >
-                            {calculatedCostPerUnit.label}
+                            $/{calculatedCostPerUnit.unit}
                         </label>
                     </div>
                 </div>

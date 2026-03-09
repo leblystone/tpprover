@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, Link, Image, FileText, Camera, ExternalLink, Loader } from 'lucide-react';
+import { Plus, X, Link, Image, Pencil, Camera, ExternalLink, Loader } from 'lucide-react';
 import { uploadImageToStorage, deleteImageFromStorage } from '../../utils/storageUtils';
 import { useAppContext } from '../../context/AppContext';
 import ImagePreviewModal from './ImagePreviewModal';
@@ -21,8 +21,10 @@ export default function DocumentationUpload({
   const [previewImage, setPreviewImage] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editFields, setEditFields] = useState({ title: '', notes: '' });
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
 
   const handleStartEdit = (item) => {
+    setConfirmRemoveId(null);
     setEditingId(item.id);
     setEditFields({ title: item.title || '', notes: item.notes || '' });
   };
@@ -152,128 +154,209 @@ export default function DocumentationUpload({
     return (
       <div 
         key={item.id} 
-        className="flex items-start gap-3 p-3 rounded-lg border"
+        className={`relative grid gap-2 rounded-lg border items-start ${isImage ? 'grid-cols-2 gap-3 p-3' : 'grid-cols-1 p-2.5'}`}
         style={{ 
           backgroundColor: isSynced ? theme.info + '10' : theme.secondary,
           borderColor: isSynced ? theme.info + '40' : theme.border
         }}
       >
-        <div className="flex-shrink-0 mt-1">
-          {isImage ? (
-            <Image size={16} style={{ color: theme.primary }} />
-          ) : (
-            <Link size={16} style={{ color: theme.primary }} />
-          )}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          {isEditing ? (
-            <div className="space-y-2 mb-2">
-              <input
-                type="text"
-                value={editFields.title}
-                onChange={(e) => setEditFields(f => ({ ...f, title: e.target.value }))}
-                placeholder="Link title..."
-                className="w-full px-2 py-1 rounded border text-sm font-medium"
-                style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
-              />
-              <textarea
-                value={editFields.notes}
-                onChange={(e) => setEditFields(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Optional notes..."
-                rows={2}
-                className="w-full px-2 py-1 rounded border text-xs resize-none"
-                style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleSaveEdit(item.id)}
-                  className="px-3 py-1 rounded text-xs font-semibold text-white"
-                  style={{ backgroundColor: theme.primary, fontFamily: 'Poppins, sans-serif' }}
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingId(null)}
-                  className="px-3 py-1 rounded text-xs font-semibold"
-                  style={{ backgroundColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
-                >
-                  Cancel
-                </button>
-              </div>
+        {/* Remove (X) - upper right of card */}
+        {!readonly && !isSynced && (
+          <>
+            <style>{`
+              @keyframes docTapConfirmPop {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.08); }
+              }
+              .doc-tap-confirm-pop { animation: docTapConfirmPop 0.45s ease-out 2; }
+            `}</style>
+            <div className="absolute top-2 right-2 z-10">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmRemoveId === item.id) {
+                    setConfirmRemoveId(null);
+                    handleRemoveItem(item.id);
+                  } else {
+                    setConfirmRemoveId(item.id);
+                  }
+                }}
+                className={`p-1 rounded text-xs font-medium transition-all ${confirmRemoveId === item.id ? 'doc-tap-confirm-pop' : ''}`}
+                style={{ color: confirmRemoveId === item.id ? '#8B5335' : '#b91c1c' }}
+                title={confirmRemoveId === item.id ? 'Tap again to remove' : 'Remove'}
+              >
+                {confirmRemoveId === item.id ? 'Tap again to remove' : <X size={14} />}
+              </button>
             </div>
-          ) : (
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="font-medium text-sm truncate" style={{ color: theme.text }}>
-                {item.title}
-              </h4>
-              {isSynced && (
-                <span className="text-xs px-2 py-0.5 rounded" 
-                      style={{ backgroundColor: theme.info + '20', color: theme.info }}>
-                  From Order
-                </span>
+          </>
+        )}
+        {/* Left column: data */}
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <div className="flex items-start gap-2">
+            <span className="flex-shrink-0 mt-0.5">
+              {isImage ? (
+                <Image size={16} style={{ color: theme.primary }} />
+              ) : (
+                <Link size={16} style={{ color: theme.primary }} />
+              )}
+            </span>
+            <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+              {isEditing ? (
+                <div className="space-y-2 flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={editFields.title}
+                    onChange={(e) => setEditFields(f => ({ ...f, title: e.target.value }))}
+                    placeholder="Link title..."
+                    className="w-full px-2 py-1 rounded border text-sm font-medium"
+                    style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+                  />
+                  <textarea
+                    value={editFields.notes}
+                    onChange={(e) => setEditFields(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Optional notes..."
+                    rows={2}
+                    className="w-full px-2 py-1 rounded border text-xs resize-none"
+                    style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+                  />
+                  <div className="flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="text-xs font-semibold hover:underline bg-transparent border-none cursor-pointer"
+                      style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveEdit(item.id)}
+                      className="px-3 py-1 rounded text-xs font-semibold text-white shadow-sm"
+                      style={{
+                        backgroundColor: theme.primary,
+                        fontFamily: 'Poppins, sans-serif',
+                        boxShadow: theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : isImage ? (
+                <div className="min-w-0">
+                  <h4 className="font-medium text-sm truncate" style={{ color: theme.text }}>
+                    {item.title}
+                  </h4>
+                  <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                    Added {new Date(item.dateAdded).toLocaleDateString()}
+                  </p>
+                  {isSynced && (
+                    <span className="text-xs px-2 py-0.5 rounded inline-block mt-1" 
+                          style={{ backgroundColor: theme.info + '20', color: theme.info }}>
+                      From Order
+                    </span>
+                  )}
+                </div>
+              ) : (
+                /* Link: title + Open Link on one line; date + Add note + Pencil on next */
+                <div className="min-w-0 flex flex-col gap-1 w-full">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h4 className="font-medium text-sm truncate min-w-0 flex-1" style={{ color: theme.text }}>
+                      {item.title}
+                    </h4>
+                    <a 
+                      href={item.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs hover:underline flex-shrink-0"
+                      style={{ color: theme.primary }}
+                    >
+                      <ExternalLink size={12} />
+                      Open Link
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs" style={{ color: theme.textLight }}>
+                      Added {new Date(item.dateAdded).toLocaleDateString()}
+                    </p>
+                    {!readonly && !isSynced && (
+                      <>
+                        {!item.notes && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(item)}
+                            className="text-xs font-medium hover:underline"
+                            style={{ color: theme.primary }}
+                          >
+                            Add note
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(item)}
+                          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
+                          title="Edit"
+                          style={{ color: theme.textLight }}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {isSynced && (
+                    <span className="text-xs px-2 py-0.5 rounded w-fit" 
+                          style={{ backgroundColor: theme.info + '20', color: theme.info }}>
+                      From Order
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-          
+          </div>
           {!isEditing && item.notes && (
-            <p className="text-xs mb-2" style={{ color: theme.textLight }}>
+            <p className="text-xs" style={{ color: theme.textLight }}>
               {item.notes}
             </p>
           )}
-          
-          {isImage ? (
-            <div className="mt-2">
-              <img 
-                src={item.url} 
-                alt={item.title}
-                className="max-w-full h-20 object-cover rounded border cursor-pointer hover:opacity-80 hover:scale-105 transition-all"
-                onClick={() => setPreviewImage(item)}
-                style={{ borderColor: theme.border }}
-              />
-              {item.fileSize && (
-                <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                  {(item.fileSize / 1024).toFixed(0)}KB • Click to preview
-                </p>
+          {/* Bottom row for image only: Add note + Edit */}
+          {!readonly && !isSynced && !isEditing && isImage && (
+            <div className="flex items-center justify-center gap-2 mt-auto pt-2">
+              {!item.notes && (
+                <button
+                  type="button"
+                  onClick={() => handleStartEdit(item)}
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: theme.primary }}
+                >
+                  Add note
+                </button>
               )}
-            </div>
-          ) : (
-            <a 
-              href={item.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm hover:underline"
-              style={{ color: theme.primary }}
-            >
-              <ExternalLink size={12} />
-              Open Link
-            </a>
-          )}
-          
-          <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-            Added {new Date(item.dateAdded).toLocaleDateString()}
-          </p>
-        </div>
-        
-        {!readonly && !isSynced && (
-          <div className="flex flex-col gap-1 flex-shrink-0">
-            {!isEditing && (
               <button
+                type="button"
                 onClick={() => handleStartEdit(item)}
                 className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
                 title="Edit"
                 style={{ color: theme.textLight }}
               >
-                <FileText size={14} />
+                <Pencil size={14} />
               </button>
-            )}
-            <button
-              onClick={() => handleRemoveItem(item.id)}
-              className="p-1 rounded hover:bg-red-100 text-red-600"
-              title="Remove"
-            >
-              <X size={14} />
-            </button>
+            </div>
+          )}
+        </div>
+        {/* Right column: image (only for image type) */}
+        {isImage && (
+          <div className="flex flex-col gap-1 flex-shrink-0 min-w-0">
+            <div className="w-full h-28 rounded-lg border overflow-hidden flex items-center justify-center bg-black/5" style={{ borderColor: theme.border }}>
+              <img 
+                src={item.url} 
+                alt={item.title}
+                className="max-w-full max-h-full w-auto h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setPreviewImage(item)}
+              />
+            </div>
+            <p className="text-xs text-center" style={{ color: theme.textLight }}>
+              Click to preview
+            </p>
           </div>
         )}
       </div>
@@ -331,7 +414,7 @@ export default function DocumentationUpload({
             }}
           >
             <Plus size={14} />
-            Add Documentation
+            Upload Image or Link
           </button>
         )}
       </div>
@@ -412,7 +495,7 @@ export default function DocumentationUpload({
               <div>
                 {/* Custom File Upload Button */}
                 <label
-                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-all min-w-0 ${
                     safeNewItem.selectedFile ? 'border-solid' : ''
                   } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-solid'}`}
                   style={{
@@ -429,8 +512,12 @@ export default function DocumentationUpload({
                   />
                   {safeNewItem.selectedFile ? (
                     <>
-                      <Image size={16} style={{ color: theme.primary }} />
-                      <span className="text-sm font-medium" style={{ color: theme.primary }}>
+                      <Image size={16} className="flex-shrink-0" style={{ color: theme.primary }} />
+                      <span
+                        className="text-sm font-medium truncate min-w-0"
+                        style={{ color: theme.primary }}
+                        title={`${safeNewItem.selectedFile.name} (${(safeNewItem.selectedFile.size / 1024).toFixed(0)}KB)`}
+                      >
                         {safeNewItem.selectedFile.name} ({(safeNewItem.selectedFile.size / 1024).toFixed(0)}KB)
                       </span>
                       <button
@@ -438,7 +525,7 @@ export default function DocumentationUpload({
                           e.preventDefault();
                           setNewItem({ ...safeNewItem, selectedFile: null });
                         }}
-                        className="ml-auto p-1 rounded hover:bg-red-100"
+                        className="flex-shrink-0 p-1 rounded hover:bg-red-100"
                       >
                         <X size={14} style={{ color: '#ef4444' }} />
                       </button>
