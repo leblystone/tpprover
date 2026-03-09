@@ -82,7 +82,7 @@ const Tooltip = ({ text, children }) => {
   );
 };
 
-export default function GhostWorkerWorkQueue({ theme }) {
+export default function WorkQueue({ theme }) {
   const defaultTheme = {
     text: '#1F2937',
     textLight: '#6B7280',
@@ -828,6 +828,25 @@ export default function GhostWorkerWorkQueue({ theme }) {
             }}
           >
             <Plus size={13} /> Add Missed Ticket
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowGhSettings(true)}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '16px',
+              border: `1px solid ${(ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary : t.border}`,
+              backgroundColor: (ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary + '15' : 'transparent',
+              color: (ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary : t.textLight,
+              fontWeight: '600',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <Settings size={13} /> GitHub {(ghConfig.owner && ghConfig.repo && ghConfig.token) ? '✓' : 'Setup'}
           </button>
         </div>
       </div>
@@ -1774,24 +1793,6 @@ export default function GhostWorkerWorkQueue({ theme }) {
                   justifyContent: 'space-between'
                 }}>
                   <span>📝 Admin Notes</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowGhSettings(true)}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: 'transparent',
-                      border: `1px solid ${t.border}`,
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      color: t.textLight,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Settings size={12} /> GitHub
-                  </button>
                 </div>
                 <div style={{ padding: '8px' }}>
                   <textarea

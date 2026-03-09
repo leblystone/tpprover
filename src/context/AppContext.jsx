@@ -19,7 +19,7 @@ import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData'
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
-import { safeParseLocalStorage, sanitizeForLocalStorage } from '../utils/dataValidation';
+import { safeParseLocalStorage, sanitizeForLocalStorage, deduplicateById } from '../utils/dataValidation';
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
@@ -311,7 +311,7 @@ export function AppProvider({ children }) {
             // Safe to load data - no user mismatch detected
             const savedProtocols = localStorage.getItem('tpprover_protocols');
             if (savedProtocols) {
-                const parsedProtocols = migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols));
+                const parsedProtocols = deduplicateById(migrateBlendedProtocolFrequencies(JSON.parse(savedProtocols)));
                 setProtocols(parsedProtocols);
                 // Remap old dose-embedded task IDs to dose-independent IDs so that
                 // dose changes no longer wipe historical check-off records (Z109)
@@ -319,22 +319,22 @@ export function AppProvider({ children }) {
             }
 
             const savedRecon = safeParseLocalStorage('tpprover_recon_items', []);
-            if (savedRecon.length) setReconItems(savedRecon);
+            if (savedRecon.length) setReconItems(deduplicateById(savedRecon));
             
             const savedReconHistory = safeParseLocalStorage('tpprover_recon_history', []);
-            if (savedReconHistory.length) setReconHistory(savedReconHistory);
+            if (savedReconHistory.length) setReconHistory(deduplicateById(savedReconHistory));
             
             const savedSupplements = safeParseLocalStorage('tpprover_supplements', []);
-            if (savedSupplements.length) setSupplements(savedSupplements);
+            if (savedSupplements.length) setSupplements(deduplicateById(savedSupplements));
 
             const savedOrders = localStorage.getItem('tpprover_orders');
-            if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
+            if (savedOrders) setOrders(ensurePublicOrderNumbers(deduplicateById(JSON.parse(savedOrders))));
 
             const savedMetrics = localStorage.getItem('tpprover_metrics');
-            if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+            if (savedMetrics) setMetrics(deduplicateById(JSON.parse(savedMetrics)));
 
             const savedVendors = localStorage.getItem('tpprover_vendors');
-            if (savedVendors) setVendors(JSON.parse(savedVendors));
+            if (savedVendors) setVendors(deduplicateById(JSON.parse(savedVendors)));
             
             const savedNotes = localStorage.getItem('tpprover_calendar_notes');
             if (savedNotes) {
@@ -351,12 +351,11 @@ export function AppProvider({ children }) {
             }
 
             const savedStockpile = localStorage.getItem('tpprover_stockpile');
-            if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
+            if (savedStockpile) setStockpile(deduplicateById(JSON.parse(savedStockpile)));
 
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
             if (savedScheduledBuys) {
-                const parsed = JSON.parse(savedScheduledBuys);
-                setScheduledBuys(parsed);
+                setScheduledBuys(deduplicateById(JSON.parse(savedScheduledBuys)));
             }
         } catch (error) {
             console.error('❌ Failed to load localStorage data on mount:', error);

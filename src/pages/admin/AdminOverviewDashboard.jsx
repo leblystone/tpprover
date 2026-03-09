@@ -15,7 +15,7 @@ import {
   Send,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
-import GhostWorkerWorkQueue from '../../components/admin/GhostWorkerWorkQueue';
+import WorkQueue from '../../components/admin/WorkQueue';
 
 const STATUS_FILTERS = [
   { id: 'new', label: 'New' },
@@ -159,7 +159,7 @@ export default function AdminOverviewDashboard() {
           </h2>
         </div>
         <div className="min-h-[280px]">
-          <GhostWorkerWorkQueue theme={theme} />
+          <WorkQueue theme={theme} />
         </div>
       </section>
 

@@ -340,6 +340,25 @@ export function safeParseLocalStorage(key, fallback) {
   }
 }
 
+/**
+ * Deduplicate an array of objects by their `id` field.
+ * Last occurrence wins (preserves the most-recently-written version).
+ * Items without an `id` are kept as-is (no deduplication possible).
+ */
+export function deduplicateById(items) {
+  if (!Array.isArray(items)) return items;
+  const seen = new Map();
+  const noId = [];
+  items.forEach(item => {
+    if (item && item.id != null) {
+      seen.set(String(item.id), item);
+    } else {
+      noId.push(item);
+    }
+  });
+  return [...seen.values(), ...noId];
+}
+
 // ===== DATA RETENTION / PRUNING =====
 // Prevents unbounded growth of date-keyed objects and history arrays.
 
