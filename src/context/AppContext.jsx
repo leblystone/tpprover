@@ -2213,16 +2213,18 @@ export function AppProvider({ children }) {
             try {
                 // Dynamically import to avoid circular dependencies
                 const { syncAllOrdersFromTracking } = await import('../utils/trackingStatusSync');
-                const ordersWithTracking = orders.filter(o => o?.tracking && o.tracking.trim() !== '');
+                // Read fresh from localStorage — not stale closure `orders`
+                const currentOrders = safeParseLocalStorage('tpprover_orders', []);
+                const ordersWithTracking = currentOrders.filter(o => o?.tracking && o.tracking.trim() !== '');
                 
                 if (ordersWithTracking.length === 0) return;
 
-                const updatedOrders = await syncAllOrdersFromTracking(orders);
+                const updatedOrders = await syncAllOrdersFromTracking(currentOrders);
 
                 if (updatedOrders.length > 0) {
                     // Update orders state - AppContext will handle saving
                     updatedOrders.forEach(updatedOrder => {
-                        const originalOrder = orders.find(o => o.id === updatedOrder.id);
+                        const originalOrder = currentOrders.find(o => o.id === updatedOrder.id);
                         if (originalOrder && originalOrder.status !== updatedOrder.status) {
                             setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
                             

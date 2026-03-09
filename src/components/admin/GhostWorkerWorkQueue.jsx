@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, setDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
@@ -7,9 +7,9 @@ import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
   MessageSquare, Wrench, ExternalLink, History, 
-  DollarSign, Calendar, TrendingUp, FileText, HelpCircle,
+  DollarSign, Calendar, TrendingUp, FileText,
   ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck,
-  Search, Plus
+  Search, Plus, Settings, Link2, GitCommit
 } from 'lucide-react';
 
 // Quick response templates
@@ -103,13 +103,19 @@ export default function GhostWorkerWorkQueue({ theme }) {
   const [workQueue, setWorkQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
-  const [showNotes, setShowNotes] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendingGhostResponse, setSendingGhostResponse] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [adminStatus, setAdminStatusLocal] = useState(null);
+  const [linkedCommits, setLinkedCommitsLocal] = useState([]);
+  const [showGhSettings, setShowGhSettings] = useState(false);
+  const [ghConfig, setGhConfig] = useState({ owner: '', repo: '', token: '' });
+  const [ghConfigLoaded, setGhConfigLoaded] = useState(false);
+  const [commitsFetching, setCommitsFetching] = useState(false);
+  const [commitsList, setCommitsList] = useState([]);
+  const [showCommitsDropdown, setShowCommitsDropdown] = useState(false);
+  const [manualCommitText, setManualCommitText] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   
   const [costs, setCosts] = useState({
@@ -182,6 +188,8 @@ export default function GhostWorkerWorkQueue({ theme }) {
           responseContent: log.responseContent || '',
           responsePosted: log.responsePosted || false,
           adminNotes: log.adminNotes || '',
+          adminStatus: log.adminStatus || null,
+          linkedCommits: Array.isArray(log.linkedCommits) ? log.linkedCommits : [],
           markedFixed: log.markedFixed || false,
           markedFixedAt: log.markedFixedAt,
           followUpSent: log.followUpSent || false,
@@ -257,6 +265,47 @@ export default function GhostWorkerWorkQueue({ theme }) {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Load GitHub config from Firestore (shared for all admins / all browsers)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const configRef = doc(db, 'adminConfig', 'workQueueGitHub');
+        const snap = await getDoc(configRef);
+        if (cancelled) return;
+        if (snap.exists() && snap.data()) {
+          const d = snap.data();
+          setGhConfig({
+            owner: d.owner || '',
+            repo: d.repo || '',
+            token: d.token || ''
+          });
+        } else {
+          // Fallback: migrate from localStorage if present
+          try {
+            const raw = localStorage.getItem('tpp_gh_config');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              setGhConfig({ owner: parsed.owner || '', repo: parsed.repo || '', token: parsed.token || '' });
+            }
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Could not load GitHub config from Firestore:', err?.message);
+        try {
+          const raw = localStorage.getItem('tpp_gh_config');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            setGhConfig({ owner: parsed.owner || '', repo: parsed.repo || '', token: parsed.token || '' });
+          }
+        } catch (_) {}
+      } finally {
+        if (!cancelled) setGhConfigLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Watch for tickets re-opened by users (replied to a closed ticket)
@@ -454,117 +503,51 @@ export default function GhostWorkerWorkQueue({ theme }) {
   const openTicket = (ticket) => {
     setSelectedTicket(ticket);
     setAdminNotes(ticket.adminNotes || '');
+    setAdminStatusLocal(ticket.adminStatus || null);
+    setLinkedCommitsLocal(Array.isArray(ticket.linkedCommits) ? ticket.linkedCommits : []);
     setCustomMessage('');
-    setCopySuccess(false);
-    setShowNotes(!!ticket.adminNotes);
   };
 
   const closeModal = () => {
     setSelectedTicket(null);
     setAdminNotes('');
+    setAdminStatusLocal(null);
+    setLinkedCommitsLocal([]);
     setCustomMessage('');
-    setShowNotes(false);
+    setShowCommitsDropdown(false);
+    setCommitsList([]);
+    setManualCommitText('');
   };
 
-  // Extract ONLY the Cursor prompt section
-  const extractCursorPrompt = (content) => {
-    if (!content) return null;
-    
-    // Look for ADMIN NOTES section
-    const adminMatch = content.match(/---\s*##\s*ADMIN NOTES[\s\S]*$/i);
-    if (adminMatch) {
-      return adminMatch[0].replace(/^---\s*##\s*ADMIN NOTES.*?\n+/i, '').trim();
-    }
-    
-    // Look for CURSOR PROMPT specifically
-    const cursorMatch = content.match(/💡\s*CURSOR PROMPT:?\s*\n([\s\S]+?)(?=\n\n🧪|$)/i);
-    if (cursorMatch) {
-      return cursorMatch[1].trim();
-    }
-    
-    return null;
-  };
-
-  // Extract customer response section
-  const extractCustomerResponse = (content) => {
-    if (!content) return null;
-    
-    const parts = content.split(/---\s*##\s*ADMIN NOTES/i);
-    if (parts.length > 0) {
-      let customerPart = parts[0];
-      customerPart = customerPart.replace(/^##\s*CUSTOMER RESPONSE:\s*/i, '').trim();
-      return customerPart;
-    }
-    return content;
-  };
-
-  const copyToClipboard = async () => {
-    const cursorPrompt = extractCursorPrompt(selectedTicket?.responseContent);
-    if (!cursorPrompt) return;
-    
+  const saveAdminStatus = useCallback(async (status) => {
+    if (!selectedTicket) return;
+    setAdminStatusLocal(status);
     try {
-      await navigator.clipboard.writeText(cursorPrompt);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
-  };
-
-  const sendGhostResponseToUser = async () => {
-    if (!selectedTicket?.ticketId) return;
-    const text = extractCustomerResponse(selectedTicket.responseContent);
-    if (!text?.trim()) return;
-    
-    setSendingGhostResponse(true);
-    try {
-      const firestore = getFirestore();
-      const messagesRef = collection(firestore, 'supportTickets', selectedTicket.ticketId, 'messages');
-      await addDoc(messagesRef, {
-        message: text.trim(),
-        text: text.trim(),
-        senderType: 'ghost-worker',
-        senderName: 'Ghosty',
-        senderEmail: 'ghosty@thepepplanner.com',
-        createdAt: serverTimestamp(),
-        read: false,
-        metadata: { sentVia: 'work-queue-manual', logId: selectedTicket.logId }
-      });
-      const ticketRef = doc(firestore, 'supportTickets', selectedTicket.ticketId);
-      await updateDoc(ticketRef, {
-        lastMessageAt: serverTimestamp(),
-        status: 'in-progress',
-        updatedAt: serverTimestamp(),
-        'metadata.ghostWorker.responsePosted': true,
-        'metadata.ghostWorker.postedAt': serverTimestamp(),
-        'metadata.ghostWorker.approvedVia': 'work-queue'
-      });
-      // Best-effort: mark log as posted (admin can update if rules allow)
-      try {
-        const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
-        await updateDoc(logRef, {
-          responsePosted: true,
-          responsePostedAt: serverTimestamp()
-        });
-      } catch (logErr) {
-        console.warn('Could not update ai_worker_logs (message was still sent):', logErr?.message);
-      }
+      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      await updateDoc(logRef, { adminStatus: status });
       setWorkQueue(prev => prev.map(t =>
-        t.logId === selectedTicket.logId ? { ...t, responsePosted: true } : t
+        t.logId === selectedTicket.logId ? { ...t, adminStatus: status } : t
       ));
-      setSelectedTicket(prev => prev ? { ...prev, responsePosted: true } : null);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: "Ghosty's response sent to user ✓", type: 'success' }
-      }));
+      setSelectedTicket(prev => prev ? { ...prev, adminStatus: status } : null);
     } catch (error) {
-      console.error('Failed to send Ghosty response:', error);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Failed to send response', type: 'error' }
-      }));
-    } finally {
-      setSendingGhostResponse(false);
+      console.error('Failed to save status:', error);
     }
-  };
+  }, [selectedTicket]);
+
+  const saveLinkedCommits = useCallback(async (commits) => {
+    if (!selectedTicket) return;
+    setLinkedCommitsLocal(commits);
+    try {
+      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      await updateDoc(logRef, { linkedCommits: commits });
+      setWorkQueue(prev => prev.map(t =>
+        t.logId === selectedTicket.logId ? { ...t, linkedCommits: commits } : t
+      ));
+      setSelectedTicket(prev => prev ? { ...prev, linkedCommits: commits } : null);
+    } catch (error) {
+      console.error('Failed to save linked commits:', error);
+    }
+  }, [selectedTicket]);
 
   const saveAdminNotes = useCallback(async (notes) => {
     if (!selectedTicket) return;
@@ -585,14 +568,14 @@ export default function GhostWorkerWorkQueue({ theme }) {
   }, [selectedTicket]);
 
   useEffect(() => {
-    if (!selectedTicket || !showNotes || adminNotes === selectedTicket.adminNotes) return;
+    if (!selectedTicket || adminNotes === selectedTicket.adminNotes) return;
     
     const timer = setTimeout(() => {
       saveAdminNotes(adminNotes);
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [adminNotes, selectedTicket, saveAdminNotes, showNotes]);
+  }, [adminNotes, selectedTicket, saveAdminNotes]);
 
   const sendMessage = async () => {
     if (!selectedTicket || !customMessage.trim()) return;
@@ -1354,6 +1337,17 @@ export default function GhostWorkerWorkQueue({ theme }) {
                       <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
                         #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
                       </span>
+                      {ticket.adminStatus && (
+                        <span style={{
+                          fontSize: '10px', padding: '2px 6px', borderRadius: '8px', fontWeight: '600',
+                          ...(ticket.adminStatus === 'working' && { backgroundColor: '#DBEAFE', color: '#1D4ED8' }),
+                          ...(ticket.adminStatus === 'resolved' && { backgroundColor: '#D1FAE5', color: '#065F46' }),
+                          ...(ticket.adminStatus === 'need-info' && { backgroundColor: '#FEF3C7', color: '#92400E' }),
+                          ...(ticket.adminStatus === 'known-issue' && { backgroundColor: '#FEE2E2', color: '#B91C1C' })
+                        }}>
+                          {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label || ticket.adminStatus}
+                        </span>
+                      )}
                       {ticket.type === 'account_deletion_request' ? (
                         <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: '600' }}>🗑️ DELETION REQUEST</span>
                       ) : ticket.addedManually ? (
@@ -1450,6 +1444,17 @@ export default function GhostWorkerWorkQueue({ theme }) {
                         <span style={{ fontWeight: '600', color: t.text, fontSize: '12px' }}>
                           #{ticket.ticketNumber}
                         </span>
+                        {ticket.adminStatus && (
+                          <span style={{
+                            fontSize: '10px', padding: '1px 5px', borderRadius: '6px', fontWeight: '600',
+                            ...(ticket.adminStatus === 'working' && { backgroundColor: '#DBEAFE', color: '#1D4ED8' }),
+                            ...(ticket.adminStatus === 'resolved' && { backgroundColor: '#D1FAE5', color: '#065F46' }),
+                            ...(ticket.adminStatus === 'need-info' && { backgroundColor: '#FEF3C7', color: '#92400E' }),
+                            ...(ticket.adminStatus === 'known-issue' && { backgroundColor: '#FEE2E2', color: '#B91C1C' })
+                          }}>
+                            {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label || ticket.adminStatus}
+                          </span>
+                        )}
                         <span style={{ fontSize: '10px', color: t.textLight }}>
                           {formatRelativeTime(ticket.timestamp)}
                         </span>
@@ -1601,6 +1606,18 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 <span style={{ fontSize: '14px', fontWeight: '600', color: t.text }}>
                   🎫 #{selectedTicket.ticketNumber}{selectedTicket.requestNumbers?.length > 1 ? ` (${selectedTicket.requestNumbers.join(', ')})` : ''}
                 </span>
+                {(() => {
+                  const status = adminStatus ?? selectedTicket.adminStatus;
+                  if (!status) return null;
+                  const statusLabel = QUICK_RESPONSES.find(r => r.id === status)?.label || status;
+                  const statusPills = { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } };
+                  const sp = statusPills[status] || { bg: t.background, fg: t.text };
+                  return (
+                    <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '10px', backgroundColor: sp.bg, color: sp.fg, fontWeight: '600' }}>
+                      {statusLabel}
+                    </span>
+                  );
+                })()}
                 {selectedTicket.markedFixed && (
                   <span style={{
                     fontSize: '10px',
@@ -1681,205 +1698,326 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 )}
               </div>
 
-              {/* Row 1: Original Message + Ghosty's Reasoning (2 columns) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                {/* Original Message */}
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
-                    📨 User Message
-                  </div>
-                  <div style={{
-                    padding: '8px',
-                    backgroundColor: '#FEF3C7',
-                    border: '1px solid #FCD34D',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    lineHeight: '1.35',
-                    color: '#78350F',
-                    maxHeight: '90px',
-                    overflowY: 'auto'
-                  }}>
-                    {selectedTicket.originalMessage || 'No message available'}
-                  </div>
-                </div>
-
-                {/* Ghosty's Reasoning */}
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
-                    🧠 Ghosty's Reasoning
-                  </div>
-                  <div style={{
-                    padding: '8px',
-                    backgroundColor: '#EDE9FE',
-                    border: '1px solid #C4B5FD',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    lineHeight: '1.35',
-                    color: '#5B21B6',
-                    maxHeight: '90px',
-                    overflowY: 'auto'
-                  }}>
-                    {selectedTicket.reasoning || 'No reasoning available'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: Ghosty's response (to user) + Cursor Prompt (2 columns) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                {/* Ghosty's response (to user) — may not be sent yet */}
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                    💬 Ghosty's response (to user)
-                    {selectedTicket.responsePosted ? (
-                      <span style={{ color: '#059669', fontWeight: '600' }}>✓ Sent</span>
-                    ) : (
-                      <span style={{ color: '#B45309', fontWeight: '600' }}>(not sent yet)</span>
-                    )}
-                    <Tooltip text="This is what Ghosty drafted for the customer. In observation mode it isn't sent automatically — use the button below to send it.">
-                      <HelpCircle size={11} style={{ color: t.textLight }} />
-                    </Tooltip>
-                  </div>
-                  <div style={{
-                    padding: '8px',
-                    backgroundColor: '#ECFDF5',
-                    border: '1px solid #A7F3D0',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    lineHeight: '1.35',
-                    color: '#065F46',
-                    maxHeight: '100px',
-                    overflowY: 'auto',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {extractCustomerResponse(selectedTicket.responseContent) || 'No response available'}
-                  </div>
-                  {extractCustomerResponse(selectedTicket.responseContent)?.trim() && !selectedTicket.responsePosted && !selectedTicket.markedFixed && (
+              {/* Status Bar — sets label + pre-fills reply */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                {QUICK_RESPONSES.map(response => {
+                  const isActive = (adminStatus ?? selectedTicket.adminStatus) === response.id;
+                  const statusColors = {
+                    working: { bg: '#DBEAFE', border: '#3B82F6', fg: '#1D4ED8' },
+                    resolved: { bg: '#D1FAE5', border: '#10B981', fg: '#065F46' },
+                    'need-info': { bg: '#FEF3C7', border: '#F59E0B', fg: '#92400E' },
+                    'known-issue': { bg: '#FEE2E2', border: '#EF4444', fg: '#B91C1C' }
+                  };
+                  const sc = statusColors[response.id] || { bg: t.background, border: t.border, fg: t.text };
+                  return (
                     <button
+                      key={response.id}
                       type="button"
-                      onClick={sendGhostResponseToUser}
-                      disabled={sendingGhostResponse}
+                      onClick={() => {
+                        const next = isActive ? null : response.id;
+                        saveAdminStatus(next);
+                        setCustomMessage(next ? response.message : customMessage);
+                      }}
                       style={{
-                        marginTop: '6px',
-                        padding: '6px 10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        backgroundColor: sendingGhostResponse ? t.border : btnPrimary,
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
+                        padding: '6px 12px',
+                        backgroundColor: isActive ? sc.bg : t.background,
+                        border: `2px solid ${isActive ? sc.border : t.border}`,
+                        borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: '600',
-                        cursor: sendingGhostResponse ? 'not-allowed' : 'pointer',
-                        opacity: sendingGhostResponse ? 0.8 : 1
+                        color: isActive ? sc.fg : t.text,
+                        cursor: 'pointer'
                       }}
                     >
-                      {sendingGhostResponse ? (
-                        <>Sending…</>
-                      ) : (
-                        <>
-                          <Send size={14} />
-                          Send this response to user
-                        </>
-                      )}
+                      {response.label}
                     </button>
-                  )}
-                </div>
+                  );
+                })}
+              </div>
 
-                {/* Cursor Prompt (for you to copy) */}
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      🤖 Cursor Prompt
-                      <Tooltip text="Copy this and paste into Cursor AI to fix the issue">
-                        <HelpCircle size={11} style={{ color: t.textLight }} />
-                      </Tooltip>
-                    </div>
-                    {extractCursorPrompt(selectedTicket.responseContent) && (
-                      <button
-                        onClick={copyToClipboard}
-                        style={{
-                          padding: '4px 8px',
-                          backgroundColor: copySuccess ? btnSuccess : btnPrimary,
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        {copySuccess ? <><CheckCircle2 size={11} /> Copied!</> : <><Copy size={11} /> Copy</>}
-                      </button>
-                    )}
-                  </div>
-                  <div style={{
-                    padding: '8px',
-                    backgroundColor: t.background,
-                    border: `1px solid ${t.border}`,
-                    borderRadius: '6px',
-                    fontFamily: 'monospace',
-                    fontSize: '10px',
-                    lineHeight: '1.35',
-                    color: t.text,
-                    maxHeight: '100px',
-                    overflowY: 'auto',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {extractCursorPrompt(selectedTicket.responseContent) || '⚠️ No Cursor prompt available for this ticket'}
-                  </div>
+              {/* User Message — full width */}
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
+                  📨 User Message
+                </div>
+                <div style={{
+                  padding: '8px',
+                  backgroundColor: '#FEF3C7',
+                  border: '1px solid #FCD34D',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  lineHeight: '1.35',
+                  color: '#78350F',
+                  maxHeight: '90px',
+                  overflowY: 'auto'
+                }}>
+                  {selectedTicket.originalMessage || 'No message available'}
                 </div>
               </div>
 
-              {/* My Notes Button + Expandable */}
-              <div style={{ marginBottom: '8px' }}>
-                <button
-                  onClick={() => setShowNotes(!showNotes)}
-                  style={{
-                    padding: '6px 10px',
-                    backgroundColor: showNotes ? t.background : 'transparent',
-                    border: `1px solid ${t.border}`,
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    color: t.text,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FileText size={12} />
-                  {showNotes ? 'Hide Notes' : 'Add Notes'}
-                  {adminNotes && !showNotes && <span style={{ color: btnSuccess }}>✓</span>}
-                  {showNotes ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                </button>
-                
-                {showNotes && (
-                  <div style={{ marginTop: '6px' }}>
-                    <textarea
-                      value={adminNotes}
-                      onChange={(e) => setAdminNotes(e.target.value)}
-                      placeholder="Your notes about this fix... (auto-saves)"
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: `1px solid ${t.border}`,
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        resize: 'vertical',
-                        minHeight: '48px',
-                        fontFamily: 'inherit',
-                        color: t.text,
-                        backgroundColor: t.cardBackground
-                      }}
-                    />
-                    <div style={{ fontSize: '10px', color: saving ? t.primary : btnSuccess, marginTop: '2px' }}>
-                      {saving ? 'Saving...' : (adminNotes ? '✓ Saved' : '')}
-                    </div>
+              {/* Admin Workspace: Notes (always visible) + Linked Commits */}
+              <div style={{
+                marginBottom: '10px',
+                border: `1px solid ${t.border}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                backgroundColor: t.background
+              }}>
+                <div style={{
+                  padding: '8px 10px',
+                  borderBottom: `1px solid ${t.border}`,
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  color: t.text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>📝 Admin Notes</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowGhSettings(true)}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: 'transparent',
+                      border: `1px solid ${t.border}`,
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      color: t.textLight,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Settings size={12} /> GitHub
+                  </button>
+                </div>
+                <div style={{ padding: '8px' }}>
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Your notes about this fix... e.g. commit details (auto-saves)"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: `1px solid ${t.border}`,
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      resize: 'vertical',
+                      minHeight: '56px',
+                      fontFamily: 'inherit',
+                      color: t.text,
+                      backgroundColor: t.cardBackground
+                    }}
+                  />
+                  <div style={{ fontSize: '10px', color: saving ? t.primary : btnSuccess, marginTop: '2px' }}>
+                    {saving ? 'Saving...' : (adminNotes ? '✓ Saved' : '')}
                   </div>
-                )}
+
+                  {/* Linked Commits */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Link2 size={10} /> Linked Commits
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const { owner, repo, token } = ghConfig?.owner && ghConfig?.repo && ghConfig?.token
+                              ? ghConfig
+                              : (() => { try { const c = JSON.parse(localStorage.getItem('tpp_gh_config') || '{}'); return { owner: c.owner || '', repo: c.repo || '', token: c.token || '' }; } catch { return { owner: '', repo: '', token: '' }; } })();
+                            if (!owner || !repo || !token) {
+                              setShowGhSettings(true);
+                              return;
+                            }
+                            setCommitsFetching(true);
+                            setCommitsList([]);
+                            try {
+                              const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=15`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (!res.ok) throw new Error(res.statusText);
+                              const data = await res.json();
+                              setCommitsList(Array.isArray(data) ? data : []);
+                              setShowCommitsDropdown(true);
+                            } catch (err) {
+                              console.error(err);
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to fetch commits. Check GitHub settings.', type: 'error' } }));
+                            } finally {
+                              setCommitsFetching(false);
+                            }
+                          }}
+                          disabled={commitsFetching}
+                          style={{
+                            padding: '5px 10px',
+                            backgroundColor: t.cardBackground,
+                            border: `1px solid ${t.border}`,
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            color: t.text,
+                            cursor: commitsFetching ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <GitCommit size={12} />
+                          {commitsFetching ? 'Fetching…' : 'Fetch Recent Commits'}
+                          <ChevronDown size={10} />
+                        </button>
+                        {showCommitsDropdown && commitsList.length > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            marginTop: '4px',
+                            minWidth: '280px',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            backgroundColor: t.cardBackground,
+                            border: `1px solid ${t.border}`,
+                            borderRadius: '6px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            zIndex: 100
+                          }}>
+                            {commitsList.map((c) => (
+                              <button
+                                key={c.sha}
+                                type="button"
+                                onClick={() => {
+                                  const entry = {
+                                    sha: c.sha?.slice(0, 7) || c.sha,
+                                    message: (c.commit?.message || '').split('\n')[0].slice(0, 80),
+                                    url: c.html_url || null,
+                                    linkedAt: new Date().toISOString()
+                                  };
+                                  const next = [...(linkedCommits.length ? linkedCommits : selectedTicket.linkedCommits || []), entry];
+                                  saveLinkedCommits(next);
+                                  setShowCommitsDropdown(false);
+                                  setCommitsList([]);
+                                }}
+                                style={{
+                                  display: 'block',
+                                  width: '100%',
+                                  padding: '8px 10px',
+                                  textAlign: 'left',
+                                  border: 'none',
+                                  borderBottom: `1px solid ${t.border}`,
+                                  backgroundColor: 'transparent',
+                                  fontSize: '11px',
+                                  color: t.text,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <code style={{ marginRight: '6px' }}>{c.sha?.slice(0, 7)}</code>
+                                {(c.commit?.message || '').split('\n')[0].slice(0, 50)}…
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', flex: 1, minWidth: '120px' }}>
+                        <input
+                          type="text"
+                          value={manualCommitText}
+                          onChange={(e) => setManualCommitText(e.target.value)}
+                          placeholder="Paste hash or note"
+                          style={{
+                            flex: 1,
+                            padding: '5px 8px',
+                            border: `1px solid ${t.border}`,
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            color: t.text,
+                            backgroundColor: t.cardBackground
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!manualCommitText.trim()) return;
+                            const entry = {
+                              sha: 'manual',
+                              message: manualCommitText.trim(),
+                              url: null,
+                              linkedAt: new Date().toISOString()
+                            };
+                            const current = linkedCommits.length ? linkedCommits : (selectedTicket.linkedCommits || []);
+                            saveLinkedCommits([...current, entry]);
+                            setManualCommitText('');
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            backgroundColor: btnPrimary,
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Plus size={12} /> Link
+                        </button>
+                      </div>
+                    </div>
+                    {(linkedCommits.length ? linkedCommits : selectedTicket.linkedCommits || []).map((lc, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 8px',
+                          marginRight: '6px',
+                          marginBottom: '6px',
+                          backgroundColor: t.cardBackground,
+                          border: `1px solid ${t.border}`,
+                          borderRadius: '6px',
+                          fontSize: '11px'
+                        }}
+                      >
+                        {lc.sha === 'manual' ? (
+                          <span style={{ color: t.text }}>📝 {lc.message}</span>
+                        ) : (
+                          <>
+                            {lc.url ? (
+                              <a href={lc.url} target="_blank" rel="noopener noreferrer" style={{ color: t.primary, fontWeight: '600' }}>
+                                <code>{lc.sha}</code>
+                              </a>
+                            ) : (
+                              <code>{lc.sha}</code>
+                            )}
+                            <span style={{ color: t.textLight }}>•</span>
+                            <span style={{ color: t.text }}>{lc.message}</span>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = linkedCommits.length ? linkedCommits : (selectedTicket.linkedCommits || []);
+                            const next = current.filter((_, i) => i !== idx);
+                            saveLinkedCommits(next);
+                          }}
+                          style={{
+                            padding: '2px',
+                            background: 'none',
+                            border: 'none',
+                            color: t.textLight,
+                            cursor: 'pointer',
+                            display: 'flex'
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Support Conversation at bottom — reply here, same thread as user sees */}
@@ -2122,6 +2260,108 @@ export default function GhostWorkerWorkQueue({ theme }) {
                 </Tooltip>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub Settings popover */}
+      {showGhSettings && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10002,
+            padding: '16px'
+          }}
+          onClick={() => setShowGhSettings(false)}
+        >
+          <div
+            style={{
+              backgroundColor: t.cardBackground,
+              borderRadius: '10px',
+              padding: '16px',
+              maxWidth: '360px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              border: `1px solid ${t.border}`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontWeight: '600', fontSize: '14px', color: t.text }}>GitHub Settings</span>
+              <button type="button" onClick={() => setShowGhSettings(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: t.textLight }}>
+                <X size={18} />
+              </button>
+            </div>
+            <p style={{ fontSize: '11px', color: t.textLight, marginBottom: '10px' }}>
+              Used to fetch recent commits when linking fixes to tickets. Saved to admin config so it works on every browser and device once set.
+            </p>
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Owner</label>
+              <input
+                type="text"
+                value={ghConfig.owner || ''}
+                onChange={(e) => setGhConfig(prev => ({ ...prev, owner: e.target.value }))}
+                placeholder="e.g. lebro"
+                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
+              />
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Repo</label>
+              <input
+                type="text"
+                value={ghConfig.repo || ''}
+                onChange={(e) => setGhConfig(prev => ({ ...prev, repo: e.target.value }))}
+                placeholder="e.g. TPPSpendide"
+                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Personal Access Token</label>
+              <input
+                type="password"
+                value={ghConfig.token || ''}
+                onChange={(e) => setGhConfig(prev => ({ ...prev, token: e.target.value }))}
+                placeholder="Fine-grained token (Contents: Read)"
+                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const payload = { owner: ghConfig.owner || '', repo: ghConfig.repo || '', token: ghConfig.token || '' };
+                  const configRef = doc(db, 'adminConfig', 'workQueueGitHub');
+                  await setDoc(configRef, payload, { merge: true });
+                  localStorage.setItem('tpp_gh_config', JSON.stringify(payload));
+                  setShowGhSettings(false);
+                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'GitHub settings saved — works on every browser', type: 'success' } }));
+                } catch (e) {
+                  console.error(e);
+                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to save. Check admin permissions.', type: 'error' } }));
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                backgroundColor: btnPrimary,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Save
+            </button>
           </div>
         </div>
       )}
