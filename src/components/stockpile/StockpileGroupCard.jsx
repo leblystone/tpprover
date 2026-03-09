@@ -13,6 +13,7 @@ import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
  */
 export default function StockpileGroupCard({ 
   group, 
+  hasMatchingIncoming = false,
   theme, 
   isUnknownGroup, 
   vendorMap,
@@ -26,10 +27,22 @@ export default function StockpileGroupCard({
   onViewDetails,
   onCompleteEntry
 }) {
-  // Calculate status badge
   const hasLowStock = Object.values(group.variants).some(v => v.totalVials <= 2);
-  const statusBadge = hasLowStock ? 'low' : 'in';
-  
+  const showChip = hasLowStock || hasMatchingIncoming;
+  const chipText = hasLowStock && hasMatchingIncoming
+    ? 'Low - More en Route'
+    : hasMatchingIncoming
+      ? 'En Route'
+      : hasLowStock
+        ? 'Low'
+        : '';
+  const chipIsLowEnRoute = hasLowStock && hasMatchingIncoming;
+  // Container unit from first item (vial, bottle, tablets) for header label
+  const firstVariant = Object.values(group.variants)[0];
+  const firstItem = firstVariant?.items?.[0];
+  const containerUnit = firstItem?.unit || group.containerUnit || 'vial';
+  const containerLabel = getUnitLabel(containerUnit, group.totalVials);
+
   // Track which menu is open (only one at a time)
   const [openMenuId, setOpenMenuId] = useState(null);
   // Track which item is pending deletion
@@ -106,22 +119,24 @@ export default function StockpileGroupCard({
           </div>
           
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <div 
-              className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm"
-              style={{ 
-                fontFamily: 'Poppins, sans-serif',
-                backgroundColor: statusBadge === 'low' 
-                  ? (theme.isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)')
-                  : (theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)'),
-                color: statusBadge === 'low'
-                  ? (theme.isDark ? '#fbbf24' : '#ca8a04')
-                  : (theme.isDark ? '#6b8e6b' : '#557755')
-              }}
-            >
-              {statusBadge === 'low' ? 'Low' : 'Well Stocked'}
-            </div>
+            {showChip && (
+              <div 
+                className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm"
+                style={{ 
+                  fontFamily: 'Poppins, sans-serif',
+                  backgroundColor: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
+                    ? (theme.isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)')
+                    : (theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)'),
+                  color: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
+                    ? (theme.isDark ? '#fbbf24' : '#ca8a04')
+                    : (theme.isDark ? '#6b8e6b' : '#557755')
+                }}
+              >
+                {chipText}
+              </div>
+            )}
             <div className="text-xs font-semibold opacity-70 uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              {group.totalVials} Vials • {group.totalMg} {group.unit || 'mg'}
+              {group.totalVials} {containerLabel} • {group.totalMg} {group.unit || 'mg'}
             </div>
           </div>
         </div>
@@ -142,7 +157,7 @@ export default function StockpileGroupCard({
                 <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   <div className="flex items-center gap-1.5">
                     <Beaker size={12} style={{ color: '#8ca68c' }} />
-                    {variant.mg} {variant.unit || 'mg'} Vials
+                    {variant.mg} {variant.unit || 'mg'} {getUnitLabel(variant.items?.[0]?.unit || variant.containerUnit || 'vial', variant.totalVials)}
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
                 </div>
@@ -174,6 +189,7 @@ export default function StockpileGroupCard({
                       onViewOrder={onViewOrder}
                       onSendToRecon={onSendToRecon}
                       onPreviewImage={onPreviewImage}
+                      onViewDetails={onViewDetails}
                       isLast={itemIdx === variant.items.length - 1}
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
@@ -223,7 +239,7 @@ export default function StockpileGroupCard({
  */
 function ItemStrip({ 
   item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
-  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, isLast,
+  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, onViewDetails, isLast,
   openMenuId, setOpenMenuId, setItemToDelete
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -267,19 +283,24 @@ function ItemStrip({
             <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
           </div>
           
-          {/* Needs Review Badge */}
+          {/* Needs Review Badge - click opens manage modal to fix details */}
           {needsReview && (
-            <div 
-              className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex-shrink-0"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails?.();
+              }}
+              className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex-shrink-0 transition-opacity hover:opacity-90"
               style={{ 
                 backgroundColor: theme.isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.15)',
                 color: theme.isDark ? '#fbbf24' : '#ca8a04',
                 fontFamily: 'Poppins, sans-serif'
               }}
-              title="Added during protocol start - review details"
+              title="Added during protocol start - review details (click to open)"
             >
               Review
-            </div>
+            </button>
           )}
           
           <div className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
@@ -363,20 +384,33 @@ function ItemStrip({
           <DataPoint icon={Hash} label="Batch #" value={item.batchNumber || 'N/A'} theme={theme} />
           {item.notes && (
             <div className={`col-span-2 mt-1 pt-2 border-t ${needsReview ? 'border-yellow-500/30' : 'border-black/5 dark:border-white/5'}`}>
-              <div 
-                className={`flex items-start gap-2 text-xs p-2 rounded-lg ${needsReview ? 'bg-yellow-500/10 border border-yellow-500/20' : ''}`}
-                style={{ color: needsReview ? (theme.isDark ? '#fbbf24' : '#ca8a04') : theme.textLight, fontFamily: 'Poppins, sans-serif' }}
-              >
-                <Info size={12} className="mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  {needsReview && (
+              {needsReview ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDetails?.();
+                  }}
+                  className="w-full text-left flex items-start gap-2 text-xs p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 hover:opacity-90 cursor-pointer transition-opacity"
+                  style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04', fontFamily: 'Poppins, sans-serif' }}
+                >
+                  <Info size={12} className="mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
                     <div className="font-semibold mb-1" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
                       Needs Review
                     </div>
-                  )}
-                  <span className={needsReview ? 'font-normal' : 'italic font-normal'}>{item.notes}</span>
+                    <span className="font-normal">{item.notes}</span>
+                  </div>
+                </button>
+              ) : (
+                <div
+                  className="flex items-start gap-2 text-xs p-2 rounded-lg"
+                  style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}
+                >
+                  <Info size={12} className="mt-0.5 flex-shrink-0" />
+                  <span className="italic font-normal">{item.notes}</span>
                 </div>
-              </div>
+              )}
             </div>
           )}
           {item.documentation?.length > 0 && (

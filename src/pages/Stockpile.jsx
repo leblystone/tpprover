@@ -322,6 +322,12 @@ export default function Stockpile() {
     return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
   }, [orders, vendorMap]);
 
+  const incomingGroupKeys = useMemo(() => {
+    return new Set(
+      incomingGroups.map(g => `${String(g.name || '').trim()}__${g.unit || 'mg'}`)
+    );
+  }, [incomingGroups]);
+
   const incomingWithOrderInfo = useMemo(() => {
     function getOrderIdForGroup(group) {
       if (!orders || !group.name) return null;
@@ -1336,6 +1342,7 @@ export default function Stockpile() {
                       <StockpileGroupCard
                         key={g.name}
                         group={g}
+                        hasMatchingIncoming={incomingGroupKeys.has(`${String(g.name || '').trim()}__${g.unit || 'mg'}`)}
                         theme={theme}
                         isUnknownGroup={isUnknownGroup}
                         vendorMap={vendorMap}
