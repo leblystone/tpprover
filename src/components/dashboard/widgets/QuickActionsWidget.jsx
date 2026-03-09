@@ -63,8 +63,8 @@ const QuickActionsWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 flex items-center justify-center px-3 py-2">
-        <div className="grid grid-cols-2 gap-3 w-full">
+      <div className="flex-1 flex items-center justify-center px-1 py-0">
+        <div className="flex items-start justify-around w-full">
           {actions.map((action, index) => {
             const isHovered = hoveredIndex === index;
             const isPressed = pressedIndex === index;
@@ -85,7 +85,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 key={index}
                 type="button"
                 onClick={action.onClick}
-                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                className="flex flex-col items-center gap-1 cursor-pointer group"
                 style={{
                   transform: isPressed ? 'scale(0.94)' : (isHovered ? 'translateY(-2px)' : 'none'),
                   transition: 'transform 0.22s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.15s ease',
@@ -102,7 +102,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 onTouchEnd={() => setPressedIndex(null)}
               >
                 <div
-                  className="rounded-full flex items-center justify-center transition-all duration-200 w-14 h-14"
+                  className="rounded-full flex items-center justify-center transition-all duration-200 w-[72px] h-[72px] lg:w-14 lg:h-14"
                   style={{
                     color: 'white',
                     backgroundColor: action.buttonBg,
@@ -112,11 +112,11 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 >
                   <action.icon
                     strokeWidth={2}
-                    className={`w-6 h-6 transition-transform duration-200 ${isHovered ? 'scale-110' : ''}`}
+                    className={`w-8 h-8 lg:w-6 lg:h-6 transition-transform duration-200 ${isHovered ? 'scale-110' : ''}`}
                   />
                 </div>
                 <span
-                  className="text-xs font-semibold text-center leading-tight transition-colors duration-200 block break-words w-14 min-h-[2.5em] mx-auto"
+                  className="text-[13px] lg:text-xs font-semibold text-center leading-tight transition-colors duration-200 block break-words w-[72px] lg:w-14 min-h-[2.5em] mx-auto"
                   style={{
                     color: isHovered ? action.color : theme.text,
                     opacity: isHovered ? 1 : 0.75,
