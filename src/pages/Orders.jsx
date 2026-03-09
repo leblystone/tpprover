@@ -886,6 +886,7 @@ export default function Orders() {
 						const previousStatus = (editingOrder.status || 'Order Placed').toLowerCase();
 						const newStatus = (data.status || editingOrder.status || 'Order Placed').toLowerCase();
 						const statusChanged = previousStatus !== newStatus;
+						const revertedFromDelivered = previousStatus.includes('deliver') && !newStatus.includes('deliver');
 						
 						// Use prepareItemForSave for proper timestamp handling
 						const updatedOrder = prepareItemForSave({ 
@@ -893,6 +894,8 @@ export default function Orders() {
 							...data, 
 							vendorId,
 							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
+							// Clear deliveryDate when reverting from Delivered to any earlier status
+							...(revertedFromDelivered ? { deliveryDate: null } : {}),
 							// Mark as manual if status changed (data already has statusSource from modal if user clicked status button)
 							...(statusChanged && data.statusSource === 'manual' ? {
 								statusSource: 'manual',

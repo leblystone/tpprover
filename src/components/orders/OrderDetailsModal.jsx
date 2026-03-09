@@ -397,7 +397,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             ? `Order #${form.id}`
             : 'New Order'
       }
-      titleSuffix={form?.date ? `placed ${formatMMDDYYYY(form.date)}` : undefined}
+      titleSuffix={form?.date ? `placed on ${formatMMDDYYYY(form.date)}` : undefined}
       titleExtra={
         <div className="flex items-center gap-2">
           <AutoSaveIndicator 
@@ -618,9 +618,9 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <PlusCircle size={14} /> Add Another Item
             </button>
             
-            {/* Shipping Cost Field — same UI as order item price/cost inputs */}
-            <div className="mt-4 pt-3 border-t relative" style={{ borderColor: theme.border }}>
-              <div className="relative">
+            {/* Shipping Cost + Total Cost on one row */}
+            <div className="mt-4 pt-3 border-t flex items-center gap-3" style={{ borderColor: theme.border }}>
+              <div className="relative flex-1 min-w-0">
                 <div
                   className="rounded-lg flex items-stretch"
                   style={{
@@ -663,29 +663,28 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     aria-label="Shipping Cost"
                   />
                 </div>
+                <label
+                  htmlFor="outlined-input-shipping-cost"
+                  className="absolute pointer-events-none transition-all whitespace-nowrap"
+                  style={{
+                    fontSize: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '0.65rem' : '0.875rem',
+                    top: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '-8px' : '14px',
+                    left: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '12px' : '16px',
+                    padding: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '0 4px' : '0',
+                    background: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                    color: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? theme.primary : (theme.textLight || theme.text),
+                    fontWeight: 500,
+                  }}
+                >
+                  Shipping Cost
+                </label>
               </div>
-              <label
-                htmlFor="outlined-input-shipping-cost"
-                className="absolute pointer-events-none transition-all whitespace-nowrap"
-                style={{
-                  fontSize: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '0.65rem' : '0.875rem',
-                  top: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '-8px' : '26px',
-                  left: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '12px' : '16px',
-                  padding: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? '0 4px' : '0',
-                  background: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                  color: (isShippingCostFocused || (form.shippingCost != null && String(form.shippingCost).trim() !== '')) ? theme.primary : (theme.textLight || theme.text),
-                  fontWeight: 500,
-                }}
-              >
-                Shipping Cost
-              </label>
-            </div>
-            
-            <div className="flex justify-end items-center pt-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-sm font-medium" style={{ color: theme?.text }}>Total Cost:</span>
-                <span className="text-lg font-semibold ml-2" style={{ color: theme?.primaryDark }}>
-                    {formatCurrency(totalCost)}
+                <span className="text-lg font-semibold" style={{ color: theme?.primaryDark }}>
+                  {formatCurrency(totalCost)}
                 </span>
+              </div>
             </div>
         </div>
 
@@ -695,14 +694,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           <div className="flex items-center gap-4 mb-4">
             <TruckElectric size={32} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5 flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Status</h4>
-                {form.date && (
-                  <span className="text-xs font-medium" style={{ color: theme.isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>
-                    {formatMMDDYYYY(form.date)}
-                  </span>
-                )}
-              </div>
+              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Order Status</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -712,49 +704,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
           </div>
           <div className="space-y-3">
-            {/* No tracking number — show manual status toggle above input */}
-            {!form.tracking?.trim() && (
-              <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
-                {[
-                  { label: 'Order Placed', value: 'Order Placed' },
-                  { label: 'In Transit', value: 'Shipped' },
-                  { label: 'Delivered', value: 'Delivered' },
-                  { label: 'Delayed', value: 'Delayed' },
-                ].map(opt => (
-                  <button key={opt.value} type="button" onClick={() => {
-                    const previousStatus = form.status || originalStatus || 'Order Placed';
-                    const now = new Date().toISOString();
-                    const newForm = { 
-                      ...form, 
-                      status: opt.value, 
-                      shipDate: opt.value==='Shipped' ? (form.shipDate || getLocalDateString()) : form.shipDate, 
-                      deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate,
-                      statusSource: 'manual',
-                      statusManuallySetAt: now,
-                      updatedAt: now
-                    };
-                    setForm(newForm);
-                    const statusChanged = previousStatus.toLowerCase() !== opt.value.toLowerCase();
-                    if (statusChanged) {
-                      if (opt.value.toLowerCase().includes('ship')) {
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: '🚚 Order marked as shipped!', type: 'info' } }));
-                      } else if (opt.value.toLowerCase().includes('deliver')) {
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: '📦 Order marked as delivered!', type: 'success' } }));
-                      }
-                    }
-                  }}
-                    className="flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap active:scale-95"
-                    style={{
-                      backgroundColor: (form.status || (order ? null : 'Order Placed')) === opt.value ? '#445952' : 'transparent',
-                      color: (form.status || (order ? null : 'Order Placed')) === opt.value ? '#fff' : theme.textLight,
-                      boxShadow: (form.status || (order ? null : 'Order Placed')) === opt.value ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
-                    }}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
+            {/* Tracking # input first; when no tracking we assume manual */}
             {/* Tracking # input + Manual tracking checkbox on same row */}
             <div className="flex items-center gap-2">
               <div className="flex-1">
@@ -811,8 +761,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               )}
             </div>
 
-            {/* Manual status toggle — shown below tracking input when manual mode is on */}
-            {form.tracking?.trim() && manualTracking && (
+            {/* Status buttons below tracking: no tracking = manual; or user chose Manual tracking */}
+            {(!form.tracking?.trim() || manualTracking) && (
               <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                 {[
                   { label: 'Order Placed', value: 'Order Placed' },
@@ -823,11 +773,16 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   <button key={opt.value} type="button" onClick={() => {
                     const previousStatus = form.status || originalStatus || 'Order Placed';
                     const now = new Date().toISOString();
+                    const wasDelivered = (previousStatus || '').toLowerCase().includes('deliver');
+                    const becomingDelivered = opt.value === 'Delivered';
                     setForm({ 
                       ...form, 
                       status: opt.value, 
                       shipDate: opt.value==='Shipped' ? (form.shipDate || getLocalDateString()) : form.shipDate, 
-                      deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate,
+                      // Set delivery date when marking delivered; clear it when reverting away from delivered
+                      deliveryDate: becomingDelivered
+                        ? (form.deliveryDate || getLocalDateString())
+                        : wasDelivered ? null : form.deliveryDate,
                       statusSource: 'manual',
                       statusManuallySetAt: now,
                       updatedAt: now
@@ -931,7 +886,18 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                             {/* Step labels + dates */}
                             <div className="w-full flex justify-between">
                               {trackingSteps.map((s, idx) => {
-                                const dateStr = idx === 0 ? form.date : idx === 2 ? form.deliveryDate : null;
+                                let dateStr = null;
+                                let dateLabel = null;
+                                if (idx === 0) {
+                                  dateStr = form.date;
+                                } else if (idx === 2) {
+                                  if (progress >= 2 && form.deliveryDate) {
+                                    dateStr = form.deliveryDate;
+                                  } else if (progress < 2 && trackingInfo?.estimatedDelivery) {
+                                    dateStr = trackingInfo.estimatedDelivery;
+                                    dateLabel = 'Est. ';
+                                  }
+                                }
                                 return (
                                   <div key={s.label} className="flex flex-col items-center flex-1 gap-0.5">
                                     <span className="text-xs text-center" style={{ color: idx <= progress ? (theme.isDark ? 'rgba(255,255,255,0.85)' : primaryStrongColor) : theme.textLight, fontWeight: idx <= progress ? 600 : 400 }}>
@@ -939,7 +905,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                                     </span>
                                     {dateStr && (
                                       <span className="text-[10px] text-center" style={{ color: theme.isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.35)' }}>
-                                        {formatMMDDYYYY(dateStr)}
+                                        {dateLabel}{formatMMDDYYYY(dateStr)}
                                       </span>
                                     )}
                                   </div>

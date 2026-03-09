@@ -164,7 +164,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
     }, [item.costPerMg, item.price, item.mg, item.quantity, item.unit, item.mgUnit]);
 
     return (
-        <div className="p-3 rounded-lg relative" style={{ 
+        <div className="px-3 pt-3 pb-2 rounded-lg relative" style={{ 
             border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
             backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
             boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
@@ -189,7 +189,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     <X size={14} />
                 </button>
             )}
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {/* Row 1: Name */}
                 <div className="relative">
                     <input
@@ -562,7 +562,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 3: Price and Cost per Milligram */}
-                <div className="grid grid-cols-2 gap-3 pt-4">
+                <div className="grid grid-cols-2 gap-3 pt-2">
                     {/* Price Column — same wrapper style as Amount (border/shadow/bg on wrapper, input borderless) */}
                     <div className="relative overflow-visible min-w-0">
                         <div
