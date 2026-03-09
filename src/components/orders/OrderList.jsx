@@ -287,12 +287,12 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
               </div>
 
             {/* Footer with Actions */}
-            <div className="mt-4 pt-3 border-t flex items-center justify-center" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-              <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
+            <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+              <div className="flex items-center gap-2 opacity-60 group-hover:opacity-90 transition-opacity">
+                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text }}>
                   View Order
                 </span>
-                <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
+                <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
             </div>

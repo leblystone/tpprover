@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Beaker, Package, ShoppingCart, Merge, X, Percent, PenTool, FileImage, Link, ExternalLink, ChevronRight, Droplet, MoreVertical, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
+import { Beaker, Package, Percent, PenTool, FileImage, Link, ExternalLink, ChevronRight, Droplet, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
 
@@ -51,7 +51,7 @@ export default function StockpileGroupCard({
   return (
     <div
       onClick={onCardClick}
-      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl glass-panel-minimal"
+      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl glass-panel-minimal"
       style={{
         boxShadow: theme.isDark
           ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
@@ -59,14 +59,6 @@ export default function StockpileGroupCard({
         border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
       }}
     >
-      {/* Hover Border Glow - Makes it clear the card is interactive */}
-      <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-2xl overflow-hidden"
-        style={{
-          boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20`
-        }}
-      />
-      
       {/* Decorative gradient overlay */}
       <div 
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden rounded-2xl"
@@ -116,17 +108,16 @@ export default function StockpileGroupCard({
             <h3 className="text-lg font-semibold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
-          </div>
-          
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             {showChip && (
               <div 
-                className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm"
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border mt-1"
                 style={{ 
                   fontFamily: 'Poppins, sans-serif',
-                  backgroundColor: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
-                    ? (theme.isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.12)')
-                    : (theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)'),
+                  backgroundColor: 'transparent',
+                  borderWidth: '1px',
+                  borderColor: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
+                    ? (theme.isDark ? 'rgba(251, 191, 36, 0.5)' : 'rgba(202, 138, 4, 0.4)')
+                    : (theme.isDark ? 'rgba(107, 142, 107, 0.5)' : 'rgba(85, 119, 85, 0.4)'),
                   color: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
                     ? (theme.isDark ? '#fbbf24' : '#ca8a04')
                     : (theme.isDark ? '#6b8e6b' : '#557755')
@@ -135,8 +126,19 @@ export default function StockpileGroupCard({
                 {chipText}
               </div>
             )}
-            <div className="text-xs font-semibold opacity-70 uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              {group.totalVials} {containerLabel} • {group.totalMg} {group.unit || 'mg'}
+          </div>
+          
+          <div className="flex flex-col items-end flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-2xl font-black leading-none tracking-tight" style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}>
+                {group.totalMg > 0 ? group.totalMg : group.totalVials}
+              </span>
+              <div className="flex flex-col items-start justify-center">
+                <span className="text-sm font-bold uppercase tracking-wide opacity-75 leading-tight" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                  {group.totalMg > 0 ? (group.unit || 'mg') : containerLabel}
+                </span>
+                <span className="text-[9px] font-medium uppercase tracking-wide opacity-50 leading-tight" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>total</span>
+              </div>
             </div>
           </div>
         </div>
@@ -153,11 +155,11 @@ export default function StockpileGroupCard({
                   style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
                 />
                 
-                {/* Variant Header Label */}
+                {/* Variant Header Label: amount per container type (e.g. 100 mg per vial) */}
                 <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
                   <div className="flex items-center gap-1.5">
                     <Beaker size={12} style={{ color: '#8ca68c' }} />
-                    {variant.mg} {variant.unit || 'mg'} {getUnitLabel(variant.items?.[0]?.unit || variant.containerUnit || 'vial', variant.totalVials)}
+                    {variant.mg} {variant.unit || 'mg'} per {getUnitLabel(variant.items?.[0]?.unit || variant.containerUnit || 'vial', 1)}
                   </div>
                   <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
                 </div>
@@ -184,16 +186,10 @@ export default function StockpileGroupCard({
                       isUnknownGroup={isUnknownGroup}
                       vendorMap={vendorMap}
                       isReadOnly={isReadOnly}
-                      onMergeIndividualItem={onMergeIndividualItem}
-                      onDeleteItem={onDeleteItem}
-                      onViewOrder={onViewOrder}
                       onSendToRecon={onSendToRecon}
                       onPreviewImage={onPreviewImage}
                       onViewDetails={onViewDetails}
                       isLast={itemIdx === variant.items.length - 1}
-                      openMenuId={openMenuId}
-                      setOpenMenuId={setOpenMenuId}
-                      setItemToDelete={setItemToDelete}
                     />
                   ))}
                 </div>
@@ -201,13 +197,13 @@ export default function StockpileGroupCard({
             ))}
         </div>
 
-        {/* Tap to Open Indicator - Bottom Center */}
-        <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-          <div className="flex items-center gap-2 opacity-60 group-hover:opacity-90 transition-opacity">
-            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              View Stock
+        {/* Footer with Actions - match OrderList card styling */}
+        <div className="mt-4 pt-3 border-t flex items-center justify-center" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
+          <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+            <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+              Edit Stock
             </span>
-            <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-y-0.5 transition-transform" />
+            <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
           </div>
         </div>
       </div>
@@ -239,11 +235,9 @@ export default function StockpileGroupCard({
  */
 function ItemStrip({ 
   item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
-  onMergeIndividualItem, onDeleteItem, onViewOrder, onSendToRecon, onPreviewImage, onViewDetails, isLast,
-  openMenuId, setOpenMenuId, setItemToDelete
+  onSendToRecon, onPreviewImage, onViewDetails, isLast
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const showActionMenu = openMenuId === item.id;
   const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor';
   const needsReview = item.notes?.includes('Added during protocol start') || item.notes?.includes('Added during protocol edit');
 
@@ -319,7 +313,7 @@ function ItemStrip({
             {item.quantity} {getUnitLabel(item.unit, item.quantity)}
           </div>
           
-          {/* Action Row - Always visible on mobile, hover on desktop */}
+          {/* Action Row - Recon only (menu removed) */}
           <div className={`flex items-center gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover/strip:opacity-100'}`}>
             {!isUnknownGroup && canReconstitute(item.unit) && (
               <button
@@ -331,40 +325,6 @@ function ItemStrip({
                 <Droplet size={14} strokeWidth={2.5} />
               </button>
             )}
-            
-            <div className="relative">
-              <button
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setOpenMenuId(showActionMenu ? null : item.id);
-                }}
-                className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
-                style={{ color: theme.textLight }}
-              >
-                <MoreVertical size={14} strokeWidth={2.5} />
-              </button>
-              
-              {showActionMenu && (
-                <>
-                  <div className="fixed inset-0 z-[9998]" onClick={() => setOpenMenuId(null)} />
-                  <div 
-                    className="absolute right-0 top-full mt-1 z-[9999] rounded-xl shadow-2xl border overflow-hidden min-w-[180px]"
-                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
-                  >
-                    {isUnknownGroup && (
-                      <MenuAction icon={Merge} label="Merge Series" onClick={() => onMergeIndividualItem(item)} theme={theme} />
-                    )}
-                    {item.orderId && (
-                      <MenuAction icon={ShoppingCart} label="View Order" onClick={() => onViewOrder(item.orderId)} theme={theme} />
-                    )}
-                    <MenuAction icon={X} label="Delete Entry" color="#c87a5c" onClick={() => { 
-                      setOpenMenuId(null);
-                      setItemToDelete(item);
-                    }} theme={theme} />
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -459,20 +419,5 @@ function DataPoint({ icon: Icon, label, value, theme }) {
         <span className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
       </div>
     </div>
-  );
-}
-
-function MenuAction({ icon: Icon, label, onClick, theme, color }) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors font-medium"
-      style={{ color: color || theme.text, fontFamily: 'Poppins, sans-serif' }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-    >
-      <Icon size={14} style={{ color: color || '#8ca68c' }} />
-      {label}
-    </button>
   );
 }

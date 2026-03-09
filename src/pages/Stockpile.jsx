@@ -324,7 +324,13 @@ export default function Stockpile() {
 
   const incomingGroupKeys = useMemo(() => {
     return new Set(
-      incomingGroups.map(g => `${String(g.name || '').trim()}__${g.unit || 'mg'}`)
+      incomingGroups.map(g => `${String(g.name || '').trim().toLowerCase()}__${(g.unit || 'mg').toLowerCase()}`)
+    );
+  }, [incomingGroups]);
+
+  const incomingGroupNames = useMemo(() => {
+    return new Set(
+      incomingGroups.map(g => String(g.name || '').trim().toLowerCase())
     );
   }, [incomingGroups]);
 
@@ -1333,7 +1339,7 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
                 {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
@@ -1342,7 +1348,7 @@ export default function Stockpile() {
                       <StockpileGroupCard
                         key={g.name}
                         group={g}
-                        hasMatchingIncoming={incomingGroupKeys.has(`${String(g.name || '').trim()}__${g.unit || 'mg'}`)}
+                        hasMatchingIncoming={incomingGroupKeys.has(`${String(g.name || '').trim().toLowerCase()}__${(g.unit || 'mg').toLowerCase()}`) || incomingGroupNames.has(String(g.name || '').trim().toLowerCase())}
                         theme={theme}
                         isUnknownGroup={isUnknownGroup}
                         vendorMap={vendorMap}
@@ -2312,7 +2318,7 @@ export default function Stockpile() {
           {/* Add Vial Button */}
           <div className="flex justify-center">
             <button 
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-base font-bold transition-all border" 
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all border" 
               style={{ 
                 backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
                 borderColor: theme.border,
@@ -2335,7 +2341,7 @@ export default function Stockpile() {
               }}
             >
               Add to Stock
-              <ChevronDown size={18} strokeWidth={2.5} />
+              <ChevronDown size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -2505,7 +2511,13 @@ export default function Stockpile() {
       />
 
       {/* View Group Modal - Read-only overview */}
-      {viewingGroup && (
+      {viewingGroup && (() => {
+            const firstVariant = Object.values(viewingGroup.variants || {})[0];
+            const firstItem = firstVariant?.items?.[0];
+            const containerUnit = firstItem?.unit || viewingGroup.containerUnit || 'vial';
+            const containerLabel = getUnitLabel(containerUnit, viewingGroup.totalVials);
+            const amountUnit = (viewingGroup.unit || 'mg').toUpperCase();
+            return (
         <BottomSheet
           open={!!viewingGroup}
           onClose={() => setViewingGroup(null)}
@@ -2513,12 +2525,19 @@ export default function Stockpile() {
           title={viewingGroup.name}
           titleExtra={(
             <div className="flex flex-col items-end leading-none">
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 flex-wrap justify-end">
                 <span className="text-2xl font-black tracking-tight" style={{ color: theme.primary }}>
-                  {viewingGroup.totalMg > 0 ? viewingGroup.totalMg : viewingGroup.totalVials}
+                  {viewingGroup.totalVials}
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>
-                  {viewingGroup.totalMg > 0 ? (viewingGroup.unit || 'mg') : (viewingGroup.totalVials === 1 ? 'vial' : 'vials')}
+                  {containerLabel}
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wide opacity-50" style={{ color: theme.text }}>•</span>
+                <span className="text-2xl font-black tracking-tight" style={{ color: theme.primary }}>
+                  {viewingGroup.totalMg}
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>
+                  {amountUnit}
                 </span>
               </div>
               <div className="text-[10px] font-bold uppercase tracking-wide opacity-60 -mt-0.5" style={{ color: theme.text }}>
@@ -2725,7 +2744,8 @@ export default function Stockpile() {
             </div>
           </div>
         </BottomSheet>
-      )}
+            );
+      })()}
 
       {/* Image Preview Modal */}
       <ImagePreviewModal
