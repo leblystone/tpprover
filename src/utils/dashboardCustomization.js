@@ -126,7 +126,7 @@ export const DEFAULT_WIDGETS = [
     id: 'quick_actions',
     type: WIDGET_TYPES.QUICK_ACTIONS,
     title: 'Quick Actions',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 0 },
     enabled: true,
     settings: {}
@@ -146,7 +146,7 @@ export const DEFAULT_WIDGETS = [
     id: 'active_protocols_notes',
     type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
     title: 'Active Research',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 0 },
     enabled: true,
     settings: {
@@ -158,7 +158,7 @@ export const DEFAULT_WIDGETS = [
     id: 'inventory',
     type: WIDGET_TYPES.INVENTORY,
     title: 'Stockpile',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 1 },
     enabled: true,
     settings: {}
@@ -220,7 +220,7 @@ export const DEFAULT_WIDGETS = [
     id: 'dont_forget',
     type: WIDGET_TYPES.DONT_FORGET,
     title: "Action Items",
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 3, y: 2 },
     enabled: true,
     settings: {}
@@ -229,7 +229,7 @@ export const DEFAULT_WIDGETS = [
     id: 'upcoming_buys',
     type: WIDGET_TYPES.UPCOMING_BUYS,
     title: 'Upcoming Buys',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 2 },
     enabled: true,
     settings: {
@@ -240,7 +240,7 @@ export const DEFAULT_WIDGETS = [
     id: 'notes',
     type: WIDGET_TYPES.NOTES,
     title: 'Research Notes',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 5, y: 2 },
     enabled: true,
     settings: {}
@@ -249,7 +249,7 @@ export const DEFAULT_WIDGETS = [
     id: 'water_tracker',
     type: WIDGET_TYPES.WATER_TRACKER,
     title: 'Hydration',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 5, y: 2 },
     enabled: true,
     settings: {
@@ -271,7 +271,7 @@ export const DEFAULT_WIDGETS = [
     id: 'analytics',
     type: WIDGET_TYPES.ANALYTICS,
     title: 'Analytics',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 5, y: 0 },
     enabled: true,
     settings: {}
@@ -559,7 +559,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.11'; // UPDATED: Analytics widget moved above spending
+    const currentVersion = '3.13'; // UPDATED: Active Research widget widened to MEDIUM
     
     if (layoutVersion !== currentVersion) {
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
@@ -682,9 +682,10 @@ export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
       const mergedSettings = { ...defaultWidget.settings, ...savedWidget.settings };
       const merged = { ...defaultWidget, ...savedWidget, settings: mergedSettings };
       
-      // Force update active_protocols_notes widget size to SMALL (changed from MEDIUM)
-      if (merged.id === 'active_protocols_notes' || merged.type === 'active_protocols_notes') {
-        merged.size = WIDGET_SIZES.SMALL;
+      // Force widen widgets that were previously SMALL to MEDIUM (desktop cleanup v3.12)
+      const widenToMedium = ['quick_actions', 'inventory', 'analytics', 'dont_forget', 'upcoming_buys', 'notes', 'water_tracker', 'active_protocols_notes'];
+      if (widenToMedium.includes(merged.id)) {
+        merged.size = WIDGET_SIZES.MEDIUM;
       }
       
       // Force update supplements widget position to third position (x:3, y:0)

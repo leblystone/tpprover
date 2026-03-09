@@ -743,12 +743,8 @@ export default function CustomizableDashboard() {
       <div className="w-full max-w-full min-w-0">
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             {enabledWidgetsForGrid.map((widget, index) => {
-              // Desktop only: swap Supplements and Active Research widget sizes
-              const effectiveSize = isDesktop && widget.type === WIDGET_TYPES.SUPPLEMENTS
-                ? WIDGET_SIZES.SMALL
-                : isDesktop && (widget.type === WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES || widget.id === 'active_protocols_notes')
-                  ? WIDGET_SIZES.MEDIUM
-                  : widget.size;
+              // Desktop only: use the widget's configured size directly (no overrides)
+              const effectiveSize = widget.size;
               const sizeConfig = getSizeConfig(effectiveSize);
               
               // Map grid width to CSS classes

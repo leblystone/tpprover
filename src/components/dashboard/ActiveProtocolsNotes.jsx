@@ -246,37 +246,39 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     if (activeProtocols.length === 0) {
         return (
-            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full" style={{ backgroundColor: 'transparent' }}>
-                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }}>
-                    <span className="flex items-center gap-2">
-                        Active Research
-                        <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
-                        <button
-                            type="button"
-                            onClick={() => navigate('/app/protocols')}
-                            className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                            style={{
-                                color: '#ffffff',
-                                backgroundColor: theme.primary,
-                                width: '28px',
-                                height: '28px',
-                                padding: 0,
-                                border: 'none',
-                                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                            aria-label="View all protocols"
-                        >
-                            <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
-                        </button>
+            <div className="h-full flex flex-col" style={{ backgroundColor: 'transparent' }}>
+                <div className="px-4 py-3 widget-separator flex-shrink-0" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)' }}>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                            Active Research
+                            <FlaskConical size={18} style={{ color: theme.primary }} />
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
+                            <button
+                                type="button"
+                                onClick={() => navigate('/app/protocols')}
+                                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                                style={{
+                                    color: '#ffffff',
+                                    backgroundColor: theme.primary,
+                                    width: '28px',
+                                    height: '28px',
+                                    padding: 0,
+                                    border: 'none',
+                                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                aria-label="View all protocols"
+                            >
+                                <Eye size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+                            </button>
+                        </div>
                     </div>
-                </h3>
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-sm lg:text-base text-center" style={{ color: theme.textLight }}>
+                </div>
+                <div className="flex-1 flex items-center justify-center px-4">
+                    <p className="text-sm text-center" style={{ color: theme.textLight }}>
                         No active protocols. Start a protocol to begin tracking.
                     </p>
                 </div>
@@ -286,16 +288,18 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
 
     return (
         <>
-            <div className="h-full flex flex-col p-4 lg:p-6 rounded-xl content-card w-full overflow-hidden" style={{ backgroundColor: 'transparent' }}>
-                <h3 className="text-base font-bold mb-3 lg:mb-4 border-b pb-2 lg:pb-3 flex-shrink-0 flex items-center justify-between" style={{ color: theme.text, borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }}>
-                    <span className="flex items-center gap-2">
-                        Active Research
-                        <FlaskConical size={18} className="lg:w-5 lg:h-5" style={{ color: theme.primary }} />
-                    </span>
-                    <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
-                </h3>
-                
-                <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 relative">
+            <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: 'transparent' }}>
+                <div className="px-4 py-3 widget-separator flex-shrink-0" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.15)' }}>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                            Active Research
+                            <FlaskConical size={18} style={{ color: theme.primary }} />
+                        </h3>
+                        <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5 relative px-4 py-3">
                     {protocolsWithNotes.map((protocol, index) => {
                         const protocolName = protocol.name || protocol.protocolName || 'Unnamed Protocol';
                         const duration = formatDuration(protocol);
@@ -402,12 +406,12 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                         );
                     })}
                 </div>
-                
+
                 {/* View All link at bottom */}
-                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="flex justify-center pt-2 pb-3 flex-shrink-0">
                     <button
                         onClick={() => navigate('/app/protocols')}
-                        className="text-xs lg:text-sm font-medium transition-opacity hover:opacity-70"
+                        className="text-xs font-medium transition-opacity hover:opacity-70"
                         style={{ color: theme.primary }}
                     >
                         View All
