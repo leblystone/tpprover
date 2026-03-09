@@ -2966,7 +2966,7 @@ export function AppProvider({ children }) {
                                     const timeSinceProtocolsSample = Date.now() - lastLocalProtocolsUpdateRef.current;
                                     if (timeSinceProtocolsSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.protocols.filter(p => !p.isMock);
-                                        const localProtocols = protocols || [];
+                                        const localProtocols = safeParseLocalStorage('tpprover_protocols', []);
                                         const mergedProtocols = mergeWithTimestamps(
                                             localProtocols,
                                             filtered,
@@ -2985,7 +2985,7 @@ export function AppProvider({ children }) {
                                     if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                         const filtered = freshData.reconItems.filter(r => !r.isMock);
                                         // Merge with local reconItems instead of overwriting
-                                        const localReconItems = reconItems || [];
+                                        const localReconItems = safeParseLocalStorage('tpprover_recon_items', []);
                                         const mergedReconItems = mergeWithTimestamps(
                                             localReconItems,
                                             filtered,
@@ -3003,7 +3003,7 @@ export function AppProvider({ children }) {
                                     
                                     if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                         // Merge with local reconHistory instead of overwriting
-                                        const localReconHistory = reconHistory || [];
+                                        const localReconHistory = safeParseLocalStorage('tpprover_recon_history', []);
                                         const mergedReconHistory = mergeWithTimestamps(
                                             localReconHistory,
                                             freshData.reconHistory,
@@ -3018,7 +3018,7 @@ export function AppProvider({ children }) {
                                     if (timeSinceSupplementsSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.supplements.filter(s => !s.isMock);
                                         // Merge with local supplements instead of overwriting
-                                        const localSupplements = supplements || [];
+                                        const localSupplements = safeParseLocalStorage('tpprover_supplements', []);
                                         const mergedSupplements = mergeWithTimestamps(
                                             localSupplements,
                                             filtered,
@@ -3032,7 +3032,7 @@ export function AppProvider({ children }) {
                                     const timeSinceOrdersSample = Date.now() - lastLocalOrdersUpdateRef.current;
                                     if (timeSinceOrdersSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.orders.filter(o => !o.isMock);
-                                        const localOrders = orders || [];
+                                        const localOrders = safeParseLocalStorage('tpprover_orders', []);
                                         const mergedOrders = mergeWithTimestamps(
                                             localOrders,
                                             filtered,
@@ -3046,7 +3046,7 @@ export function AppProvider({ children }) {
                                     const timeSinceMetricsSample = Date.now() - lastLocalMetricsUpdateRef.current;
                                     if (timeSinceMetricsSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.metrics.filter(m => !m.isMock);
-                                        const localMetrics = metrics || [];
+                                        const localMetrics = safeParseLocalStorage('tpprover_metrics', []);
                                         const mergedMetrics = mergeWithTimestamps(
                                             localMetrics,
                                             filtered,
@@ -3064,7 +3064,7 @@ export function AppProvider({ children }) {
                                     if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.vendors.filter(v => !v.isMock);
                                         // Merge with local vendors instead of overwriting
-                                        const localVendors = vendors || [];
+                                        const localVendors = safeParseLocalStorage('tpprover_vendors', []);
                                         const mergedVendors = mergeWithTimestamps(
                                             localVendors,
                                             filtered,
@@ -3108,7 +3108,10 @@ export function AppProvider({ children }) {
                                 if (freshData.calendarNotes) {
                                     const timeSinceCalendarNotesSample = Date.now() - lastLocalCalendarNotesUpdateRef.current;
                                     if (timeSinceCalendarNotesSample >= PROTECTION_WINDOW_MS) {
-                                        setCalendarNotes(migrateCalendarNotesToIdBased(freshData.calendarNotes));
+                                        const localCalendarNotes = safeParseLocalStorage('tpprover_calendar_notes', {});
+                                        const cloudNotes = migrateCalendarNotesToIdBased(freshData.calendarNotes);
+                                        const mergedCalendarNotes = { ...cloudNotes, ...localCalendarNotes };
+                                        setCalendarNotes(mergedCalendarNotes);
                                     } else {
                                         console.log('🔒 Skipping calendarNotes update from sample-data listener - in protection window');
                                     }
@@ -3117,7 +3120,7 @@ export function AppProvider({ children }) {
                                     const timeSinceStockpileSample = Date.now() - lastLocalStockpileUpdateRef.current;
                                     if (timeSinceStockpileSample >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.stockpile.filter(s => !s.isMock);
-                                        const localStockpile = stockpile || [];
+                                        const localStockpile = safeParseLocalStorage('tpprover_stockpile', []);
                                         const mergedStockpile = mergeWithTimestamps(
                                             localStockpile,
                                             filtered,
@@ -3134,7 +3137,14 @@ export function AppProvider({ children }) {
                                     const timeSinceUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
                                     if (timeSinceUpdate >= PROTECTION_WINDOW_MS) {
                                         const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
-                                        setScheduledBuys(filtered);
+                                        const localScheduledBuys = safeParseLocalStorage('tpprover_scheduled_buys', []);
+                                        const mergedScheduledBuys = mergeWithTimestamps(
+                                            localScheduledBuys,
+                                            filtered,
+                                            'scheduledBuys',
+                                            getDeletionTracking().scheduledBuys
+                                        );
+                                        setScheduledBuys(mergedScheduledBuys);
                                     } else {
                                         console.log('🔒 Skipping scheduledBuys update from sample data clear - in unified protection window');
                                     }
@@ -3367,7 +3377,10 @@ export function AppProvider({ children }) {
                             if (freshData.calendarNotes) {
                                 const timeSinceCalendarNotesUpdate = Date.now() - lastLocalCalendarNotesUpdateRef.current;
                                 if (timeSinceCalendarNotesUpdate >= PROTECTION_WINDOW_MS) {
-                                    setCalendarNotes(migrateCalendarNotesToIdBased(freshData.calendarNotes));
+                                    const localCalendarNotes = safeParseLocalStorage('tpprover_calendar_notes', {});
+                                    const cloudNotes = migrateCalendarNotesToIdBased(freshData.calendarNotes);
+                                    const mergedCalendarNotes = { ...cloudNotes, ...localCalendarNotes };
+                                    setCalendarNotes(mergedCalendarNotes);
                                 } else {
                                     console.log('🔒 Skipping calendarNotes update from remote sync - in protection window');
                                 }
@@ -3397,7 +3410,14 @@ export function AppProvider({ children }) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.scheduledBuys.filter(buy => !buy.isMock)
                                         : freshData.scheduledBuys;
-                                    setScheduledBuys(filtered);
+                                    const localScheduledBuys = safeParseLocalStorage('tpprover_scheduled_buys', []);
+                                    const mergedScheduledBuys = mergeWithTimestamps(
+                                        localScheduledBuys,
+                                        filtered,
+                                        'scheduledBuys',
+                                        getDeletionTracking().scheduledBuys
+                                    );
+                                    setScheduledBuys(mergedScheduledBuys);
                                 } else {
                                     console.log('🔒 Skipping scheduledBuys from remote update - in unified protection window');
                                 }
