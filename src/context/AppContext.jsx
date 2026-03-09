@@ -716,7 +716,6 @@ export function AppProvider({ children }) {
                             'orders',
                             mergedDeletionTracking.orders
                         ) : (cloudAppData.orders || []);
-                        
                         const mergedStockpile = localStockpile ? mergeWithTimestamps(
                             JSON.parse(localStockpile),
                             cloudAppData.stockpile || [],
@@ -1670,30 +1669,45 @@ export function AppProvider({ children }) {
         // Uses BOTH visibilitychange (reliable on web) AND Capacitor appStateChange
         // (reliable on iOS/Android native) to cover all platforms.
         const doBackgroundSync = () => {
-            if (!firebaseUser || !hasPassword || isLoggingOutRef.current) return;
+            if (!firebaseUser || isLoggingOutRef.current) return;
             try {
-                const taskCompletion = safeParseLocalStorage('tpprover_task_completion', {});
-                const calendarDone = safeParseLocalStorage('tpprover_calendar_done', {});
-                const protocolHistory = safeParseLocalStorage('tpprover_protocol_history', []);
-                const injectionHistory = safeParseLocalStorage('tpprover_injection_history', []);
-                const injectionStats = safeParseLocalStorage('tpprover_injection_stats', {});
-                const wishlist = safeParseLocalStorage('tpprover_wishlist', []);
-                const userNotes = safeParseLocalStorage('tpprover_user_notes', []);
-                const userGoals = safeParseLocalStorage('tpprover_user_goals', []);
-                const waterTracker = safeParseLocalStorage('tpprover_water_tracker', {});
-                const stockpileHistory = safeParseLocalStorage('tpprover_stockpile_history', []);
-                const deletionTracking = getDeletionTracking();
-                
+                // CRITICAL: Read ALL fields from localStorage at execution time — NOT from React state.
+                // This effect only re-runs when [firebaseUser, hasPassword] changes. If the user adds
+                // orders (or any data) after the effect set up, the closure values are stale and would
+                // overwrite the fresh data. localStorage is always up-to-date because saveData runs
+                // synchronously on every state change.
                 const userData = {
-                    protocols, reconItems, reconHistory, supplements, orders,
-                    metrics, vendors, calendarNotes, stockpile, scheduledBuys,
-                    taskCompletion, calendarDone, protocolHistory,
-                    injectionHistory, injectionStats,
-                    wishlist, userNotes, userGoals, waterTracker,
-                    stockpileHistory, deletionTracking
+                    protocols: safeParseLocalStorage('tpprover_protocols', []),
+                    reconItems: safeParseLocalStorage('tpprover_recon_items', []),
+                    reconHistory: safeParseLocalStorage('tpprover_recon_history', []),
+                    supplements: safeParseLocalStorage('tpprover_supplements', []),
+                    orders: safeParseLocalStorage('tpprover_orders', []),
+                    metrics: safeParseLocalStorage('tpprover_metrics', []),
+                    vendors: safeParseLocalStorage('tpprover_vendors', []),
+                    calendarNotes: safeParseLocalStorage('tpprover_calendar_notes', {}),
+                    stockpile: safeParseLocalStorage('tpprover_stockpile', []),
+                    scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
+                    taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
+                    calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                    protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
+                    injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
+                    injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
+                    wishlist: safeParseLocalStorage('tpprover_wishlist', []),
+                    userNotes: safeParseLocalStorage('tpprover_user_notes', []),
+                    userGoals: safeParseLocalStorage('tpprover_user_goals', []),
+                    waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
+                    stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                    deletionTracking: getDeletionTracking()
                 };
-                
-                syncToFirebase(userData).catch(console.error);
+
+                // Always push to the primary (unencrypted) userData collection so data survives
+                // page reloads on iOS Safari where hasPassword is in-memory only and gets cleared.
+                saveAppData(firebaseUser.uid, userData, { skipMerge: false }).catch(console.error);
+
+                // Also push to encrypted userdata collection if password is available
+                if (hasPassword) {
+                    syncToFirebase(userData).catch(console.error);
+                }
             } catch (error) {
                 console.error('Failed to sync on background:', error);
             }
@@ -1817,9 +1831,6 @@ export function AppProvider({ children }) {
             );
             
             if (hasData) {
-                // #region agent log H-D/H-E: log auto-sync firing with order count
-                fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f9eea2'},body:JSON.stringify({sessionId:'f9eea2',hypothesisId:'H-D',location:'AppContext.jsx:auto-sync',message:'Auto-sync firing',data:{orderCount:userData.orders?.length,orderIds:userData.orders?.map(o=>o.id?.substring(0,8)),orderStatuses:userData.orders?.map(o=>({id:o.id?.substring(0,8),status:o.status})),userId:userId?.substring(0,8)},timestamp:Date.now()})}).catch(()=>{});
-                // #endregion
                 // Queue the sync operation to prevent overlaps
                 addToSyncQueue(
                     async () => {
@@ -1968,21 +1979,24 @@ export function AppProvider({ children }) {
             
             // CRITICAL: Force immediate sync before logout to prevent data loss
             if (firebaseUser && hasPassword) {
+                // CRITICAL: Build payload from localStorage at logout time (not React state) so we
+                // always sync the latest persisted data. State can be stale if user just added an
+                // order and logs out before the next tick (e.g. saveData hasn't run yet).
                 const injectionHistory = safeParseLocalStorage('tpprover_injection_history', []);
                 const injectionStats = safeParseLocalStorage('tpprover_injection_stats', {});
                 const taskCompletion = safeParseLocalStorage('tpprover_task_completion', {});
                 const calendarDone = safeParseLocalStorage('tpprover_calendar_done', {});
                 const userData = {
-                    protocols,
-                    reconItems,
-                    reconHistory,
-                    supplements,
-                    orders,
-                    metrics,
-                    vendors,
-                    calendarNotes,
-                    stockpile,
-                    scheduledBuys,
+                    protocols: safeParseLocalStorage('tpprover_protocols', []),
+                    reconItems: safeParseLocalStorage('tpprover_recon_items', []),
+                    reconHistory: safeParseLocalStorage('tpprover_recon_history', []),
+                    supplements: safeParseLocalStorage('tpprover_supplements', []),
+                    orders: safeParseLocalStorage('tpprover_orders', []),
+                    metrics: safeParseLocalStorage('tpprover_metrics', []),
+                    vendors: safeParseLocalStorage('tpprover_vendors', []),
+                    calendarNotes: safeParseLocalStorage('tpprover_calendar_notes', {}),
+                    stockpile: safeParseLocalStorage('tpprover_stockpile', []),
+                    scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                     injectionHistory,
                     injectionStats,
                     taskCompletion,
@@ -3231,7 +3245,7 @@ export function AppProvider({ children }) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.protocols.filter(p => !p.isMock)
                                         : freshData.protocols;
-                                    const localProtocols = protocols || [];
+                                    const localProtocols = safeParseLocalStorage('tpprover_protocols', []);
                                     const mergedProtocols = mergeWithTimestamps(
                                         localProtocols,
                                         filtered,
@@ -3252,7 +3266,7 @@ export function AppProvider({ children }) {
                                         ? freshData.reconItems.filter(r => !r.isMock)
                                         : freshData.reconItems;
                                     // Merge with local reconItems instead of overwriting
-                                    const localReconItems = reconItems || [];
+                                    const localReconItems = safeParseLocalStorage('tpprover_recon_items', []);
                                     const mergedReconItems = mergeWithTimestamps(
                                         localReconItems,
                                         filtered,
@@ -3270,7 +3284,7 @@ export function AppProvider({ children }) {
                                 
                                 if (timeSinceReconUpdate >= RECON_SKIP_WINDOW_MS) {
                                     // Merge with local reconHistory instead of overwriting
-                                    const localReconHistory = reconHistory || [];
+                                    const localReconHistory = safeParseLocalStorage('tpprover_recon_history', []);
                                     const mergedReconHistory = mergeWithTimestamps(
                                         localReconHistory,
                                         freshData.reconHistory,
@@ -3288,7 +3302,7 @@ export function AppProvider({ children }) {
                                         ? freshData.supplements.filter(s => !s.isMock)
                                         : freshData.supplements;
                                     // Merge with local supplements instead of overwriting
-                                    const localSupplements = supplements || [];
+                                    const localSupplements = safeParseLocalStorage('tpprover_supplements', []);
                                     const mergedSupplements = mergeWithTimestamps(
                                         localSupplements,
                                         filtered,
@@ -3300,14 +3314,11 @@ export function AppProvider({ children }) {
                             }
                             if (freshData.orders) {
                                 const timeSinceOrdersUpdate = Date.now() - lastLocalOrdersUpdateRef.current;
-                                // #region agent log H-E: log Firestore listener order merge
-                                fetch('http://127.0.0.1:7242/ingest/914aaf07-34f8-481b-a97d-d7e35e40bd44',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'f9eea2'},body:JSON.stringify({sessionId:'f9eea2',hypothesisId:'H-E',location:'AppContext.jsx:listener-orders',message:'Firestore listener firing for orders',data:{serverOrderCount:freshData.orders?.length,localOrderCount:(orders||[]).length,timeSinceOrdersUpdate,protectionWindowMs:PROTECTION_WINDOW_MS,withinProtection:timeSinceOrdersUpdate<PROTECTION_WINDOW_MS,serverOrderStatuses:freshData.orders?.map(o=>({id:o.id?.substring(0,8),status:o.status}))},timestamp:Date.now()})}).catch(()=>{});
-                                // #endregion
                                 if (timeSinceOrdersUpdate >= PROTECTION_WINDOW_MS) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.orders.filter(o => !o.isMock)
                                         : freshData.orders;
-                                    const localOrders = orders || [];
+                                    const localOrders = safeParseLocalStorage('tpprover_orders', []);
                                     const mergedOrders = mergeWithTimestamps(
                                         localOrders,
                                         filtered,
@@ -3323,7 +3334,7 @@ export function AppProvider({ children }) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.metrics.filter(m => !m.isMock)
                                         : freshData.metrics;
-                                    const localMetrics = metrics || [];
+                                    const localMetrics = safeParseLocalStorage('tpprover_metrics', []);
                                     const mergedMetrics = mergeWithTimestamps(
                                         localMetrics,
                                         filtered,
@@ -3341,7 +3352,7 @@ export function AppProvider({ children }) {
                                         ? freshData.vendors.filter(v => !v.isMock)
                                         : freshData.vendors;
                                     // Merge with local vendors instead of overwriting
-                                    const localVendors = vendors || [];
+                                    const localVendors = safeParseLocalStorage('tpprover_vendors', []);
                                     const mergedVendors = mergeWithTimestamps(
                                         localVendors,
                                         filtered,
@@ -3367,7 +3378,7 @@ export function AppProvider({ children }) {
                                     const filtered = sampleDataCleared 
                                         ? freshData.stockpile.filter(s => !s.isMock)
                                         : freshData.stockpile;
-                                    const localStockpile = stockpile || [];
+                                    const localStockpile = safeParseLocalStorage('tpprover_stockpile', []);
                                     const mergedStockpile = mergeWithTimestamps(
                                         localStockpile,
                                         filtered,
