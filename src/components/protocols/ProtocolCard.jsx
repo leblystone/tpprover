@@ -529,9 +529,9 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                 {p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}
                                             </span>
                                             {(() => {
+                                                if (p.duration?.noEnd) return null;
                                                 const dateRange = renderDateRange(p, isActive);
-                                                const isOngoing = p.duration?.noEnd || (!p.endDate && isActive);
-                                                if (isOngoing || !dateRange) return null;
+                                                if (!dateRange) return null;
                                                 return (
                                                     <span className="text-[11px] opacity-50" style={{ color: theme.text }}>{dateRange}</span>
                                                 );
