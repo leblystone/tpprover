@@ -300,10 +300,12 @@ export default function Stockpile() {
         g.totalMg += mgNum * vials;
 
         const variantKey = `${mg}__${mgUnit}`;
+        const containerUnit = item.unit || 'vial';
         if (!g.variants[variantKey]) {
           g.variants[variantKey] = { 
             mg, 
             unit: mgUnit,
+            containerUnit,
             totalMg: 0, 
             vendors: {} 
           };
@@ -319,6 +321,33 @@ export default function Stockpile() {
     }
     return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
   }, [orders, vendorMap]);
+
+  const incomingWithOrderInfo = useMemo(() => {
+    function getOrderIdForGroup(group) {
+      if (!orders || !group.name) return null;
+      const nonDelivered = orders.filter(o => !(o.status || '').toLowerCase().includes('delivered'));
+      const matchesName = (itemName, targetName) => {
+        const n = (itemName || '').trim();
+        if (targetName === 'Unknown') return n === '' || n === 'Unknown';
+        return n === (targetName || '').trim();
+      };
+      for (const o of nonDelivered) {
+        if (!o.items) continue;
+        if (o.items.some(item => matchesName(item.name, group.name))) return o.id;
+      }
+      return null;
+    }
+    const orderIds = incomingGroups.map(g => getOrderIdForGroup(g));
+    const totalPerOrder = {};
+    orderIds.forEach(id => { totalPerOrder[id] = (totalPerOrder[id] || 0) + 1; });
+    const occurrence = {};
+    return incomingGroups.map((g, i) => {
+      const orderId = orderIds[i];
+      const total = totalPerOrder[orderId] || 1;
+      occurrence[orderId] = (occurrence[orderId] || 0) + 1;
+      return { group: g, itemIndex: occurrence[orderId], totalFromOrder: total };
+    });
+  }, [incomingGroups, orders]);
 
   const [manageName, setManageName] = useState(null)
   const [manageRows, setManageRows] = useState([])
@@ -1530,11 +1559,13 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {incomingGroups.map(g => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
+                {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
                   <IncomingGroupCard
-                    key={`incoming-${g.name}`}
+                    key={`incoming-${g.name}-${i}`}
                     group={g}
+                    itemIndex={itemIndex}
+                    totalFromOrder={totalFromOrder}
                     theme={theme}
                     orders={orders}
                     vendorMap={vendorMap}

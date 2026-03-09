@@ -1,5 +1,5 @@
 import React from 'react';
-import { Beaker, Package, ShoppingCart, ChevronRight } from 'lucide-react';
+import { Beaker, Package, ShoppingCart, ChevronRight, Truck } from 'lucide-react';
 
 /**
  * IncomingGroupCard Component - Similar style to StockpileGroupCard
@@ -10,7 +10,9 @@ export default function IncomingGroupCard({
   theme, 
   onViewOrder,
   orders,
-  vendorMap
+  vendorMap,
+  itemIndex = 1,
+  totalFromOrder = 1
 }) {
   // Get the first order ID for this group (since items come from orders)
   const getFirstOrderId = () => {
@@ -37,6 +39,11 @@ export default function IncomingGroupCard({
   };
 
   const firstOrderId = getFirstOrderId();
+  const linkedOrder = orders?.find(o => o.id === firstOrderId) || null;
+  const isLiveTracking = linkedOrder?.tracking && String(linkedOrder.tracking).trim() && !linkedOrder.manualTracking;
+  const unitLabel = (group.unit || 'mg').toUpperCase();
+  const totalLabel = `${group.totalMg} ${unitLabel}`;
+  const chipText = isLiveTracking ? `${totalLabel} IN TRANSIT` : `${totalLabel} EN ROUTE`;
   
   const handleCardClick = () => {
     if (firstOrderId && onViewOrder) {
@@ -82,75 +89,64 @@ export default function IncomingGroupCard({
             <h3 className="text-lg font-bold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
               {group.name}
             </h3>
+            {totalFromOrder > 1 && (
+              <div className="text-xs font-medium opacity-70" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                Item {itemIndex} of {totalFromOrder}
+              </div>
+            )}
           </div>
           
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
             <div 
-              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
+              className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm"
               style={{ 
                 fontFamily: 'Poppins, sans-serif',
-                backgroundColor: theme.isDark ? `${theme.primary}25` : `${theme.primary}15`,
-                color: theme.primary
+                backgroundColor: theme.primary,
+                color: theme.textOnPrimary || '#fff'
               }}
             >
-              Incoming
+              {chipText}
             </div>
-            <div className="text-xs font-semibold opacity-70 uppercase tracking-wide" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              {group.totalMg} {group.unit || 'mg'} en route
-            </div>
+            {isLiveTracking && (
+              <div className="flex items-center gap-2 text-[10px]" style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>
+                <Truck size={10} style={{ color: '#8ca68c' }} />
+                <span>ETA: Pending</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Flat List of Variants */}
+        {/* Variants as sentence: "X vials • [Beaker] X mg each from Vendor: Name" */}
         <div className="space-y-2 mt-2">
           {Object.values(group.variants)
             .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
             .map((variant) => (
               <div key={variant.mg} className="relative pl-3">
-                {/* Vertical indicator line */}
                 <div 
                   className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
                   style={{ backgroundColor: theme.primary, opacity: 0.4 }}
                 />
-                
-                {/* Variant Header Label */}
-                <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                  <div className="flex items-center gap-1.5">
-                    <Beaker size={12} style={{ color: theme.primary }} />
-                    {variant.mg} {variant.unit || 'mg'}
-                  </div>
-                  <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
-                </div>
-
-                {/* Vendors in this variant */}
                 <div className="space-y-1">
                   {Object.entries(variant.vendors)
                     .sort((a, b) => a[0].localeCompare(b[0]))
                     .map(([vendor, qtyMg]) => {
-                      const vials = Math.max(1, Math.round((Number(qtyMg) || 0) / (Number(variant.mg) || 1)));
+                      const count = Math.max(1, Math.round((Number(qtyMg) || 0) / (Number(variant.mg) || 1)));
+                      const containerUnit = variant.containerUnit || 'vial';
+                      const containerLabel = count === 1 ? containerUnit : (containerUnit.endsWith('s') ? containerUnit : `${containerUnit}s`);
+                      const mgLabel = `${variant.mg} ${variant.unit || 'mg'}`;
                       return (
-                        <div 
+                        <div
                           key={vendor}
-                          className="flex items-center justify-between py-1 px-2 -mx-1 rounded-lg transition-all duration-150"
-                          style={{
-                            backgroundColor: 'transparent'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
+                          className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 py-1 text-xs"
+                          style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}
                         >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Package size={14} style={{ color: theme.primary }} />
-                            <span className="text-sm font-bold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                              {vendor}
-                            </span>
-                          </div>
-                          <div className="text-xs font-semibold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 ml-2 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                            {vials} {vials === 1 ? 'vial' : 'vials'}
-                          </div>
+                          <span className="font-semibold" style={{ color: theme.text }}>{count} {containerLabel}</span>
+                          <span style={{ opacity: 0.5 }}>•</span>
+                          <Beaker size={12} style={{ color: theme.primary, flexShrink: 0 }} />
+                          <span className="font-semibold opacity-80">{mgLabel} each</span>
+                          <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>from</span>
+                          <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>Vendor:</span>
+                          <span className="font-bold truncate" style={{ color: theme.text }}>{vendor}</span>
                         </div>
                       );
                     })}

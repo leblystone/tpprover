@@ -160,16 +160,23 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                   </div>
 
                   <div className="space-y-1">
-                    {o.items.slice(0, 3).map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
-                        <span className="truncate mr-2" style={{ color: theme.text }}>
-                          {item.name} {item.mg ? `(${item.mg}mg)` : ''}
-                        </span>
-                        <span className="font-semibold opacity-60 flex-shrink-0" style={{ color: theme.text }}>
-                          {item.quantity} {item.unit || 'vial'}{item.quantity !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    ))}
+                    {o.items.slice(0, 3).map((item, idx) => {
+                      const amountUnit = item.mgUnit || 'mg';
+                      const amountLabel = item.mg != null && item.mg !== '' ? `(${item.mg}${amountUnit})` : '';
+                      const containerUnit = item.unit || 'vial';
+                      const plural = Number(item.quantity) !== 1 && !containerUnit.endsWith('s') ? 's' : '';
+                      const containerLabel = `${item.quantity} ${containerUnit}${plural}`;
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
+                          <span className="truncate mr-2" style={{ color: theme.text }}>
+                            {item.name} {amountLabel}
+                          </span>
+                          <span className="font-semibold opacity-60 flex-shrink-0" style={{ color: theme.text }}>
+                            {containerLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   {o.items.length > 3 && (
