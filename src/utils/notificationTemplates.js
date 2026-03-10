@@ -66,10 +66,22 @@ const DEFAULT_TEMPLATES = {
     actionUrl: "/app/dashboard"
   },
   trialEnding: {
-    title: "⏰ Trial Ending Soon",
-    body: "Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!",
-    actionText: "View Subscription",
+    title: "⏰ Trial wrapping up",
+    body: "Your trial ends in {daysLeft} days. Here's what to do next.",
+    actionText: "View Plans",
     actionUrl: "/app/account"
+  },
+  trialExtensionOffer: {
+    title: "Need a bit more time?",
+    body: "Your trial ends in 4 days. Tap to add 7 more — no strings.",
+    actionText: "Extend Trial",
+    actionUrl: "/app/account/subscription"
+  },
+  inactiveUser: {
+    title: "Your research is still here",
+    body: "Your research is still here whenever you're ready.",
+    actionText: "Pick up where you left off",
+    actionUrl: "/app/dashboard"
   },
   titrationDoseChange: {
     title: "📈 Dose Change Today!",

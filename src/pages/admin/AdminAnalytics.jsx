@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,9 +15,17 @@ import {
   Mail,
   Copy,
   Send,
+  Filter,
+  Users,
+  Flame,
+  ThermometerSnowflake,
+  Zap,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import { elegantPalette } from '../../utils/adminHelpers';
+
+const TRIAL_DAYS = 14;
 
 const statusFilters = [
   { id: 'new', label: 'New' },
@@ -26,10 +34,96 @@ const statusFilters = [
   { id: 'all', label: 'All History' },
 ];
 
+// Derive subscription status from user doc (mirrors AdminUsersSubscriptions logic)
+function getUserSubscriptionStatus(user) {
+  const subscription = user.subscription;
+  const now = new Date();
+  let trialEndDate = null;
+  if (user.trialEndDate) {
+    trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+  } else if (user.createdAt) {
+    const created = user.createdAt?.toDate?.() || new Date(user.createdAt);
+    trialEndDate = new Date(created.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  }
+  if (trialEndDate && trialEndDate > now && subscription?.status !== 'active') return 'trialing';
+  if (subscription?.status === 'active') {
+    const p = (subscription.plan || subscription.interval || '').toLowerCase();
+    if (['lifetime', 'life', 'permanent'].some(t => p.includes(t)) || subscription.hasLifetimeAccess) return 'lifetime';
+    if (['annual', 'year'].some(t => p.includes(t))) return 'annual';
+    return 'monthly';
+  }
+  return 'trial-expired';
+}
+
+// Compute activation funnel from milestones on all users
+function computeFunnel(users) {
+  const total = users.length;
+  if (total === 0) return [];
+  const pct = (n) => Math.round((n / total) * 100);
+  const converted = users.filter(u => {
+    const s = u.subscription?.status;
+    const i = (u.subscription?.interval || u.subscription?.plan || '').toLowerCase();
+    return (s === 'active') || ['monthly', 'annual', 'lifetime'].includes(i);
+  }).length;
+
+  return [
+    { label: 'Signed up', count: total, pct: 100 },
+    { label: 'Completed tour', count: users.filter(u => u.milestones?.onboardingCompleted).length, pct: pct(users.filter(u => u.milestones?.onboardingCompleted).length) },
+    { label: 'Created 1 protocol', count: users.filter(u => u.milestones?.firstProtocolCreated).length, pct: pct(users.filter(u => u.milestones?.firstProtocolCreated).length) },
+    { label: 'Added 1 order', count: users.filter(u => u.milestones?.firstOrderAdded).length, pct: pct(users.filter(u => u.milestones?.firstOrderAdded).length) },
+    { label: '7-day streak', count: users.filter(u => u.milestones?.sevenDayStreak).length, pct: pct(users.filter(u => u.milestones?.sevenDayStreak).length) },
+    { label: 'Converted to paid', count: converted, pct: pct(converted) },
+  ];
+}
+
+// Compute user segments based on engagement data
+function computeSegments(users) {
+  const now = new Date();
+  const nowKey = now.toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const fourDaysAgo = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const isTrialing = (u) => getUserSubscriptionStatus(u) === 'trialing';
+  const lastActive = (u) => {
+    const raw = u.engagement?.lastActiveDate || (u.lastActive?.toDate ? u.lastActive.toDate().toISOString().slice(0, 10) : null);
+    return raw || null;
+  };
+
+  const newUsers = users.filter(u => {
+    if (!u.createdAt) return false;
+    const created = u.createdAt?.toDate ? u.createdAt.toDate().toISOString().slice(0, 10) : new Date(u.createdAt).toISOString().slice(0, 10);
+    return created >= sevenDaysAgo;
+  });
+
+  const coldUsers = users.filter(u => {
+    if (!isTrialing(u)) return false;
+    const la = lastActive(u);
+    return !la || la < fourDaysAgo;
+  });
+
+  const engagedUsers = users.filter(u => {
+    const la = lastActive(u);
+    if (!la) return false;
+    // Active 3+ of last 7 days — use totalActiveDays as proxy if engagement object exists
+    const streak = u.engagement?.currentStreak ?? 0;
+    const totalActive = u.engagement?.totalActiveDays ?? 0;
+    return la >= sevenDaysAgo && (streak >= 3 || totalActive >= 3);
+  });
+
+  const avidUsers = users.filter(u => {
+    const streak = u.engagement?.currentStreak ?? 0;
+    const totalActive = u.engagement?.totalActiveDays ?? 0;
+    return streak >= 6 || totalActive >= 6;
+  });
+
+  return { newUsers, coldUsers, engagedUsers, avidUsers };
+}
+
 export default function AdminAnalytics() {
   const { theme } = useOutletContext();
   const {
     analytics,
+    users,
     feedback,
     tickets,
     loading,
@@ -45,6 +139,14 @@ export default function AdminAnalytics() {
   } = useAdmin();
   const pal = elegantPalette;
 
+  // Date range filter state — defaults to last 30 days
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+
   const [feedbackView, setFeedbackView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('new');
   const [selectedFeedback, setSelectedFeedback] = useState(null);
@@ -54,6 +156,34 @@ export default function AdminAnalytics() {
   const [responseText, setResponseText] = useState('');
   const [loadingTicket, setLoadingTicket] = useState(false);
   const ticketUnsubRef = useRef(null);
+
+  // Filtered users by date range
+  const filteredUsers = useMemo(() => {
+    if (!users?.length) return [];
+    return users.filter(u => {
+      if (!u.createdAt) return true;
+      const created = u.createdAt?.toDate ? u.createdAt.toDate().toISOString().slice(0, 10) : new Date(u.createdAt).toISOString().slice(0, 10);
+      return created >= dateFrom && created <= dateTo;
+    });
+  }, [users, dateFrom, dateTo]);
+
+  // Filtered growth chart
+  const filteredGrowth = useMemo(() => {
+    return (analytics.userGrowth || []).filter(d => d.date >= dateFrom && d.date <= dateTo);
+  }, [analytics.userGrowth, dateFrom, dateTo]);
+
+  // Status counts within date range
+  const statusCounts = useMemo(() => {
+    const counts = { trialing: 0, 'trial-expired': 0, monthly: 0, annual: 0, lifetime: 0 };
+    filteredUsers.forEach(u => {
+      const s = getUserSubscriptionStatus(u);
+      if (counts[s] !== undefined) counts[s]++;
+    });
+    return counts;
+  }, [filteredUsers]);
+
+  const funnel = useMemo(() => computeFunnel(users || []), [users]);
+  const segments = useMemo(() => computeSegments(users || []), [users]);
 
   const newFeedback = feedback.filter((f) => f.status === 'new');
   const newTickets = tickets.filter((t) => t.status === 'new' || t.status === 'in-progress');
@@ -131,6 +261,52 @@ export default function AdminAnalytics() {
 
   return (
     <div className="space-y-3">
+
+      {/* Date Range Filter */}
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg border" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+        <Filter size={14} style={{ color: pal.gold.metallic }} />
+        <span className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Date Range</span>
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo}
+            onChange={e => setDateFrom(e.target.value)}
+            className="text-xs border rounded px-1.5 py-0.5"
+            style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
+          />
+          <span className="text-xs" style={{ color: '#6a6a6a' }}>—</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={e => setDateTo(e.target.value)}
+            className="text-xs border rounded px-1.5 py-0.5"
+            style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
+          />
+        </div>
+        <span className="text-xs ml-auto" style={{ color: '#6a6a6a' }}>
+          {filteredUsers.length} users in range
+        </span>
+        {/* Status counts within range */}
+        <div className="w-full flex flex-wrap gap-2 pt-1 border-t mt-1" style={{ borderColor: '#eee' }}>
+          {[
+            { key: 'trialing', label: 'Trialing', color: '#F59E0B' },
+            { key: 'trial-expired', label: 'Expired', color: '#DC2626' },
+            { key: 'monthly', label: 'Monthly', color: '#7F9E95' },
+            { key: 'annual', label: 'Annual', color: '#5F7F76' },
+            { key: 'lifetime', label: 'Lifetime', color: '#1a1a1a' },
+          ].map(({ key, label, color }) => (
+            <div key={key} className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+              <span className="text-xs font-semibold" style={{ color }}>{statusCounts[key]}</span>
+              <span className="text-xs" style={{ color: '#6a6a6a' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Left column: User Growth & Analytics */}
@@ -154,9 +330,9 @@ export default function AdminAnalytics() {
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Daily New Signups (Last 14 Days)</h3>
+                <h3 className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Daily New Signups</h3>
                 <span className="text-xs" style={{ color: '#4a4a4a' }}>
-                  Total: {analytics.userGrowth.slice(-14).reduce((s, d) => s + d.newUsers, 0)} new users
+                  Total: {filteredGrowth.reduce((s, d) => s + d.newUsers, 0)} new users
                 </span>
               </div>
               <div
@@ -166,8 +342,8 @@ export default function AdminAnalytics() {
                   border: '1px solid #e0e0e0',
                 }}
               >
-                {analytics.userGrowth.slice(-14).map((day) => {
-                  const maxNew = Math.max(...analytics.userGrowth.slice(-14).map((d) => d.newUsers), 1);
+                {filteredGrowth.slice(-30).map((day) => {
+                  const maxNew = Math.max(...filteredGrowth.slice(-30).map((d) => d.newUsers), 1);
                   const hasNew = day.newUsers > 0;
                   return (
                     <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
@@ -182,7 +358,7 @@ export default function AdminAnalytics() {
                         }}
                       />
                       <span className="text-[10px] font-semibold" style={{ color: hasNew ? '#1a1a1a' : '#666666' }}>
-                        {new Date(day.date).getDate()}
+                        {new Date(day.date + 'T12:00:00').getDate()}
                       </span>
                     </div>
                   );
@@ -212,6 +388,62 @@ export default function AdminAnalytics() {
               ))}
             </div>
           </div>
+
+          {/* Activation Funnel */}
+          <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap size={16} style={{ color: pal.gold.metallic }} />
+              <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Activation Funnel</h2>
+              <span className="text-xs ml-auto" style={{ color: '#9a9a9a' }}>All users · milestone data grows over time</span>
+            </div>
+            <div className="space-y-2">
+              {funnel.map((step, i) => (
+                <div key={step.label} className="flex items-center gap-2">
+                  <div className="w-28 text-xs shrink-0" style={{ color: '#4a4a4a' }}>{step.label}</div>
+                  <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: '#f0f0f0' }}>
+                    <div
+                      className="h-4 rounded-full transition-all"
+                      style={{
+                        width: `${step.pct}%`,
+                        background: i === funnel.length - 1
+                          ? `linear-gradient(90deg, ${pal.gold.gradientStart}, ${pal.gold.gradientEnd})`
+                          : `linear-gradient(90deg, ${pal.gold.gradientStart}99, ${pal.gold.gradientEnd}66)`,
+                      }}
+                    />
+                  </div>
+                  <div className="w-16 text-right text-xs shrink-0">
+                    {step.count > 0 || i === 0
+                      ? <><span className="font-semibold" style={{ color: '#1a1a1a' }}>{step.count}</span><span style={{ color: '#9a9a9a' }}> ({step.pct}%)</span></>
+                      : <span style={{ color: '#c0c0c0' }}>—</span>
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* User Segments */}
+          <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Users size={16} style={{ color: pal.gold.metallic }} />
+              <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>User Segments</h2>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {[
+                { label: 'New', sub: 'Signed up last 7 days', count: segments.newUsers.length, icon: <Users size={16} />, color: '#7F9E95' },
+                { label: 'Cold', sub: 'Trialing, inactive 4+ days', count: segments.coldUsers.length, icon: <ThermometerSnowflake size={16} />, color: '#94a3b8' },
+                { label: 'Engaged', sub: '3+ active days of last 7', count: segments.engagedUsers.length, icon: <CheckCircle2 size={16} />, color: '#5FAF8B' },
+                { label: 'Avid', sub: '6+ day streak or total', count: segments.avidUsers.length, icon: <Flame size={16} />, color: '#F59E0B' },
+              ].map(seg => (
+                <div key={seg.label} className="p-2 rounded-lg text-center" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
+                  <div className="mb-0.5" style={{ color: seg.color }}>{seg.icon}</div>
+                  <div className="text-xl font-bold" style={{ color: '#1a1a1a' }}>{seg.count}</div>
+                  <div className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>{seg.label}</div>
+                  <div className="text-[10px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>{seg.sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Right column: Key metrics */}
@@ -221,8 +453,14 @@ export default function AdminAnalytics() {
             <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>Total Users</div>
           </div>
           <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
-            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>{analytics.userGrowth.reduce((s, d) => s + d.newUsers, 0)}</div>
-            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>New This Month</div>
+            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>{filteredUsers.length}</div>
+            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>In Selected Range</div>
+          </div>
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
+            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>
+              {analytics.totalUsers > 0 ? Math.round(((statusCounts.monthly + statusCounts.annual + statusCounts.lifetime) / analytics.totalUsers) * 100) : 0}%
+            </div>
+            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>Conversion Rate</div>
           </div>
         </div>
       </div>

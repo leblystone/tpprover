@@ -13,9 +13,9 @@ function getSubscriptionStatus(user) {
   if (user.trialEndDate) {
     trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
   } else if (user.createdAt) {
-    // If no trialEndDate, calculate default 30-day trial from registration
+    // If no trialEndDate, calculate default 14-day trial from registration
     const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-    trialEndDate = new Date(createdDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+    trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
   }
   
   if (trialEndDate) {

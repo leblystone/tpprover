@@ -79,7 +79,7 @@ export default function Pricing() {
   const faqs = [
     {
       question: "Is there a free trial?",
-      answer: "Yes! Every plan starts with a 30-day research trial. No credit card required to explore the workspace."
+      answer: "Yes! Every plan starts with a 14-day research trial. No credit card required to explore the workspace."
     },
     {
       question: "Can I change plans anytime?",
@@ -131,7 +131,7 @@ export default function Pricing() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl md:text-2xl mb-8" style={{ color: theme.textLight }}>
-            Choose the plan that fits your research needs. Every plan includes a 30-day research trial.
+            Choose the plan that fits your research needs. Every plan includes a 14-day research trial.
           </p>
           
           {/* Billing Toggle */}

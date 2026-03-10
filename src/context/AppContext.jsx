@@ -26,6 +26,7 @@ import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigra
 import { migrateTaskCompletionIds } from '../utils/taskCompletion';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
+import { applyOrderToStockpile } from '../utils/orderStockpileSync';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -2226,7 +2227,8 @@ export function AppProvider({ children }) {
                         const originalOrder = currentOrders.find(o => o.id === updatedOrder.id);
                         if (originalOrder && originalOrder.status !== updatedOrder.status) {
                             setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-                            
+                            // Keep stockpile in sync: add delivered items, remove if no longer delivered
+                            applyOrderToStockpile(originalOrder, updatedOrder, setStockpile);
                             // Show toast notification
                             if (updatedOrder.status === 'Shipped') {
                                 window.dispatchEvent(new CustomEvent('tpp:toast', { 

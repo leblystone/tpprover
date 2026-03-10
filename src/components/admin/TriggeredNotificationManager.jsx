@@ -60,9 +60,9 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
   inactiveUser: {
     id: 'inactiveUser',
     name: 'Re-engagement',
-    title: '👋 We miss you!',
-    body: 'Your research journey is waiting. Come back and check your progress!',
-    enabled: false,
+    title: 'Your research is still here',
+    body: 'Your research is still here whenever you\'re ready.',
+    enabled: true,
     triggers: {
       type: 'time_based',
       condition: 'last_login',
@@ -203,19 +203,44 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
   trialEnding: {
     id: 'trialEnding',
     name: 'Trial Ending Soon',
-    title: '⏰ Trial Ending Soon',
-    body: 'Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!',
+    title: '⏰ Trial wrapping up',
+    body: 'Your trial ends in {daysLeft} days. Here\'s what to do next.',
     enabled: true,
     triggers: {
       type: 'time_based',
       condition: 'trial_ending',
-      delay: 7, // 7 days remaining (day 23 of trial)
+      delay: 2, // 2 days remaining
       unit: 'days'
     },
     targeting: {
       audience: 'all_users',
       conditions: [
         { field: 'subscription.status', operator: 'equals', value: 'trialing' }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      preferredTime: '10:00'
+    }
+  },
+  trialExtensionOffer: {
+    id: 'trialExtensionOffer',
+    name: 'Trial Extension Offer',
+    title: 'Need a bit more time?',
+    body: 'Your trial ends in 4 days. Tap to add 7 more — no strings.',
+    enabled: true,
+    triggers: {
+      type: 'time_based',
+      condition: 'trial_ending',
+      delay: 4, // 4 days remaining
+      unit: 'days'
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'subscription.status', operator: 'equals', value: 'trialing' },
+        { field: 'trialExtensions', operator: 'equals', value: 0 }
       ]
     },
     scheduling: {

@@ -151,6 +151,16 @@ const DEFAULT_TRIGGERS = {
     timezone: 'America/New_York',
     daysAfter: 3,
     sendTime: '09:00'
+  },
+  trialExtensionOffer: {
+    enabled: true,
+    triggerType: 'scheduled',
+    description: 'Sent at day 10 of trial (4 days before end) offering a one-time 7-day extension',
+    schedule: 'Daily check at 10 AM EST',
+    timing: '4 days before trial ends',
+    timezone: 'America/New_York',
+    daysBefore: 4,
+    sendTime: '10:00'
   }
 };
 
@@ -158,6 +168,7 @@ const TEMPLATE_NAMES = {
   welcome: 'Welcome Email',
   verification: 'Email Verification',
   trialEnding: 'Trial Ending Soon',
+  trialExtensionOffer: 'Trial Extension Offer (Day 10)',
   weeklyReminder: 'Weekly Research Reminder',
   subscription: 'Subscription Confirmed',
   paymentFailed: 'Payment Failed',

@@ -117,7 +117,7 @@ export default function WelcomeModal({ open, onClose, theme }) {
                             <h2 className="text-xl sm:text-2xl font-semibold" style={{ color: theme.primaryDark }}>
                                 Research Plans
                             </h2>
-                            <p className="text-sm mt-1" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>Plans available once your 30 day run is done.</p>
+                            <p className="text-sm mt-1" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>Plans available once your 14 day run is done.</p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">

@@ -354,6 +354,108 @@ exports.adminRevokeLifetimeAccess = onCall(
   }
 );
 
+/**
+ * User-callable: extend own trial by 7 days, one-time only.
+ * Used when user taps "extend trial" from email or push (no in-app banner).
+ */
+const EXTEND_TRIAL_DAYS = 7;
+const DEFAULT_TRIAL_DAYS = 14;
+
+exports.extendTrial = onCall(
+  { cors: true },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Sign in to extend your trial.');
+    }
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+    const now = new Date();
+    const userRef = db.collection('users').doc(uid);
+    const subRef = db.collection('userSubscriptions').doc(uid);
+
+    const [userSnap, subSnap] = await Promise.all([userRef.get(), subRef.get()]);
+    if (!userSnap.exists) {
+      throw new HttpsError('not-found', 'User not found.');
+    }
+    const userData = userSnap.data() || {};
+    const subData = subSnap.exists ? subSnap.data() : {};
+    const subscription = subData.subscription || userData.subscription || {};
+
+    // Already used the one-time extension
+    const extensionCount = userData.trialExtensions ?? (Array.isArray(userData.trialExtensionHistory) ? userData.trialExtensionHistory.length : 0);
+    if (extensionCount >= 1) {
+      return { success: false, extended: false, reason: 'already_used', message: 'You\'ve already used your one-time extension.' };
+    }
+
+    // Paid subscribers cannot "extend" trial
+    const isPaid = subscription.status === 'active' && ['month', 'monthly', 'year', 'annual', 'lifetime'].some(
+      (x) => (subscription.interval || '').toLowerCase().includes(x) || (subscription.plan || '').toLowerCase().includes(x)
+    );
+    if (subscription.hasLifetimeAccess || isPaid) {
+      return { success: true, extended: false, reason: 'has_paid', message: 'You already have an active subscription.' };
+    }
+
+    // Current trial end: from subscription, user.trialEndDate, or createdAt + 14 days
+    let currentEnd = null;
+    if (subscription.currentPeriodEnd) {
+      const parsed = new Date(subscription.currentPeriodEnd);
+      if (!isNaN(parsed.getTime())) currentEnd = parsed;
+    }
+    if (!currentEnd && userData.trialEndDate) {
+      const t = userData.trialEndDate?.toDate ? userData.trialEndDate.toDate() : new Date(userData.trialEndDate);
+      if (!isNaN(t.getTime())) currentEnd = t;
+    }
+    if (!currentEnd && userData.createdAt) {
+      const created = userData.createdAt?.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+      currentEnd = new Date(created.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    }
+    if (!currentEnd) currentEnd = new Date(now.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+
+    const newEndDate = new Date(currentEnd.getTime() + EXTEND_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    const newEndIso = newEndDate.toISOString();
+    const extensionEntry = {
+      extendedAt: now.toISOString(),
+      addedDays: EXTEND_TRIAL_DAYS,
+      oldEnd: currentEnd.toISOString(),
+      newEnd: newEndIso,
+      source: 'user_one_time'
+    };
+
+    const updatedSub = {
+      ...subscription,
+      plan: '14-Day Research Trial',
+      interval: 'trial',
+      status: 'trialing',
+      startedAt: subscription.startedAt || subscription.currentPeriodStart || now.toISOString(),
+      currentPeriodStart: subscription.currentPeriodStart || subscription.startedAt || now.toISOString(),
+      currentPeriodEnd: newEndIso,
+      trialExtendedAt: now.toISOString(),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    };
+    const subHistory = Array.isArray(subData.trialExtensionHistory) ? [...subData.trialExtensionHistory] : [];
+    subHistory.push(extensionEntry);
+    const userHistory = Array.isArray(userData.trialExtensionHistory) ? [...userData.trialExtensionHistory] : [];
+    userHistory.push(extensionEntry);
+
+    await Promise.all([
+      subRef.set({
+        subscription: updatedSub,
+        trialExtensionHistory: subHistory
+      }, { merge: true }),
+      userRef.set({
+        subscription: { ...(userData.subscription || {}), ...updatedSub },
+        trialEndDate: admin.firestore.Timestamp.fromDate(newEndDate),
+        trialExtensions: 1,
+        trialExtensionHistory: userHistory,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
+    ]);
+
+    logger.info(`Trial extended by user ${uid}; new end ${newEndIso}`);
+    return { success: true, extended: true, newEndDate: newEndIso, daysAdded: EXTEND_TRIAL_DAYS };
+  }
+);
+
 exports.adminExtendTrialPeriod = onCall(
   {
     cors: true
@@ -414,7 +516,7 @@ exports.adminExtendTrialPeriod = onCall(
       // Update subscription - explicitly reactivate trial
       const updatedSubscription = {
         ...existingSubscription,
-        plan: '30-Day Research Trial',
+        plan: '14-Day Research Trial',
         interval: 'trial',
         status: 'trialing', // Force status to trialing
         startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),

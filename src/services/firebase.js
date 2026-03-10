@@ -273,7 +273,13 @@ export async function registerUser(email, password, inviteCode) {
     } catch (analyticsError) {
       console.warn('⚠️ Analytics tracking failed:', analyticsError);
     }
-    
+
+    // Per-user engagement: count first day (non-blocking)
+    try {
+      const { trackEngagement } = await import('../utils/engagementTracking');
+      trackEngagement(user.uid, 'login').catch(() => {});
+    } catch (_) {}
+
     return { user, userData };
   } catch (error) {
     console.error('❌ Registration failed:', error);
@@ -312,7 +318,13 @@ export async function loginUser(email, password) {
     } catch (analyticsError) {
       console.warn('⚠️ Login analytics failed:', analyticsError?.message || analyticsError);
     }
-    
+
+    // Per-user engagement (streak, active days) — non-blocking
+    try {
+      const { trackEngagement } = await import('../utils/engagementTracking');
+      trackEngagement(user.uid, 'login').catch(() => {});
+    } catch (_) {}
+
     return user;
   } catch (error) {
     console.error('Login failed:', {
@@ -922,6 +934,18 @@ export async function adminRevokeAndRestoreTrial(userId, reason = '', refundAmou
   const functions = getFunctions();
   const fn = httpsCallable(functions, 'adminRevokeAndRestoreTrial');
   const result = await fn({ userId, reason, refundAmount });
+  return result.data;
+}
+
+/**
+ * User-callable: claim the one-time 7-day trial extension.
+ * Calls the extendTrial Cloud Function (guarded server-side to one use).
+ * @returns {Promise<{ extended: boolean, newEndDate?: string, reason?: string }>}
+ */
+export async function claimTrialExtension() {
+  const fns = getFunctions();
+  const fn = httpsCallable(fns, 'extendTrial');
+  const result = await fn({});
   return result.data;
 }
 

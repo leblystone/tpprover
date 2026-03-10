@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import OverlayTour from './OverlayTour';
 import { useNavigate } from 'react-router-dom';
 import { isNative } from '../../utils/platform';
+import { useFirebase } from '../../context/FirebaseContext';
+import { trackEngagement } from '../../utils/engagementTracking';
 
 const TOUR_STEPS = [
     {
         target: 'body',
-        content: "The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 30 days and take a look around! Happy researching! 🧪\n\nLet's take a quick tour of your research management system. We'll visit each main page to show you what it does.",
+        content: "The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 14 days and take a look around! Happy researching! 🧪\n\nLet's take a quick tour of your research management system. We'll visit each main page to show you what it does.",
         title: 'Welcome!',
         placement: 'center',
         path: '/app/dashboard',
@@ -130,6 +132,7 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
     const [stepIndex, setStepIndex] = useState(0);
     const navigate = useNavigate();
     const isMobile = useIsMobile();
+    const { firebaseUser } = useFirebase();
 
     const tourSteps = useMemo(() => TOUR_STEPS, []);
 
@@ -184,7 +187,13 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
             steps={tourSteps.map(s => ({ target: s.target, content: renderContent(s.content), title: s.title, position: s.placement || 'right' }))}
             currentIndex={stepIndex}
             onIndexChange={goToStep}
-            onFinish={() => { setRun(false); onTourEnd(); }}
+            onFinish={() => {
+                setRun(false);
+                if (firebaseUser?.uid) {
+                  trackEngagement(firebaseUser.uid, 'onboardingCompleted').catch(() => {});
+                }
+                onTourEnd();
+              }}
             // Only show install prompt for PWA (web), not for native apps
             onRequestInstall={!isNative() ? () => {
                 try {

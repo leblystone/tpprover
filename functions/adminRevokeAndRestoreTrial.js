@@ -76,7 +76,7 @@ exports.adminRevokeAndRestoreTrial = onCall(
       let originalTrialEnd = null;
       if (userData.trialEndDate?.toDate) originalTrialEnd = userData.trialEndDate.toDate();
       else if (userData.trialEndDate) originalTrialEnd = new Date(userData.trialEndDate);
-      else if (created) originalTrialEnd = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+      else if (created) originalTrialEnd = new Date(created.getTime() + 14 * 24 * 60 * 60 * 1000);
 
       if (originalTrialEnd && created) {
         const purchasedAt = lifetimeData?.grantedAt?.toDate

@@ -26,6 +26,7 @@ import {
   getCalendarNoteText, 
   hasCalendarNotes as hasCalendarNotesUtil 
 } from '../utils/calendarNotesMigration'
+import { trackEngagement } from '../utils/engagementTracking'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -169,6 +170,13 @@ export default function Calendar() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [goals, setGoals] = useState([]);
   
+  // Track calendar view for engagement (once per day)
+  useEffect(() => {
+    if (firebaseUser?.uid) {
+      trackEngagement(firebaseUser.uid, 'firstCalendarView').catch(() => {});
+    }
+  }, [firebaseUser?.uid]);
+
   // Load goals from cloud-synced localStorage (tpprover_user_goals) with user validation
   useEffect(() => {
     const load = () => {

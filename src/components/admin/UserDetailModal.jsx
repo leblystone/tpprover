@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink, Globe, Tablet } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink, Globe, Tablet, Flame, Activity, CheckCircle2 } from 'lucide-react';
 import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
 
 function RevokeAndRestoreTrialAction({ user, theme }) {
@@ -207,7 +207,7 @@ export default function UserDetailModal({
     } else if (user.createdAt) {
       // If no trialEndDate, calculate default 30-day trial from registration
       const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-      trialEndDate = new Date(createdDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
     }
     
     if (trialEndDate) {
@@ -601,6 +601,9 @@ export default function UserDetailModal({
 
           {/* Technical Details */}
           <TechnicalDetailsSection user={user} theme={enhancedTheme} />
+
+          {/* Engagement */}
+          <EngagementSection user={user} theme={enhancedTheme} />
 
           {/* Subscription Debug Info */}
           <SubscriptionDebugSection user={user} theme={enhancedTheme} />
@@ -1169,9 +1172,9 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
   if (user.trialEndDate) trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
   else if (user.createdAt) {
     const created = user.createdAt?.toDate?.() || new Date(user.createdAt);
-    trialEndDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    trialEndDate = new Date(created.getTime() + 14 * 24 * 60 * 60 * 1000);
   }
-  const trialDaysTotal = trialEndDate && user.createdAt ? Math.ceil((trialEndDate - (user.createdAt?.toDate?.() || new Date(user.createdAt))) / (24 * 60 * 60 * 1000)) : 30;
+  const trialDaysTotal = trialEndDate && user.createdAt ? Math.ceil((trialEndDate - (user.createdAt?.toDate?.() || new Date(user.createdAt))) / (24 * 60 * 60 * 1000)) : 14;
   const trialDaysLeft = trialEndDate && trialEndDate > now ? Math.ceil((trialEndDate - now) / (24 * 60 * 60 * 1000)) : 0;
   const trialDaysUsed = trialDaysTotal - trialDaysLeft;
   const trialProgress = trialDaysTotal > 0 ? Math.min(100, (trialDaysUsed / trialDaysTotal) * 100) : 0;
@@ -1263,7 +1266,7 @@ function buildLifecycleMilestones(user, events) {
 
   // Trial window
   let trialEnd = user.trialEndDate?.toDate ? user.trialEndDate.toDate() : user.trialEndDate ? new Date(user.trialEndDate) : null;
-  if (!trialEnd && registered) trialEnd = new Date(registered.getTime() + 30 * 24 * 60 * 60 * 1000);
+  if (!trialEnd && registered) trialEnd = new Date(registered.getTime() + 14 * 24 * 60 * 60 * 1000);
   if (trialEnd && !Number.isNaN(trialEnd.getTime())) {
     const expired = trialEnd <= now;
     milestones.push({ key: 'trial_end', label: expired ? 'Trial Ended' : 'Trial Ends', date: trialEnd, color: expired ? 'warning' : 'info', icon: '⏳' });
@@ -1776,6 +1779,87 @@ function SubscriptionDebugSection({ user, theme }) {
           </div>
         )}
       </div>
+      </div>
+    </div>
+  );
+}
+
+// Engagement & Milestone Section
+function EngagementSection({ user, theme }) {
+  const engagement = user.engagement || {};
+  const milestones = user.milestones || {};
+
+  const streak = engagement.currentStreak ?? 0;
+  const longestStreak = engagement.longestStreak ?? 0;
+  const totalActiveDays = engagement.totalActiveDays ?? 0;
+  const loginCount = engagement.loginCount ?? 0;
+
+  const milestoneList = [
+    { key: 'onboardingCompleted', label: 'Completed tour' },
+    { key: 'firstProtocolCreated', label: 'First protocol' },
+    { key: 'firstOrderAdded', label: 'First order' },
+    { key: 'firstStockpileItem', label: 'First stockpile item' },
+    { key: 'firstCalendarView', label: 'Viewed calendar' },
+    { key: 'sevenDayStreak', label: '7-day streak' },
+  ];
+
+  const hasAnyEngagement = streak > 0 || totalActiveDays > 0 || loginCount > 0 || milestoneList.some(m => milestones[m.key]);
+
+  return (
+    <div className="rounded-xl border p-4 relative overflow-hidden"
+      style={{
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.success}05 100%)`
+      }}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{ background: `linear-gradient(135deg, ${theme.success} 0%, ${theme.success}DD 100%)`, boxShadow: `0 2px 8px ${theme.success}30` }}>
+          <Activity size={14} style={{ color: '#FFFFFF' }} />
+        </div>
+        <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Engagement</h4>
+        {!hasAnyEngagement && (
+          <span className="text-[10px] ml-auto px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.border + '40', color: theme.textLight }}>
+            No data yet
+          </span>
+        )}
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {[
+          { label: 'Current streak', value: streak > 0 ? `${streak}d` : '—', icon: <Flame size={14} />, color: streak >= 7 ? '#F59E0B' : theme.textLight },
+          { label: 'Longest streak', value: longestStreak > 0 ? `${longestStreak}d` : '—', icon: <Flame size={14} />, color: theme.textLight },
+          { label: 'Active days', value: totalActiveDays > 0 ? totalActiveDays : '—', icon: <Activity size={14} />, color: theme.info },
+          { label: 'Logins', value: loginCount > 0 ? loginCount : '—', icon: <Users size={14} />, color: theme.textLight },
+        ].map(stat => (
+          <div key={stat.label} className="flex flex-col items-center justify-center gap-0.5 p-2 rounded-xl text-center"
+            style={{ backgroundColor: theme.background + '80', border: `1px solid ${theme.border}40` }}>
+            <div style={{ color: stat.color }}>{stat.icon}</div>
+            <span className="text-sm font-bold" style={{ color: theme.text }}>{stat.value}</span>
+            <span className="text-[10px]" style={{ color: theme.textLight }}>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Milestones */}
+      <div className="grid grid-cols-2 gap-1">
+        {milestoneList.map(({ key, label }) => {
+          const hit = !!milestones[key];
+          const ts = milestones[key]?.toDate ? milestones[key].toDate() : milestones[key] ? new Date(milestones[key]) : null;
+          return (
+            <div key={key} className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
+              style={{ backgroundColor: hit ? theme.success + '12' : theme.border + '20', border: `1px solid ${hit ? theme.success + '30' : theme.border + '20'}` }}>
+              <CheckCircle2 size={12} style={{ color: hit ? theme.success : theme.border, flexShrink: 0 }} />
+              <span className="text-xs truncate" style={{ color: hit ? theme.text : theme.textLight }}>{label}</span>
+              {hit && ts && (
+                <span className="text-[10px] ml-auto shrink-0" style={{ color: theme.textLight }}>
+                  {ts.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

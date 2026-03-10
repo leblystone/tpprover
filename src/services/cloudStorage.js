@@ -5,6 +5,7 @@ import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
 import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
 import { reportSyncError } from '../utils/syncErrorReporting';
+import { trackMilestonesFromSave } from '../utils/engagementTracking';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -785,7 +786,9 @@ export async function saveAppData(userId, appData, options = {}) {
     // Apply retention limits to prevent unbounded growth before saving
     dataToSave = applyRetentionLimits(dataToSave);
 
-    return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
+    const result = await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
+    if (result) trackMilestonesFromSave(userId, dataToSave).catch(() => {});
+    return result;
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
     reportSyncError('sync_failed', { skipMerge: !!options.skipMerge });
@@ -820,7 +823,9 @@ export async function saveAppData(userId, appData, options = {}) {
 
     // Apply retention limits even in fallback path
     const prunedFallback = applyRetentionLimits(fallbackData);
-    return await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA);
+    const result = await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA);
+    if (result) trackMilestonesFromSave(userId, prunedFallback).catch(() => {});
+    return result;
   }
 }
 

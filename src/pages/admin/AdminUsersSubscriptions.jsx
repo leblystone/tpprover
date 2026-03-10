@@ -20,7 +20,7 @@ export default function AdminUsersSubscriptions() {
       trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
     } else if (user.createdAt) {
       const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-      trialEndDate = new Date(createdDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
     }
     
     if (trialEndDate) {
