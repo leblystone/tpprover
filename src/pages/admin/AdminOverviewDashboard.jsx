@@ -124,9 +124,6 @@ export default function AdminOverviewDashboard() {
             <LayoutDashboard size={24} />
             Overview Dashboard
           </h1>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            Work Queue and Feedback & Bugs
-          </p>
         </div>
         <button
           onClick={handleRefresh}

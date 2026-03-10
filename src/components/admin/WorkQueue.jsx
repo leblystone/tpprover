@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, setDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
@@ -9,8 +9,48 @@ import {
   MessageSquare, Wrench, ExternalLink, History, 
   DollarSign, Calendar, TrendingUp, FileText,
   ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck,
-  Search, Plus, Settings, Link2, GitCommit
+  Search, Plus, Link2, GitCommit
 } from 'lucide-react';
+
+// GitHub config — read once from env vars (set in .env.local, gitignored)
+const GH_CONFIG = {
+  owner: import.meta.env.VITE_GITHUB_OWNER || '',
+  repo: import.meta.env.VITE_GITHUB_REPO || '',
+  token: import.meta.env.VITE_GITHUB_TOKEN || '',
+  branch: import.meta.env.VITE_GITHUB_BRANCH || 'main'
+};
+
+// Commit audit helpers — module level so no stale closure issues
+const AUDIT_STOP_WORDS = new Set([
+  'a','an','the','and','or','but','in','on','at','to','for','of','with',
+  'is','it','be','as','by','this','that','was','are','from','fix','fixes',
+  'fixed','update','updates','updated','add','adds','added','remove','removes',
+  'removed','change','changes','changed','merge','branch','main','refactor',
+  'cleanup','hotfix','wip','bump','v','version','pr','feat','chore','build',
+  'ci','test','docs','style','perf','revert','release'
+]);
+
+function auditTokenize(str) {
+  if (!str) return new Set();
+  return new Set(
+    str.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !AUDIT_STOP_WORDS.has(w))
+  );
+}
+
+function auditScoreMatch(commitMsg, ticket) {
+  const cTokens = auditTokenize(commitMsg);
+  const tTokens = new Set([
+    ...auditTokenize(ticket.subject),
+    ...auditTokenize(ticket.originalMessage),
+  ]);
+  if (!cTokens.size || !tTokens.size) return 0;
+  let matches = 0;
+  for (const w of cTokens) { if (tTokens.has(w)) matches++; }
+  return matches / Math.max(cTokens.size, tTokens.size);
+}
 
 // Quick response templates
 const QUICK_RESPONSES = [
@@ -82,6 +122,54 @@ const Tooltip = ({ text, children }) => {
   );
 };
 
+// Cache helpers — sessionStorage survives page refreshes; module var avoids
+// re-parsing JSON on same-session navigation (component unmount/remount)
+const _WQ_KEY = 'wq_cache_v1';
+const _COSTS_KEY = 'wq_costs_v1';
+
+function _tsToMs(v) {
+  if (v == null) return null;
+  if (typeof v === 'number') return v;
+  if (typeof v?.toDate === 'function') return v.toDate().getTime();
+  if (typeof v?.seconds === 'number') return v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+  return null;
+}
+
+function _serializeTickets(tickets) {
+  return tickets.map(t => ({
+    ...t,
+    timestamp: _tsToMs(t.timestamp),
+    markedFixedAt: _tsToMs(t.markedFixedAt),
+  }));
+}
+
+function _loadCache() {
+  try {
+    const raw = sessionStorage.getItem(_WQ_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function _loadCostsCache() {
+  try {
+    const raw = sessionStorage.getItem(_COSTS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function _saveCache(tickets, costs) {
+  try {
+    sessionStorage.setItem(_WQ_KEY, JSON.stringify(_serializeTickets(tickets)));
+    sessionStorage.setItem(_COSTS_KEY, JSON.stringify(costs));
+  } catch {} // ignore storage quota errors
+}
+
+// Module-level vars avoid re-parsing JSON on navigation (component unmount/remount)
+let _wqCache = _loadCache();
+let _costsCache = _loadCostsCache();
+
 export default function WorkQueue({ theme }) {
   const defaultTheme = {
     text: '#1F2937',
@@ -99,9 +187,9 @@ export default function WorkQueue({ theme }) {
   const btnSend = t.btnSend || '#a0522d';
   const btnSuccess = t.btnSuccess || '#0d9668';
 
-  // State
-  const [workQueue, setWorkQueue] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // State — initialise from module-level cache so re-mounts are instant
+  const [workQueue, setWorkQueue] = useState(() => _wqCache ?? []);
+  const [loading, setLoading] = useState(_wqCache === null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [customMessage, setCustomMessage] = useState('');
@@ -109,16 +197,13 @@ export default function WorkQueue({ theme }) {
   const [saving, setSaving] = useState(false);
   const [adminStatus, setAdminStatusLocal] = useState(null);
   const [linkedCommits, setLinkedCommitsLocal] = useState([]);
-  const [showGhSettings, setShowGhSettings] = useState(false);
-  const [ghConfig, setGhConfig] = useState({ owner: '', repo: '', token: '' });
-  const [ghConfigLoaded, setGhConfigLoaded] = useState(false);
   const [commitsFetching, setCommitsFetching] = useState(false);
   const [commitsList, setCommitsList] = useState([]);
   const [showCommitsDropdown, setShowCommitsDropdown] = useState(false);
   const [manualCommitText, setManualCommitText] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   
-  const [costs, setCosts] = useState({
+  const [costs, setCosts] = useState(() => _costsCache ?? {
     today: 0,
     week: 0,
     month: 0,
@@ -143,10 +228,13 @@ export default function WorkQueue({ theme }) {
   const [backlogMessages, setBacklogMessages] = useState({});
   const [expandedUserGroups, setExpandedUserGroups] = useState({});
   const autoScannedRef = useRef(false);
+  const autoCommitAuditRanRef = useRef(false);
   const [showCommitAudit, setShowCommitAudit] = useState(false);
   const [commitAuditRunning, setCommitAuditRunning] = useState(false);
   const [commitAuditResults, setCommitAuditResults] = useState(null);
-  const [commitAuditDays, setCommitAuditDays] = useState(20);
+  const [commitAuditDays, setCommitAuditDays] = useState(365);
+  const [linkingNoMatchSha, setLinkingNoMatchSha] = useState(null);
+  const [selectedLogIdForNoMatch, setSelectedLogIdForNoMatch] = useState('');
 
   const [loadError, setLoadError] = useState(null);
 
@@ -227,12 +315,17 @@ export default function WorkQueue({ theme }) {
           }
         }
 
-        // If still no userAccountInfo and we have an email, fetch it
-        if (!item.userAccountInfo && item.userEmail) {
+        // If no userAccountInfo, or it has no subscription data, fetch by email so badge can show status
+        const needsUserInfo = !item.userAccountInfo || (
+          !item.userAccountInfo.subscriptionStatus &&
+          !item.userAccountInfo.subscriptionType &&
+          !(item.userAccountInfo.subscription && (item.userAccountInfo.subscription.status || item.userAccountInfo.subscription.plan))
+        );
+        if (needsUserInfo && item.userEmail) {
           try {
             const userInfo = await getUserByEmail(item.userEmail);
             if (userInfo) {
-              item.userAccountInfo = userInfo;
+              item.userAccountInfo = { ...(item.userAccountInfo || {}), ...userInfo };
             }
           } catch (error) {
             console.error('Error fetching user info:', error);
@@ -242,15 +335,25 @@ export default function WorkQueue({ theme }) {
         tickets.push(item);
       }
 
-      // Deduplicate by ticketId — keep the most recent log per ticket (same ticket can have multiple ai_worker_logs)
+      // Deduplicate by ticketId — keep the most recent log per ticket; merge linkedCommits from all logs for that ticket
       const byTicket = new Map();
       for (const item of tickets) {
         const tid = item.ticketId || item.logId;
         const existing = byTicket.get(tid);
         const itemTime = item.timestamp?.toDate?.()?.getTime() ?? item.timestamp ?? 0;
         const existingTime = existing?.timestamp?.toDate?.()?.getTime() ?? existing?.timestamp ?? 0;
+        const itemCommits = Array.isArray(item.linkedCommits) ? item.linkedCommits : [];
+        const existingCommits = Array.isArray(existing?.linkedCommits) ? existing.linkedCommits : [];
+        const seenSha = new Set();
+        const merged = [];
+        for (const c of [...existingCommits, ...itemCommits]) {
+          const sha = c?.sha ?? c?.commit?.sha ?? '';
+          if (sha && !seenSha.has(sha)) { seenSha.add(sha); merged.push(c); }
+        }
         if (!existing || itemTime >= existingTime) {
-          byTicket.set(tid, item);
+          byTicket.set(tid, { ...item, linkedCommits: merged });
+        } else {
+          byTicket.set(tid, { ...existing, linkedCommits: merged });
         }
       }
       const deduped = Array.from(byTicket.values()).sort((a, b) => {
@@ -259,9 +362,42 @@ export default function WorkQueue({ theme }) {
         return ta - tb;
       });
 
+      // Update module-level cache + sessionStorage so the next mount/refresh is instant
+      _costsCache = { today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost };
+      _wqCache = deduped;
+      _saveCache(deduped, _costsCache);
+
       setWorkQueue(deduped);
-      setCosts({ today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost });
+      setCosts(_costsCache);
       setLoading(false);
+
+      // One-time backfill: assign adminStatus to old tickets that had replies but no status set
+      if (!backfillRanRef.current) {
+        backfillRanRef.current = true;
+        const needsBackfill = deduped.filter(t => t.followUpSent && !t.adminStatus);
+        if (needsBackfill.length > 0) {
+          console.log(`[Backfill] Auto-assigning adminStatus to ${needsBackfill.length} old tickets`);
+          const inferStatus = (msg = '') => {
+            const m = msg.toLowerCase();
+            if (m.includes('resolved') || m.includes('fixed') || m.includes('complete') || m.includes('taken care')) return 'resolved';
+            if (m.includes('need') || m.includes('info') || m.includes('clarif') || m.includes('more detail')) return 'need-info';
+            if (m.includes('known issue') || m.includes('known bug') || m.includes('aware')) return 'known-issue';
+            return 'working';
+          };
+          needsBackfill.forEach(async (t) => {
+            const status = inferStatus(t.followUpMessage);
+            try {
+              await updateDoc(doc(db, 'ai_worker_logs', t.logId), { adminStatus: status });
+              setWorkQueue(prev => prev.map(item =>
+                item.logId === t.logId ? { ...item, adminStatus: status } : item
+              ));
+              console.log(`[Backfill] ${t.ticketNumber} → ${status}`);
+            } catch (e) {
+              console.error(`[Backfill] Failed for ${t.logId}:`, e);
+            }
+          });
+        }
+      }
     }, (err) => {
       console.error('Work queue snapshot error:', err);
       setLoadError(err?.message || 'Failed to load work queue');
@@ -271,46 +407,6 @@ export default function WorkQueue({ theme }) {
     return () => unsubscribe();
   }, []);
 
-  // Load GitHub config from Firestore (shared for all admins / all browsers)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const configRef = doc(db, 'adminConfig', 'workQueueGitHub');
-        const snap = await getDoc(configRef);
-        if (cancelled) return;
-        if (snap.exists() && snap.data()) {
-          const d = snap.data();
-          setGhConfig({
-            owner: d.owner || '',
-            repo: d.repo || '',
-            token: d.token || ''
-          });
-        } else {
-          // Fallback: migrate from localStorage if present
-          try {
-            const raw = localStorage.getItem('tpp_gh_config');
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              setGhConfig({ owner: parsed.owner || '', repo: parsed.repo || '', token: parsed.token || '' });
-            }
-          } catch (_) {}
-        }
-      } catch (err) {
-        console.warn('Could not load GitHub config from Firestore:', err?.message);
-        try {
-          const raw = localStorage.getItem('tpp_gh_config');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            setGhConfig({ owner: parsed.owner || '', repo: parsed.repo || '', token: parsed.token || '' });
-          }
-        } catch (_) {}
-      } finally {
-        if (!cancelled) setGhConfigLoaded(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   // Watch for tickets re-opened by users (replied to a closed ticket)
   // These won't have a pending ai_worker_logs entry yet if Ghosty hasn't processed them
@@ -355,6 +451,16 @@ export default function WorkQueue({ theme }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
+
+  // Auto-run commit audit once after data loads so commits are linked to matching tickets
+  useEffect(() => {
+    if (loading || workQueue.length === 0 || autoCommitAuditRanRef.current) return;
+    const { owner, repo, token } = GH_CONFIG;
+    if (!owner || !repo || !token) return;
+    autoCommitAuditRanRef.current = true;
+    runCommitAudit(commitAuditDays);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, workQueue.length]);
 
   const searchMissedTicket = async () => {
     const term = addMissedSearch.trim();
@@ -488,8 +594,7 @@ export default function WorkQueue({ theme }) {
         }
       }
       setBacklogResults(missed);
-      // Auto-open the scan panel if missed tickets were found
-      if (missed.length > 0) setShowBacklogScan(true);
+      // Results stored silently — panel stays collapsed until manually opened
     } catch (err) {
       setBacklogResults({ error: err?.message || 'Scan failed' });
     } finally {
@@ -523,75 +628,77 @@ export default function WorkQueue({ theme }) {
     setManualCommitText('');
   };
 
-  const saveAdminStatus = useCallback(async (status) => {
-    if (!selectedTicket) return;
+  const backfillRanRef = useRef(false);
+  const selectedTicketRef = useRef(null);
+  const workQueueRef = useRef(workQueue);
+  useEffect(() => { selectedTicketRef.current = selectedTicket; }, [selectedTicket]);
+  useEffect(() => { workQueueRef.current = workQueue; }, [workQueue]);
+
+  const saveAdminStatus = async (status) => {
+    const ticket = selectedTicketRef.current;
+    if (!ticket) { console.warn('[saveAdminStatus] no ticket ref'); return; }
+    console.log('[saveAdminStatus] status:', status, 'ticket:', ticket.ticketNumber, ticket.logId);
     setAdminStatusLocal(status);
     try {
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
       await updateDoc(logRef, { adminStatus: status });
       setWorkQueue(prev => prev.map(t =>
-        t.logId === selectedTicket.logId ? { ...t, adminStatus: status } : t
+        t.logId === ticket.logId ? { ...t, adminStatus: status } : t
       ));
       setSelectedTicket(prev => prev ? { ...prev, adminStatus: status } : null);
+      console.log('[saveAdminStatus] saved OK');
     } catch (error) {
-      console.error('Failed to save status:', error);
+      console.error('[saveAdminStatus] failed:', error);
     }
-  }, [selectedTicket]);
+  };
 
-  const saveLinkedCommits = useCallback(async (commits) => {
-    if (!selectedTicket) return;
+  /** Update status from the list row without opening the modal */
+  const saveAdminStatusForTicket = async (ticket, status) => {
+    if (!ticket?.logId) return;
+    try {
+      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      await updateDoc(logRef, { adminStatus: status });
+      setWorkQueue(prev => prev.map(t =>
+        t.logId === ticket.logId ? { ...t, adminStatus: status } : t
+      ));
+      if (selectedTicket?.logId === ticket.logId) {
+        setSelectedTicket(prev => prev ? { ...prev, adminStatus: status } : null);
+        setAdminStatusLocal(status);
+      }
+    } catch (error) {
+      console.error('[saveAdminStatusForTicket] failed:', error);
+    }
+  };
+
+  const saveLinkedCommits = async (commits) => {
+    const ticket = selectedTicketRef.current;
+    if (!ticket) return;
     setLinkedCommitsLocal(commits);
     try {
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
       await updateDoc(logRef, { linkedCommits: commits });
-      setWorkQueue(prev => prev.map(t =>
-        t.logId === selectedTicket.logId ? { ...t, linkedCommits: commits } : t
-      ));
+      setWorkQueue(prev => {
+        const next = prev.map(t =>
+          t.logId === ticket.logId ? { ...t, linkedCommits: commits } : t
+        );
+        _wqCache = next;
+        _saveCache(next, _costsCache);
+        return next;
+      });
       setSelectedTicket(prev => prev ? { ...prev, linkedCommits: commits } : null);
     } catch (error) {
       console.error('Failed to save linked commits:', error);
     }
-  }, [selectedTicket]);
-
-  // Commit Audit — auto-match GitHub commits to tickets by keyword overlap
-  const STOP_WORDS = new Set(['a','an','the','and','or','but','in','on','at','to','for','of','with',
-    'is','it','be','as','by','this','that','was','are','from','fix','fixes','fixed','update',
-    'updates','updated','add','adds','added','remove','removes','removed','change','changes',
-    'changed','merge','branch','main','refactor','cleanup','hotfix','wip','bump','v','version',
-    'pr','feat','chore','build','ci','test','docs','style','perf','revert','release']);
-
-  const tokenize = (str) => {
-    if (!str) return new Set();
-    return new Set(
-      str.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 2 && !STOP_WORDS.has(w))
-    );
   };
 
-  const scoreMatch = (commitMsg, ticket) => {
-    const cTokens = tokenize(commitMsg);
-    const tTokens = new Set([
-      ...tokenize(ticket.subject),
-      ...tokenize(ticket.originalMessage),
-    ]);
-    if (!cTokens.size || !tTokens.size) return 0;
-    let matches = 0;
-    for (const w of cTokens) { if (tTokens.has(w)) matches++; }
-    return matches / Math.max(cTokens.size, tTokens.size);
-  };
+  const runCommitAudit = async (days) => {
+    const auditDays = days || commitAuditDays || 365;
+    const branch = GH_CONFIG.branch;
+    console.log('[CommitAudit] starting — days:', auditDays, 'branch:', branch, 'owner:', GH_CONFIG.owner, 'repo:', GH_CONFIG.repo, 'token set:', !!GH_CONFIG.token);
 
-  const runCommitAudit = useCallback(async (days = 20) => {
-    const cfg = ghConfig?.owner && ghConfig?.repo && ghConfig?.token
-      ? ghConfig
-      : (() => {
-          try { return JSON.parse(localStorage.getItem('tpp_gh_config') || '{}'); }
-          catch { return {}; }
-        })();
-
-    if (!cfg.owner || !cfg.repo || !cfg.token) {
-      setShowGhSettings(true);
+    if (!GH_CONFIG.owner || !GH_CONFIG.repo || !GH_CONFIG.token) {
+      console.warn('[CommitAudit] GH_CONFIG missing values — check .env.local and restart dev server');
+      alert('GitHub credentials not found. Make sure .env.local has VITE_GITHUB_OWNER, VITE_GITHUB_REPO, VITE_GITHUB_TOKEN and that you restarted the dev server.');
       return;
     }
 
@@ -599,24 +706,25 @@ export default function WorkQueue({ theme }) {
     setCommitAuditResults(null);
 
     try {
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(Date.now() - auditDays * 24 * 60 * 60 * 1000).toISOString();
+      console.log('[CommitAudit] fetching commits since', since, 'on branch', branch);
       let page = 1;
       let allCommits = [];
-      while (true) {
-        const res = await fetch(
-          `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/commits?since=${since}&per_page=100&page=${page}`,
-          { headers: { Authorization: `Bearer ${cfg.token}` } }
-        );
-        if (!res.ok) throw new Error(`GitHub API: ${res.statusText}`);
+      const maxPages = 10; // GitHub caps at 300 commits; we fetch up to 1000 (10×100)
+      while (page <= maxPages) {
+        const url = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/commits?sha=${branch}&since=${since}&per_page=100&page=${page}`;
+        console.log('[CommitAudit] GET', url);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${GH_CONFIG.token}` } });
+        if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
         const batch = await res.json();
         if (!Array.isArray(batch) || batch.length === 0) break;
         allCommits = [...allCommits, ...batch];
+        console.log('[CommitAudit] fetched', allCommits.length, 'commits so far');
         if (batch.length < 100) break;
         page++;
       }
 
-      // Build a copy of all tickets (pending + archived) from current workQueue
-      const allTickets = workQueue;
+      console.log('[CommitAudit] total commits:', allCommits.length, '| total tickets:', workQueueRef.current.length);
       const SCORE_THRESHOLD = 0.12;
       const linked = [];
       const noMatch = [];
@@ -624,77 +732,106 @@ export default function WorkQueue({ theme }) {
       for (const commit of allCommits) {
         const sha7 = commit.sha?.slice(0, 7) || commit.sha;
         const msg = (commit.commit?.message || '').split('\n')[0].slice(0, 120);
-        const url = commit.html_url || null;
+        const commitUrl = commit.html_url || null;
         const commitDate = commit.commit?.author?.date || new Date().toISOString();
 
-        // Score this commit against every ticket
         let best = null;
         let bestScore = 0;
-        for (const ticket of allTickets) {
-          const score = scoreMatch(msg, ticket);
-          if (score > bestScore) {
-            bestScore = score;
-            best = ticket;
-          }
+        for (const ticket of workQueueRef.current) {
+          const score = auditScoreMatch(msg, ticket);
+          if (score > bestScore) { bestScore = score; best = ticket; }
         }
 
         if (best && bestScore >= SCORE_THRESHOLD) {
-          const entry = { sha: sha7, message: msg, url, linkedAt: commitDate, autoLinked: true };
-          // Skip if this sha is already linked to this ticket
-          const already = (best.linkedCommits || []).some(lc => lc.sha === sha7);
+          const entry = { sha: sha7, message: msg, url: commitUrl, linkedAt: commitDate, autoLinked: true };
+          const currentBest = workQueueRef.current.find(t => t.logId === best.logId);
+          const already = (currentBest?.linkedCommits || []).some(lc => lc.sha === sha7);
           if (!already) {
-            // Write to Firestore
             try {
               const logRef = doc(db, 'ai_worker_logs', best.logId);
-              const updatedCommits = [...(best.linkedCommits || []), entry];
+              const updatedCommits = [...(currentBest?.linkedCommits || []), entry];
               await updateDoc(logRef, { linkedCommits: updatedCommits });
-              // Update local state
-              setWorkQueue(prev => prev.map(t =>
-                t.logId === best.logId
-                  ? { ...t, linkedCommits: updatedCommits }
-                  : t
-              ));
-              linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: false });
+              setWorkQueue(prev => {
+                const next = prev.map(t =>
+                  t.logId === best.logId ? { ...t, linkedCommits: updatedCommits } : t
+                );
+                workQueueRef.current = next;
+                _wqCache = next;
+                _saveCache(next, _costsCache);
+                return next;
+              });
+              linked.push({ commit: { sha: sha7, msg, url: commitUrl, date: commitDate }, ticket: best, score: bestScore, skipped: false });
+              console.log('[CommitAudit] linked', sha7, '→ ticket', best.ticketNumber, 'score', (bestScore*100).toFixed(0)+'%');
             } catch (err) {
-              console.error('Auto-link failed for', sha7, err);
-              linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: true, error: err?.message });
+              console.error('[CommitAudit] Firestore write failed for', sha7, err);
+              linked.push({ commit: { sha: sha7, msg, url: commitUrl, date: commitDate }, ticket: best, score: bestScore, skipped: true, error: err?.message });
             }
           } else {
-            linked.push({ commit: { sha: sha7, msg, url, date: commitDate }, ticket: best, score: bestScore, skipped: true, reason: 'already linked' });
+            linked.push({ commit: { sha: sha7, msg, url: commitUrl, date: commitDate }, ticket: best, score: bestScore, skipped: true, reason: 'already linked' });
           }
         } else {
-          noMatch.push({ sha: sha7, msg, url, date: commitDate, bestScore });
+          noMatch.push({ sha: sha7, msg, url: commitUrl, date: commitDate, bestScore });
         }
       }
 
-      setCommitAuditResults({ linked, noMatch, totalCommits: allCommits.length, days, ranAt: new Date().toISOString() });
+      console.log('[CommitAudit] done — linked:', linked.length, 'noMatch:', noMatch.length);
+      setCommitAuditResults({ linked, noMatch, totalCommits: allCommits.length, days: auditDays, ranAt: new Date().toISOString() });
     } catch (err) {
-      console.error('Commit audit failed:', err);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: `Commit audit failed: ${err.message}`, type: 'error' }
-      }));
+      console.error('[CommitAudit] failed:', err);
+      alert(`Commit audit failed: ${err.message}`);
     } finally {
       setCommitAuditRunning(false);
     }
-  }, [ghConfig, workQueue]);
+  };
 
-  const saveAdminNotes = useCallback(async (notes) => {
-    if (!selectedTicket) return;
-    
+  const linkNoMatchCommitToTicket = async (ticket, noMatchEntry) => {
+    const entry = {
+      sha: noMatchEntry.sha?.slice(0, 7) || noMatchEntry.sha,
+      message: noMatchEntry.msg || '',
+      url: noMatchEntry.url || null,
+      linkedAt: noMatchEntry.date || new Date().toISOString(),
+      autoLinked: false
+    };
+    try {
+      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const updatedCommits = [...(ticket.linkedCommits || []), entry];
+      await updateDoc(logRef, { linkedCommits: updatedCommits });
+      setWorkQueue(prev => {
+        const next = prev.map(t =>
+          t.logId === ticket.logId ? { ...t, linkedCommits: updatedCommits } : t
+        );
+        workQueueRef.current = next;
+        _wqCache = next;
+        _saveCache(next, _costsCache);
+        return next;
+      });
+      setCommitAuditResults(prev => prev ? {
+        ...prev,
+        noMatch: prev.noMatch.filter(c => (c.sha?.slice(0, 7) || c.sha) !== entry.sha)
+      } : null);
+      setLinkingNoMatchSha(null);
+      setSelectedLogIdForNoMatch('');
+    } catch (err) {
+      console.error('[linkNoMatchCommitToTicket]', err);
+    }
+  };
+
+  const saveAdminNotes = async (notes) => {
+    const ticket = selectedTicketRef.current;
+    if (!ticket) return;
     setSaving(true);
     try {
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
       await updateDoc(logRef, { adminNotes: notes });
-      
-      setWorkQueue(prev => prev.map(t => 
-        t.logId === selectedTicket.logId ? { ...t, adminNotes: notes } : t
+      setWorkQueue(prev => prev.map(t =>
+        t.logId === ticket.logId ? { ...t, adminNotes: notes } : t
       ));
     } catch (error) {
       console.error('Failed to save notes:', error);
     } finally {
       setSaving(false);
     }
-  }, [selectedTicket]);
+  };
 
   useEffect(() => {
     if (!selectedTicket || adminNotes === selectedTicket.adminNotes) return;
@@ -851,60 +988,60 @@ export default function WorkQueue({ theme }) {
   return (
     <div style={{ padding: '16px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Cost Stats Bar - Compact */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '12px',
-        marginBottom: '16px',
-        flexWrap: 'wrap'
-      }}>
-        {[
-          { label: 'Today', value: costs.today, icon: Calendar },
-          { label: 'Week', value: costs.week, icon: TrendingUp },
-          { label: 'Month', value: costs.month, icon: DollarSign },
-          { label: 'All Time', value: costs.allTime, icon: History }
-        ].map(stat => (
-          <div key={stat.label} style={{
-            padding: '10px 14px',
-            borderRadius: '8px',
-            backgroundColor: t.cardBackground,
-            border: `1px solid ${t.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            flex: '1',
-            minWidth: '140px'
-          }}>
-            <stat.icon size={16} style={{ color: t.primary }} />
-            <div>
-              <div style={{ fontSize: '10px', color: t.textLight, textTransform: 'uppercase' }}>{stat.label}</div>
-              <div style={{ fontSize: '16px', fontWeight: '600', color: t.text }}>${stat.value.toFixed(3)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Queue Stats */}
+      {/* Queue Stats — Pending / Archive toggle */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{
-          padding: '6px 14px',
-          borderRadius: '16px',
-          backgroundColor: pendingTickets.length > 0 ? '#FEF3C7' : '#D1FAE5',
-          color: pendingTickets.length > 0 ? '#92400E' : '#065F46',
-          fontWeight: '600',
-          fontSize: '13px'
-        }}>
-          ⏰ {pendingTickets.length} Pending
-        </div>
-        <div style={{
-          padding: '6px 14px',
-          borderRadius: '16px',
-          backgroundColor: '#E0E7FF',
-          color: '#3730A3',
-          fontWeight: '600',
-          fontSize: '13px',
-          cursor: 'pointer'
-        }} onClick={() => setShowHistory(!showHistory)}>
-          📁 {completedTickets.length} Archive {showHistory ? '▼' : '▶'}
+        <div
+          role="switch"
+          aria-checked={showHistory}
+          style={{
+            display: 'inline-flex',
+            borderRadius: '20px',
+            padding: '3px',
+            backgroundColor: t.border || '#E5E7EB',
+            border: `1px solid ${t.border || '#E5E7EB'}`
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowHistory(false)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '18px',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: '13px',
+              cursor: 'pointer',
+              backgroundColor: !showHistory ? (t.primary || '#4a7c59') : 'transparent',
+              color: !showHistory ? '#fff' : t.textLight,
+              transition: 'background-color 0.2s, color 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Clock size={14} /> {pendingTickets.length} Open
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHistory(true)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '18px',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: '13px',
+              cursor: 'pointer',
+              backgroundColor: showHistory ? (t.primaryDark || t.primary || '#2d5a3a') : 'transparent',
+              color: showHistory ? '#fff' : t.textLight,
+              transition: 'background-color 0.2s, color 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <CheckCircle2 size={14} /> {completedTickets.length} Closed
+          </button>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
           <button
@@ -960,13 +1097,13 @@ export default function WorkQueue({ theme }) {
           </button>
           <button
             type="button"
-            onClick={() => setShowGhSettings(true)}
+            onClick={() => setShowCommitAudit(v => !v)}
             style={{
               padding: '5px 12px',
               borderRadius: '16px',
-              border: `1px solid ${(ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary : t.border}`,
-              backgroundColor: (ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary + '15' : 'transparent',
-              color: (ghConfig.owner && ghConfig.repo && ghConfig.token) ? t.primary : t.textLight,
+              border: `1px solid ${commitAuditResults ? '#8B5CF6' : t.border}`,
+              backgroundColor: showCommitAudit ? '#EDE9FE' : commitAuditResults ? '#EDE9FE40' : 'transparent',
+              color: showCommitAudit || commitAuditResults ? '#6D28D9' : t.textLight,
               fontWeight: '600',
               fontSize: '12px',
               cursor: 'pointer',
@@ -975,7 +1112,12 @@ export default function WorkQueue({ theme }) {
               gap: '5px'
             }}
           >
-            <Settings size={13} /> GitHub {(ghConfig.owner && ghConfig.repo && ghConfig.token) ? '✓' : 'Setup'}
+            <GitCommit size={13} /> Commit Audit
+            {commitAuditResults && (
+              <span style={{ backgroundColor: '#8B5CF6', color: '#fff', borderRadius: '10px', fontSize: '10px', fontWeight: '700', padding: '1px 6px', lineHeight: '1.4' }}>
+                {commitAuditResults.linked.filter(l => !l.skipped).length} linked
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1089,6 +1231,164 @@ export default function WorkQueue({ theme }) {
               >
                 <Plus size={13} /> {addMissedAdding ? 'Adding…' : 'Add to Work Queue'}
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Commit Audit panel */}
+      {showCommitAudit && (
+        <div style={{
+          backgroundColor: t.cardBackground,
+          border: '1px solid #8B5CF640',
+          borderRadius: '10px',
+          padding: '14px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ fontWeight: '600', fontSize: '13px', color: t.text, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <GitCommit size={14} style={{ color: '#8B5CF6' }} />
+            Auto Commit Audit
+            {commitAuditResults && (
+              <span style={{ fontSize: '11px', fontWeight: '400', color: t.textLight }}>
+                — last run {new Date(commitAuditResults.ranAt).toLocaleString()} · {commitAuditResults.totalCommits} commits scanned
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: '12px', color: t.textLight, margin: '0 0 10px 0' }}>
+            Fetches commits from the past <strong>{commitAuditDays} days</strong> on branch <strong>{GH_CONFIG.branch}</strong> (set <code>VITE_GITHUB_BRANCH</code> in .env.local; default: main) and links them to matching tickets by keyword. GitHub returns up to 300 commits per run. “No match” commits can be linked manually below.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '12px', color: t.text, fontWeight: '500' }}>Last</label>
+            <input
+              type="number"
+              min="1"
+              max="730"
+              value={commitAuditDays}
+              onChange={e => setCommitAuditDays(Number(e.target.value) || 365)}
+              style={{ width: '65px', padding: '5px 8px', border: `1px solid ${t.border}`, borderRadius: '6px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
+            />
+            <label style={{ fontSize: '12px', color: t.text, fontWeight: '500' }}>days</label>
+            <button
+              type="button"
+              onClick={() => runCommitAudit(commitAuditDays)}
+              disabled={commitAuditRunning}
+              style={{
+                padding: '6px 16px',
+                backgroundColor: commitAuditRunning ? t.border : '#7C3AED',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: commitAuditRunning ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              {commitAuditRunning ? (
+                <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span> Running…</>
+              ) : (
+                <><GitCommit size={13} /> Run Audit</>
+              )}
+            </button>
+            {commitAuditResults && (
+              <button
+                type="button"
+                onClick={() => setCommitAuditResults(null)}
+                style={{ padding: '5px 10px', backgroundColor: 'transparent', border: `1px solid ${t.border}`, borderRadius: '6px', fontSize: '11px', color: t.textLight, cursor: 'pointer' }}
+              >
+                Clear results
+              </button>
+            )}
+          </div>
+
+          {commitAuditResults && (
+            <div>
+              {/* Summary row */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Commits scanned', val: commitAuditResults.totalCommits, bg: '#F3F4F6', fg: t.text },
+                  { label: 'Auto-linked', val: commitAuditResults.linked.filter(l => !l.skipped).length, bg: '#EDE9FE', fg: '#6D28D9' },
+                  { label: 'Already linked', val: commitAuditResults.linked.filter(l => l.skipped && l.reason === 'already linked').length, bg: '#D1FAE5', fg: '#065F46' },
+                  { label: 'No match', val: commitAuditResults.noMatch.length, bg: '#FEF3C7', fg: '#92400E' },
+                ].map(s => (
+                  <div key={s.label} style={{ padding: '6px 12px', borderRadius: '8px', backgroundColor: s.bg, color: s.fg, fontSize: '12px', fontWeight: '600' }}>
+                    {s.val} <span style={{ fontWeight: '400' }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Newly linked commits */}
+              {commitAuditResults.linked.filter(l => !l.skipped).length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#6D28D9', marginBottom: '6px', textTransform: 'uppercase' }}>✅ Newly Linked</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {commitAuditResults.linked.filter(l => !l.skipped).map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', backgroundColor: '#EDE9FE40', borderRadius: '6px', border: '1px solid #DDD6FE', fontSize: '11px', flexWrap: 'wrap' }}>
+                        {item.commit.url ? (
+                          <a href={item.commit.url} target="_blank" rel="noopener noreferrer" style={{ color: '#6D28D9', fontWeight: '600', fontFamily: 'monospace' }}>
+                            {item.commit.sha}
+                          </a>
+                        ) : (
+                          <code style={{ color: '#6D28D9' }}>{item.commit.sha}</code>
+                        )}
+                        <span style={{ color: t.text, flex: 1, minWidth: 0 }}>{item.commit.msg}</span>
+                        <span style={{ color: t.textLight }}>→</span>
+                        <span
+                          style={{ color: t.primary, fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                          onClick={() => { openTicket(item.ticket); setShowCommitAudit(false); }}
+                        >
+                          #{item.ticket.ticketNumber}
+                        </span>
+                        <span style={{ color: t.textLight, fontSize: '10px' }}>
+                          score: {(item.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Commits with no match */}
+              {commitAuditResults.noMatch.length > 0 && (
+                <details style={{ marginTop: '6px' }} open>
+                  <summary style={{ fontSize: '11px', fontWeight: '600', color: '#92400E', cursor: 'pointer', marginBottom: '6px' }}>
+                    ⚠️ {commitAuditResults.noMatch.length} commits with no ticket match (click to expand)
+                  </summary>
+                  <p style={{ fontSize: '10px', color: t.textLight, marginTop: '4px', marginBottom: '6px' }}>
+                    Link a commit to a ticket manually by choosing the ticket below and clicking Link.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                    {commitAuditResults.noMatch.map((c, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', backgroundColor: '#FEF3C740', borderRadius: '6px', border: '1px solid #FDE68A', fontSize: '11px', flexWrap: 'wrap' }}>
+                        <code style={{ color: '#92400E', fontFamily: 'monospace' }}>{c.sha}</code>
+                        <span style={{ color: t.textLight, flex: '1 1 200px' }}>{c.msg}</span>
+                        <span style={{ fontSize: '10px', color: t.textLight }}>best score: {(c.bestScore * 100).toFixed(0)}%</span>
+                        {linkingNoMatchSha === (c.sha?.slice(0, 7) || c.sha) ? (
+                          <>
+                            <select
+                              id={`no-match-ticket-${idx}`}
+                              value={selectedLogIdForNoMatch}
+                              style={{ padding: '4px 8px', borderRadius: '6px', border: `1px solid ${t.border}`, fontSize: '11px', minWidth: '160px' }}
+                              onChange={(e) => setSelectedLogIdForNoMatch(e.target.value)}
+                            >
+                              <option value="">Choose ticket…</option>
+                              {workQueue.map((tkt) => (
+                                <option key={tkt.logId} value={tkt.logId}>#{tkt.ticketNumber} {tkt.userEmail || tkt.userName || ''}</option>
+                              ))}
+                            </select>
+                            <button type="button" disabled={!selectedLogIdForNoMatch} onClick={() => { const ticket = workQueue.find(t => t.logId === selectedLogIdForNoMatch); if (ticket) linkNoMatchCommitToTicket(ticket, c); }} style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', backgroundColor: selectedLogIdForNoMatch ? t.primary : t.border, color: '#fff', border: 'none', borderRadius: '6px', cursor: selectedLogIdForNoMatch ? 'pointer' : 'not-allowed' }}>Link</button>
+                            <button type="button" onClick={() => { setLinkingNoMatchSha(null); setSelectedLogIdForNoMatch(''); }} style={{ padding: '4px 8px', fontSize: '10px', border: `1px solid ${t.border}`, borderRadius: '6px', background: t.cardBackground, cursor: 'pointer' }}>Cancel</button>
+                          </>
+                        ) : (
+                          <button type="button" onClick={() => { setLinkingNoMatchSha(c.sha?.slice(0, 7) || c.sha); setSelectedLogIdForNoMatch(''); }} style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', backgroundColor: t.primary, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Link to ticket</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
             </div>
           )}
         </div>
@@ -1375,7 +1675,8 @@ export default function WorkQueue({ theme }) {
         </div>
       )}
 
-      {/* Pending Queue */}
+      {/* Open — shown when toggle is Open */}
+      {!showHistory && (
       <div style={{
         backgroundColor: t.cardBackground,
         borderRadius: '10px',
@@ -1393,7 +1694,7 @@ export default function WorkQueue({ theme }) {
           alignItems: 'center',
           gap: '8px'
         }}>
-          <Clock size={16} /> Pending Queue
+          <Clock size={16} /> Open
         </div>
 
         {pendingTickets.length === 0 ? (
@@ -1429,25 +1730,41 @@ export default function WorkQueue({ theme }) {
 
           const acctBadge = (info) => {
             if (!info) return null;
-            const bg = info.subscriptionType === 'lifetime' ? '#8B5CF620' :
-                       info.subscriptionType === 'annual' ? '#06B6D420' :
-                       info.subscriptionType === 'monthly' ? '#3B82F620' :
-                       info.subscriptionStatus === 'active' ? '#10B98120' :
-                       info.subscriptionStatus === 'canceled' || info.subscriptionStatus === 'cancelled' ? '#EF444420' :
-                       info.subscriptionStatus === 'trialing' ? '#F59E0B20' :
-                       info.subscriptionStatus === 'trial_expired' ? '#DC262620' : '#6B728020';
-            const fg = info.subscriptionType === 'lifetime' ? '#8B5CF6' :
-                       info.subscriptionType === 'annual' ? '#06B6D4' :
-                       info.subscriptionType === 'monthly' ? '#3B82F6' :
-                       info.subscriptionStatus === 'active' ? '#10B981' :
-                       info.subscriptionStatus === 'canceled' || info.subscriptionStatus === 'cancelled' ? '#EF4444' :
-                       info.subscriptionStatus === 'trialing' ? '#F59E0B' :
-                       info.subscriptionStatus === 'trial_expired' ? '#DC2626' : '#6B7280';
-            const icon = info.subscriptionType === 'lifetime' ? '👑' :
-                         info.subscriptionType === 'annual' ? '📅' :
-                         info.subscriptionType === 'monthly' ? '📆' :
-                         info.subscriptionStatus === 'trialing' ? '🔄' : '👤';
-            return { bg, fg, icon, label: info.subscriptionType || info.subscriptionStatus };
+            // Derive from flat fields or from nested subscription (same as getUserByEmail / userSubscriptions)
+            let status = (info.subscriptionStatus || info.status || '').toLowerCase();
+            let type = (info.subscriptionType || info.plan || info.type || '').toLowerCase();
+            const sub = info.subscription;
+            if (sub && typeof sub === 'object') {
+              if (!status) status = (sub.status || sub.subscriptionStatus || sub.subscription_status || '').toLowerCase();
+              if (!type) type = (sub.plan || sub.type || sub.subscriptionType || sub.subscription_type || sub.planType || '').toLowerCase();
+            }
+            const isExpiredTrial = status === 'trial_expired' || status === 'trial-expired';
+            const isTrialing = status === 'trialing';
+            const hasExtendedTrial = isTrialing && ((Array.isArray(info.trialExtensionHistory) && info.trialExtensionHistory.length > 0) || !!info.extendedTrial);
+            const isLifetime = type === 'lifetime' || (sub?.plan && String(sub.plan).toLowerCase().includes('lifetime'));
+            const isAnnual = type === 'annual' || (sub?.plan && /annual|year|yearly/i.test(String(sub.plan)));
+            const isMonthly = type === 'monthly' || (sub?.plan && /monthly|month/i.test(String(sub.plan)));
+            const isCanceled = status === 'canceled' || status === 'cancelled';
+            const isActive = status === 'active';
+
+            let label = '—';
+            if (isLifetime) label = 'Lifetime';
+            else if (isAnnual) label = 'Annual';
+            else if (isMonthly) label = 'Monthly';
+            else if (hasExtendedTrial) label = 'Extended trial';
+            else if (isTrialing) label = 'Trial';
+            else if (isExpiredTrial) label = 'Expired trial';
+            else if (isCanceled) label = 'Canceled';
+            else if (isActive) label = 'Active';
+            else if (type) label = type.charAt(0).toUpperCase() + type.slice(1);
+            else if (status && status !== 'none') label = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+
+            const bg = isLifetime ? '#8B5CF620' : isAnnual ? '#06B6D420' : isMonthly ? '#3B82F620' :
+                       isActive ? '#10B98120' : isCanceled ? '#EF444420' : isTrialing || hasExtendedTrial ? '#F59E0B20' : isExpiredTrial ? '#DC262620' : '#6B728020';
+            const fg = isLifetime ? '#8B5CF6' : isAnnual ? '#06B6D4' : isMonthly ? '#3B82F6' :
+                       isActive ? '#10B981' : isCanceled ? '#EF4444' : isTrialing || hasExtendedTrial ? '#F59E0B' : isExpiredTrial ? '#DC2626' : '#6B7280';
+            const icon = isLifetime ? '👑' : isAnnual ? '📅' : isMonthly ? '📆' : isTrialing || hasExtendedTrial ? '🔄' : isExpiredTrial ? '⏱' : '👤';
+            return { bg, fg, icon, label };
           };
 
           return emailOrder.map((email, groupIdx) => {
@@ -1459,73 +1776,91 @@ export default function WorkQueue({ theme }) {
             const isLastGroup = groupIdx === emailOrder.length - 1;
 
             if (!isGroup) {
-              // Single ticket — render exactly as before
               const ticket = tickets[0];
+              const commitCount = (ticket.linkedCommits || []).length;
+              const statusColors = { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } };
+              const sc = ticket.adminStatus ? statusColors[ticket.adminStatus] : null;
               return (
                 <div
                   key={ticket.logId}
                   onClick={() => openTicket(ticket)}
                   style={{
-                    padding: '12px 14px',
+                    padding: '10px 14px',
                     borderBottom: isLastGroup ? 'none' : `1px solid ${t.border}`,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
-                    transition: 'background 0.15s'
+                    transition: 'background 0.15s',
+                    borderLeft: sc ? `3px solid ${sc.fg}` : ticket.type === 'account_deletion_request' ? '3px solid #DC2626' : '3px solid transparent'
                   }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
                   onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  {ticket.type === 'account_deletion_request'
-                    ? <Trash2 size={16} style={{ color: '#DC2626', flexShrink: 0 }} />
-                    : <AlertCircle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />}
+                  {ticket.type === 'account_deletion_request' && (
+                    <Trash2 size={15} style={{ color: '#DC2626', flexShrink: 0 }} />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
+                    {/* Row 1: ticket number + type chips (no status here) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: '700', color: t.text, fontSize: '13px' }}>
                         #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
                       </span>
-                      {ticket.adminStatus && (
-                        <span style={{
-                          fontSize: '10px', padding: '2px 6px', borderRadius: '8px', fontWeight: '600',
-                          ...(ticket.adminStatus === 'working' && { backgroundColor: '#DBEAFE', color: '#1D4ED8' }),
-                          ...(ticket.adminStatus === 'resolved' && { backgroundColor: '#D1FAE5', color: '#065F46' }),
-                          ...(ticket.adminStatus === 'need-info' && { backgroundColor: '#FEF3C7', color: '#92400E' }),
-                          ...(ticket.adminStatus === 'known-issue' && { backgroundColor: '#FEE2E2', color: '#B91C1C' })
-                        }}>
-                          {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label || ticket.adminStatus}
-                        </span>
+                      {ticket.type === 'account_deletion_request' && (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: '600' }}>🗑️ DELETION</span>
                       )}
-                      {ticket.type === 'account_deletion_request' ? (
-                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: '600' }}>🗑️ DELETION REQUEST</span>
-                      ) : ticket.addedManually ? (
-                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Added Manually</span>
-                      ) : ticket.route ? (
-                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: ticket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF', color: ticket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED' }}>
-                          {ticket.route === 'gemini-pro' ? '🎨' : '🔧'} {ticket.confidence}%
-                        </span>
-                      ) : null}
+                      {ticket.addedManually && (
+                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
+                      )}
+                    </div>
+                    {/* Row 2: email · time · account badge · commits chip */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', color: t.textLight }}>
+                        {ticket.userEmail || ticket.userName || 'Unknown'} · {formatRelativeTime(ticket.timestamp)}
+                      </span>
                       {badge && (
                         <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(representative.userAccountInfo); }}
-                          style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
+                          style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
                           {badge.icon} {badge.label}
                         </button>
                       )}
-                      {!badge && ticket.userEmail && (
-                        <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#6B728015', color: '#6B7280' }}>👤 No account</span>
+                      {commitCount > 0 ? (
+                        <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#EDE9FE', color: '#6D28D9', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <GitCommit size={9} /> {commitCount} commit{commitCount > 1 ? 's' : ''} linked
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#F3F4F6', color: '#9CA3AF', fontWeight: '500' }}>
+                          no commits
+                        </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', color: t.textLight }}>
-                      {ticket.userEmail || ticket.userName || 'Unknown'} • {formatRelativeTime(ticket.timestamp)}
-                    </div>
                   </div>
-                  {ticket.type === 'account_deletion_request' ? (
-                    <div style={{ padding: '6px 12px', backgroundColor: '#DC2626', color: '#fff', borderRadius: '6px', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Trash2 size={12} /> Review
-                    </div>
-                  ) : (
-                    <div style={{ padding: '6px 12px', backgroundColor: t.primary, color: '#fff', borderRadius: '6px', fontSize: '12px', fontWeight: '500' }}>Open</div>
-                  )}
+                  {/* Status tags on the right — click to update without opening modal */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    {QUICK_RESPONSES.map(res => {
+                      const isActive = ticket.adminStatus === res.id;
+                      const colors = statusColors[res.id] || { bg: t.background, fg: t.text };
+                      return (
+                        <button
+                          key={res.id}
+                          type="button"
+                          onClick={() => saveAdminStatusForTicket(ticket, isActive ? null : res.id)}
+                          style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            border: isActive ? `2px solid ${colors.fg}` : `1px solid ${t.border}`,
+                            backgroundColor: isActive ? colors.bg : t.cardBackground,
+                            color: isActive ? colors.fg : t.textLight,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {res.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             }
@@ -1577,56 +1912,53 @@ export default function WorkQueue({ theme }) {
                 </div>
 
                 {/* Sub-rows: each ticket in chronological order */}
-                {isExpanded && tickets.map((ticket, subIdx) => (
-                  <div
-                    key={ticket.logId}
-                    onClick={() => openTicket(ticket)}
-                    style={subRowStyle(subIdx === tickets.length - 1)}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F0FDF4'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = t.background}
-                  >
-                    <div style={{ width: '4px', height: '32px', backgroundColor: t.primary, borderRadius: '2px', flexShrink: 0, opacity: 0.4 }} />
-                    <AlertCircle size={14} style={{ color: '#F59E0B', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '1px' }}>
-                        <span style={{ fontWeight: '600', color: t.text, fontSize: '12px' }}>
-                          #{ticket.ticketNumber}
-                        </span>
-                        {ticket.adminStatus && (
-                          <span style={{
-                            fontSize: '10px', padding: '1px 5px', borderRadius: '6px', fontWeight: '600',
-                            ...(ticket.adminStatus === 'working' && { backgroundColor: '#DBEAFE', color: '#1D4ED8' }),
-                            ...(ticket.adminStatus === 'resolved' && { backgroundColor: '#D1FAE5', color: '#065F46' }),
-                            ...(ticket.adminStatus === 'need-info' && { backgroundColor: '#FEF3C7', color: '#92400E' }),
-                            ...(ticket.adminStatus === 'known-issue' && { backgroundColor: '#FEE2E2', color: '#B91C1C' })
-                          }}>
-                            {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label || ticket.adminStatus}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '10px', color: t.textLight }}>
-                          {formatRelativeTime(ticket.timestamp)}
-                        </span>
-                        {ticket.addedManually && (
-                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '11px', color: t.textLight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '400px' }}>
-                        {ticket.subject || ticket.originalMessage?.slice(0, 80) || 'No subject'}
+                {isExpanded && tickets.map((ticket, subIdx) => {
+                  const subCommitCount = (ticket.linkedCommits || []).length;
+                  const subSc = ticket.adminStatus ? { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } }[ticket.adminStatus] : null;
+                  return (
+                    <div
+                      key={ticket.logId}
+                      onClick={() => openTicket(ticket)}
+                      style={{ ...subRowStyle(subIdx === tickets.length - 1), borderLeft: subSc ? `3px solid ${subSc.fg}` : '3px solid transparent', paddingLeft: '32px' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <AlertCircle size={13} style={{ color: subSc ? subSc.fg : '#F59E0B', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                          <span style={{ fontWeight: '700', color: t.text, fontSize: '12px' }}>#{ticket.ticketNumber}</span>
+                          {subSc && (
+                            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', fontWeight: '600', backgroundColor: subSc.bg, color: subSc.fg }}>
+                              {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label}
+                            </span>
+                          )}
+                          {ticket.addedManually && (
+                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '11px', color: t.textLight }}>{formatRelativeTime(ticket.timestamp)}</span>
+                          {subCommitCount > 0 ? (
+                            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#EDE9FE', color: '#6D28D9', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <GitCommit size={9} /> {subCommitCount} linked
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', color: '#D1D5DB' }}>no commits</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ padding: '5px 10px', backgroundColor: t.primary, color: '#fff', borderRadius: '5px', fontSize: '11px', fontWeight: '500', flexShrink: 0 }}>
-                      Open
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           });
         })()}
       </div>
+      )}
 
-      {/* History Section */}
-      {showHistory && completedTickets.length > 0 && (
+      {/* Closed — shown when toggle is Closed */}
+      {showHistory && (
         <div style={{
           backgroundColor: t.cardBackground,
           borderRadius: '10px',
@@ -1643,10 +1975,14 @@ export default function WorkQueue({ theme }) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <History size={16} /> Archive
+            <CheckCircle2 size={16} /> Closed
           </div>
 
-          {completedTickets.slice(0, 50).map((ticket, idx) => (
+          {completedTickets.length === 0 ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: t.textLight, fontSize: '14px' }}>
+              No archived tickets yet.
+            </div>
+          ) : completedTickets.slice(0, 50).map((ticket, idx) => (
             <div
               key={ticket.logId}
               onClick={() => openTicket(ticket)}
@@ -1778,16 +2114,6 @@ export default function WorkQueue({ theme }) {
                     📁 Archived
                   </span>
                 )}
-                <span style={{
-                  fontSize: '11px',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  backgroundColor: selectedTicket.route === 'gemini-pro' ? '#DBEAFE' : '#F3E8FF',
-                  color: selectedTicket.route === 'gemini-pro' ? '#1D4ED8' : '#7C3AED'
-                }}>
-                  {selectedTicket.route === 'gemini-pro' ? '🎨 Gemini' : '🔧 Claude'} • {selectedTicket.confidence}%
-                </span>
-                <span style={{ fontSize: '11px', color: t.textLight }}>💰 ${selectedTicket.executionCost.toFixed(4)}</span>
               </div>
               <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: t.textLight }}>
                 <X size={20} />
@@ -1796,6 +2122,17 @@ export default function WorkQueue({ theme }) {
 
             {/* Modal Body */}
             <div style={{ flex: 1, overflow: 'auto', padding: '10px 12px' }}>
+              {/* Subject */}
+              {(selectedTicket.subject && selectedTicket.subject !== 'Support Request') && (
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
+                    Subject
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: t.text }}>
+                    {selectedTicket.subject}
+                  </div>
+                </div>
+              )}
               {/* User ID — copy in work queue */}
               <div style={{
                 marginBottom: '8px',
@@ -1883,32 +2220,12 @@ export default function WorkQueue({ theme }) {
                 })}
               </div>
 
-              {/* User Message — full width */}
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '10px', fontWeight: '600', color: t.textLight, marginBottom: '4px', textTransform: 'uppercase' }}>
-                  📨 User Message
-                </div>
-                <div style={{
-                  padding: '8px',
-                  backgroundColor: '#FEF3C7',
-                  border: '1px solid #FCD34D',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  lineHeight: '1.35',
-                  color: '#78350F',
-                  maxHeight: '90px',
-                  overflowY: 'auto'
-                }}>
-                  {selectedTicket.originalMessage || 'No message available'}
-                </div>
-              </div>
-
-              {/* Admin Workspace: Notes (always visible) + Linked Commits */}
+              {/* Admin Workspace: Notes (always visible) + Linked Commits — overflow:visible so commits dropdown can show on top */}
               <div style={{
                 marginBottom: '10px',
                 border: `1px solid ${t.border}`,
                 borderRadius: '8px',
-                overflow: 'hidden',
+                overflow: 'visible',
                 backgroundColor: t.background
               }}>
                 <div style={{
@@ -1955,11 +2272,9 @@ export default function WorkQueue({ theme }) {
                         <button
                           type="button"
                           onClick={async () => {
-                            const { owner, repo, token } = ghConfig?.owner && ghConfig?.repo && ghConfig?.token
-                              ? ghConfig
-                              : (() => { try { const c = JSON.parse(localStorage.getItem('tpp_gh_config') || '{}'); return { owner: c.owner || '', repo: c.repo || '', token: c.token || '' }; } catch { return { owner: '', repo: '', token: '' }; } })();
+                            const { owner, repo, token } = GH_CONFIG;
                             if (!owner || !repo || !token) {
-                              setShowGhSettings(true);
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'GitHub env vars not configured in .env.local', type: 'error' } }));
                               return;
                             }
                             setCommitsFetching(true);
@@ -2010,7 +2325,7 @@ export default function WorkQueue({ theme }) {
                             border: `1px solid ${t.border}`,
                             borderRadius: '6px',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                            zIndex: 100
+                            zIndex: 10002
                           }}>
                             {commitsList.map((c) => (
                               <button
@@ -2322,24 +2637,9 @@ export default function WorkQueue({ theme }) {
               borderTop: `1px solid ${t.border}`,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               gap: '8px'
             }}>
-              <span
-                onClick={() => window.open(`/admin/overview/dashboard?ticketId=${selectedTicket.ticketId}`, '_blank')}
-                style={{
-                  fontSize: '11px',
-                  color: t.textLight,
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <ExternalLink size={11} /> view full ticket
-              </span>
-
               {selectedTicket.markedFixed ? (
                 <button
                   type="button"
@@ -2394,107 +2694,6 @@ export default function WorkQueue({ theme }) {
         </div>
       )}
 
-      {/* GitHub Settings popover */}
-      {showGhSettings && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10002,
-            padding: '16px'
-          }}
-          onClick={() => setShowGhSettings(false)}
-        >
-          <div
-            style={{
-              backgroundColor: t.cardBackground,
-              borderRadius: '10px',
-              padding: '16px',
-              maxWidth: '360px',
-              width: '100%',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-              border: `1px solid ${t.border}`
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', color: t.text }}>GitHub Settings</span>
-              <button type="button" onClick={() => setShowGhSettings(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: t.textLight }}>
-                <X size={18} />
-              </button>
-            </div>
-            <p style={{ fontSize: '11px', color: t.textLight, marginBottom: '10px' }}>
-              Used to fetch recent commits when linking fixes to tickets. Saved to admin config so it works on every browser and device once set.
-            </p>
-            <div style={{ marginBottom: '8px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Owner</label>
-              <input
-                type="text"
-                value={ghConfig.owner || ''}
-                onChange={(e) => setGhConfig(prev => ({ ...prev, owner: e.target.value }))}
-                placeholder="e.g. lebro"
-                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
-              />
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Repo</label>
-              <input
-                type="text"
-                value={ghConfig.repo || ''}
-                onChange={(e) => setGhConfig(prev => ({ ...prev, repo: e.target.value }))}
-                placeholder="e.g. TPPSpendide"
-                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
-              />
-            </div>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '4px' }}>Personal Access Token</label>
-              <input
-                type="password"
-                value={ghConfig.token || ''}
-                onChange={(e) => setGhConfig(prev => ({ ...prev, token: e.target.value }))}
-                placeholder="Fine-grained token (Contents: Read)"
-                style={{ width: '100%', padding: '8px', border: `1px solid ${t.border}`, borderRadius: '4px', fontSize: '12px', color: t.text, backgroundColor: t.background }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const payload = { owner: ghConfig.owner || '', repo: ghConfig.repo || '', token: ghConfig.token || '' };
-                  const configRef = doc(db, 'adminConfig', 'workQueueGitHub');
-                  await setDoc(configRef, payload, { merge: true });
-                  localStorage.setItem('tpp_gh_config', JSON.stringify(payload));
-                  setShowGhSettings(false);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'GitHub settings saved — works on every browser', type: 'success' } }));
-                } catch (e) {
-                  console.error(e);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to save. Check admin permissions.', type: 'error' } }));
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                backgroundColor: btnPrimary,
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Closed confirmation modal */}
       {justClosedTicket && (
