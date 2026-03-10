@@ -902,6 +902,18 @@ export async function getAdminUserProfile(userId) {
 }
 
 /**
+ * Fetch admin user profile via callable (uses server-side read; works regardless of Firestore rules).
+ * Use this in admin panel so profile loads don't depend on client rules.
+ */
+export async function getAdminUserProfileViaCallable(userId) {
+  if (!userId) throw new Error('User ID is required');
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'getAdminUserProfile');
+  const result = await fn({ userId });
+  return result.data;
+}
+
+/**
  * Fetch aggregated activity history for a user (admin User Detail modal - Activity Log tab).
  * @param {string} userId - Firebase user ID
  * @param {number} [limit=100] - Max events to return

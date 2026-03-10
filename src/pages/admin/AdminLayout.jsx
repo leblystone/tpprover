@@ -379,6 +379,22 @@ function AdminAuthenticatedLayout({
             <div className="flex items-center gap-6 py-2 min-w-max flex-1 overflow-x-auto">
               {secondaryTabs.map((t) => {
                 const isActive = pathname === t.path;
+                const isDisabled = t.disabled === true;
+                if (isDisabled) {
+                  return (
+                    <span
+                      key={t.id}
+                      className="px-2 pb-2 pt-3 text-sm font-medium whitespace-nowrap relative cursor-not-allowed opacity-60"
+                      style={{
+                        color: theme.textLight ?? '#9a9a9a',
+                        fontWeight: 500,
+                      }}
+                      title="Unavailable"
+                    >
+                      {t.label}
+                    </span>
+                  );
+                }
                 return (
                   <NavLink
                     key={t.id}

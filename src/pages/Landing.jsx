@@ -32,7 +32,7 @@ import logo from '../assets/tpp_logo.png';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import LandingFooter from '../components/layout/LandingFooter';
 import LandingHeader from '../components/layout/LandingHeader';
-import { isNative, isPWAInstalled, isIOS } from '../utils/platform';
+import { isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/platform';
 import { usePageSEO } from '../utils/pageSEO';
 
 export default function Landing() {
@@ -302,9 +302,11 @@ export default function Landing() {
           
           <div className="grid grid-cols-3 sm:flex sm:flex-row gap-3 sm:gap-6 justify-center items-center">
             {/* Apple App Store Button */}
-            <button 
+            <a 
+              href={APP_STORE_IOS_URL}
               className="inline-block transition-transform hover:scale-105"
-              onClick={() => setShowIOSPopup(true)}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <div 
                 className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg btn-primary-inset"
@@ -316,7 +318,7 @@ export default function Landing() {
                   <div className="text-[12px] sm:text-lg font-semibold">App Store</div>
                 </div>
               </div>
-            </button>
+            </a>
 
             {!isIOS() && (
             <a 
@@ -590,12 +592,21 @@ export default function Landing() {
                 <strong>The Pep Planner</strong> is available on the App Store. 
                 Download now and start organizing your peptide research!
               </p>
+              <a
+                href={APP_STORE_IOS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full mb-3 px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg btn-primary-inset text-center"
+                style={{ backgroundColor: '#4c6b52', color: '#FFFFFF' }}
+              >
+                View on App Store
+              </a>
               <button
                 onClick={() => setShowIOSPopup(false)}
                 className="w-full px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg btn-primary-inset"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
-                Got it!
+                Got it
               </button>
             </div>
           </div>

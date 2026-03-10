@@ -26,7 +26,7 @@ import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
-import { shouldShowIntro, isNative, isPWAInstalled, isIOS } from '../utils/platform';
+import { shouldShowIntro, isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/platform';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -1800,9 +1800,11 @@ export default function Login() {
                         <p className="text-xs text-center mb-3" style={{ color: theme.textLight }}>Also available on</p>
                         <div className="flex gap-2 justify-center items-center">
                             {/* Apple App Store Button */}
-                            <button 
+                            <a 
+                                href={APP_STORE_IOS_URL}
                                 className="transition-opacity hover:opacity-80"
-                                onClick={() => setShowIOSPopup(true)}
+                                target="_blank"
+                                rel="noopener noreferrer"
                             >
                                 <div 
                                     className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm"
@@ -1811,7 +1813,7 @@ export default function Login() {
                                     <Apple className="w-4 h-4 text-white" />
                                     <span className="text-[10px] text-white font-medium">iOS</span>
                                 </div>
-                            </button>
+                            </a>
 
                             {!isIOS() && (
                             <a 
@@ -1973,12 +1975,21 @@ export default function Login() {
                                 <strong>The Pep Planner</strong> is available on the App Store.
                                 Download now and start organizing your peptide research!
                             </p>
+                            <a
+                                href={APP_STORE_IOS_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full mb-3 px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg text-center"
+                                style={{ backgroundColor: '#4c6b52', color: '#FFFFFF' }}
+                            >
+                                View on App Store
+                            </a>
                             <button
                                 onClick={() => setShowIOSPopup(false)}
                                 className="w-full px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
                                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
                             >
-                                Got it!
+                                Got it
                             </button>
                         </div>
                     </div>

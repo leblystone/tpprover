@@ -66,9 +66,10 @@ function computeFunnel(users) {
     return (s === 'active') || ['monthly', 'annual', 'lifetime'].includes(i);
   }).length;
 
+  const returnedUsers = users.filter(u => (u.engagement?.loginCount ?? 0) > 1).length;
+
   return [
-    { label: 'Signed up', count: total, pct: 100 },
-    { label: 'Completed tour', count: users.filter(u => u.milestones?.onboardingCompleted).length, pct: pct(users.filter(u => u.milestones?.onboardingCompleted).length) },
+    { label: 'Came back (2+ logins)', count: returnedUsers, pct: pct(returnedUsers) },
     { label: 'Created 1 protocol', count: users.filter(u => u.milestones?.firstProtocolCreated).length, pct: pct(users.filter(u => u.milestones?.firstProtocolCreated).length) },
     { label: 'Added 1 order', count: users.filter(u => u.milestones?.firstOrderAdded).length, pct: pct(users.filter(u => u.milestones?.firstOrderAdded).length) },
     { label: '7-day streak', count: users.filter(u => u.milestones?.sevenDayStreak).length, pct: pct(users.filter(u => u.milestones?.sevenDayStreak).length) },
@@ -140,12 +141,41 @@ export default function AdminAnalytics() {
   const pal = elegantPalette;
 
   // Date range filter state — defaults to last 30 days
+  const today = new Date().toISOString().slice(0, 10);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
     return d.toISOString().slice(0, 10);
   });
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dateTo, setDateTo] = useState(() => today);
+  const [activePreset, setActivePreset] = useState('30d');
+
+  const applyPreset = (preset) => {
+    const now = new Date();
+    const toStr = now.toISOString().slice(0, 10);
+    let fromStr;
+    if (preset === '7d') {
+      const d = new Date(now); d.setDate(d.getDate() - 7);
+      fromStr = d.toISOString().slice(0, 10);
+    } else if (preset === '30d') {
+      const d = new Date(now); d.setDate(d.getDate() - 30);
+      fromStr = d.toISOString().slice(0, 10);
+    } else if (preset === 'thisYear') {
+      fromStr = `${now.getFullYear()}-01-01`;
+    } else if (preset === 'lastYear') {
+      const y = now.getFullYear() - 1;
+      fromStr = `${y}-01-01`;
+      setDateTo(`${y}-12-31`);
+      setDateFrom(fromStr);
+      setActivePreset(preset);
+      return;
+    } else if (preset === 'all') {
+      fromStr = '2020-01-01';
+    }
+    setDateFrom(fromStr);
+    setDateTo(toStr);
+    setActivePreset(preset);
+  };
 
   const [feedbackView, setFeedbackView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('new');
@@ -266,12 +296,42 @@ export default function AdminAnalytics() {
       <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg border" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
         <Filter size={14} style={{ color: pal.gold.metallic }} />
         <span className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Date Range</span>
+
+        {/* Preset buttons */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {[
+            { id: '7d', label: '7D' },
+            { id: '30d', label: '30D' },
+            { id: 'thisYear', label: 'This Year' },
+            { id: 'lastYear', label: 'Last Year' },
+            { id: 'all', label: 'All Time' },
+          ].map(({ id, label }) => {
+            const isActive = activePreset === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => applyPreset(id)}
+                className="px-2 py-0.5 rounded text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: isActive ? pal.gold.metallic : '#f0f0f0',
+                  color: isActive ? '#ffffff' : '#4a4a4a',
+                  border: `1px solid ${isActive ? pal.gold.metallic : '#d0d0d0'}`,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom date pickers */}
         <div className="flex items-center gap-1">
           <input
             type="date"
             value={dateFrom}
             max={dateTo}
-            onChange={e => setDateFrom(e.target.value)}
+            onChange={e => { setDateFrom(e.target.value); setActivePreset(null); }}
             className="text-xs border rounded px-1.5 py-0.5"
             style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
           />
@@ -281,11 +341,12 @@ export default function AdminAnalytics() {
             value={dateTo}
             min={dateFrom}
             max={new Date().toISOString().slice(0, 10)}
-            onChange={e => setDateTo(e.target.value)}
+            onChange={e => { setDateTo(e.target.value); setActivePreset(null); }}
             className="text-xs border rounded px-1.5 py-0.5"
             style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
           />
         </div>
+
         <span className="text-xs ml-auto" style={{ color: '#6a6a6a' }}>
           {filteredUsers.length} users in range
         </span>
@@ -307,160 +368,142 @@ export default function AdminAnalytics() {
         </div>
       </div>
 
-      {/* Two-column layout */}
+      {/* Stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Users', value: analytics.totalUsers, color: pal.gold.metallic },
+          { label: 'Trialing', value: statusCounts.trialing, color: '#F59E0B' },
+          { label: 'Paid', value: statusCounts.monthly + statusCounts.annual + statusCounts.lifetime, color: '#5FAF8B' },
+          { label: 'Trial Expired', value: statusCounts['trial-expired'], color: '#DC2626' },
+        ].map(stat => (
+          <div key={stat.label} className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
+            <div className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
+            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* User Growth + Activation Funnel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Left column: User Growth & Analytics */}
-        <div className="lg:col-span-2 space-y-3">
-          {/* User Growth */}
-          <div
-            className="rounded-lg border p-2"
-            style={{
-              borderColor: '#d0d0d0',
-              backgroundColor: '#ffffff',
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
-                  <TrendingUp size={16} style={{ color: pal.gold.metallic }} />
-                  User Growth
-                </h2>
-                <p className="text-xs" style={{ color: '#4a4a4a' }}>Daily registration &amp; activity</p>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Daily New Signups</h3>
-                <span className="text-xs" style={{ color: '#4a4a4a' }}>
-                  Total: {filteredGrowth.reduce((s, d) => s + d.newUsers, 0)} new users
-                </span>
-              </div>
-              <div
-                className="h-32 flex items-end justify-between gap-1 p-2 rounded-lg"
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e0e0e0',
-                }}
-              >
-                {filteredGrowth.slice(-30).map((day) => {
-                  const maxNew = Math.max(...filteredGrowth.slice(-30).map((d) => d.newUsers), 1);
-                  const hasNew = day.newUsers > 0;
-                  return (
-                    <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
-                      <div
-                        className="rounded-t-lg w-full"
-                        style={{
-                          background: hasNew
-                            ? `linear-gradient(180deg, ${pal.gold.gradientStart} 0%, ${pal.gold.gradientEnd} 100%)`
-                            : '#e0e0e0',
-                          height: hasNew ? `${(day.newUsers / maxNew) * 80}px` : '2px',
-                          minHeight: '2px',
-                        }}
-                      />
-                      <span className="text-[10px] font-semibold" style={{ color: hasNew ? '#1a1a1a' : '#666666' }}>
-                        {new Date(day.date + 'T12:00:00').getDate()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* User Growth */}
+        <div className="lg:col-span-2 rounded-lg border p-2" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
+                <TrendingUp size={16} style={{ color: pal.gold.metallic }} />
+                User Growth
+              </h2>
+              <p className="text-xs" style={{ color: '#4a4a4a' }}>Daily registration &amp; activity</p>
             </div>
           </div>
-
-          {/* Feature Usage */}
-          <div
-            className="rounded-lg border p-3"
-            style={{
-              borderColor: '#d0d0d0',
-              backgroundColor: '#ffffff',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Activity size={16} style={{ color: pal.gold.metallic }} />
-              <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Feature Usage (Estimated)</h2>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Daily New Signups</h3>
+              <span className="text-xs" style={{ color: '#4a4a4a' }}>
+                Total: {filteredGrowth.reduce((s, d) => s + d.newUsers, 0)} new users
+              </span>
             </div>
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-              {Object.entries(analytics.featureUsage || {}).map(([feature, data]) => (
-                <div key={feature} className="text-center p-2 rounded-lg" style={{ background: '#f5f5f5', border: `1px solid #d0d0d0` }}>
-                  <div className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{(data && data.uses) ?? 0}</div>
-                  <div className="text-[10px] font-medium capitalize" style={{ color: '#4a4a4a' }}>{feature}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Activation Funnel */}
-          <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Zap size={16} style={{ color: pal.gold.metallic }} />
-              <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Activation Funnel</h2>
-              <span className="text-xs ml-auto" style={{ color: '#9a9a9a' }}>All users · milestone data grows over time</span>
-            </div>
-            <div className="space-y-2">
-              {funnel.map((step, i) => (
-                <div key={step.label} className="flex items-center gap-2">
-                  <div className="w-28 text-xs shrink-0" style={{ color: '#4a4a4a' }}>{step.label}</div>
-                  <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: '#f0f0f0' }}>
+            <div
+              className="h-32 flex items-end justify-between gap-1 p-2 rounded-lg"
+              style={{ background: '#ffffff', border: '1px solid #e0e0e0' }}
+            >
+              {filteredGrowth.slice(-30).map((day) => {
+                const maxNew = Math.max(...filteredGrowth.slice(-30).map((d) => d.newUsers), 1);
+                const hasNew = day.newUsers > 0;
+                return (
+                  <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
                     <div
-                      className="h-4 rounded-full transition-all"
+                      className="rounded-t-lg w-full"
                       style={{
-                        width: `${step.pct}%`,
-                        background: i === funnel.length - 1
-                          ? `linear-gradient(90deg, ${pal.gold.gradientStart}, ${pal.gold.gradientEnd})`
-                          : `linear-gradient(90deg, ${pal.gold.gradientStart}99, ${pal.gold.gradientEnd}66)`,
+                        background: hasNew
+                          ? `linear-gradient(180deg, ${pal.gold.gradientStart} 0%, ${pal.gold.gradientEnd} 100%)`
+                          : '#e0e0e0',
+                        height: hasNew ? `${(day.newUsers / maxNew) * 80}px` : '2px',
+                        minHeight: '2px',
                       }}
                     />
+                    <span className="text-[10px] font-semibold" style={{ color: hasNew ? '#1a1a1a' : '#666666' }}>
+                      {new Date(day.date + 'T12:00:00').getDate()}
+                    </span>
                   </div>
-                  <div className="w-16 text-right text-xs shrink-0">
-                    {step.count > 0 || i === 0
-                      ? <><span className="font-semibold" style={{ color: '#1a1a1a' }}>{step.count}</span><span style={{ color: '#9a9a9a' }}> ({step.pct}%)</span></>
-                      : <span style={{ color: '#c0c0c0' }}>—</span>
-                    }
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* User Segments */}
-          <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Users size={16} style={{ color: pal.gold.metallic }} />
-              <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>User Segments</h2>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              {[
-                { label: 'New', sub: 'Signed up last 7 days', count: segments.newUsers.length, icon: <Users size={16} />, color: '#7F9E95' },
-                { label: 'Cold', sub: 'Trialing, inactive 4+ days', count: segments.coldUsers.length, icon: <ThermometerSnowflake size={16} />, color: '#94a3b8' },
-                { label: 'Engaged', sub: '3+ active days of last 7', count: segments.engagedUsers.length, icon: <CheckCircle2 size={16} />, color: '#5FAF8B' },
-                { label: 'Avid', sub: '6+ day streak or total', count: segments.avidUsers.length, icon: <Flame size={16} />, color: '#F59E0B' },
-              ].map(seg => (
-                <div key={seg.label} className="p-2 rounded-lg text-center" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
-                  <div className="mb-0.5" style={{ color: seg.color }}>{seg.icon}</div>
-                  <div className="text-xl font-bold" style={{ color: '#1a1a1a' }}>{seg.count}</div>
-                  <div className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>{seg.label}</div>
-                  <div className="text-[10px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>{seg.sub}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Right column: Key metrics */}
-        <div className="space-y-3">
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
-            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>{analytics.totalUsers}</div>
-            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>Total Users</div>
+        {/* Activation Funnel */}
+        <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Zap size={16} style={{ color: pal.gold.metallic }} />
+            <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Activation Funnel</h2>
           </div>
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
-            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>{filteredUsers.length}</div>
-            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>In Selected Range</div>
+          <p className="text-[10px] mb-3" style={{ color: '#9a9a9a' }}>All users · milestone data grows over time</p>
+          <div className="space-y-2">
+            {funnel.map((step, i) => (
+              <div key={step.label} className="flex items-center gap-2">
+                <div className="w-28 text-xs shrink-0" style={{ color: '#4a4a4a' }}>{step.label}</div>
+                <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: '#f0f0f0' }}>
+                  <div
+                    className="h-4 rounded-full transition-all"
+                    style={{
+                      width: `${step.pct}%`,
+                      background: i === funnel.length - 1
+                        ? `linear-gradient(90deg, ${pal.gold.gradientStart}, ${pal.gold.gradientEnd})`
+                        : `linear-gradient(90deg, ${pal.gold.gradientStart}99, ${pal.gold.gradientEnd}66)`,
+                    }}
+                  />
+                </div>
+                <div className="w-16 text-right text-xs shrink-0">
+                  {step.count > 0 || i === 0
+                    ? <><span className="font-semibold" style={{ color: '#1a1a1a' }}>{step.count}</span><span style={{ color: '#9a9a9a' }}> ({step.pct}%)</span></>
+                    : <span style={{ color: '#c0c0c0' }}>—</span>
+                  }
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
-            <div className="text-2xl font-bold" style={{ color: pal.gold.metallic }}>
-              {analytics.totalUsers > 0 ? Math.round(((statusCounts.monthly + statusCounts.annual + statusCounts.lifetime) / analytics.totalUsers) * 100) : 0}%
-            </div>
-            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>Conversion Rate</div>
+        </div>
+      </div>
+
+      {/* Feature Usage + User Segments */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Feature Usage */}
+        <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Activity size={16} style={{ color: pal.gold.metallic }} />
+            <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Feature Usage (Estimated)</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(analytics.featureUsage || {}).map(([feature, data]) => (
+              <div key={feature} className="text-center p-2 rounded-lg" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
+                <div className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{(data && data.uses) ?? 0}</div>
+                <div className="text-[10px] font-medium capitalize" style={{ color: '#4a4a4a' }}>{feature}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* User Segments */}
+        <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Users size={16} style={{ color: pal.gold.metallic }} />
+            <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>User Segments</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'New', sub: 'Signed up last 7 days', count: segments.newUsers.length, icon: <Users size={16} />, color: '#7F9E95' },
+              { label: 'Cold', sub: 'Trialing, inactive 4+ days', count: segments.coldUsers.length, icon: <ThermometerSnowflake size={16} />, color: '#94a3b8' },
+              { label: 'Engaged', sub: '3+ active days of last 7', count: segments.engagedUsers.length, icon: <CheckCircle2 size={16} />, color: '#5FAF8B' },
+              { label: 'Avid', sub: '6+ day streak or total', count: segments.avidUsers.length, icon: <Flame size={16} />, color: '#F59E0B' },
+            ].map(seg => (
+              <div key={seg.label} className="p-2 rounded-lg text-center" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
+                <div className="mb-0.5" style={{ color: seg.color }}>{seg.icon}</div>
+                <div className="text-xl font-bold" style={{ color: '#1a1a1a' }}>{seg.count}</div>
+                <div className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>{seg.label}</div>
+                <div className="text-[10px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>{seg.sub}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 import UserTable from '../../components/admin/UserTable';
+import { calcTrialEndFallback } from '../../utils/trialDays';
 
 export default function AdminUsersSubscriptions() {
   const { theme } = useOutletContext();
@@ -13,31 +14,8 @@ export default function AdminUsersSubscriptions() {
   const getUserStatus = (user) => {
     const subscription = user.subscription;
     const now = new Date();
-    
-    // Check trial status first
-    let trialEndDate = null;
-    if (user.trialEndDate) {
-      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
-    } else if (user.createdAt) {
-      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
-    }
-    
-    if (trialEndDate) {
-      if (trialEndDate > now) {
-        // Active trial - return trialing
-        return 'trialing';
-      } else {
-        // Trial expired - check if they have paid subscription
-        if (subscription?.status === 'active') {
-          // Fall through to check subscription type below
-        } else {
-          return 'trial-expired';
-        }
-      }
-    }
-    
-    // Check if user has an active paid subscription
+
+    // Check active PAID subscription first — never treat paid users as trialing
     if (subscription?.status === 'active') {
       // Normalize all fields to lowercase for case-insensitive comparison
       const planLower = subscription.plan?.toLowerCase() || '';
@@ -88,7 +66,20 @@ export default function AdminUsersSubscriptions() {
       
       return 'monthly'; // Default active subscription to monthly
     }
-    
+
+    // No active paid subscription — check trial
+    let trialEndDate = null;
+    if (user.trialEndDate) {
+      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+    } else if (subscription?.status === 'trialing' && subscription?.currentPeriodEnd) {
+      trialEndDate = subscription.currentPeriodEnd?.toDate?.() || new Date(subscription.currentPeriodEnd);
+    } else if (user.createdAt) {
+      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
+      trialEndDate = calcTrialEndFallback(createdDate);
+    }
+    if (trialEndDate) {
+      return trialEndDate > now ? 'trialing' : 'trial-expired';
+    }
     return 'unknown';
   };
 

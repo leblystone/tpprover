@@ -14,10 +14,10 @@ export const adminPrimaryTabs = [
     icon: 'LayoutDashboard',
     children: [
       { id: 'dashboard', label: 'Dashboard', path: `${ADMIN_BASE}/overview/dashboard` },
-      { id: 'ghosty', label: 'Ghosty', path: `${ADMIN_BASE}/overview/automation` },
-      { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
       { id: 'revenue', label: 'Revenue', path: `${ADMIN_BASE}/overview/revenue` },
+      { id: 'ghosty', label: 'Ghosty', path: `${ADMIN_BASE}/overview/automation` },
+      { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
     ],
   },
   {
@@ -29,7 +29,7 @@ export const adminPrimaryTabs = [
       { id: 'subscriptions', label: 'All Users', path: `${ADMIN_BASE}/users/subscriptions` },
       { id: 'lifetime', label: 'Lifetime', path: `${ADMIN_BASE}/users/lifetime` },
       { id: 'annual', label: 'Annual', path: `${ADMIN_BASE}/users/annual` },
-      { id: 'gifts', label: 'Gifts', path: `${ADMIN_BASE}/users/gifts` },
+      { id: 'gifts', label: 'Gifts', path: `${ADMIN_BASE}/users/gifts`, disabled: true },
       { id: 'expired-trials', label: 'Expired Trials', path: `${ADMIN_BASE}/users/expired-trials` },
     ],
   },

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Send, Users, Mail, Loader, CheckCircle, AlertCircle, RefreshCw, Zap, Clock, Filter, Search } from 'lucide-react';
 import { getUserList } from '../../services/firebase';
 import { exportToCSV } from '../../utils/export';
+import { calcTrialEndFallback } from '../../utils/trialDays';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, query, where, limit, getDocs } from 'firebase/firestore';
 
@@ -114,9 +115,9 @@ export default function ExpiredTrialManager({ theme }) {
           }
         }
 
-        // Determine trial end date
+        // Determine trial end date (only use subscription.currentPeriodEnd when actually trialing)
         let trialEndDate = null;
-        if (user.subscription?.currentPeriodEnd) {
+        if (user.subscription?.status === 'trialing' && user.subscription?.currentPeriodEnd) {
           trialEndDate = user.subscription.currentPeriodEnd.toDate ? 
             user.subscription.currentPeriodEnd.toDate() : 
             new Date(user.subscription.currentPeriodEnd);
@@ -129,7 +130,7 @@ export default function ExpiredTrialManager({ theme }) {
           const createdDate = user.createdAt.toDate ? 
             user.createdAt.toDate() : 
             new Date(user.createdAt);
-          trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
+          trialEndDate = calcTrialEndFallback(createdDate);
         }
 
         if (!trialEndDate || isNaN(trialEndDate.getTime())) {

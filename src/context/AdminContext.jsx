@@ -9,7 +9,7 @@ import {
   deleteFeedback,
   getAnalytics,
   getUserList,
-  getAdminUserProfile,
+  getAdminUserProfileViaCallable,
   getAllLifetimeUsers,
   grantLifetimeAccessFirestore,
   revokeLifetimeAccess,
@@ -341,7 +341,7 @@ export function AdminProvider({ children }) {
     setLoading((prev) => ({ ...prev, selectedUser: true }));
     setIsLoadingUserDetails(true);
     try {
-      const profile = await getAdminUserProfile(uid);
+      const profile = await getAdminUserProfileViaCallable(uid);
       setSelectedUser({ ...user, ...profile, id: profile.id || uid, uid: profile.uid || uid });
     } catch (e) {
       console.warn('Could not load detailed profile:', e?.message);
@@ -371,7 +371,7 @@ export function AdminProvider({ children }) {
         setUserList(updated);
       } catch (_) {}
       try {
-        const profile = await getAdminUserProfile(userId);
+        const profile = await getAdminUserProfileViaCallable(userId);
         setSelectedUser((prev) => (prev ? { ...prev, ...profile } : profile));
       } catch (_) {}
     } catch (err) {

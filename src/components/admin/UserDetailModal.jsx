@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink, Globe, Tablet, Flame, Activity, CheckCircle2 } from 'lucide-react';
 import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
+import { calcTrialEndFallback } from '../../utils/trialDays';
 
 function RevokeAndRestoreTrialAction({ user, theme }) {
   const [open, setOpen] = useState(false);
@@ -197,45 +198,8 @@ export default function UserDetailModal({
   // Get account status - using same logic as UserTable for consistency
   const getSubscriptionStatus = () => {
     const now = new Date();
-    
-    // First check trial status (regardless of subscription)
-    let trialEndDate = null;
-    
-    // Check if user has explicit trialEndDate
-    if (user.trialEndDate) {
-      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
-    } else if (user.createdAt) {
-      // If no trialEndDate, calculate default 30-day trial from registration
-      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
-    }
-    
-    if (trialEndDate) {
-      if (trialEndDate > now) {
-        // Active trial - show days remaining
-        const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
-        return { 
-          label: `Trial (${daysLeft}d left)`, 
-          color: '#F59E0B', 
-          bgColor: '#F59E0B20', 
-          borderColor: '#F59E0B40' 
-        };
-      } else {
-        // Trial expired - check if they have paid subscription
-        if (user.subscription?.status === 'active') {
-          // Fall through to check subscription type below
-        } else {
-          return { 
-            label: 'Trial Expired', 
-            color: enhancedTheme.error, 
-            bgColor: enhancedTheme.error + '20', 
-            borderColor: enhancedTheme.error + '40' 
-          };
-        }
-      }
-    }
-    
-    // Check for lifetime access
+
+    // Check active PAID subscription first — never show "Trial" for paid users
     if (hasLifetimeAccess) {
       return { 
         label: 'Lifetime Access', 
@@ -277,8 +241,24 @@ export default function UserDetailModal({
     if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
       return { label: 'Subscription Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
-    
-    // If we get here, user has no trial date and no subscription - shouldn't happen
+
+    // No paid subscription — check trial
+    let trialEndDate = null;
+    if (user.trialEndDate) {
+      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+    } else if (user.subscription?.status === 'trialing' && user.subscription?.currentPeriodEnd) {
+      trialEndDate = user.subscription.currentPeriodEnd?.toDate?.() || new Date(user.subscription.currentPeriodEnd);
+    } else if (user.createdAt) {
+      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
+      trialEndDate = calcTrialEndFallback(createdDate);
+    }
+    if (trialEndDate) {
+      if (trialEndDate > now) {
+        const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
+        return { label: `Trial (${daysLeft}d left)`, color: '#F59E0B', bgColor: '#F59E0B20', borderColor: '#F59E0B40' };
+      }
+      return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+    }
     return { label: 'Unknown', color: '#9CA3AF', bgColor: '#9CA3AF20', borderColor: '#9CA3AF40' };
   };
 
@@ -1168,11 +1148,18 @@ export default function UserDetailModal({
 function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }) {
   const sub = user.subscription || {};
   const now = new Date();
+  const isPaid = sub.status === 'active' && (
+    sub.hasLifetimeAccess ||
+    /lifetime|annual|year|monthly|month|google-play|apple/i.test([sub.plan, sub.billing, sub.interval, sub.platform].filter(Boolean).join(' '))
+  );
   let trialEndDate = null;
-  if (user.trialEndDate) trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
-  else if (user.createdAt) {
-    const created = user.createdAt?.toDate?.() || new Date(user.createdAt);
-    trialEndDate = new Date(created.getTime() + 14 * 24 * 60 * 60 * 1000);
+  if (!isPaid) {
+    if (user.trialEndDate) trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+    else if (sub.status === 'trialing' && sub.currentPeriodEnd) trialEndDate = sub.currentPeriodEnd?.toDate?.() || new Date(sub.currentPeriodEnd);
+    else if (user.createdAt) {
+      const created = user.createdAt?.toDate?.() || new Date(user.createdAt);
+      trialEndDate = calcTrialEndFallback(created);
+    }
   }
   const trialDaysTotal = trialEndDate && user.createdAt ? Math.ceil((trialEndDate - (user.createdAt?.toDate?.() || new Date(user.createdAt))) / (24 * 60 * 60 * 1000)) : 14;
   const trialDaysLeft = trialEndDate && trialEndDate > now ? Math.ceil((trialEndDate - now) / (24 * 60 * 60 * 1000)) : 0;
@@ -1205,7 +1192,7 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
             {subscriptionStatusDisplay.label}
           </span>
         </div>
-        {trialEndDate && trialEndDate > now && (
+        {!isPaid && trialEndDate && trialEndDate > now && (
           <div>
             <div className="flex justify-between text-xs mb-1" style={{ color: theme.textLight }}>
               <span>Trial</span>
@@ -1266,7 +1253,10 @@ function buildLifecycleMilestones(user, events) {
 
   // Trial window
   let trialEnd = user.trialEndDate?.toDate ? user.trialEndDate.toDate() : user.trialEndDate ? new Date(user.trialEndDate) : null;
-  if (!trialEnd && registered) trialEnd = new Date(registered.getTime() + 14 * 24 * 60 * 60 * 1000);
+  if (!trialEnd && user.subscription?.currentPeriodEnd) {
+    trialEnd = user.subscription.currentPeriodEnd?.toDate ? user.subscription.currentPeriodEnd.toDate() : new Date(user.subscription.currentPeriodEnd);
+  }
+  if (!trialEnd && registered) trialEnd = calcTrialEndFallback(registered);
   if (trialEnd && !Number.isNaN(trialEnd.getTime())) {
     const expired = trialEnd <= now;
     milestones.push({ key: 'trial_end', label: expired ? 'Trial Ended' : 'Trial Ends', date: trialEnd, color: expired ? 'warning' : 'info', icon: '⏳' });

@@ -1,47 +1,13 @@
 import React from 'react';
 import { CheckCircle, Clock, XCircle, Crown, Calendar, Zap, AlertCircle } from 'lucide-react';
+import { calcTrialEndFallback } from '../../utils/trialDays';
 
 // Helper function to determine subscription status
 function getSubscriptionStatus(user) {
   const subscription = user.subscription;
   const now = new Date();
-  
-  // First check trial status (regardless of subscription)
-  let trialEndDate = null;
-  
-  // Check if user has explicit trialEndDate
-  if (user.trialEndDate) {
-    trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
-  } else if (user.createdAt) {
-    // If no trialEndDate, calculate default 14-day trial from registration
-    const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-    trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
-  }
-  
-  if (trialEndDate) {
-    if (trialEndDate > now) {
-      // Active trial
-      const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
-      return { 
-        label: `Trial (${daysLeft}d left)`, 
-        color: '#F59E0B', 
-        icon: Clock 
-      };
-    } else {
-      // Trial expired - check if they have paid subscription
-      if (subscription?.status === 'active') {
-        // Fall through to check subscription type below
-      } else {
-        return { 
-          label: 'Trial Expired', 
-          color: '#EF4444', 
-          icon: XCircle 
-        };
-      }
-    }
-  }
-  
-  // Check if user has an active subscription (using 'plan' field instead of 'planType')
+
+  // Check active PAID subscription first — never show "Trial" for paid users
   if (subscription?.status === 'active') {
     // Normalize all fields to lowercase for case-insensitive comparison
     const planLower = subscription.plan?.toLowerCase() || '';
@@ -93,8 +59,26 @@ function getSubscriptionStatus(user) {
     }
     return { label: 'Active', color: '#10B981', icon: CheckCircle };
   }
-  
-  // If we get here, user has no trial date and no subscription - shouldn't happen
+
+  // No active paid subscription — determine trial status
+  let trialEndDate = null;
+  if (user.trialEndDate) {
+    trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+  } else if (subscription?.status === 'trialing' && subscription?.currentPeriodEnd) {
+    trialEndDate = subscription.currentPeriodEnd?.toDate?.() || new Date(subscription.currentPeriodEnd);
+  } else if (user.createdAt) {
+    const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
+    trialEndDate = calcTrialEndFallback(createdDate);
+  }
+
+  if (trialEndDate) {
+    if (trialEndDate > now) {
+      const daysLeft = Math.ceil((trialEndDate - now) / (1000 * 60 * 60 * 24));
+      return { label: `Trial (${daysLeft}d left)`, color: '#F59E0B', icon: Clock };
+    }
+    return { label: 'Trial Expired', color: '#EF4444', icon: XCircle };
+  }
+
   return { label: 'Unknown', color: '#9CA3AF', icon: AlertCircle };
 }
 

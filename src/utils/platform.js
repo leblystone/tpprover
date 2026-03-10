@@ -110,10 +110,12 @@ export const getPlatformDisplayName = () => {
 // App Store URLs
 // ============================================================================
 
+/** Public App Store link for The Pep Planner (iOS) */
+export const APP_STORE_IOS_URL = 'https://apps.apple.com/us/app/the-pep-planner/id6759207981';
+
 export const getAppStoreUrl = () => {
   if (isIOS()) {
-    // TODO: Update with actual App Store ID after iOS app approval
-    return 'https://apps.apple.com/app/the-pep-planner/YOUR_APP_ID';
+    return APP_STORE_IOS_URL;
   }
   if (isAndroid()) {
     return 'https://play.google.com/store/apps/details?id=com.thepepplanner.app';

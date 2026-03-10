@@ -45,7 +45,7 @@ const ADMIN_EMAILS = [
 ];
 
 /**
- * Verify the caller is an authenticated admin.
+ * Verify the caller is an authenticated admin (token email in ADMIN_EMAILS).
  * Throws HttpsError if not authorized.
  * @param {Object} request - The onCall request object
  * @returns {string} The admin's email
@@ -59,6 +59,28 @@ function verifyAdmin(request) {
     throw new HttpsError('permission-denied', 'Admin access required');
   }
   return callerEmail;
+}
+
+/**
+ * Verify admin with fallback: token email first, then Firestore user doc (email in list or role === 'admin').
+ * Use when token.email may be missing (e.g. some auth providers).
+ */
+async function ensureAdmin(request) {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required');
+  }
+  const callerEmail = (request.auth.token && request.auth.token.email) || '';
+  if (callerEmail && ADMIN_EMAILS.includes(callerEmail.toLowerCase())) {
+    return;
+  }
+  const db = admin.firestore();
+  const userDoc = await db.collection('users').doc(request.auth.uid).get();
+  const data = userDoc.exists ? userDoc.data() : {};
+  const docEmail = (data.email || '').toLowerCase();
+  if (ADMIN_EMAILS.includes(docEmail) || data.role === 'admin') {
+    return;
+  }
+  throw new HttpsError('permission-denied', 'Admin access required');
 }
 
 // Import and export the Stripe functions individually
@@ -88,20 +110,13 @@ exports.manualProcessSquarespaceOrder = manualProcessSquarespaceOrder.manualProc
 exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
 exports.appleWebhook = appleInAppPurchase.appleWebhook;
 
-// Revenue metrics API (admin only)
+// Revenue metrics API (admin only — token email or Firestore role/email)
 exports.getRevenueMetrics = onCall({
   cors: true,
 }, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Must be authenticated');
-  }
+  await ensureAdmin(request);
 
   const db = admin.firestore();
-  const userDoc = await db.collection('users').doc(request.auth.uid).get();
-  if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
-    throw new HttpsError('permission-denied', 'Admin access required');
-  }
-
   try {
     const subSnapshot = await db.collection('userSubscriptions').get();
     let activeMonthly = 0, activeAnnual = 0, activeLifetime = 0;
@@ -159,6 +174,57 @@ exports.getRevenueMetrics = onCall({
     logger.error('❌ Revenue metrics error:', error);
     throw new HttpsError('internal', error.message);
   }
+});
+
+// Admin user profile (server-side read so it works regardless of Firestore rules)
+exports.getAdminUserProfile = onCall({ cors: true }, async (request) => {
+  await ensureAdmin(request);
+  const userId = request.data?.userId;
+  if (!userId || typeof userId !== 'string') {
+    throw new HttpsError('invalid-argument', 'User ID is required');
+  }
+  const db = admin.firestore();
+  const [userSnap, subscriptionSnap] = await Promise.all([
+    db.collection('users').doc(userId).get(),
+    db.collection('userSubscriptions').doc(userId).get()
+  ]);
+  if (!userSnap.exists) {
+    throw new HttpsError('not-found', 'Researcher record not found');
+  }
+  const userData = userSnap.data();
+  const subscriptionDoc = subscriptionSnap.exists ? subscriptionSnap.data() : {};
+  const subscriptionData = subscriptionDoc.subscription || userData.subscription || null;
+  const extensionHistory = [];
+  if (Array.isArray(userData.trialExtensionHistory)) {
+    extensionHistory.push(...userData.trialExtensionHistory);
+  }
+  if (Array.isArray(subscriptionDoc.trialExtensionHistory)) {
+    extensionHistory.push(...subscriptionDoc.trialExtensionHistory);
+  }
+  const dedupedHistoryMap = new Map();
+  extensionHistory.forEach((entry) => {
+    if (!entry) return;
+    const key = entry.newEnd || `${entry.extendedAt || ''}-${entry.addedDays || ''}`;
+    if (!dedupedHistoryMap.has(key)) dedupedHistoryMap.set(key, entry);
+  });
+  const combinedHistory = Array.from(dedupedHistoryMap.values()).sort((a, b) => {
+    const aTime = new Date(a.extendedAt || a.newEnd || 0).getTime();
+    const bTime = new Date(b.extendedAt || b.newEnd || 0).getTime();
+    return bTime - aTime;
+  });
+  return {
+    id: userId,
+    uid: userId,
+    email: userData.email,
+    displayName: userData.displayName,
+    createdAt: userData.createdAt,
+    lastActive: userData.lastActive,
+    inviteCodeUsed: userData.inviteCodeUsed,
+    isActive: userData.isActive,
+    subscription: subscriptionData,
+    trialEndDate: userData.trialEndDate || null,
+    trialExtensionHistory: combinedHistory
+  };
 });
 
 // EasyPost Tracking Functions
